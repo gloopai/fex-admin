@@ -104,39 +104,57 @@ export const DELIVERY_USER_TYPE_CONFIG = {
 
 // 交割周期类型
 export const DELIVERY_CYCLE_TYPE = {
-  DAILY: 'daily',       // 日合约
-  WEEKLY: 'weekly',     // 周合约
-  BI_WEEKLY: 'bi_weekly', // 双周合约
-  MONTHLY: 'monthly',   // 月合约
-  QUARTERLY: 'quarterly' // 季度合约
+  SEC_30: '30s',         // 30秒
+  SEC_60: '60s',         // 60秒(1分钟)
+  SEC_120: '120s',       // 120秒(2分钟)
+  SEC_180: '180s',       // 180秒(3分钟)
+  SEC_300: '300s',       // 300秒(5分钟)
+  SEC_600: '600s',       // 600秒(10分钟)
+  SEC_900: '900s',       // 900秒(15分钟)
+  SEC_1800: '1800s'      // 1800秒(30分钟)
 }
 
 // 交割周期配置
 export const DELIVERY_CYCLE_TYPE_CONFIG = {
-  [DELIVERY_CYCLE_TYPE.DAILY]: {
-    text: '日合约',
+  [DELIVERY_CYCLE_TYPE.SEC_30]: {
+    text: '30秒',
     class: 'bg-sky-100 text-sky-700',
     color: 'sky'
   },
-  [DELIVERY_CYCLE_TYPE.WEEKLY]: {
-    text: '周合约',
+  [DELIVERY_CYCLE_TYPE.SEC_60]: {
+    text: '60秒',
     class: 'bg-cyan-100 text-cyan-700',
     color: 'cyan'
   },
-  [DELIVERY_CYCLE_TYPE.BI_WEEKLY]: {
-    text: '双周合约',
+  [DELIVERY_CYCLE_TYPE.SEC_120]: {
+    text: '2分钟',
     class: 'bg-teal-100 text-teal-700',
     color: 'teal'
   },
-  [DELIVERY_CYCLE_TYPE.MONTHLY]: {
-    text: '月合约',
+  [DELIVERY_CYCLE_TYPE.SEC_180]: {
+    text: '3分钟',
+    class: 'bg-blue-100 text-blue-700',
+    color: 'blue'
+  },
+  [DELIVERY_CYCLE_TYPE.SEC_300]: {
+    text: '5分钟',
     class: 'bg-indigo-100 text-indigo-700',
     color: 'indigo'
   },
-  [DELIVERY_CYCLE_TYPE.QUARTERLY]: {
-    text: '季度合约',
+  [DELIVERY_CYCLE_TYPE.SEC_600]: {
+    text: '10分钟',
     class: 'bg-violet-100 text-violet-700',
     color: 'violet'
+  },
+  [DELIVERY_CYCLE_TYPE.SEC_900]: {
+    text: '15分钟',
+    class: 'bg-purple-100 text-purple-700',
+    color: 'purple'
+  },
+  [DELIVERY_CYCLE_TYPE.SEC_1800]: {
+    text: '30分钟',
+    class: 'bg-fuchsia-100 text-fuchsia-700',
+    color: 'fuchsia'
   }
 }
 
