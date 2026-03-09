@@ -196,7 +196,7 @@ const exportData = () => {
     <!-- 页面标题 -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold text-slate-900">积分变动审核</h1>
+        <h1 class="text-2xl font-bold text-slate-900">信用分变动审核</h1>
         <p class="text-sm text-slate-500 mt-1">审核用户信用分变动申请</p>
       </div>
       <button
