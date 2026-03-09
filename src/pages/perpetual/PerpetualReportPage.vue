@@ -1003,7 +1003,6 @@ const openRiskHelpModal = () => {
                       <th class="px-6 py-3 text-right text-xs font-semibold text-slate-900 uppercase">触发次数</th>
                       <th class="px-6 py-3 text-left text-xs font-semibold text-slate-900 uppercase">最后触发</th>
                       <th class="px-6 py-3 text-right text-xs font-semibold text-slate-900 uppercase">平均时长</th>
-                      <th class="px-6 py-3 text-center text-xs font-semibold text-slate-900 uppercase">效果评价</th>
                       <th class="px-6 py-3 text-right text-xs font-semibold text-slate-900 uppercase">盈亏改善</th>
                     </tr>
                   </thead>
@@ -1023,14 +1022,6 @@ const openRiskHelpModal = () => {
                     </td>
                     <td class="px-6 py-4 text-right">
                       <p class="text-sm text-slate-700">{{ Math.floor(stat.avgDuration / 60) }}m {{ stat.avgDuration % 60 }}s</p>
-                    </td>
-                    <td class="px-6 py-4 text-center">
-                      <span
-                        :class="stat.effectRating === 'good' ? 'bg-emerald-100 text-emerald-700' : stat.effectRating === 'normal' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'"
-                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                      >
-                        {{ stat.effectRating === 'good' ? '效果好' : stat.effectRating === 'normal' ? '一般' : '较差' }}
-                      </span>
                     </td>
                     <td class="px-6 py-4 text-right">
                       <p class="text-sm font-medium text-emerald-600">{{ formatCurrency(stat.pnlImprovement) }}</p>

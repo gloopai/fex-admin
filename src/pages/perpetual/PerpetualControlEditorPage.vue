@@ -553,7 +553,14 @@ const toggleContractStatus = (contractId) => {
                 <label class="block space-y-3">
                   <div class="flex items-center justify-between">
                     <span class="text-sm font-medium text-slate-700">价格偏移 (点)</span>
-                    <span class="rounded-md bg-violet-100 px-2.5 py-1 text-sm font-semibold text-violet-700">{{ ruleForm.priceOffset }}</span>
+                    <input
+                      v-model.number="ruleForm.priceOffset"
+                      type="number"
+                      min="0"
+                      max="50"
+                      step="1"
+                      class="w-20 rounded-md border border-violet-300 px-2 py-1 text-right text-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                    />
                   </div>
                   <input v-model.number="ruleForm.priceOffset" type="range" min="0" max="50" step="1" class="w-full accent-violet-600" />
                   <div class="flex items-start gap-1.5 rounded-md bg-violet-50 px-3 py-2">
@@ -591,7 +598,14 @@ const toggleContractStatus = (contractId) => {
                 <label class="block space-y-3">
                   <div class="flex items-center justify-between">
                     <span class="text-sm font-medium text-slate-700">滑点率 (%)</span>
-                    <span class="rounded-md bg-violet-100 px-2.5 py-1 text-sm font-semibold text-violet-700">{{ ruleForm.slippagePct.toFixed(2) }}%</span>
+                    <input
+                      v-model.number="ruleForm.slippagePct"
+                      type="number"
+                      min="0"
+                      max="2"
+                      step="0.01"
+                      class="w-20 rounded-md border border-violet-300 px-2 py-1 text-right text-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                    />
                   </div>
                   <input v-model.number="ruleForm.slippagePct" type="range" min="0" max="2" step="0.01" class="w-full accent-violet-600" />
                   <div class="flex items-start gap-1.5 rounded-md bg-violet-50 px-3 py-2">
