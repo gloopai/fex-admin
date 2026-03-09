@@ -22,20 +22,6 @@ export const lineParamTerms = [
     example: '设置 +10 点：用户看到的 BTC 价格比实际高 10 点。'
   },
   {
-    zh: '点差',
-    en: 'Spread',
-    unit: '点',
-    desc: '买入价（Ask）与卖出价（Bid）之间的差价，点差越大交易成本越高。',
-    example: '正常点差 2 点，调整为 1.5x 后点差变为 3 点。'
-  },
-  {
-    zh: '点差倍数',
-    en: 'Spread Multiplier',
-    unit: 'x',
-    desc: '在原始点差基础上的放大倍数，1.0x 表示正常点差。',
-    example: '原始点差 2 点 × 2.0x = 实际点差 4 点。'
-  },
-  {
     zh: '滑点',
     en: 'Slippage',
     unit: '%',
@@ -55,13 +41,6 @@ export const lineParamTerms = [
     unit: 'ms（毫秒）',
     desc: '订单从提交到实际成交之间人为增加的等待时间。',
     example: '设置 500ms 延迟：用户下单后需要等待 0.5 秒才成交。'
-  },
-  {
-    zh: '拒单率',
-    en: 'Reject Rate',
-    unit: '%',
-    desc: '用户订单被系统拒绝的概率，被拒绝订单不会成交。',
-    example: '5% 拒单率：每 100 个订单中平均有 5 个会被拒绝。'
   },
   {
     zh: '杠杆上限',
@@ -106,7 +85,7 @@ export const triggerTerms = [
 
 export const controlStateTerms = [
   { zh: '无线控', en: 'No Control', desc: '用户处于正常状态，不受任何线控影响。', cls: 'bg-slate-100 text-slate-700' },
-  { zh: '价格控制', en: 'Price Control', desc: '仅启用价格偏移和点差调整。', cls: 'bg-blue-100 text-blue-700' },
+  { zh: '价格控制', en: 'Price Control', desc: '仅启用价格偏移。', cls: 'bg-blue-100 text-blue-700' },
   { zh: '成交控制', en: 'Execution Control', desc: '仅启用滑点注入和成交延迟。', cls: 'bg-violet-100 text-violet-700' },
   { zh: '全面控制', en: 'Full Control', desc: '同时启用价格控制和成交控制参数。', cls: 'bg-amber-100 text-amber-700' },
   { zh: '已锁定', en: 'Locked', desc: '禁止用户进行任何交易操作。', cls: 'bg-rose-100 text-rose-700' },
@@ -158,8 +137,8 @@ export const contractRuleExamples = [
     labelCls: 'bg-emerald-100 text-emerald-700',
     name: '用户盈利过高干预',
     trigger: ['触发类型: 盈亏比触发', '盈亏阈值: 15%', '触发方向: 用户盈利过高'],
-    action: ['点差倍数: 1.5x', '成交延迟: 100ms', '拒单率: 5%'],
-    effect: '当该合约用户整体盈利率超过 15% 时，系统自动扩大点差并增加成交延迟，同时以 5% 概率拒单。'
+    action: ['成交延迟: 100ms', '滑点率: 0.25%'],
+    effect: '当该合约用户整体盈利率超过 15% 时，系统自动增加成交延迟和滑点。'
   }
 ]
 
@@ -181,28 +160,28 @@ export const operationScenarios = [
   {
     title: '场景 2：用户盈利率过高干预',
     trigger: '盈亏比触发：整体盈利率 > 15%',
-    action: '点差倍数 1.5x + 成交延迟 100ms + 拒单率 5%',
+    action: '成交延迟 100ms + 滑点率 0.25%',
     effect: '降低高盈利用户交易效率，减缓盈利扩张速度。',
     duration: '建议时长：30-90 分钟'
   },
   {
     title: '场景 3：波动率异常扩大保护',
     trigger: '波动率触发：5 分钟波动 > 2%',
-    action: '点差倍数 1.8x + 滑点率 0.25% + 杠杆上限降至 50x',
+    action: '滑点率 0.25% + 杠杆上限降至 50x',
     effect: '在剧烈波动时减少高杠杆冲击，保护撮合与风控稳定性。',
     duration: '建议时长：15-45 分钟'
   },
   {
     title: '场景 4：交易量突增防刷单',
     trigger: '交易量突增触发：5 分钟交易量 > 均值 3 倍',
-    action: '拒单率 3% + 成交延迟 80ms + 滑点率 0.15%',
+    action: '成交延迟 80ms + 滑点率 0.15%',
     effect: '提高异常高频策略成本，缓解撮合拥堵和异常交易行为。',
     duration: '建议时长：20-60 分钟'
   },
   {
     title: '场景 5：高风险时段预防性启用',
     trigger: '时间段触发：每日 00:00-02:00 自动启用',
-    action: '点差倍数 1.3x + 价格偏移 3 点（随机）',
+    action: '价格偏移 3 点（随机）',
     effect: '在已知高风险时段提前降低套利与突发波动带来的冲击。',
     duration: '建议时长：固定时段内生效'
   },
@@ -267,7 +246,6 @@ export const positionControls = [
 
 export const paramCards = [
   { name: '价格偏移', unit: '点', range: '-50 ~ +50', desc: '正数对做多不利，负数对做空不利' },
-  { name: '点差倍数', unit: 'x', range: '1.0 ~ 5.0', desc: '1.5x 表示点差扩大 50%' },
   { name: '滑点率', unit: '%', range: '0 ~ 2.0', desc: '成交时的额外滑点比例' },
   { name: '成交延迟', unit: 'ms', range: '0 ~ 5000', desc: '订单成交前的等待时间' },
   { name: '杠杆上限', unit: 'x', range: '1 ~ 125', desc: '限制用户可使用的最大杠杆' },

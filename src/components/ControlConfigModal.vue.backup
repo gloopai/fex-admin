@@ -1,0 +1,516 @@
+<script setup>
+import { computed, reactive, ref, watch } from 'vue'
+
+const props = defineProps({
+  open: {
+    type: Boolean,
+    default: false
+  },
+  symbol: {
+    type: String,
+    default: ''
+  },
+  config: {
+    type: Object,
+    default: () => ({})
+  }
+})
+
+const emit = defineEmits(['close', 'save'])
+
+const defaults = () => ({
+  priceOffset: 5,
+  offsetDirection: 'random',
+  slippagePct: 0.15,
+  latencyMs: 50,
+  maxLeverage: 100,
+  autoTriggerEnabled: true
+})
+
+const form = reactive(defaults())
+const activeTab = ref('basic')
+const selectedPreset = ref('custom')
+
+const tabs = [
+  { key: 'basic', label: '基础设置' },
+  { key: 'price', label: '价格控制' },
+  { key: 'execution', label: '成交控制' },
+  { key: 'leverage', label: '杠杆限制' }
+]
+
+const presetKeys = ['conservative', 'balanced', 'aggressive']
+
+const presetMap = {
+  conservative: {
+    label: '保守',
+    desc: '低干预，优先稳定',
+    values: { priceOffset: 2, offsetDirection: 'random', slippagePct: 0.1, latencyMs: 30, maxLeverage: 75 }
+  },
+  balanced: {
+    label: '均衡',
+    desc: '默认建议配置',
+    values: { priceOffset: 5, offsetDirection: 'random', slippagePct: 0.2, latencyMs: 80, maxLeverage: 100 }
+  },
+  aggressive: {
+    label: '激进',
+    desc: '高干预，快速控险',
+    values: { priceOffset: 10, offsetDirection: 'against', slippagePct: 0.35, latencyMs: 150, maxLeverage: 50 }
+  }
+}
+
+const nearlyEqual = (a, b, eps = 1e-6) => Math.abs(Number(a) - Number(b)) <= eps
+
+const detectPreset = () => {
+  const keys = ['conservative', 'balanced', 'aggressive']
+  for (const key of keys) {
+    const p = presetMap[key].values
+    if (
+      form.offsetDirection === p.offsetDirection &&
+      nearlyEqual(form.priceOffset, p.priceOffset) &&
+      nearlyEqual(form.slippagePct, p.slippagePct) &&
+      nearlyEqual(form.latencyMs, p.latencyMs) &&
+      nearlyEqual(form.maxLeverage, p.maxLeverage)
+    ) {
+      return key
+    }
+  }
+  return 'custom'
+}
+
+const hydrateForm = (next = {}) => {
+  const value = { ...defaults(), ...next }
+  form.priceOffset = Number(value.priceOffset)
+  form.offsetDirection = value.offsetDirection
+  form.slippagePct = Number(value.slippagePct)
+  form.latencyMs = Number(value.latencyMs)
+  form.maxLeverage = Number(value.maxLeverage)
+  form.autoTriggerEnabled = Boolean(value.autoTriggerEnabled)
+}
+
+watch(
+  () => [props.open, props.config],
+  ([isOpen]) => {
+    if (isOpen) {
+      hydrateForm(props.config)
+      activeTab.value = 'basic'
+      selectedPreset.value = detectPreset()
+    }
+  },
+  { immediate: true }
+)
+
+const clamp = (val, min, max) => Math.min(max, Math.max(min, Number(val || 0)))
+
+const normalize = () => {
+  form.priceOffset = clamp(form.priceOffset, 0, 50)
+  form.slippagePct = clamp(form.slippagePct, 0, 2)
+  form.latencyMs = clamp(form.latencyMs, 0, 5000)
+  form.maxLeverage = clamp(form.maxLeverage, 1, 125)
+}
+
+const applyPreset = (preset) => {
+  const values = presetMap[preset]?.values
+  if (!values) return
+  form.priceOffset = values.priceOffset
+  form.offsetDirection = values.offsetDirection
+  form.slippagePct = values.slippagePct
+  form.latencyMs = values.latencyMs
+  form.maxLeverage = values.maxLeverage
+  selectedPreset.value = preset
+}
+
+const selectPreset = (preset) => {
+  if (!presetMap[preset]) return
+  applyPreset(preset)
+}
+
+watch(
+  () => [form.priceOffset, form.offsetDirection, form.slippagePct, form.latencyMs, form.maxLeverage],
+  () => {
+    selectedPreset.value = detectPreset()
+  }
+)
+
+const riskScore = computed(() => {
+  const score = form.maxLeverage * 0.35 + form.slippagePct * 55 + form.priceOffset * 1.2 + form.latencyMs * 0.04
+  return Math.round(score)
+})
+
+const riskLabel = computed(() => {
+  if (riskScore.value < 45) return { text: '低风险', className: 'text-emerald-600' }
+  if (riskScore.value < 75) return { text: '中风险', className: 'text-amber-600' }
+  return { text: '高风险', className: 'text-rose-600' }
+})
+
+const summary = computed(() => {
+  const directionText = {
+    random: '随机偏移',
+    up: '向上偏移',
+    down: '向下偏移',
+    against: '逆势偏移'
+  }[form.offsetDirection] || '随机偏移'
+  return [
+    `价格偏移: ${form.priceOffset} 点 (${directionText})`,
+    `滑点率: ${form.slippagePct.toFixed(2)}%`,
+    `成交延迟: ${form.latencyMs}ms`,
+    `杠杆上限: ${form.maxLeverage}x`,
+    `自动触发规则: ${form.autoTriggerEnabled ? '启用' : '关闭'}`
+  ]
+})
+
+const save = () => {
+  normalize()
+  emit('save', {
+    priceOffset: Number(form.priceOffset),
+    offsetDirection: form.offsetDirection,
+    slippagePct: Number(form.slippagePct),
+    latencyMs: Number(form.latencyMs),
+    maxLeverage: Number(form.maxLeverage),
+    autoTriggerEnabled: Boolean(form.autoTriggerEnabled)
+  })
+}
+</script>
+
+<template>
+  <div v-if="open" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4" @click.self="emit('close')">
+    <section class="flex h-[88vh] w-full max-w-5xl overflow-hidden rounded-xl bg-white shadow-2xl">
+      <!-- 左侧配置区域 -->
+      <div class="flex w-3/5 flex-col border-r border-slate-200">
+        <header class="flex items-center justify-between border-b border-slate-200 bg-gradient-to-r from-blue-50 to-cyan-50 px-6 py-4">
+          <div>
+            <h2 class="text-xl font-semibold text-slate-900">配置 {{ symbol }} 线控参数</h2>
+            <p class="mt-0.5 text-xs text-slate-500">调整参数后可在右侧查看实时影响</p>
+          </div>
+          <button type="button" class="text-2xl text-slate-400 hover:text-slate-600 transition-colors" @click="emit('close')">×</button>
+        </header>
+
+        <div class="flex-1 space-y-5 overflow-y-auto px-6 py-5">
+          <!-- 快速预设 -->
+          <section class="space-y-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="flex items-center gap-2">
+              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100">
+                <svg class="h-4 w-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <div class="flex-1">
+                <h3 class="text-base font-semibold text-slate-900">快速预设</h3>
+                <p class="text-xs text-slate-500">选择预设方案快速配置</p>
+              </div>
+            </div>
+            
+            <div class="grid gap-3 sm:grid-cols-3">
+              <button
+                v-for="key in presetKeys"
+                :key="key"
+                type="button"
+                class="rounded-lg border px-4 py-3 text-left transition"
+                :class="
+                  selectedPreset === key
+                    ? 'border-blue-500 bg-blue-50 shadow-sm ring-2 ring-blue-100'
+                    : 'border-slate-300 bg-white hover:border-blue-300 hover:bg-slate-50'
+                "
+                @click="selectPreset(key)"
+              >
+                <div class="flex items-center justify-between mb-1">
+                  <p class="text-sm font-semibold text-slate-900">{{ presetMap[key].label }}</p>
+                  <span
+                    class="h-3 w-3 rounded-full border-2 transition"
+                    :class="selectedPreset === key ? 'border-blue-600 bg-blue-600' : 'border-slate-300 bg-white'"
+                  />
+                </div>
+                <p class="text-xs text-slate-600">{{ presetMap[key].desc }}</p>
+              </button>
+            </div>
+            
+            <div class="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2">
+              <p class="text-xs text-amber-800">
+                <span class="font-medium">提示：</span>手动修改参数会自动切换为"自定义"配置
+              </p>
+            </div>
+          </section>
+
+          <!-- 价格控制 -->
+          <section class="space-y-4 rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50 p-5 shadow-sm">
+            <div class="flex items-center gap-2">
+              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
+                <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 class="text-base font-semibold text-slate-900">价格控制</h3>
+            </div>
+
+            <div class="space-y-4">
+              <!-- 价格偏移 -->
+              <div class="rounded-lg border border-blue-100 bg-white p-4">
+                <label class="block space-y-3">
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm font-medium text-slate-700">价格偏移 (点)</span>
+                    <span class="rounded-md bg-blue-100 px-2.5 py-1 text-sm font-semibold text-blue-700">{{ form.priceOffset }}</span>
+                  </div>
+                  <input v-model.number="form.priceOffset" type="range" min="0" max="50" step="1" class="w-full accent-blue-600" />
+                  <div class="flex items-start gap-1.5 rounded-md bg-blue-50 px-3 py-2">
+                    <svg class="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span class="text-xs text-blue-700">影响用户看到的买卖价格</span>
+                  </div>
+                </label>
+              </div>
+
+              <!-- 偏移方向 -->
+              <label class="block space-y-2">
+                <span class="text-sm font-medium text-slate-700">偏移方向</span>
+                <select v-model="form.offsetDirection" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+                  <option value="random">随机偏移</option>
+                  <option value="against">逆势偏移</option>
+                  <option value="up">向上偏移</option>
+                  <option value="down">向下偏移</option>
+                </select>
+              </label>
+            </div>
+          </section>
+
+          <!-- 成交控制 -->
+          <section class="space-y-4 rounded-xl border border-violet-200 bg-gradient-to-br from-violet-50 to-purple-50 p-5 shadow-sm">
+            <div class="flex items-center gap-2">
+              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-600">
+                <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 class="text-base font-semibold text-slate-900">成交控制</h3>
+            </div>
+
+            <div class="space-y-4">
+              <!-- 滑点率 -->
+              <div class="rounded-lg border border-violet-100 bg-white p-4">
+                <label class="block space-y-3">
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm font-medium text-slate-700">滑点率 (%)</span>
+                    <span class="rounded-md bg-violet-100 px-2.5 py-1 text-sm font-semibold text-violet-700">{{ form.slippagePct.toFixed(2) }}%</span>
+                  </div>
+                  <input v-model.number="form.slippagePct" type="range" min="0" max="2" step="0.01" class="w-full accent-violet-600" />
+                  <div class="flex items-start gap-1.5 rounded-md bg-violet-50 px-3 py-2">
+                    <svg class="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span class="text-xs text-violet-700">影响成交时的价格差异</span>
+                  </div>
+                </label>
+              </div>
+
+              <!-- 成交延迟 -->
+              <div class="rounded-lg border border-violet-100 bg-white p-4">
+                <label class="block space-y-3">
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm font-medium text-slate-700">成交延迟 (ms)</span>
+                    <span class="rounded-md bg-violet-100 px-2.5 py-1 text-sm font-semibold text-violet-700">{{ form.latencyMs }}</span>
+                  </div>
+                  <input v-model.number="form.latencyMs" type="range" min="0" max="5000" step="10" class="w-full accent-violet-600" />
+                  <div class="flex items-start gap-1.5 rounded-md bg-violet-50 px-3 py-2">
+                    <svg class="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span class="text-xs text-violet-700">延迟订单成交时间</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </section>
+
+          <!-- 杠杆限制 -->
+          <section class="space-y-4 rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-5 shadow-sm">
+            <div class="flex items-center gap-2">
+              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-600">
+                <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <h3 class="text-base font-semibold text-slate-900">杠杆限制</h3>
+            </div>
+
+            <div class="rounded-lg border border-amber-100 bg-white p-4">
+              <label class="block space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="text-sm font-medium text-slate-700">最大杠杆限制</span>
+                  <span class="rounded-md bg-amber-100 px-2.5 py-1 text-sm font-semibold text-amber-700">{{ form.maxLeverage }}x</span>
+                </div>
+                <input v-model.number="form.maxLeverage" type="range" min="1" max="125" step="1" class="w-full accent-amber-600" />
+                <div class="flex items-start gap-1.5 rounded-md bg-amber-50 px-3 py-2">
+                  <svg class="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span class="text-xs text-amber-700">限制该合约的最大杠杆倍数</span>
+                </div>
+              </label>
+            </div>
+          </section>
+
+          <!-- 自动触发 -->
+          <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+              <div class="flex items-center gap-2">
+                <svg class="h-4 w-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span class="text-sm text-slate-700">启用自动触发规则</span>
+              </div>
+              <label class="relative inline-flex cursor-pointer items-center">
+                <input v-model="form.autoTriggerEnabled" type="checkbox" class="peer sr-only" />
+                <div class="peer h-6 w-11 rounded-full bg-slate-300 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:ring-2 peer-focus:ring-blue-300"></div>
+              </label>
+            </div>
+            <p class="mt-2 text-xs text-slate-500">开启后会在当前参数基础上应用自动规则；关闭后仅使用当前手动参数。</p>
+          </section>
+        </div>
+
+        <footer class="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
+          <button type="button" class="rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-white hover:shadow-sm" @click="emit('close')">取消</button>
+          <button type="button" class="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition shadow-sm hover:bg-blue-700 hover:shadow-md" @click="save">
+            <span class="flex items-center gap-2">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              保存配置
+            </span>
+          </button>
+        </footer>
+      </div>
+
+      <!-- 右侧预览区域 -->
+          <div class="grid gap-4">
+            <div class="rounded-lg border border-slate-200 bg-white p-3">
+              <div class="flex items-center justify-between">
+                <p class="text-sm font-medium text-slate-700">快速预设</p>
+                <span class="text-xs text-slate-500">
+                  当前:
+                  <span class="font-medium text-slate-700">{{ selectedPreset === 'custom' ? '自定义' : presetMap[selectedPreset].label }}</span>
+                </span>
+              </div>
+              <div class="mt-2 grid gap-2 md:grid-cols-3">
+                <button
+                  v-for="key in presetKeys"
+                  :key="key"
+                  type="button"
+                  class="rounded-lg border px-3 py-2 text-left transition focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  :class="
+                    selectedPreset === key
+                      ? 'border-blue-500 bg-blue-50 shadow-sm'
+                      : 'border-slate-300 bg-white hover:border-slate-400 hover:bg-slate-50'
+                  "
+                  @click="selectPreset(key)"
+                >
+                  <div class="flex items-center justify-between">
+                    <p class="text-sm font-medium text-slate-900">{{ presetMap[key].label }}</p>
+                    <span
+                      class="h-2.5 w-2.5 rounded-full border"
+                      :class="selectedPreset === key ? 'border-blue-600 bg-blue-600' : 'border-slate-300 bg-white'"
+                    />
+                  </div>
+                  <p class="mt-0.5 text-xs text-slate-500">{{ presetMap[key].desc }}</p>
+                </button>
+              </div>
+              <p class="mt-2 text-xs text-slate-500">提示：点选预设会覆盖当前参数；手动修改任一参数会自动切换为“自定义”。</p>
+            </div>
+          </div>
+
+          <div class="mt-4 rounded-lg border border-slate-200 bg-white p-3">
+            <div class="grid gap-3 lg:grid-cols-[1fr,280px] lg:items-start">
+              <div>
+                <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+                  <input v-model="form.autoTriggerEnabled" type="checkbox" class="h-4 w-4" />
+                  启用自动触发规则
+                </label>
+                <p class="mt-2 text-xs text-slate-500">开启后会在当前参数基础上应用自动规则；关闭后仅使用当前手动参数。</p>
+              </div>
+              <div class="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm">
+                <p class="font-medium text-slate-800">风险评分: {{ riskScore }}</p>
+                <p class="mt-1" :class="riskLabel.className">当前风控等级: {{ riskLabel.text }}</p>
+              </div>
+            </div>
+          </div>
+
+          <article class="mt-4 rounded-lg border border-slate-200 bg-white p-3 text-sm">
+            <p class="font-medium text-slate-800">配置摘要</p>
+            <ul class="mt-1 space-y-0.5 text-slate-600">
+              <li v-for="line in summary" :key="line">- {{ line }}</li>
+            </ul>
+          </article>
+        </section>
+
+        <section v-if="activeTab === 'price'" class="rounded-lg border border-slate-200 p-4">
+          <h3 class="text-lg font-semibold text-slate-900">价格控制</h3>
+          <p class="mt-1 text-sm text-slate-500">影响用户看到的价格。</p>
+
+          <div class="mt-3 space-y-4">
+            <label class="block space-y-2">
+              <div class="flex items-center justify-between text-sm">
+                <span class="font-medium text-slate-700">价格偏移 (点)</span>
+                <input v-model.number="form.priceOffset" type="number" min="0" max="50" class="w-24 rounded border border-slate-300 px-2 py-1 text-right" />
+              </div>
+              <input v-model.number="form.priceOffset" type="range" min="0" max="50" step="1" class="w-full accent-blue-600" />
+              <p class="text-xs text-slate-500">范围 0-50，建议先从 3-10 点测试。</p>
+            </label>
+
+            <label class="block max-w-[260px] space-y-2">
+              <span class="text-sm font-medium text-slate-700">偏移方向</span>
+              <select v-model="form.offsetDirection" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500">
+                <option value="random">随机偏移</option>
+                <option value="against">逆势偏移</option>
+                <option value="up">向上偏移</option>
+                <option value="down">向下偏移</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section v-if="activeTab === 'execution'" class="rounded-lg border border-slate-200 p-4">
+          <h3 class="text-lg font-semibold text-slate-900">成交控制</h3>
+          <p class="mt-1 text-sm text-slate-500">影响订单成交质量和成交速度。</p>
+
+          <div class="mt-3 grid gap-4 md:grid-cols-2">
+            <label class="block space-y-2">
+              <div class="flex items-center justify-between text-sm">
+                <span class="font-medium text-slate-700">滑点率 (%)</span>
+                <input v-model.number="form.slippagePct" type="number" min="0" max="2" step="0.01" class="w-24 rounded border border-slate-300 px-2 py-1 text-right" />
+              </div>
+              <input v-model.number="form.slippagePct" type="range" min="0" max="2" step="0.01" class="w-full accent-blue-600" />
+            </label>
+
+            <label class="block space-y-2">
+              <div class="flex items-center justify-between text-sm">
+                <span class="font-medium text-slate-700">成交延迟 (ms)</span>
+                <input v-model.number="form.latencyMs" type="number" min="0" max="5000" step="10" class="w-24 rounded border border-slate-300 px-2 py-1 text-right" />
+              </div>
+              <input v-model.number="form.latencyMs" type="range" min="0" max="5000" step="10" class="w-full accent-blue-600" />
+            </label>
+          </div>
+        </section>
+
+        <section v-if="activeTab === 'leverage'" class="rounded-lg border border-slate-200 p-4">
+          <h3 class="text-lg font-semibold text-slate-900">杠杆限制</h3>
+          <p class="mt-1 text-sm text-slate-500">限制该合约可使用的最大杠杆倍数。</p>
+
+          <div class="mt-3 space-y-4">
+            <label class="block space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <div class="flex items-center justify-between text-sm">
+                <span class="font-medium text-slate-700">最大杠杆限制</span>
+                <input v-model.number="form.maxLeverage" type="number" min="1" max="125" step="1" class="w-24 rounded border border-slate-300 px-2 py-1 text-right" />
+              </div>
+              <input v-model.number="form.maxLeverage" type="range" min="1" max="125" step="1" class="w-full accent-blue-600" />
+              <p class="text-xs text-slate-500">范围 1-125x，保存后对新开仓位生效。</p>
+            </label>
+          </div>
+        </section>
+
+      </div>
+
+      <footer class="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
+        <button type="button" class="rounded-lg border border-slate-300 px-4 py-2" @click="emit('close')">取消</button>
+        <button type="button" class="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700" @click="save">保存</button>
+      </footer>
+    </section>
+  </div>
+</template>

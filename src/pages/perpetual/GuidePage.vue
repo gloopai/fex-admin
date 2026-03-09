@@ -71,7 +71,6 @@ const sectionTitle = computed(() => tabs.find((t) => t.key === activeTab.value)?
           </p>
           <ul class="mt-2 space-y-1">
             <li>- 价格偏移：给用户展示的价格与真实市场价存在偏差</li>
-            <li>- 点差调整：扩大用户的买卖价差，增加交易成本</li>
             <li>- 滑点注入：在成交时人为制造滑点</li>
             <li>- 延迟成交：延迟用户订单的成交时间</li>
             <li>- 资金费率调整：针对特定用户调整资金费率</li>

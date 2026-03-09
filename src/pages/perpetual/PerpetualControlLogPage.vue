@@ -15,7 +15,7 @@ const logs = ref([
     rule: '多头过重自动调整',
     operator: 'system',
     result: 'success',
-    detail: '净多头超过阈值，自动上调点差倍数到 1.25x'
+    detail: '净多头超过阈值，自动增加价格偏移和滑点'
   },
   {
     id: 'L-10038',

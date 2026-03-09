@@ -477,7 +477,7 @@ export const riskAlerts = [
     type: '平台严重亏损',
     contract: 'ARBUSDT',
     message: 'ARB合约平台亏损 $125K，多空比 2.77，用户大量盈利',
-    suggestion: '紧急启用所有线控规则，最大化价格偏移和点差，考虑限制高杠杆'
+    suggestion: '紧急启用所有线控规则，最大化价格偏移，考虑限制高杠杆'
   },
   {
     id: 'alert_002',
@@ -495,7 +495,7 @@ export const riskAlerts = [
     type: '平台亏损',
     contract: 'MATICUSDT',
     message: 'MATIC合约平台亏损 $91.2K，空头占优，高杠杆盛行',
-    suggestion: '启用强力线控，提高点差和滑点，限制高杠杆开仓'
+    suggestion: '启用强力线控，提高滑点，限制高杠杆开仓'
   },
   {
     id: 'alert_004',
@@ -504,7 +504,7 @@ export const riskAlerts = [
     type: '平台亏损',
     contract: 'SOLUSDT',
     message: 'SOL合约平台亏损 $78K，空头占优 0.62，高杠杆 22.5x',
-    suggestion: '调整价格偏移至做空方向，提高拒单率和成交延迟'
+    suggestion: '调整价格偏移至做空方向，提高成交延迟'
   },
   {
     id: 'alert_005',
@@ -578,7 +578,8 @@ export const actionSuggestions = [
     title: '紧急启用所有线控规则',
     reason: 'ARB合约严重风险：平台亏损 $125K，极端多头 2.77，超高杠杆 35.8x',
     expectedEffect: '紧急止损，预计可减少 50-80K 进一步亏损',
-    action: '立即启用所有线控规则，最大化价格偏移和点差，限制高杠杆开仓'
+    action: '立即启用所有线控规则，最大化价格偏移，限制高杠杆开仓',
+    affects: '价格偏移、滑点、杠杆限制'
   },
   {
     priority: 'critical',
@@ -586,7 +587,8 @@ export const actionSuggestions = [
     title: '限制大户 whale_beta 交易',
     reason: '该用户持仓 $320K，全部做多 50x 杠杆，风险极高',
     expectedEffect: '控制最大风险敞口',
-    action: '主动联系用户协商平仓或降低杠杆，必要时实施账户限制'
+    action: '主动联系用户协商平仓或降低杠杆，必要时实施账户限制',
+    affects: '用户账户权限、交易限制、杠杆限制'
   },
   {
     priority: 'high',
@@ -594,7 +596,8 @@ export const actionSuggestions = [
     title: '启用强力线控规则',
     reason: 'MATIC合约平台亏损 $91.2K，空头占优 0.62，高杠杆 19.7x',
     expectedEffect: '预计可改善平台盈亏 40-60K USDT/天',
-    action: '提高点差倍数 3-5x，大幅提升拒单率和滑点'
+    action: '大幅提升滑点',
+    affects: '滑点'
   },
   {
     priority: 'high',
@@ -602,7 +605,8 @@ export const actionSuggestions = [
     title: '调整价格偏移至空头方向',
     reason: 'SOL合约平台亏损 $78K，空头占优，需要向做空方向偏移',
     expectedEffect: '平衡多空比，减少平台对冲成本',
-    action: '设置价格向空头方向偏移 0.1-0.2%，提高拒单率'
+    action: '设置价格向空头方向偏移 0.1-0.2%',
+    affects: '价格偏移'
   },
   {
     priority: 'high',
@@ -610,7 +614,8 @@ export const actionSuggestions = [
     title: '启用"多头过重自动调整"规则',
     reason: '当前多空比 1.44，多头持仓过重，建议启用此规则平衡持仓',
     expectedEffect: '预计可改善平台盈亏 20-30K USDT/天',
-    action: '前往线控页面启用规则'
+    action: '前往线控页面启用规则',
+    affects: '多头过重自动调整规则、价格偏移'
   },
   {
     priority: 'medium',
@@ -618,7 +623,8 @@ export const actionSuggestions = [
     title: '维持当前线控策略',
     reason: 'XRP合约盈亏接近平衡，多空比 1.42 略微失衡',
     expectedEffect: '稳定当前盈利状况',
-    action: '保持现有线控规则，密切监控变化'
+    action: '保持现有线控规则，密切监控变化',
+    affects: '无需调整'
   },
   {
     priority: 'medium',
@@ -626,7 +632,8 @@ export const actionSuggestions = [
     title: '优化现有线控参数',
     reason: 'ETH合约盈利稳定 $88.5K，可通过参数优化进一步提升',
     expectedEffect: '预计可提升 10-15% 收益',
-    action: '微调价格偏移和点差倍数，在用户体验和收益间找平衡'
+    action: '微调价格偏移，在用户体验和收益间找平衡',
+    affects: '价格偏移'
   },
   {
     priority: 'low',
@@ -634,7 +641,8 @@ export const actionSuggestions = [
     title: '保持低风险运营',
     reason: 'DOGE合约运行良好：低风险，平台盈利，多空平衡，低杠杆',
     expectedEffect: '维持稳定收益',
-    action: '继续观察，无需调整'
+    action: '继续观察，无需调整',
+    affects: '无需调整'
   },
   {
     priority: 'low',
@@ -642,6 +650,7 @@ export const actionSuggestions = [
     title: '考虑开启适度线控',
     reason: 'OP合约虽然低风险，但交易量较小，可通过线控优化收益',
     expectedEffect: '在不影响用户体验前提下提升 5-10% 收益',
-    action: '启用轻量级线控规则，避免过度干预'
+    action: '启用轻量级线控规则，避免过度干预',
+    affects: '价格偏移'
   }
 ]

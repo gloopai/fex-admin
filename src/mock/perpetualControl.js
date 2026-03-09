@@ -34,9 +34,7 @@ const perpetualControlContracts = [
         triggerDirection: PERP_CONTROL_RULE_DIRECTION.LONG_HEAVY,
         priceOffset: 10,
         offsetDirection: PERP_CONTROL_OFFSET_DIRECTION.AGAINST,
-        spreadMultiplier: 1.2,
         slippagePct: 0.3,
-        rejectRatePct: 2,
         durationSec: 7200,
         enabled: true,
         hitCount: 23,
@@ -50,9 +48,7 @@ const perpetualControlContracts = [
         triggerDirection: PERP_CONTROL_RULE_DIRECTION.PROFIT_HIGH,
         priceOffset: 5,
         offsetDirection: PERP_CONTROL_OFFSET_DIRECTION.AGAINST,
-        spreadMultiplier: 1.5,
         slippagePct: 0.2,
-        rejectRatePct: 5,
         durationSec: 3600,
         enabled: true,
         hitCount: 8,
@@ -68,10 +64,8 @@ const perpetualControlContracts = [
     config: {
       priceOffset: 2,
       offsetDirection: PERP_CONTROL_OFFSET_DIRECTION.RANDOM,
-      spreadMultiplier: 1.1,
       slippagePct: 0.1,
       latencyMs: 30,
-      rejectRatePct: 1,
       maxLeverage: 75,
       autoTriggerEnabled: false
     },
@@ -94,9 +88,7 @@ const perpetualControlContracts = [
         triggerDirection: PERP_CONTROL_RULE_DIRECTION.VOLUME_UP,
         priceOffset: 3,
         offsetDirection: PERP_CONTROL_OFFSET_DIRECTION.RANDOM,
-        spreadMultiplier: 1.3,
         slippagePct: 0.15,
-        rejectRatePct: 3,
         durationSec: 1800,
         enabled: false,
         hitCount: 2,
@@ -111,6 +103,7 @@ export const perpetualControlRuleTriggers = {
     label: '净持仓触发',
     thresholdLabel: '净持仓阈值 (USDT)',
     thresholdUnit: 'USDT',
+    description: '当合约净持仓（多头持仓 - 空头持仓）超过设定阈值时触发',
     directionOptions: [
       { value: PERP_CONTROL_RULE_DIRECTION.LONG_HEAVY, label: '多头过重时' },
       { value: PERP_CONTROL_RULE_DIRECTION.SHORT_HEAVY, label: '空头过重时' }
@@ -120,6 +113,7 @@ export const perpetualControlRuleTriggers = {
     label: '盈亏比触发',
     thresholdLabel: '盈亏比阈值 (%)',
     thresholdUnit: '%',
+    description: '当用户整体盈亏比例达到设定阈值时触发',
     directionOptions: [
       { value: PERP_CONTROL_RULE_DIRECTION.PROFIT_HIGH, label: '盈利过高时' },
       { value: PERP_CONTROL_RULE_DIRECTION.LOSS_HIGH, label: '亏损过高时' }
@@ -129,12 +123,14 @@ export const perpetualControlRuleTriggers = {
     label: '交易量突增触发',
     thresholdLabel: '交易量倍数阈值 (x)',
     thresholdUnit: 'x',
+    description: '当短时交易量超过平均水平的N倍时触发',
     directionOptions: [{ value: PERP_CONTROL_RULE_DIRECTION.VOLUME_UP, label: '交易量突增时' }]
   },
   [PERP_CONTROL_RULE_TRIGGER_TYPE.VOLATILITY]: {
     label: '波动率触发',
     thresholdLabel: '波动率阈值 (%)',
     thresholdUnit: '%',
+    description: '当市场价格波动率超过设定阈值时触发',
     directionOptions: [{ value: PERP_CONTROL_RULE_DIRECTION.VOLATILITY_UP, label: '波动过高时' }]
   }
 }

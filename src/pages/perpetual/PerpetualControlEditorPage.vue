@@ -45,10 +45,8 @@ const formatParams = (config) => {
   }[config.offsetDirection] || '随机偏移'
   return [
     `价格偏移: ${config.priceOffset} 点 (${direction})`,
-    `点差倍数: ${config.spreadMultiplier.toFixed(1)}x`,
     `滑点率: ${config.slippagePct.toFixed(2)}%`,
     `成交延迟: ${config.latencyMs}ms`,
-    `拒单率: ${config.rejectRatePct.toFixed(1)}%`,
     `杠杆限制: ${config.maxLeverage}x`,
     `自动触发: ${config.autoTriggerEnabled ? '启用' : '关闭'}`
   ]
@@ -84,9 +82,7 @@ const ruleForm = reactive({
   triggerDirection: PERP_CONTROL_RULE_DIRECTION.LONG_HEAVY,
   priceOffset: 5,
   offsetDirection: PERP_CONTROL_OFFSET_DIRECTION.AGAINST,
-  spreadMultiplier: 1.2,
   slippagePct: 0.2,
-  rejectRatePct: 3,
   durationSec: 0,
   enabled: true
 })
@@ -98,6 +94,71 @@ const currentTriggerDirectionLabel = computed(
 )
 const currentOffsetDirectionLabel = computed(() => offsetDirections.find((item) => item.value === ruleForm.offsetDirection)?.label || '-')
 const durationText = computed(() => (Number(ruleForm.durationSec) === 0 ? '持续生效' : `${Number(ruleForm.durationSec)} 秒`))
+
+// 数据计算预览
+const mockBasePrice = computed(() => {
+  const symbol = currentContract.value?.symbol || 'BTCUSDT'
+  if (symbol.includes('BTC')) return 50000
+  if (symbol.includes('ETH')) return 3000
+  if (symbol.includes('SOL')) return 100
+  return 1000
+})
+
+const calculatedPreview = computed(() => {
+  const basePrice = mockBasePrice.value
+  const offset = Number(ruleForm.priceOffset || 0)
+  const slippage = Number(ruleForm.slippagePct || 0) / 100
+  
+  // 根据偏移方向计算价格
+  let buyPrice = basePrice
+  let sellPrice = basePrice
+  
+  if (ruleForm.offsetDirection === PERP_CONTROL_OFFSET_DIRECTION.AGAINST) {
+    // 逆势：买入价提高，卖出价降低
+    buyPrice = basePrice + offset
+    sellPrice = basePrice - offset
+  } else if (ruleForm.offsetDirection === PERP_CONTROL_OFFSET_DIRECTION.FOLLOW) {
+    // 顺势：买入价降低，卖出价提高（有利于用户）
+    buyPrice = basePrice - offset
+    sellPrice = basePrice + offset
+  } else {
+    // 随机
+    buyPrice = basePrice
+    sellPrice = basePrice
+  }
+  
+  // 加上滑点影响
+  const buySlippage = buyPrice * slippage
+  const sellSlippage = sellPrice * slippage
+  
+  // 计算用户成本
+  const orderSize = 10000 // 假设订单金额 10000 USDT
+  const slippageCost = (buySlippage + sellSlippage) * (orderSize / basePrice) / 2
+  const totalExtraCost = slippageCost
+  
+  // 风险等级评估
+  let riskLevel = 'low'
+  let riskScore = 0
+  riskScore += offset > 10 ? 2 : offset > 5 ? 1 : 0
+  riskScore += slippage > 0.003 ? 2 : slippage > 0.001 ? 1 : 0
+  
+  if (riskScore >= 3) riskLevel = 'high'
+  else if (riskScore >= 2) riskLevel = 'medium'
+  
+  return {
+    basePrice,
+    buyPrice: buyPrice + buySlippage,
+    sellPrice: sellPrice - sellSlippage,
+    buySlippage,
+    sellSlippage,
+    slippageCost,
+    totalExtraCost,
+    totalExtraCostPct: (totalExtraCost / orderSize) * 100,
+    riskLevel,
+    riskScore
+  }
+})
+
 watch(
   () => ruleForm.triggerType,
   (next) => {
@@ -122,7 +183,14 @@ const ruleConditionText = (rule) => {
 
 const ruleActionText = (rule) => {
   const duration = Number(rule.durationSec) === 0 ? '持续生效' : `${Number(rule.durationSec)} 秒`
-  return `偏移 ${rule.priceOffset} 点 | 点差 ${rule.spreadMultiplier.toFixed(1)}x | 滑点 ${rule.slippagePct.toFixed(2)}% | 拒单 ${rule.rejectRatePct.toFixed(1)}% | ${duration}`
+  return `偏移 ${rule.priceOffset} 点 | 滑点 ${rule.slippagePct.toFixed(2)}% | ${duration}`
+}
+
+const ruleAffectsText = (rule) => {
+  const affects = []
+  if (Number(rule.priceOffset) > 0) affects.push('价格偏移')
+  if (Number(rule.slippagePct) > 0) affects.push('滑点')
+  return affects.length > 0 ? affects.join('、') : '无影响'
 }
 
 const liveRuleConditionText = computed(
@@ -130,9 +198,9 @@ const liveRuleConditionText = computed(
 )
 const liveRuleActionText = computed(
   () =>
-    `偏移 ${ruleForm.priceOffset} 点（${currentOffsetDirectionLabel.value}） | 点差 ${ruleForm.spreadMultiplier.toFixed(1)}x | 滑点 ${ruleForm.slippagePct.toFixed(
+    `偏移 ${ruleForm.priceOffset} 点（${currentOffsetDirectionLabel.value}） | 滑点 ${ruleForm.slippagePct.toFixed(
       2
-    )}% | 拒单 ${ruleForm.rejectRatePct.toFixed(1)}% | ${durationText.value}`
+    )}% | ${durationText.value}`
 )
 
 const toneClass = {
@@ -150,9 +218,7 @@ const resetRuleForm = () => {
   ruleForm.triggerDirection = PERP_CONTROL_RULE_DIRECTION.LONG_HEAVY
   ruleForm.priceOffset = 5
   ruleForm.offsetDirection = PERP_CONTROL_OFFSET_DIRECTION.AGAINST
-  ruleForm.spreadMultiplier = 1.2
   ruleForm.slippagePct = 0.2
-  ruleForm.rejectRatePct = 3
   ruleForm.durationSec = 0
   ruleForm.enabled = true
 }
@@ -175,9 +241,7 @@ const openEditRule = (contractId, rule) => {
   ruleForm.triggerDirection = rule.triggerDirection || (ruleForm.triggerType === PERP_CONTROL_RULE_TRIGGER_TYPE.NET_POSITION ? PERP_CONTROL_RULE_DIRECTION.LONG_HEAVY : PERP_CONTROL_RULE_DIRECTION.PROFIT_HIGH)
   ruleForm.priceOffset = Number(rule.priceOffset || 5)
   ruleForm.offsetDirection = rule.offsetDirection || PERP_CONTROL_OFFSET_DIRECTION.AGAINST
-  ruleForm.spreadMultiplier = Number(rule.spreadMultiplier || 1.2)
   ruleForm.slippagePct = Number(rule.slippagePct || 0.2)
-  ruleForm.rejectRatePct = Number(rule.rejectRatePct || 3)
   ruleForm.durationSec = Number(rule.durationSec || 0)
   ruleForm.enabled = rule.enabled
   showRuleModal.value = true
@@ -192,9 +256,7 @@ const saveRule = () => {
     triggerDirection: ruleForm.triggerDirection,
     priceOffset: Number(ruleForm.priceOffset),
     offsetDirection: ruleForm.offsetDirection,
-    spreadMultiplier: Number(ruleForm.spreadMultiplier),
     slippagePct: Number(ruleForm.slippagePct),
-    rejectRatePct: Number(ruleForm.rejectRatePct),
     durationSec: Number(ruleForm.durationSec),
     enabled: ruleForm.enabled
   }
@@ -342,7 +404,13 @@ const toggleContractStatus = (contractId) => {
                   <p class="font-medium text-slate-900">{{ rule.name }}</p>
                   <p class="mt-1 text-sm text-slate-500">{{ ruleTriggers[rule.triggerType]?.label || ruleTriggers[PERP_CONTROL_RULE_TRIGGER_TYPE.NET_POSITION].label }} | {{ ruleConditionText(rule) }}</p>
                   <p class="text-sm text-slate-500">{{ ruleActionText(rule) }}</p>
-                  <p class="text-sm text-slate-500">已触发 {{ rule.hitCount }} 次 | 最近: {{ rule.lastHitAt }}</p>
+                  <div class="mt-1 flex items-start gap-1 text-xs text-slate-600">
+                    <svg class="h-3.5 w-3.5 text-violet-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span><span class="font-medium text-slate-700">影响参数:</span> {{ ruleAffectsText(rule) }}</span>
+                  </div>
+                  <p class="mt-1 text-sm text-slate-500">已触发 {{ rule.hitCount }} 次 | 最近: {{ rule.lastHitAt }}</p>
                 </div>
               </div>
 
@@ -368,154 +436,325 @@ const toggleContractStatus = (contractId) => {
   />
 
   <div v-if="showRuleModal" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4" @click.self="showRuleModal = false">
-    <section class="w-full max-w-2xl rounded-xl bg-white">
-      <header class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-        <h2 class="text-xl font-semibold text-slate-900">{{ editingRuleId ? '编辑线控规则' : '新增线控规则' }}</h2>
-        <button type="button" class="text-2xl text-slate-400" @click="showRuleModal = false">×</button>
-      </header>
+    <section class="flex h-[88vh] w-full max-w-5xl overflow-hidden rounded-xl bg-white shadow-2xl">
+      <!-- 左侧配置区域 -->
+      <div class="flex w-3/5 flex-col border-r border-slate-200">
+        <header class="flex items-center justify-between border-b border-slate-200 bg-gradient-to-r from-violet-50 to-blue-50 px-6 py-4">
+          <div>
+            <h2 class="text-xl font-semibold text-slate-900">{{ editingRuleId ? '编辑线控规则' : '新增线控规则' }}</h2>
+            <p class="mt-0.5 text-xs text-slate-500">配置规则的触发条件和执行动作</p>
+          </div>
+          <button type="button" class="text-2xl text-slate-400 hover:text-slate-600 transition-colors" @click="showRuleModal = false">×</button>
+        </header>
 
-      <div class="max-h-[70vh] space-y-4 overflow-y-auto px-5 py-4">
-        <nav class="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
+        <div class="flex-1 space-y-5 overflow-y-auto px-6 py-5">
+          <!-- 基础信息 -->
+          <section class="space-y-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="flex items-center gap-2">
+              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100">
+                <svg class="h-4 w-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 class="text-base font-semibold text-slate-900">基础信息</h3>
+            </div>
+            
+            <div class="space-y-4">
+              <label class="block space-y-2">
+                <span class="text-sm font-medium text-slate-700">规则名称 <span class="text-rose-500">*</span></span>
+                <input
+                  v-model="ruleForm.name"
+                  type="text"
+                  class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  placeholder="如：多头过重自动调整"
+                />
+              </label>
+
+              <div class="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                <div class="flex items-center gap-2">
+                  <svg class="h-4 w-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span class="text-sm text-slate-700">保存后立即启用</span>
+                </div>
+                <label class="relative inline-flex cursor-pointer items-center">
+                  <input v-model="ruleForm.enabled" type="checkbox" class="peer sr-only" />
+                  <div class="peer h-6 w-11 rounded-full bg-slate-300 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-violet-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:ring-2 peer-focus:ring-violet-300"></div>
+                </label>
+              </div>
+
+              <div class="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3">
+                <div class="flex items-start gap-2">
+                  <svg class="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                  </svg>
+                  <div class="text-sm">
+                    <span class="text-blue-700">作用合约：</span>
+                    <span class="font-semibold text-blue-900">{{ currentContract?.symbol || '-' }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 触发条件 -->
+          <section class="space-y-4 rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50 p-5 shadow-sm">
+            <div class="flex items-center gap-2">
+              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
+                <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <h3 class="text-base font-semibold text-slate-900">触发条件</h3>
+            </div>
+            
+            <div class="space-y-3.5">
+              <label class="block space-y-2">
+                <span class="text-sm font-medium text-slate-700">触发类型</span>
+                <select v-model="ruleForm.triggerType" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+                  <option v-for="opt in triggerOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                </select>
+              </label>
+
+              <div class="grid gap-3.5 sm:grid-cols-2">
+                <label class="block space-y-2">
+                  <span class="text-sm font-medium text-slate-700">{{ triggerMeta.thresholdLabel }} <span class="text-rose-500">*</span></span>
+                  <input
+                    v-model.number="ruleForm.thresholdValue"
+                    type="number"
+                    min="0"
+                    class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                </label>
+                <label class="block space-y-2">
+                  <span class="text-sm font-medium text-slate-700">触发方向</span>
+                  <select v-model="ruleForm.triggerDirection" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+                    <option v-for="d in triggerMeta.directionOptions" :key="d.value" :value="d.value">{{ d.label }}</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+          </section>
+
+          <!-- 执行动作 -->
+          <section class="space-y-4 rounded-xl border border-violet-200 bg-gradient-to-br from-violet-50 to-purple-50 p-5 shadow-sm">
+            <div class="flex items-center gap-2">
+              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-600">
+                <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                </svg>
+              </div>
+              <h3 class="text-base font-semibold text-slate-900">执行动作</h3>
+            </div>
+            
+            <div class="space-y-4">
+              <!-- 价格偏移 -->
+              <div class="rounded-lg border border-violet-100 bg-white p-4">
+                <label class="block space-y-3">
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm font-medium text-slate-700">价格偏移 (点)</span>
+                    <span class="rounded-md bg-violet-100 px-2.5 py-1 text-sm font-semibold text-violet-700">{{ ruleForm.priceOffset }}</span>
+                  </div>
+                  <input v-model.number="ruleForm.priceOffset" type="range" min="0" max="50" step="1" class="w-full accent-violet-600" />
+                  <div class="flex items-start gap-1.5 rounded-md bg-violet-50 px-3 py-2">
+                    <svg class="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span class="text-xs text-violet-700">影响用户看到的买卖价格</span>
+                  </div>
+                </label>
+              </div>
+
+              <!-- 偏移方向和滑点率 -->
+              <div class="grid gap-4 sm:grid-cols-2">
+                <label class="block space-y-2">
+                  <span class="text-sm font-medium text-slate-700">偏移方向</span>
+                  <select v-model="ruleForm.offsetDirection" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100">
+                    <option v-for="d in offsetDirections" :key="d.value" :value="d.value">{{ d.label }}</option>
+                  </select>
+                </label>
+
+                <label class="block space-y-2">
+                  <span class="text-sm font-medium text-slate-700">持续时间 (秒)</span>
+                  <input
+                    v-model.number="ruleForm.durationSec"
+                    type="number"
+                    min="0"
+                    class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                    placeholder="0 为持续生效"
+                  />
+                </label>
+              </div>
+
+              <!-- 滑点率 -->
+              <div class="rounded-lg border border-violet-100 bg-white p-4">
+                <label class="block space-y-3">
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm font-medium text-slate-700">滑点率 (%)</span>
+                    <span class="rounded-md bg-violet-100 px-2.5 py-1 text-sm font-semibold text-violet-700">{{ ruleForm.slippagePct.toFixed(2) }}%</span>
+                  </div>
+                  <input v-model.number="ruleForm.slippagePct" type="range" min="0" max="2" step="0.01" class="w-full accent-violet-600" />
+                  <div class="flex items-start gap-1.5 rounded-md bg-violet-50 px-3 py-2">
+                    <svg class="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span class="text-xs text-violet-700">影响成交时的价格差异</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <footer class="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
+          <button type="button" class="rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-white hover:shadow-sm" @click="showRuleModal = false">取消</button>
           <button
             type="button"
-            class="rounded-md px-3 py-1.5 text-sm"
-            :class="ruleModalTab === PERP_CONTROL_RULE_MODAL_TAB.BASIC ? 'bg-white font-medium text-blue-600 shadow-sm' : 'text-slate-600'"
-            @click="ruleModalTab = PERP_CONTROL_RULE_MODAL_TAB.BASIC"
+            class="rounded-lg px-5 py-2.5 text-sm font-medium text-white transition shadow-sm"
+            :class="ruleForm.name.trim() && Number(ruleForm.thresholdValue) > 0 ? 'bg-violet-600 hover:bg-violet-700 hover:shadow-md' : 'bg-violet-300 cursor-not-allowed'"
+            :disabled="!ruleForm.name.trim() || Number(ruleForm.thresholdValue) <= 0"
+            @click="saveRule"
           >
-            基础信息
+            <span class="flex items-center gap-2">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              保存规则
+            </span>
           </button>
-          <button
-            type="button"
-            class="rounded-md px-3 py-1.5 text-sm"
-            :class="ruleModalTab === PERP_CONTROL_RULE_MODAL_TAB.TRIGGER ? 'bg-white font-medium text-blue-600 shadow-sm' : 'text-slate-600'"
-            @click="ruleModalTab = PERP_CONTROL_RULE_MODAL_TAB.TRIGGER"
-          >
-            触发条件
-          </button>
-          <button
-            type="button"
-            class="rounded-md px-3 py-1.5 text-sm"
-            :class="ruleModalTab === PERP_CONTROL_RULE_MODAL_TAB.ACTION ? 'bg-white font-medium text-blue-600 shadow-sm' : 'text-slate-600'"
-            @click="ruleModalTab = PERP_CONTROL_RULE_MODAL_TAB.ACTION"
-          >
-            执行动作
-          </button>
-        </nav>
-
-        <section v-if="ruleModalTab === PERP_CONTROL_RULE_MODAL_TAB.BASIC" class="space-y-3 rounded-lg border border-slate-200 p-4">
-          <label class="block space-y-2">
-            <span class="text-sm font-medium text-slate-800">规则名称</span>
-            <input
-              v-model="ruleForm.name"
-              type="text"
-              class="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500"
-              placeholder="如：多头过重自动调整"
-            />
-          </label>
-          <label class="inline-flex items-center gap-2 text-sm text-slate-700">
-            <input v-model="ruleForm.enabled" type="checkbox" class="h-4 w-4" />
-            保存后立即启用
-          </label>
-          <div class="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
-            当前规则会作用于：<span class="font-medium text-slate-900">{{ currentContract?.symbol || '-' }}</span>
-          </div>
-        </section>
-
-        <section v-if="ruleModalTab === PERP_CONTROL_RULE_MODAL_TAB.TRIGGER" class="space-y-3 rounded-lg border border-slate-200 p-4">
-          <p class="text-sm font-medium text-slate-900">触发条件</p>
-          <div class="grid gap-3 md:grid-cols-3">
-            <label class="block space-y-2">
-              <span class="text-sm text-slate-600">触发类型</span>
-              <select v-model="ruleForm.triggerType" class="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500">
-                <option v-for="opt in triggerOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-              </select>
-            </label>
-            <label class="block space-y-2">
-              <span class="text-sm text-slate-600">{{ triggerMeta.thresholdLabel }}</span>
-              <input
-                v-model.number="ruleForm.thresholdValue"
-                type="number"
-                min="0"
-                class="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500"
-              />
-            </label>
-            <label class="block space-y-2">
-              <span class="text-sm text-slate-600">触发方向</span>
-              <select v-model="ruleForm.triggerDirection" class="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500">
-                <option v-for="d in triggerMeta.directionOptions" :key="d.value" :value="d.value">{{ d.label }}</option>
-              </select>
-            </label>
-          </div>
-          <div class="rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-700">
-            触发预览：{{ triggerMeta.label }} | {{ liveRuleConditionText }}
-          </div>
-        </section>
-
-        <section v-if="ruleModalTab === PERP_CONTROL_RULE_MODAL_TAB.ACTION" class="space-y-3 rounded-lg border border-slate-200 p-4">
-          <p class="text-sm font-medium text-slate-900">触发后执行的动作</p>
-          <div class="grid gap-4 md:grid-cols-2">
-            <label class="block space-y-2">
-              <div class="flex items-center justify-between text-sm">
-                <span>价格偏移 (点)</span>
-                <span class="font-medium">{{ ruleForm.priceOffset }}</span>
-              </div>
-              <input v-model.number="ruleForm.priceOffset" type="range" min="0" max="50" step="1" class="w-full accent-blue-600" />
-            </label>
-            <label class="block space-y-2">
-              <span class="text-sm text-slate-600">偏移方向</span>
-              <select v-model="ruleForm.offsetDirection" class="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500">
-                <option v-for="d in offsetDirections" :key="d.value" :value="d.value">{{ d.label }}</option>
-              </select>
-            </label>
-            <label class="block space-y-2">
-              <div class="flex items-center justify-between text-sm">
-                <span>点差倍数</span>
-                <span class="font-medium">{{ ruleForm.spreadMultiplier.toFixed(1) }}x</span>
-              </div>
-              <input v-model.number="ruleForm.spreadMultiplier" type="range" min="1" max="5" step="0.1" class="w-full accent-blue-600" />
-            </label>
-            <label class="block space-y-2">
-              <div class="flex items-center justify-between text-sm">
-                <span>滑点率 (%)</span>
-                <span class="font-medium">{{ ruleForm.slippagePct.toFixed(2) }}%</span>
-              </div>
-              <input v-model.number="ruleForm.slippagePct" type="range" min="0" max="2" step="0.01" class="w-full accent-blue-600" />
-            </label>
-            <label class="block space-y-2">
-              <div class="flex items-center justify-between text-sm">
-                <span>拒单率 (%)</span>
-                <span class="font-medium">{{ ruleForm.rejectRatePct.toFixed(1) }}%</span>
-              </div>
-              <input v-model.number="ruleForm.rejectRatePct" type="range" min="0" max="20" step="0.1" class="w-full accent-blue-600" />
-            </label>
-            <label class="block space-y-2">
-              <span class="text-sm text-slate-600">持续时间 (秒，0=持续生效)</span>
-              <input
-                v-model.number="ruleForm.durationSec"
-                type="number"
-                min="0"
-                class="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500"
-              />
-            </label>
-          </div>
-          <div class="rounded-md border border-violet-100 bg-violet-50 px-3 py-2 text-sm text-violet-700">
-            执行动作预览：{{ liveRuleActionText }}
-          </div>
-        </section>
+        </footer>
       </div>
 
-      <footer class="flex justify-end gap-3 border-t border-slate-200 px-5 py-4">
-        <button type="button" class="rounded-lg border border-slate-300 px-4 py-2" @click="showRuleModal = false">取消</button>
-        <button
-          type="button"
-          class="rounded-lg px-4 py-2 font-medium text-white"
-          :class="ruleForm.name.trim() && Number(ruleForm.thresholdValue) > 0 ? 'bg-violet-600 hover:bg-violet-700' : 'bg-violet-300'"
-          :disabled="!ruleForm.name.trim() || Number(ruleForm.thresholdValue) <= 0"
-          @click="saveRule"
-        >
-          保存规则
-        </button>
-      </footer>
+      <!-- 右侧预览区域 -->
+      <div class="flex w-2/5 flex-col bg-gradient-to-br from-slate-50 to-slate-100">
+        <header class="border-b border-slate-200 px-5 py-4">
+          <h3 class="text-lg font-semibold text-slate-900">实时预览</h3>
+          <p class="mt-0.5 text-xs text-slate-500">调整参数后即时显示效果</p>
+        </header>
+
+        <div class="flex-1 space-y-4 overflow-y-auto px-5 py-4">
+          <!-- 规则概览 -->
+          <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <div class="flex items-center justify-between">
+              <h4 class="text-sm font-semibold text-slate-900">规则概览</h4>
+              <span class="rounded-md px-2 py-1 text-xs font-medium" :class="ruleForm.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'">
+                {{ ruleForm.enabled ? '已启用' : '未启用' }}
+              </span>
+            </div>
+            <div class="mt-3 space-y-2">
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-slate-500">规则名称</span>
+                <span class="font-medium text-slate-900">{{ ruleForm.name || '未命名规则' }}</span>
+              </div>
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-slate-500">作用合约</span>
+                <span class="font-medium text-slate-900">{{ currentContract?.symbol || '-' }}</span>
+              </div>
+              <div class="pt-2 border-t border-slate-100">
+                <div class="flex items-start gap-1.5 text-xs">
+                  <svg class="h-3.5 w-3.5 text-violet-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <span class="font-medium text-slate-700">影响参数: </span>
+                    <span class="text-slate-600">
+                      {{ (() => {
+                        const affects = [];
+                        if (Number(ruleForm.priceOffset) > 0) affects.push('价格偏移');
+                        if (Number(ruleForm.slippagePct) > 0) affects.push('滑点');
+                        return affects.length > 0 ? affects.join('、') : '无影响';
+                      })() }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 数据计算预览 -->
+          <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+            <div class="flex items-center justify-between">
+              <h4 class="text-sm font-semibold text-emerald-900">数据计算预览</h4>
+              <span 
+                class="rounded-md px-2 py-1 text-xs font-medium" 
+                :class="{
+                  'bg-rose-100 text-rose-700': calculatedPreview.riskLevel === 'high',
+                  'bg-amber-100 text-amber-700': calculatedPreview.riskLevel === 'medium',
+                  'bg-emerald-100 text-emerald-700': calculatedPreview.riskLevel === 'low'
+                }"
+              >
+                {{ calculatedPreview.riskLevel === 'high' ? '高风险' : calculatedPreview.riskLevel === 'medium' ? '中风险' : '低风险' }}
+              </span>
+            </div>
+            <div class="mt-3 space-y-3">
+              <!-- 价格影响 -->
+              <div class="rounded-md border border-emerald-200 bg-white p-3">
+                <p class="text-xs font-medium text-slate-500">基于模拟价格计算</p>
+                <div class="mt-2 grid grid-cols-3 gap-2 text-center">
+                  <div>
+                    <p class="text-xs text-slate-500">市场价</p>
+                    <p class="mt-1 text-sm font-bold text-slate-900">${{ calculatedPreview.basePrice.toLocaleString() }}</p>
+                  </div>
+                  <div>
+                    <p class="text-xs text-rose-600">用户买入价</p>
+                    <p class="mt-1 text-sm font-bold text-rose-600">${{ calculatedPreview.buyPrice.toFixed(2) }}</p>
+                  </div>
+                  <div>
+                    <p class="text-xs text-emerald-600">用户卖出价</p>
+                    <p class="mt-1 text-sm font-bold text-emerald-600">${{ calculatedPreview.sellPrice.toFixed(2) }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 成本影响分析 -->
+              <div class="rounded-md border border-emerald-200 bg-white p-3">
+                <p class="text-xs font-medium text-slate-500">10,000 USDT 订单成本影响</p>
+                <div class="mt-2 space-y-1.5">
+                  <div class="flex items-center justify-between text-xs">
+                    <span class="text-slate-600">滑点成本</span>
+                    <span class="font-semibold text-slate-900">${{ calculatedPreview.slippageCost.toFixed(2) }}</span>
+                  </div>
+                  <div class="flex items-center justify-between rounded bg-rose-50 px-2 py-1 text-xs border-t border-emerald-200 pt-1.5">
+                    <span class="font-medium text-rose-700">总额外成本</span>
+                    <span class="font-bold text-rose-700">${{ calculatedPreview.totalExtraCost.toFixed(2) }} ({{ calculatedPreview.totalExtraCostPct.toFixed(3) }}%)</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 风险指标 -->
+              <div class="rounded-md border border-emerald-200 bg-white p-3">
+                <p class="text-xs font-medium text-slate-500">风险指标</p>
+                <div class="mt-2 space-y-2">
+                  <div class="text-xs">
+                    <div class="flex items-center justify-between mb-1">
+                      <span class="text-slate-600">综合风险评分</span>
+                      <span class="font-semibold text-slate-900">{{ calculatedPreview.riskScore }} / 6</span>
+                    </div>
+                    <div class="text-xs text-slate-500">
+                      <span v-if="calculatedPreview.riskLevel === 'low'">✓ 参数配置较为温和，对用户体验影响较小</span>
+                      <span v-else-if="calculatedPreview.riskLevel === 'medium'">⚠ 参数配置会明显影响交易成本</span>
+                      <span v-else>⚠ 参数配置较为激进，建议谨慎使用</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 效果说明 -->
+          <div class="rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <div class="flex items-start gap-2">
+              <svg class="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+              </svg>
+              <div class="text-xs text-amber-900">
+                <p class="font-medium">提示</p>
+                <p class="mt-1">规则触发后，系统将自动应用上述线控参数，影响用户的交易体验。请谨慎配置各项参数值。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
   </div>
 </template>

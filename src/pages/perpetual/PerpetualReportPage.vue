@@ -585,7 +585,13 @@ const openRiskHelpModal = () => {
                     </div>
                     <h4 class="text-sm font-semibold text-slate-900 mb-2">{{ suggestion.title }}</h4>
                     <p class="text-sm text-slate-700 mb-2">{{ suggestion.reason }}</p>
-                    <p class="text-xs text-emerald-700 font-medium">预期效果: {{ suggestion.expectedEffect }}</p>
+                    <p class="text-xs text-emerald-700 font-medium mb-2">预期效果: {{ suggestion.expectedEffect }}</p>
+                    <div class="flex items-start gap-1.5 text-xs text-slate-600 bg-white/70 rounded px-2 py-1.5">
+                      <svg class="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span><span class="font-medium text-slate-700">影响参数:</span> {{ suggestion.affects }}</span>
+                    </div>
                   </div>
                   <button 
                     :class="[

@@ -7,10 +7,8 @@ export const perpetualLeverageLevels = [1, 2, 3, 5, 10, 20, 25, 50, 75, 100, 125
 export const createDefaultPerpetualControlConfig = () => ({
   priceOffset: 5,
   offsetDirection: 'random',
-  spreadMultiplier: 1.2,
   slippagePct: 0.15,
   latencyMs: 50,
-  rejectRatePct: 2,
   maxLeverage: 100,
   autoTriggerEnabled: true
 })
@@ -82,10 +80,8 @@ const perpetualControlConfigs = {
   ETHUSDT: {
     priceOffset: 2,
     offsetDirection: 'random',
-    spreadMultiplier: 1.1,
     slippagePct: 0.1,
     latencyMs: 30,
-    rejectRatePct: 1,
     maxLeverage: 75,
     autoTriggerEnabled: false
   }
