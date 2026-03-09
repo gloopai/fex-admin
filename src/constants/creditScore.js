@@ -42,6 +42,22 @@ export const CREDIT_SCORE_DEDUCTION_REASON_OPTIONS = [
   { value: CREDIT_SCORE_DEDUCTION_REASON.RISK_ALERT, label: '风控预警' }
 ]
 
+// 信用分审核状态
+export const CREDIT_SCORE_AUDIT_STATUS = {
+  PENDING: 'pending',       // 待审核
+  APPROVED: 'approved',     // 已通过
+  REJECTED: 'rejected',     // 已拒绝
+  AUTO_APPROVED: 'auto_approved'  // 自动通过（无需审核）
+}
+
+// 信用分审核状态选项
+export const CREDIT_SCORE_AUDIT_STATUS_OPTIONS = [
+  { value: CREDIT_SCORE_AUDIT_STATUS.PENDING, label: '待审核' },
+  { value: CREDIT_SCORE_AUDIT_STATUS.APPROVED, label: '已通过' },
+  { value: CREDIT_SCORE_AUDIT_STATUS.REJECTED, label: '已拒绝' },
+  { value: CREDIT_SCORE_AUDIT_STATUS.AUTO_APPROVED, label: '自动通过' }
+]
+
 // 信用分配置键
 export const CREDIT_SCORE_CONFIG_KEYS = {
   ENABLED: 'creditScore.enabled',                           // 信用分开关
@@ -64,5 +80,10 @@ export const CREDIT_SCORE_CONFIG_KEYS = {
   DISPUTE_SCORE: 'creditScore.disputeScore',               // 交易纠纷扣分
   MALICIOUS_SCORE: 'creditScore.maliciousScore',           // 恶意行为扣分
   RISK_ALERT_SCORE: 'creditScore.riskAlertScore',          // 风控预警扣分
-  MIN_SCORE: 'creditScore.minScore'                        // 最低分数（扣分不低于此值）
+  MIN_SCORE: 'creditScore.minScore',                       // 最低分数（扣分不低于此值）
+  
+  // 人工审核配置
+  MANUAL_AUDIT_ENABLED: 'creditScore.manualAuditEnabled',  // 人工审核开关
+  MANUAL_AUDIT_THRESHOLD: 'creditScore.manualAuditThreshold', // 审核阈值（变动超过此值需审核）
+  MANUAL_AUDIT_TYPES: 'creditScore.manualAuditTypes'       // 需要审核的变动类型（数组）
 }

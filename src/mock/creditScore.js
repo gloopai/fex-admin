@@ -1,4 +1,4 @@
-import { CREDIT_SCORE_CHANGE_TYPE, CREDIT_SCORE_CONFIG_KEYS } from '../constants/creditScore'
+import { CREDIT_SCORE_CHANGE_TYPE, CREDIT_SCORE_CONFIG_KEYS, CREDIT_SCORE_AUDIT_STATUS } from '../constants/creditScore'
 
 // 信用分配置
 export const creditScoreConfig = {
@@ -22,7 +22,16 @@ export const creditScoreConfig = {
   [CREDIT_SCORE_CONFIG_KEYS.DISPUTE_SCORE]: 8,
   [CREDIT_SCORE_CONFIG_KEYS.MALICIOUS_SCORE]: 20,
   [CREDIT_SCORE_CONFIG_KEYS.RISK_ALERT_SCORE]: 5,
-  [CREDIT_SCORE_CONFIG_KEYS.MIN_SCORE]: 0
+  [CREDIT_SCORE_CONFIG_KEYS.MIN_SCORE]: 0,
+  
+  // 人工审核配置
+  [CREDIT_SCORE_CONFIG_KEYS.MANUAL_AUDIT_ENABLED]: true,
+  [CREDIT_SCORE_CONFIG_KEYS.MANUAL_AUDIT_THRESHOLD]: 10,  // 变动超过10分需审核
+  [CREDIT_SCORE_CONFIG_KEYS.MANUAL_AUDIT_TYPES]: [
+    CREDIT_SCORE_CHANGE_TYPE.MANUAL_ADJUST,
+    CREDIT_SCORE_CHANGE_TYPE.PENALTY,
+    CREDIT_SCORE_CHANGE_TYPE.REWARD
+  ]
 }
 
 // 信用分变动日志
@@ -179,6 +188,110 @@ export const getAllCreditScoreConfig = () => {
   return { ...creditScoreConfig }
 }
 
+
+// 信用分审核列表（待审核的积分变动）
+export const creditScoreAuditList = [
+  {
+    id: 'audit_001',
+    userId: 'user_008',
+    username: 'henry_trader',
+    email: 'henry@example.com',
+    changeType: CREDIT_SCORE_CHANGE_TYPE.MANUAL_ADJUST,
+    beforeScore: 65,
+    afterScore: 80,
+    changeAmount: 15,
+    relatedAmount: null,
+    reason: '忠诚用户奖励，交易活跃',
+    applyOperatorId: 'admin_001',
+    applyOperatorName: '管理员张三',
+    auditStatus: CREDIT_SCORE_AUDIT_STATUS.PENDING,
+    applyTime: '2026-03-09T11:00:00Z',
+    auditTime: null,
+    auditorId: null,
+    auditorName: null,
+    auditNote: null
+  },
+  {
+    id: 'audit_002',
+    userId: 'user_009',
+    username: 'ivy_investor',
+    email: 'ivy@example.com',
+    changeType: CREDIT_SCORE_CHANGE_TYPE.PENALTY,
+    beforeScore: 70,
+    afterScore: 55,
+    changeAmount: -15,
+    relatedAmount: null,
+    reason: '多次违规交易，风控预警',
+    applyOperatorId: 'admin_002',
+    applyOperatorName: '管理员李四',
+    auditStatus: CREDIT_SCORE_AUDIT_STATUS.PENDING,
+    applyTime: '2026-03-09T10:15:00Z',
+    auditTime: null,
+    auditorId: null,
+    auditorName: null,
+    auditNote: null
+  },
+  {
+    id: 'audit_003',
+    userId: 'user_010',
+    username: 'jack_pro',
+    email: 'jack@example.com',
+    changeType: CREDIT_SCORE_CHANGE_TYPE.REWARD,
+    beforeScore: 75,
+    afterScore: 85,
+    changeAmount: 10,
+    relatedAmount: null,
+    reason: '成功推荐5位活跃用户',
+    applyOperatorId: 'system',
+    applyOperatorName: '系统',
+    auditStatus: CREDIT_SCORE_AUDIT_STATUS.PENDING,
+    applyTime: '2026-03-09T09:30:00Z',
+    auditTime: null,
+    auditorId: null,
+    auditorName: null,
+    auditNote: null
+  },
+  {
+    id: 'audit_004',
+    userId: 'user_011',
+    username: 'karen_whale',
+    email: 'karen@example.com',
+    changeType: CREDIT_SCORE_CHANGE_TYPE.MANUAL_ADJUST,
+    beforeScore: 82,
+    afterScore: 95,
+    changeAmount: 13,
+    relatedAmount: null,
+    reason: '大户VIP特殊奖励',
+    applyOperatorId: 'admin_001',
+    applyOperatorName: '管理员张三',
+    auditStatus: CREDIT_SCORE_AUDIT_STATUS.APPROVED,
+    applyTime: '2026-03-08T16:00:00Z',
+    auditTime: '2026-03-08T17:30:00Z',
+    auditorId: 'admin_003',
+    auditorName: '管理员王五',
+    auditNote: '大户奖励，审核通过'
+  },
+  {
+    id: 'audit_005',
+    userId: 'user_012',
+    username: 'leo_trader',
+    email: 'leo@example.com',
+    changeType: CREDIT_SCORE_CHANGE_TYPE.PENALTY,
+    beforeScore: 68,
+    afterScore: 48,
+    changeAmount: -20,
+    relatedAmount: null,
+    reason: '恶意刷单行为',
+    applyOperatorId: 'admin_002',
+    applyOperatorName: '管理员李四',
+    auditStatus: CREDIT_SCORE_AUDIT_STATUS.REJECTED,
+    applyTime: '2026-03-08T14:00:00Z',
+    auditTime: '2026-03-08T15:20:00Z',
+    auditorId: 'admin_003',
+    auditorName: '管理员王五',
+    auditNote: '证据不足，需要进一步调查'
+  }
+]
 // 更新配置值
 export const updateCreditScoreConfig = (key, value) => {
   creditScoreConfig[key] = value

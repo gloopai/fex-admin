@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { getAllCreditScoreConfig, updateCreditScoreConfigs } from '../../mock/creditScore'
-import { CREDIT_SCORE_CONFIG_KEYS } from '../../constants/creditScore'
+import { CREDIT_SCORE_CONFIG_KEYS, CREDIT_SCORE_CHANGE_TYPE, CREDIT_SCORE_CHANGE_TYPE_OPTIONS } from '../../constants/creditScore'
 
 // 当前激活的标签
 const activeTab = ref('basic')
@@ -28,7 +28,16 @@ const formData = ref({
   disputeScore: 8,
   maliciousScore: 20,
   riskAlertScore: 5,
-  minScore: 0
+  minScore: 0,
+  
+  // 人工审核
+  manualAuditEnabled: true,
+  manualAuditThreshold: 10,
+  manualAuditTypes: [
+    CREDIT_SCORE_CHANGE_TYPE.MANUAL_ADJUST,
+    CREDIT_SCORE_CHANGE_TYPE.PENALTY,
+    CREDIT_SCORE_CHANGE_TYPE.REWARD
+  ]
 })
 
 // 保存状态
@@ -199,7 +208,16 @@ onMounted(() => {
     disputeScore: config[CREDIT_SCORE_CONFIG_KEYS.DISPUTE_SCORE],
     maliciousScore: config[CREDIT_SCORE_CONFIG_KEYS.MALICIOUS_SCORE],
     riskAlertScore: config[CREDIT_SCORE_CONFIG_KEYS.RISK_ALERT_SCORE],
-    minScore: config[CREDIT_SCORE_CONFIG_KEYS.MIN_SCORE]
+    minScore: config[CREDIT_SCORE_CONFIG_KEYS.MIN_SCORE],
+    
+    // 人工审核
+    manualAuditEnabled: config[CREDIT_SCORE_CONFIG_KEYS.MANUAL_AUDIT_ENABLED] || false,
+    manualAuditThreshold: config[CREDIT_SCORE_CONFIG_KEYS.MANUAL_AUDIT_THRESHOLD] || 10,
+    manualAuditTypes: config[CREDIT_SCORE_CONFIG_KEYS.MANUAL_AUDIT_TYPES] || [
+      CREDIT_SCORE_CHANGE_TYPE.MANUAL_ADJUST,
+      CREDIT_SCORE_CHANGE_TYPE.PENALTY,
+      CREDIT_SCORE_CHANGE_TYPE.REWARD
+    ]
   }
   // 初始加载时没有未保存的变化
   hasUnsavedChanges.value = false
@@ -283,7 +301,12 @@ const saveConfig = () => {
       [CREDIT_SCORE_CONFIG_KEYS.DISPUTE_SCORE]: formData.value.disputeScore,
       [CREDIT_SCORE_CONFIG_KEYS.MALICIOUS_SCORE]: formData.value.maliciousScore,
       [CREDIT_SCORE_CONFIG_KEYS.RISK_ALERT_SCORE]: formData.value.riskAlertScore,
-      [CREDIT_SCORE_CONFIG_KEYS.MIN_SCORE]: formData.value.minScore
+      [CREDIT_SCORE_CONFIG_KEYS.MIN_SCORE]: formData.value.minScore,
+      
+      // 人工审核
+      [CREDIT_SCORE_CONFIG_KEYS.MANUAL_AUDIT_ENABLED]: formData.value.manualAuditEnabled,
+      [CREDIT_SCORE_CONFIG_KEYS.MANUAL_AUDIT_THRESHOLD]: formData.value.manualAuditThreshold,
+      [CREDIT_SCORE_CONFIG_KEYS.MANUAL_AUDIT_TYPES]: formData.value.manualAuditTypes
     })
 
     isSaving.value = false
@@ -307,7 +330,8 @@ const formatNumber = (value) => {
 const tabs = [
   { id: 'basic', name: '基础配置', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' },
   { id: 'earn', name: '获取规则', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-  { id: 'deduct', name: '扣除规则', icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' }
+  { id: 'deduct', name: '扣除规则', icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' },
+  { id: 'audit', name: '人工审核', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' }
 ]
 </script>
 
@@ -720,6 +744,117 @@ const tabs = [
 
               <div v-else class="text-sm text-slate-500 text-center py-8 bg-slate-50 rounded-lg">
                 扣除规则已关闭，不会对用户进行扣分
+              </div>
+            </div>
+
+            <!-- 人工审核配置 -->
+            <div v-show="activeTab === 'audit'" class="space-y-4">
+              <div class="flex items-center justify-between mb-4 pb-4 border-b border-slate-200">
+                <div>
+                  <h4 class="text-sm font-semibold text-slate-900">启用人工审核</h4>
+                  <p class="text-xs text-slate-500 mt-1">开启后，符合条件的积分变动需要人工审核</p>
+                </div>
+                <button
+                  @click="formData.manualAuditEnabled = !formData.manualAuditEnabled"
+                  :class="formData.manualAuditEnabled ? 'bg-blue-600' : 'bg-slate-300'"
+                  class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                >
+                  <span
+                    :class="formData.manualAuditEnabled ? 'translate-x-6' : 'translate-x-1'"
+                    class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+                  />
+                </button>
+              </div>
+
+              <div v-if="formData.manualAuditEnabled" class="space-y-4">
+                <!-- 审核阈值 -->
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-2">审核阈值</label>
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-sm text-slate-600">积分变动绝对值超过</span>
+                    <input
+                      v-model.number="formData.manualAuditThreshold"
+                      type="number"
+                      min="0"
+                      :max="formData.maxScore"
+                      class="w-20 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <span class="text-sm text-slate-600">分时需要审核</span>
+                  </div>
+                  <p class="text-xs text-slate-500 mt-2">
+                    💡 例如：设置为 10，则 +15 或 -15 的变动都需要审核
+                  </p>
+                </div>
+
+                <!-- 需要审核的变动类型 -->
+                <div class="pt-4 border-t border-slate-200">
+                  <label class="block text-sm font-medium text-slate-700 mb-3">需要审核的变动类型</label>
+                  <div class="space-y-2">
+                    <label 
+                      v-for="option in CREDIT_SCORE_CHANGE_TYPE_OPTIONS" 
+                      :key="option.value"
+                      class="flex items-center gap-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        :value="option.value"
+                        v-model="formData.manualAuditTypes"
+                        class="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span class="text-sm text-slate-700">{{ option.label }}</span>
+                    </label>
+                  </div>
+                  <p class="text-xs text-slate-500 mt-3">
+                    勾选的变动类型在满足阈值条件时需要人工审核
+                  </p>
+                </div>
+
+                <!-- 审核说明 -->
+                <div class="pt-4 border-t border-slate-200">
+                  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h5 class="text-sm font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                      <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                      </svg>
+                      人工审核流程说明
+                    </h5>
+                    <ul class="text-xs text-blue-800 space-y-1.5 ml-7">
+                      <li>1. 符合审核条件的积分变动将进入待审核队列</li>
+                      <li>2. 管理员在"积分变动审核"页面进行审批</li>
+                      <li>3. 审核通过后，积分变动才会生效</li>
+                      <li>4. 审核拒绝的变动将不会生效</li>
+                      <li>5. 同时满足"变动类型"和"阈值"两个条件才需审核</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <!-- 审核示例 -->
+                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                  <h5 class="text-sm font-semibold text-slate-700 mb-3">审核规则示例</h5>
+                  <div class="space-y-2 text-xs">
+                    <div class="flex items-start gap-2">
+                      <svg class="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="text-slate-600">
+                        当前阈值 <strong>{{ formData.manualAuditThreshold }}</strong> 分，
+                        <strong>手动调整</strong> +15 分 → <span class="text-blue-600 font-medium">需要审核</span>
+                      </span>
+                    </div>
+                    <div class="flex items-start gap-2">
+                      <svg class="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="text-slate-600">
+                        <strong>充值</strong> +5 分（未勾选类型） → <span class="text-slate-500 font-medium">无需审核</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div v-else class="text-sm text-slate-500 text-center py-8 bg-slate-50 rounded-lg">
+                人工审核已关闭，所有积分变动将自动生效
               </div>
             </div>
           </div>

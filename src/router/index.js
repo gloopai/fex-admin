@@ -266,6 +266,11 @@ const routes = [
         component: () => import('../pages/user/CreditScoreChangesPage.vue')
       },
       {
+        path: 'users/credit-score-audit',
+        name: 'users-credit-score-audit',
+        component: () => import('../pages/user/CreditScoreAuditPage.vue')
+      },
+      {
         path: 'users/verification-config',
         name: 'users-verification-config',
         component: () => import('../pages/user/VerificationConfigPage.vue')
