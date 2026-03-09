@@ -279,6 +279,54 @@ const routes = [
         path: 'users/verification-log',
         name: 'users-verification-log',
         component: () => import('../pages/user/VerificationLogPage.vue')
+      },
+      
+      // 代理与分销管理路由
+      {
+        path: 'agent',
+        redirect: '/agent/management'
+      },
+      {
+        path: 'agent/management',
+        name: 'agent-management',
+        component: () => import('../pages/agent/AgentManagementPage.vue')
+      },
+      {
+        path: 'agent/applications',
+        name: 'agent-applications',
+        component: () => import('../pages/agent/AgentApplicationPage.vue')
+      },
+      {
+        path: 'agent/referral-config',
+        name: 'agent-referral-config',
+        component: () => import('../pages/agent/ReferralConfigPage.vue')
+      },
+      {
+        path: 'agent/referral-commission',
+        name: 'agent-referral-commission',
+        component: () => import('../pages/agent/ReferralCommissionPage.vue')
+      },
+      {
+        path: 'agent/referral-statistics',
+        name: 'agent-referral-statistics',
+        component: () => import('../pages/agent/ReferralStatisticsPage.vue')
+      },
+      // 兼容旧路由
+      {
+        path: 'referral',
+        redirect: '/agent/referral-config'
+      },
+      {
+        path: 'referral/config',
+        redirect: '/agent/referral-config'
+      },
+      {
+        path: 'referral/commission',
+        redirect: '/agent/referral-commission'
+      },
+      {
+        path: 'referral/statistics',
+        redirect: '/agent/referral-statistics'
       }
     ]
   }

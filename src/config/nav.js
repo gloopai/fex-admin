@@ -20,8 +20,19 @@ export const navTree = [
       { title: '信用分变动日志', path: '/users/credit-score-changes' },
       { title: '信用分升级日志', path: '/users/credit-score-upgrades' },
       { title: '认证等级配置', path: '/users/verification-config' },
-      { title: '身份审核', path: '/users/verification-audit' },
-      { title: '审核日志', path: '/users/verification-log' }
+      { title: '认证身份审核', path: '/users/verification-audit' },
+      { title: '认证审核日志', path: '/users/verification-log' }
+    ]
+  },
+  {
+    title: '代理/分销',
+    icon: 'users-group',
+    children: [
+      { title: '代理列表', path: '/agent/management' },
+      { title: '代理申请审核', path: '/agent/applications' },
+      { title: '裂变分销配置', path: '/agent/referral-config' },
+      { title: '裂变分佣记录', path: '/agent/referral-commission' },
+      { title: '裂变分销统计', path: '/agent/referral-statistics' }
     ]
   },
   {
