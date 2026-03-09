@@ -44,6 +44,7 @@ export const navTree = [
       { title: '合约产品', path: '/perpetual/overview' },
       { title: '合约线控', path: '/perpetual/contract-monitor' },
       { title: '合约线控日志', path: '/perpetual/contract-log' },
+      { title: '线控决策报表', path: '/perpetual/report' },
       { title: '使用指南', path: '/perpetual/guide' }
     ]
   },

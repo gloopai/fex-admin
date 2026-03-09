@@ -48,6 +48,11 @@ const routes = [
         component: () => import('../pages/perpetual/PerpetualControlLogPage.vue')
       },
       {
+        path: 'perpetual/report',
+        name: 'perpetual-report',
+        component: () => import('../pages/perpetual/PerpetualReportPage.vue')
+      },
+      {
         path: 'perpetual/guide',
         name: 'perpetual-guide',
         component: () => import('../pages/perpetual/GuidePage.vue')
