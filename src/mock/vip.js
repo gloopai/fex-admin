@@ -98,3 +98,147 @@ export const getVipLevelByCreditScore = (creditScore) => {
   const activeLevels = getActiveVipLevels().sort((a, b) => b.minCreditScore - a.minCreditScore)
   return activeLevels.find(level => creditScore >= level.minCreditScore) || vipLevels[0]
 }
+
+// VIP升级日志
+export const vipUpgradeLogs = [
+  {
+    id: 'vip_upgrade_001',
+    userId: 'user_003',
+    username: 'carol_whale',
+    fromVipLevel: 3,
+    fromVipName: 'VIP3',
+    toVipLevel: 4,
+    toVipName: 'VIP4',
+    upgradeReason: 'recharge',
+    creditScore: 80,
+    rechargeAmount: 500000,
+    remarks: '充值 500,000 USDT，自动升级',
+    createdAt: '2026-03-09T08:45:00Z'
+  },
+  {
+    id: 'vip_upgrade_002',
+    userId: 'user_006',
+    username: 'frank_vip',
+    fromVipLevel: 0,
+    fromVipName: '普通用户',
+    toVipLevel: 1,
+    toVipName: 'VIP1',
+    upgradeReason: 'credit_score',
+    creditScore: 62,
+    rechargeAmount: null,
+    remarks: '信用分达到 61，自动升级 VIP1',
+    createdAt: '2026-03-07T15:20:00Z'
+  },
+  {
+    id: 'vip_upgrade_003',
+    userId: 'user_007',
+    username: 'grace_investor',
+    fromVipLevel: 2,
+    fromVipName: 'VIP2',
+    toVipLevel: 3,
+    toVipName: 'VIP3',
+    upgradeReason: 'credit_score',
+    creditScore: 77,
+    rechargeAmount: null,
+    remarks: '推荐新用户获得奖励，信用分达标',
+    createdAt: '2026-03-07T10:00:00Z'
+  },
+  {
+    id: 'vip_upgrade_004',
+    userId: 'user_003',
+    username: 'carol_whale',
+    fromVipLevel: 2,
+    fromVipName: 'VIP2',
+    toVipLevel: 3,
+    toVipName: 'VIP3',
+    upgradeReason: 'recharge',
+    creditScore: 75,
+    rechargeAmount: 500000,
+    remarks: '充值 500,000 USDT，自动升级',
+    createdAt: '2026-03-06T18:30:00Z'
+  },
+  {
+    id: 'vip_upgrade_005',
+    userId: 'user_004',
+    username: 'david_pro',
+    fromVipLevel: 1,
+    fromVipName: 'VIP1',
+    toVipLevel: 2,
+    toVipName: 'VIP2',
+    upgradeReason: 'manual',
+    creditScore: 75,
+    rechargeAmount: null,
+    remarks: '手动调整信用分，达到升级条件',
+    createdAt: '2026-03-08T14:30:00Z'
+  },
+  {
+    id: 'vip_upgrade_006',
+    userId: 'user_008',
+    username: 'henry_whale',
+    fromVipLevel: 3,
+    fromVipName: 'VIP3',
+    toVipLevel: 4,
+    toVipName: 'VIP4',
+    upgradeReason: 'recharge',
+    creditScore: 80,
+    rechargeAmount: 1000000,
+    remarks: '充值 1,000,000 USDT，自动升级',
+    createdAt: '2026-03-05T14:20:00Z'
+  },
+  {
+    id: 'vip_upgrade_007',
+    userId: 'user_009',
+    username: 'ivy_investor',
+    fromVipLevel: 0,
+    fromVipName: '普通用户',
+    toVipLevel: 1,
+    toVipName: 'VIP1',
+    upgradeReason: 'credit_score',
+    creditScore: 65,
+    rechargeAmount: null,
+    remarks: '信用分达到 61，自动升级 VIP1',
+    createdAt: '2026-03-04T09:15:00Z'
+  },
+  {
+    id: 'vip_upgrade_008',
+    userId: 'user_010',
+    username: 'jack_pro',
+    fromVipLevel: 4,
+    fromVipName: 'VIP4',
+    toVipLevel: 5,
+    toVipName: 'VIP5',
+    upgradeReason: 'recharge',
+    creditScore: 88,
+    rechargeAmount: 2000000,
+    remarks: '充值 2,000,000 USDT，自动升级',
+    createdAt: '2026-03-03T16:40:00Z'
+  },
+  {
+    id: 'vip_upgrade_009',
+    userId: 'user_011',
+    username: 'kate_trader',
+    fromVipLevel: 1,
+    fromVipName: 'VIP1',
+    toVipLevel: 2,
+    toVipName: 'VIP2',
+    upgradeReason: 'recharge',
+    creditScore: 70,
+    rechargeAmount: 300000,
+    remarks: '充值 300,000 USDT，自动升级',
+    createdAt: '2026-03-02T11:20:00Z'
+  },
+  {
+    id: 'vip_upgrade_010',
+    userId: 'user_001',
+    username: 'alice_trader',
+    fromVipLevel: 0,
+    fromVipName: '普通用户',
+    toVipLevel: 1,
+    toVipName: 'VIP1',
+    upgradeReason: 'credit_score',
+    creditScore: 65,
+    rechargeAmount: null,
+    remarks: '初始充值后信用分达标，自动升级 VIP1',
+    createdAt: '2026-03-01T08:00:00Z'
+  }
+]

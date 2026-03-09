@@ -97,6 +97,7 @@ export const verificationAuditList = [
   generateVerificationAudit(2, {
     username: 'bob_li',
     email: 'bob@example.com',
+    currentLevel: VERIFICATION_LEVEL.BASIC,
     applyLevel: VERIFICATION_LEVEL.ADVANCED,
     status: VERIFICATION_STATUS.PENDING,
     basicInfo: {
@@ -175,12 +176,12 @@ export const verificationAuditList = [
   generateVerificationAudit(5, {
     username: 'emma_liu',
     email: 'emma@example.com',
-    applyLevel: VERIFICATION_LEVEL.ADVANCED,
+    applyLevel: VERIFICATION_LEVEL.BASIC,
     status: VERIFICATION_STATUS.RESUBMIT,
     submitTime: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
     auditTime: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
     auditor: 'admin_01',
-    rejectReason: '需要补充上传银行流水证明',
+    rejectReason: '需要补充身份证件的背面照片',
     basicInfo: {
       realName: '刘艾玛',
       idNumber: '110101199801011234',
@@ -192,11 +193,6 @@ export const verificationAuditList = [
       {
         type: VERIFICATION_DOC_TYPE.ID_CARD,
         url: '/mock/id_card_front.jpg',
-        uploadTime: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString()
-      },
-      {
-        type: VERIFICATION_DOC_TYPE.INCOME_PROOF,
-        url: '/mock/income_proof.pdf',
         uploadTime: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString()
       }
     ]
@@ -281,7 +277,7 @@ export const verificationLogList = [
     description: '要求补充材料',
     details: {
       auditId: 'audit_5',
-      reason: '需要补充上传银行流水证明'
+      reason: '需要补充身份证件的背面照片'
     }
   }),
   generateVerificationLog(6, {

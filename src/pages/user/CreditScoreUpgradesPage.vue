@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { creditScoreUpgrades } from '../../mock/creditScore'
-import { CREDIT_SCORE_UPGRADE_REASON, CREDIT_SCORE_UPGRADE_REASON_OPTIONS } from '../../constants/creditScore'
+import { vipUpgradeLogs } from '../../mock/vip'
+import { VIP_UPGRADE_REASON, VIP_UPGRADE_REASON_OPTIONS } from '../../constants/vip'
 
 // 搜索和筛选
 const searchKeyword = ref('')
@@ -16,15 +16,15 @@ const pageSize = ref(20)
 
 // 升级原因配置
 const upgradeReasonConfig = {
-  [CREDIT_SCORE_UPGRADE_REASON.CREDIT_SCORE]: { text: '信用分达标', class: 'bg-emerald-100 text-emerald-700' },
-  [CREDIT_SCORE_UPGRADE_REASON.RECHARGE]: { text: '充值升级', class: 'bg-blue-100 text-blue-700' },
-  [CREDIT_SCORE_UPGRADE_REASON.MANUAL]: { text: '手动升级', class: 'bg-amber-100 text-amber-700' }
+  [VIP_UPGRADE_REASON.CREDIT_SCORE]: { text: '信用分达标', class: 'bg-emerald-100 text-emerald-700' },
+  [VIP_UPGRADE_REASON.RECHARGE]: { text: '充值升级', class: 'bg-blue-100 text-blue-700' },
+  [VIP_UPGRADE_REASON.MANUAL]: { text: '手动升级', class: 'bg-amber-100 text-amber-700' }
 }
 
 // VIP等级选项
 const vipLevelOptions = computed(() => {
   const levels = new Set()
-  creditScoreUpgrades.forEach(upgrade => {
+  vipUpgradeLogs.forEach(upgrade => {
     levels.add(upgrade.fromVipLevel)
     levels.add(upgrade.toVipLevel)
   })
@@ -33,7 +33,7 @@ const vipLevelOptions = computed(() => {
 
 // 过滤数据
 const filteredUpgrades = computed(() => {
-  let upgrades = [...creditScoreUpgrades]
+  let upgrades = [...vipUpgradeLogs]
 
   // 按升级原因筛选
   if (selectedUpgradeReason.value !== 'all') {
@@ -88,10 +88,10 @@ const totalPages = computed(() => {
 
 // 统计信息
 const statistics = computed(() => {
-  const total = creditScoreUpgrades.length
-  const byCreditScore = creditScoreUpgrades.filter(u => u.upgradeReason === CREDIT_SCORE_UPGRADE_REASON.CREDIT_SCORE).length
-  const byRecharge = creditScoreUpgrades.filter(u => u.upgradeReason === CREDIT_SCORE_UPGRADE_REASON.RECHARGE).length
-  const byManual = creditScoreUpgrades.filter(u => u.upgradeReason === CREDIT_SCORE_UPGRADE_REASON.MANUAL).length
+  const total = vipUpgradeLogs.length
+  const byCreditScore = vipUpgradeLogs.filter(u => u.upgradeReason === VIP_UPGRADE_REASON.CREDIT_SCORE).length
+  const byRecharge = vipUpgradeLogs.filter(u => u.upgradeReason === VIP_UPGRADE_REASON.RECHARGE).length
+  const byManual = vipUpgradeLogs.filter(u => u.upgradeReason === VIP_UPGRADE_REASON.MANUAL).length
 
   return [
     { label: '总升级记录', value: total.toLocaleString(), class: 'text-blue-600' },
@@ -147,7 +147,7 @@ const exportData = () => {
     <!-- 页面标题 -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold text-slate-900">信用分升级日志</h1>
+        <h1 class="text-2xl font-bold text-slate-900">VIP升级日志</h1>
         <p class="text-sm text-slate-500 mt-1">查看所有用户的VIP等级升级记录</p>
       </div>
       <button
@@ -196,7 +196,7 @@ const exportData = () => {
           >
             <option value="all">全部原因</option>
             <option
-              v-for="option in CREDIT_SCORE_UPGRADE_REASON_OPTIONS"
+              v-for="option in VIP_UPGRADE_REASON_OPTIONS"
               :key="option.value"
               :value="option.value"
             >

@@ -16,9 +16,9 @@ export const navTree = [
     icon: 'vip',
     children: [
       { title: 'VIP等级配置', path: '/users/vip-config' },
+      { title: 'VIP升级日志', path: '/users/vip-upgrades' },
       { title: '信用分配置', path: '/users/credit-score-config' },
       { title: '信用分变动日志', path: '/users/credit-score-changes' },
-      { title: '信用分升级日志', path: '/users/credit-score-upgrades' },
       { title: '认证等级配置', path: '/users/verification-config' },
       { title: '认证身份审核', path: '/users/verification-audit' },
       { title: '认证审核日志', path: '/users/verification-log' }

@@ -251,6 +251,11 @@ const routes = [
         component: () => import('../pages/user/VipConfigPage.vue')
       },
       {
+        path: 'users/vip-upgrades',
+        name: 'users-vip-upgrades',
+        component: () => import('../pages/user/CreditScoreUpgradesPage.vue')
+      },
+      {
         path: 'users/credit-score-config',
         name: 'users-credit-score-config',
         component: () => import('../pages/user/CreditScoreConfigPage.vue')
@@ -259,11 +264,6 @@ const routes = [
         path: 'users/credit-score-changes',
         name: 'users-credit-score-changes',
         component: () => import('../pages/user/CreditScoreChangesPage.vue')
-      },
-      {
-        path: 'users/credit-score-upgrades',
-        name: 'users-credit-score-upgrades',
-        component: () => import('../pages/user/CreditScoreUpgradesPage.vue')
       },
       {
         path: 'users/verification-config',

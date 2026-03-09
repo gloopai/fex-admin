@@ -20,20 +20,6 @@ export const CREDIT_SCORE_CHANGE_TYPE_OPTIONS = [
   { value: CREDIT_SCORE_CHANGE_TYPE.REWARD, label: '奖励' }
 ]
 
-// 信用分升级原因
-export const CREDIT_SCORE_UPGRADE_REASON = {
-  CREDIT_SCORE: 'credit_score',   // 信用分达标
-  RECHARGE: 'recharge',           // 充值升级
-  MANUAL: 'manual'                // 手动升级
-}
-
-// 信用分升级原因选项
-export const CREDIT_SCORE_UPGRADE_REASON_OPTIONS = [
-  { value: CREDIT_SCORE_UPGRADE_REASON.CREDIT_SCORE, label: '信用分达标' },
-  { value: CREDIT_SCORE_UPGRADE_REASON.RECHARGE, label: '充值升级' },
-  { value: CREDIT_SCORE_UPGRADE_REASON.MANUAL, label: '手动升级' }
-]
-
 // 信用分扣除原因
 export const CREDIT_SCORE_DEDUCTION_REASON = {
   VIOLATION: 'violation',                 // 违规行为
