@@ -192,6 +192,62 @@ const exampleCalc = computed(() => {
   }
 })
 
+// 数据计算预览
+const calculatedPreview = computed(() => {
+  const basePrice = examplePrice
+  const offset = Number(form.priceOffset || 0)
+  const slippage = Number(form.slippagePct || 0) / 100
+  
+  // 根据偏移方向计算价格
+  let buyPrice = basePrice
+  let sellPrice = basePrice
+  
+  if (form.offsetDirection === 'against') {
+    // 逆势：买入价提高，卖出价降低
+    buyPrice = basePrice + offset
+    sellPrice = basePrice - offset
+  } else if (form.offsetDirection === 'up') {
+    // 向上偏移：买入价提高，卖出价提高
+    buyPrice = basePrice + offset
+    sellPrice = basePrice + offset
+  } else if (form.offsetDirection === 'down') {
+    // 向下偏移：买入价降低，卖出价降低
+    buyPrice = basePrice - offset
+    sellPrice = basePrice - offset
+  } else {
+    // 随机：保持市场价
+    buyPrice = basePrice
+    sellPrice = basePrice
+  }
+  
+  // 加上滑点影响
+  const buySlippage = buyPrice * slippage
+  const sellSlippage = sellPrice * slippage
+  
+  // 基于 10,000 USDT 的成本影响分析
+  const orderAmount = 10000
+  const btcAmount = orderAmount / basePrice
+  
+  // 价格偏移成本（买卖双向平均）
+  const priceOffsetCost = Math.abs((buyPrice - basePrice) + (basePrice - sellPrice)) * btcAmount / 2
+  
+  // 滑点成本
+  const slippageCost = (buySlippage + sellSlippage) * btcAmount / 2
+  
+  // 总额外成本
+  const totalExtraCost = priceOffsetCost + slippageCost
+  const totalExtraCostPct = (totalExtraCost / orderAmount) * 100
+  
+  return {
+    buyPrice: buyPrice + buySlippage,
+    sellPrice: sellPrice - sellSlippage,
+    priceOffsetCost,
+    slippageCost,
+    totalExtraCost,
+    totalExtraCostPct
+  }
+})
+
 const save = () => {
   normalize()
   emit('save', {
@@ -207,9 +263,9 @@ const save = () => {
 
 <template>
   <div v-if="open" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4" @click.self="emit('close')">
-    <section class="flex h-[88vh] w-full max-w-7xl overflow-hidden rounded-xl bg-white shadow-2xl">
+    <section class="flex h-[88vh] w-full max-w-5xl overflow-hidden rounded-xl bg-white shadow-2xl">
       <!-- 左侧配置区域 -->
-      <div class="flex grow flex-col border-r border-slate-200">
+      <div class="flex w-3/5 flex-col border-r border-slate-200">
         <header class="flex items-center justify-between border-b border-slate-200 bg-gradient-to-r from-blue-50 to-cyan-50 px-6 py-4">
           <div>
             <h2 class="text-xl font-semibold text-slate-900">配置 {{ symbol }} 线控参数</h2>
@@ -220,43 +276,55 @@ const save = () => {
 
         <div class="flex-1 space-y-5 overflow-y-auto px-6 py-5">
           <!-- 快速预设 -->
-          <section class="space-y-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center gap-2">
-              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100">
-                <svg class="h-4 w-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
+          <section class="space-y-4 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100 p-5 shadow-sm">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-white/80">
+                  <svg class="h-4 w-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <h3 class="text-base font-semibold text-slate-900">快速预设</h3>
+                  <p class="text-xs text-slate-600">选择预设方案快速配置</p>
+                </div>
               </div>
-              <div class="flex-1">
-                <h3 class="text-base font-semibold text-slate-900">快速预设</h3>
-                <p class="text-xs text-slate-500">选择预设方案快速配置</p>
-              </div>
+              <span class="rounded-lg px-2.5 py-1 text-xs font-bold shadow-sm" 
+                :class="{
+                  'bg-gradient-to-r from-rose-500 to-pink-500 text-white': riskLabel.text === '高风险',
+                  'bg-gradient-to-r from-amber-500 to-orange-500 text-white': riskLabel.text === '中风险',
+                  'bg-gradient-to-r from-emerald-500 to-teal-500 text-white': riskLabel.text === '低风险'
+                }"
+              >
+                {{ riskLabel.text === '高风险' ? '⚠ 高风险' : riskLabel.text === '中风险' ? '⚠ 中风险' : '✓ 低风险' }}
+              </span>
             </div>
 
+            <!-- 预设选项 -->
             <div class="grid gap-3 sm:grid-cols-3">
               <button
                 v-for="key in presetKeys"
                 :key="key"
                 type="button"
-                class="group relative overflow-hidden rounded-lg border p-4 text-left transition-all hover:shadow-md"
-                :class="selectedPreset === key ? 'border-blue-500 bg-blue-50 shadow-sm' : 'border-slate-300 bg-white hover:border-slate-400'"
+                class="group relative overflow-hidden rounded-lg border p-3 text-left transition-all hover:shadow-md"
+                :class="selectedPreset === key ? 'border-white bg-white shadow-md ring-2 ring-blue-500' : 'border-white/60 bg-white/60 hover:bg-white/80'"
                 @click="selectPreset(key)"
               >
                 <div class="flex items-start justify-between">
-                  <div>
+                  <div class="flex-1">
                     <p class="text-sm font-semibold text-slate-900">{{ presetMap[key].label }}</p>
-                    <p class="mt-1 text-xs text-slate-500">{{ presetMap[key].desc }}</p>
+                    <p class="mt-1 text-xs text-slate-600">{{ presetMap[key].desc }}</p>
                   </div>
                   <span
-                    class="h-3 w-3 rounded-full border-2 transition-colors"
+                    class="ml-2 mt-0.5 h-3 w-3 flex-shrink-0 rounded-full border-2 transition-colors"
                     :class="selectedPreset === key ? 'border-blue-600 bg-blue-600' : 'border-slate-300 bg-white group-hover:border-slate-400'"
                   />
                 </div>
               </button>
             </div>
 
-            <p class="text-xs text-slate-500">
-              <svg class="inline h-3 w-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <p class="text-xs text-slate-600">
+              <svg class="inline h-3 w-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               点选预设会覆盖当前参数；手动修改任一参数会自动切换为"自定义"
@@ -387,29 +455,23 @@ const save = () => {
 
           <!-- 自动触发 -->
           <section class="space-y-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center gap-2">
-              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100">
-                <svg class="h-4 w-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100">
+                  <svg class="h-4 w-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <h3 class="text-base font-semibold text-slate-900">启用自动触发规则</h3>
+                </div>
               </div>
-              <div class="flex-1">
-                <h3 class="text-base font-semibold text-slate-900">自动触发</h3>
-                <p class="text-xs text-slate-500">是否自动应用规则到交易</p>
-              </div>
-            </div>
-
-            <label class="flex cursor-pointer items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-4 hover:bg-slate-100">
-              <div>
-                <span class="text-sm font-medium text-slate-900">启用自动触发规则</span>
-                <p class="mt-1 text-xs text-slate-500">开启后会在当前参数基础上应用自动规则；关闭后仅使用当前手动参数</p>
-              </div>
-              <div class="relative">
+              <label class="relative inline-flex cursor-pointer items-center">
                 <input v-model="form.autoTriggerEnabled" type="checkbox" class="peer sr-only" />
                 <div class="peer h-6 w-11 rounded-full bg-slate-300 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300"></div>
-              </div>
-            </label>
+              </label>
+            </div>
           </section>
         </div>
 
@@ -418,236 +480,150 @@ const save = () => {
           <button type="button" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" @click="save">保存</button>
         </footer>
       </div>
-      <!-- 右侧示例计算 -->
-      <div class="flex w-[20%] flex-col bg-gradient-to-br from-indigo-50 to-purple-50">
+      <!-- 右侧数据计算预览 -->
+      <div class="flex w-2/5 flex-col bg-gradient-to-br from-slate-50 to-slate-100">
         <header class="border-b border-slate-200 px-5 py-4">
-          <h3 class="text-lg font-semibold text-slate-900">计算示例</h3>
-          <p class="mt-0.5 text-xs text-slate-500">模拟订单的实际影响</p>
-        </header>
-
-        <div class="flex-1 space-y-4 overflow-y-auto px-5 py-4">
-          <!-- 订单示例 -->
-          <div class="rounded-lg border border-indigo-200 bg-white p-4 shadow-sm">
-            <h4 class="text-sm font-semibold text-slate-900">订单示例</h4>
-            <div class="mt-3 space-y-2">
-              <div class="flex items-center justify-between text-xs">
-                <span class="text-slate-600">交易对</span>
-                <span class="font-semibold text-slate-900">BTC/USDT</span>
-              </div>
-              <div class="flex items-center justify-between text-xs">
-                <span class="text-slate-600">订单类型</span>
-                <span class="font-semibold text-slate-900">市价买入</span>
-              </div>
-              <div class="flex items-center justify-between text-xs">
-                <span class="text-slate-600">数量</span>
-                <span class="font-semibold text-slate-900">{{ exampleAmount }} BTC</span>
-              </div>
-              <div class="flex items-center justify-between text-xs">
-                <span class="text-slate-600">杠杆</span>
-                <span class="font-semibold text-slate-900">{{ Math.min(form.maxLeverage, 10) }}x</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- 价格计算 -->
-          <div class="rounded-lg border border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50 p-4">
-            <h4 class="text-sm font-semibold text-slate-900">价格计算过程</h4>
-            <div class="mt-3 space-y-2.5">
-              <div class="flex items-center justify-between rounded-lg bg-white/80 px-3 py-2">
-                <span class="text-xs text-slate-600">市场价格</span>
-                <span class="text-xs font-bold text-slate-900">${{ exampleCalc.basePrice }}</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <svg class="h-3 w-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                </svg>
-                <span class="text-xs text-blue-600">应用价格偏移 {{ form.priceOffset }} 点</span>
-              </div>
-              <div class="flex items-center justify-between rounded-lg bg-white/80 px-3 py-2">
-                <span class="text-xs text-slate-600">调整后价格</span>
-                <span class="text-xs font-bold text-blue-700">${{ exampleCalc.adjustedPrice }}</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <svg class="h-3 w-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                </svg>
-                <span class="text-xs text-blue-600">应用滑点 {{ form.slippagePct.toFixed(2) }}%</span>
-              </div>
-              <div class="flex items-center justify-between rounded-lg bg-white/80 px-3 py-2 ring-2 ring-blue-400">
-                <span class="text-xs font-semibold text-slate-700">最终成交价</span>
-                <span class="text-sm font-bold text-blue-700">${{ exampleCalc.finalPrice }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- 成本对比 -->
-          <div class="rounded-lg border border-violet-200 bg-gradient-to-br from-violet-50 to-purple-50 p-4">
-            <h4 class="text-sm font-semibold text-slate-900">成本对比</h4>
-            <div class="mt-3 space-y-2.5">
-              <div class="flex items-center justify-between rounded-lg bg-white/80 px-3 py-2">
-                <span class="text-xs text-slate-600">理论成本</span>
-                <span class="text-xs font-bold text-slate-900">${{ exampleCalc.baseCost }}</span>
-              </div>
-              <div class="flex items-center justify-between rounded-lg bg-white/80 px-3 py-2">
-                <span class="text-xs text-slate-600">实际成本</span>
-                <span class="text-xs font-bold text-violet-700">${{ exampleCalc.actualCost }}</span>
-              </div>
-              <div class="h-px bg-slate-300"></div>
-              <div class="flex items-center justify-between rounded-lg px-3 py-2" :class="parseFloat(exampleCalc.difference) > 0 ? 'bg-rose-100' : 'bg-emerald-100'">
-                <span class="text-xs font-semibold" :class="parseFloat(exampleCalc.difference) > 0 ? 'text-rose-700' : 'text-emerald-700'">成本差异</span>
-                <div class="text-right">
-                  <div class="text-sm font-bold" :class="parseFloat(exampleCalc.difference) > 0 ? 'text-rose-700' : 'text-emerald-700'">
-                    {{ parseFloat(exampleCalc.difference) > 0 ? '+' : '' }}${{ exampleCalc.difference }}
-                  </div>
-                  <div class="text-xs" :class="parseFloat(exampleCalc.difference) > 0 ? 'text-rose-600' : 'text-emerald-600'">
-                    {{ parseFloat(exampleCalc.differencePercent) > 0 ? '+' : '' }}{{ exampleCalc.differencePercent }}%
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 执行时间 -->
-          <div class="rounded-lg border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-4">
-            <h4 class="text-sm font-semibold text-slate-900">执行延迟</h4>
-            <div class="mt-3">
-              <div class="flex items-center justify-between rounded-lg bg-white/80 px-3 py-2.5">
-                <div class="flex items-center gap-2">
-                  <svg class="h-4 w-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span class="text-xs text-slate-600">预计延迟</span>
-                </div>
-                <span class="text-sm font-bold text-amber-700">{{ exampleCalc.delayTime }}ms</span>
-              </div>
-              <p class="mt-2 text-xs text-amber-800">
-                订单提交后将延迟 {{ exampleCalc.delayTime }}ms 执行，在此期间市场价格可能波动。
-              </p>
-            </div>
-          </div>
-
-          <!-- 说明 -->
-          <div class="rounded-lg border border-slate-200 bg-white p-3">
-            <p class="text-xs leading-relaxed text-slate-600">
-              <svg class="inline h-3 w-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              以上为模拟计算，实际成交价格和成本会根据市场行情实时变化。
-            </p>
-          </div>
-        </div>
-      </div>
-      <!-- 中间预览区域 -->
-      <div class="flex w-[20%] flex-col border-r border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100">
-       <header class="border-b border-slate-200 px-5 py-4">
           <h3 class="text-lg font-semibold text-slate-900">实时预览</h3>
-          <p class="mt-0.5 text-xs text-slate-500">当前配置的影响和风险评估</p>
+          <p class="mt-0.5 text-xs text-slate-500">调整参数后即时显示效果</p>
         </header>
 
         <div class="flex-1 space-y-4 overflow-y-auto px-5 py-4">
-          <!-- 参数配置 -->
+          <!-- 配置概览 -->
           <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <div class="flex items-center justify-between">
-              <h4 class="text-sm font-semibold text-slate-900">参数配置</h4>
-              <span class="rounded-md px-2 py-1 text-xs font-medium" :class="selectedPreset === 'custom' ? 'bg-slate-200 text-slate-600' : 'bg-blue-100 text-blue-700'">
-                {{ selectedPreset === 'custom' ? '自定义' : presetMap[selectedPreset].label }}
+              <h4 class="text-sm font-semibold text-slate-900">配置概览</h4>
+              <span class="rounded-md px-2 py-1 text-xs font-medium" :class="form.autoTriggerEnabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'">
+                {{ form.autoTriggerEnabled ? '自动触发' : '手动触发' }}
               </span>
             </div>
             <div class="mt-3 space-y-2">
-              <div class="flex items-center justify-between rounded-lg bg-blue-50 px-3 py-2">
-                <span class="text-xs text-blue-700">价格偏移</span>
-                <span class="text-xs font-bold text-blue-900">{{ form.priceOffset }} 点</span>
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-slate-500">作用合约</span>
+                <span class="font-medium text-slate-900">{{ props.symbol || 'BTC/USDT' }}</span>
               </div>
-              <div class="flex items-center justify-between rounded-lg bg-violet-50 px-3 py-2">
-                <span class="text-xs text-violet-700">滑点率</span>
-                <span class="text-xs font-bold text-violet-900">{{ form.slippagePct.toFixed(2) }}%</span>
-              </div>
-              <div class="flex items-center justify-between rounded-lg bg-violet-50 px-3 py-2">
-                <span class="text-xs text-violet-700">成交延迟</span>
-                <span class="text-xs font-bold text-violet-900">{{ form.latencyMs }}ms</span>
-              </div>
-              <div class="flex items-center justify-between rounded-lg bg-amber-50 px-3 py-2">
-                <span class="text-xs text-amber-700">最大杠杆</span>
-                <span class="text-xs font-bold text-amber-900">{{ form.maxLeverage }}x</span>
-              </div>
-              <div class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
-                <span class="text-xs text-slate-700">自动触发</span>
-                <span class="text-xs font-bold" :class="form.autoTriggerEnabled ? 'text-emerald-600' : 'text-slate-600'">
-                  {{ form.autoTriggerEnabled ? '已启用' : '已关闭' }}
-                </span>
+              <div class="pt-2 border-t border-slate-100">
+                <div class="flex items-start gap-1.5 text-xs">
+                  <svg class="h-3.5 w-3.5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <span class="font-medium text-slate-700">影响参数: </span>
+                    <span class="text-slate-600">
+                      {{ (() => {
+                        const affects = [];
+                        if (Number(form.priceOffset) > 0) affects.push('价格偏移');
+                        if (Number(form.slippagePct) > 0) affects.push('滑点');
+                        if (Number(form.latencyMs) > 0) affects.push('延迟');
+                        return affects.length > 0 ? affects.join('、') : '无影响';
+                      })() }}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- 风险评估 -->
-          <div class="rounded-lg border-2 p-4 shadow-sm" 
-            :class="{
-              'border-rose-300 bg-gradient-to-br from-rose-50 to-pink-50': riskLabel.text === '高风险',
-              'border-amber-300 bg-gradient-to-br from-amber-50 to-yellow-50': riskLabel.text === '中风险',
-              'border-emerald-300 bg-gradient-to-br from-emerald-50 to-teal-50': riskLabel.text === '低风险'
-            }"
-          >
+          <!-- 数据计算预览 -->
+          <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
             <div class="flex items-center justify-between">
-              <h4 class="text-sm font-semibold text-slate-900">风险评估</h4>
-              <span class="rounded-lg px-2.5 py-1 text-xs font-bold shadow-sm" 
+              <h4 class="text-sm font-semibold text-emerald-900">数据计算预览</h4>
+              <span 
+                class="rounded-md px-2 py-1 text-xs font-medium" 
                 :class="{
-                  'bg-gradient-to-r from-rose-500 to-pink-500 text-white': riskLabel.text === '高风险',
-                  'bg-gradient-to-r from-amber-500 to-orange-500 text-white': riskLabel.text === '中风险',
-                  'bg-gradient-to-r from-emerald-500 to-teal-500 text-white': riskLabel.text === '低风险'
+                  'bg-rose-100 text-rose-700': riskScore >= 75,
+                  'bg-amber-100 text-amber-700': riskScore >= 45 && riskScore < 75,
+                  'bg-emerald-100 text-emerald-700': riskScore < 45
                 }"
               >
-                {{ riskLabel.text === '高风险' ? '⚠ 高风险' : riskLabel.text === '中风险' ? '⚠ 中风险' : '✓ 低风险' }}
+                {{ riskScore >= 75 ? '高风险' : riskScore >= 45 ? '中风险' : '低风险' }}
               </span>
             </div>
-
             <div class="mt-3 space-y-3">
-              <div class="rounded-lg bg-white/70 px-3 py-2.5">
-                <div class="mb-2 flex items-center justify-between">
-                  <span class="text-xs font-medium text-slate-700">综合风险评分</span>
-                  <span class="text-xs font-bold" :class="riskLabel.className">
-                    {{ riskScore }} / 100
-                  </span>
-                </div>
-                <div class="h-2 w-full rounded-full bg-slate-200">
-                  <div class="h-full rounded-full transition-all duration-300" 
-                    :class="{
-                      'bg-gradient-to-r from-rose-500 to-pink-500': riskLabel.text === '高风险',
-                      'bg-gradient-to-r from-amber-500 to-orange-500': riskLabel.text === '中风险',
-                      'bg-gradient-to-r from-emerald-500 to-teal-500': riskLabel.text === '低风险'
-                    }"
-                    :style="{ width: `${Math.min(riskScore, 100)}%` }"
-                  ></div>
+              <!-- 价格影响 -->
+              <div class="rounded-md border border-emerald-200 bg-white p-3">
+                <p class="text-xs font-medium text-slate-500">基于模拟价格计算</p>
+                <div class="mt-2 grid grid-cols-3 gap-2 text-center">
+                  <div>
+                    <p class="text-xs text-slate-500">市场价</p>
+                    <p class="mt-1 text-sm font-bold text-slate-900">${{ examplePrice.toLocaleString() }}</p>
+                  </div>
+                  <div>
+                    <p class="text-xs text-rose-600">用户买入价</p>
+                    <p class="mt-1 text-sm font-bold text-rose-600">${{ calculatedPreview.buyPrice.toFixed(2) }}</p>
+                  </div>
+                  <div>
+                    <p class="text-xs text-emerald-600">用户卖出价</p>
+                    <p class="mt-1 text-sm font-bold text-emerald-600">${{ calculatedPreview.sellPrice.toFixed(2) }}</p>
+                  </div>
                 </div>
               </div>
 
-              <div class="flex items-start gap-2 rounded-lg bg-white/70 px-3 py-2.5">
-                <svg class="mt-0.5 h-3.5 w-3.5 flex-shrink-0" 
-                  :class="{
-                    'text-rose-600': riskLabel.text === '高风险',
-                    'text-amber-600': riskLabel.text === '中风险',
-                    'text-emerald-600': riskLabel.text === '低风险'
-                  }"
-                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                >
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p class="text-xs leading-relaxed" 
-                  :class="{
-                    'text-rose-800': riskLabel.text === '高风险',
-                    'text-amber-800': riskLabel.text === '中风险',
-                    'text-emerald-800': riskLabel.text === '低风险'
-                  }"
-                >
-                  <span v-if="riskLabel.text === '低风险'">参数配置较为温和，风险可控，适合日常使用。</span>
-                  <span v-else-if="riskLabel.text === '中风险'">参数配置会明显影响交易，建议在必要时使用。</span>
-                  <span v-else>参数配置较为激进，会显著影响用户体验，建议谨慎使用。</span>
-                </p>
+              <!-- 成本影响分析 -->
+              <div class="rounded-md border border-emerald-200 bg-white p-3">
+                <p class="text-xs font-medium text-slate-500">10,000 USDT 订单成本影响</p>
+                <div class="mt-2 space-y-1.5">
+                  <div class="flex items-center justify-between text-xs">
+                    <span class="text-slate-600">价格偏移成本</span>
+                    <span class="font-semibold text-slate-900">${{ calculatedPreview.priceOffsetCost.toFixed(2) }}</span>
+                  </div>
+                  <div class="flex items-center justify-between text-xs">
+                    <span class="text-slate-600">滑点成本</span>
+                    <span class="font-semibold text-slate-900">${{ calculatedPreview.slippageCost.toFixed(2) }}</span>
+                  </div>
+                  <div class="flex items-center justify-between rounded bg-rose-50 px-2 py-1 text-xs border-t border-emerald-200 pt-1.5">
+                    <span class="font-medium text-rose-700">总额外成本</span>
+                    <span class="font-bold text-rose-700">${{ calculatedPreview.totalExtraCost.toFixed(2) }} ({{ calculatedPreview.totalExtraCostPct.toFixed(3) }}%)</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 执行延迟 -->
+              <div class="rounded-md border border-emerald-200 bg-white p-3">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <svg class="h-4 w-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span class="text-xs font-medium text-slate-500">执行延迟</span>
+                  </div>
+                  <span class="text-sm font-bold text-amber-700">{{ form.latencyMs }}ms</span>
+                </div>
+              </div>
+
+              <!-- 风险指标 -->
+              <div class="rounded-md border border-emerald-200 bg-white p-3">
+                <p class="text-xs font-medium text-slate-500">风险指标</p>
+                <div class="mt-2 space-y-2">
+                  <div class="text-xs">
+                    <div class="flex items-center justify-between mb-1">
+                      <span class="text-slate-600">综合风险评分</span>
+                      <span class="font-semibold text-slate-900">{{ riskScore }}</span>
+                    </div>
+                    <div class="text-xs text-slate-500">
+                      <span v-if="riskScore < 45">✓ 参数配置较为温和，对用户体验影响较小</span>
+                      <span v-else-if="riskScore < 75">⚠ 参数配置会明显影响交易成本</span>
+                      <span v-else>⚠ 参数配置较为激进，建议谨慎使用</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 效果说明 -->
+          <div class="rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <div class="flex items-start gap-2">
+              <svg class="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+              </svg>
+              <div class="text-xs text-amber-900">
+                <p class="font-medium">提示</p>
+                <p class="mt-1">配置生效后，系统将自动应用上述线控参数，影响用户的交易体验。请谨慎配置各项参数值。</p>
               </div>
             </div>
           </div>
         </div>
       </div>
-
     </section>
   </div>
 </template>
