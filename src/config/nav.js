@@ -1,7 +1,7 @@
 export const navTree = [
   {
     title: '仪表盘',
-    icon: 'dashboard',
+    icon: 'dashboard1',
     path: '/'
   },
   {
