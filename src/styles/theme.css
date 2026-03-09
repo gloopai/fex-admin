@@ -1,0 +1,27 @@
+:root {
+  --surface-0: #f8fafc;
+  --surface-1: #ffffff;
+  --surface-2: #f1f5f9;
+  --ink-0: #0f172a;
+  --ink-1: #334155;
+  --ink-2: #64748b;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--ink-0);
+  font-family: 'Avenir Next', 'Avenir', 'Segoe UI', sans-serif;
+  background: #f5f6f8;
+  min-height: 100vh;
+}
+
+.panel {
+  background: color-mix(in srgb, var(--surface-1) 92%, #ffffff 8%);
+  border: 1px solid #dbe4f0;
+}

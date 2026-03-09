@@ -1,0 +1,286 @@
+<script setup>
+import { computed, ref, watch } from 'vue'
+import { ASSET_WALLET_STATUS } from '../../constants/assets'
+import { createManualCollectConfigMock } from '../../mock/assets'
+
+const selectedCoin = ref('USDT')
+const selectedNetwork = ref('Ethereum (ERC20)')
+const confirmCollect = ref(false)
+
+const pageSize = ref(10)
+const currentPage = ref(1)
+const loading = ref(false)
+const loadError = ref('')
+const lastLoadedAt = ref('')
+const loadRequestId = ref(0)
+
+const { coinOptions, networkOptionsMap, networkMap, walletSource } = createManualCollectConfigMock()
+
+const wallets = ref([])
+
+const currentNetworkOptions = computed(() => networkOptionsMap[selectedCoin.value] || [])
+const detail = computed(() => {
+  const item = networkMap[`${selectedCoin.value}|${selectedNetwork.value}`]
+  if (!item) return { collectAddress: '-', threshold: '-', gasLimit: '-' }
+  return {
+    collectAddress: item.collectAddress,
+    threshold: `${item.threshold} ${selectedCoin.value}`,
+    gasLimit: item.gasLimit
+  }
+})
+
+const total = computed(() => wallets.value.length)
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)))
+const pageStart = computed(() => (currentPage.value - 1) * pageSize.value)
+const pagedWallets = computed(() => wallets.value.slice(pageStart.value, pageStart.value + pageSize.value))
+const collectableWallets = computed(() => wallets.value.filter((w) => w.status === ASSET_WALLET_STATUS.COLLECTABLE))
+const collectablePagedWallets = computed(() => pagedWallets.value.filter((w) => w.status === ASSET_WALLET_STATUS.COLLECTABLE))
+
+const getCollectAmount = (wallet) => {
+  if (!wallet || wallet.status !== ASSET_WALLET_STATUS.COLLECTABLE) return 0
+  return Number(wallet.balance)
+}
+
+const selectedWallets = computed(() => wallets.value.filter((w) => w.checked && w.status === ASSET_WALLET_STATUS.COLLECTABLE))
+const selectedCount = computed(() => selectedWallets.value.length)
+const selectedTotal = computed(() => selectedWallets.value.reduce((sum, w) => sum + getCollectAmount(w), 0))
+
+const pageAllChecked = computed({
+  get: () => collectablePagedWallets.value.length > 0 && collectablePagedWallets.value.every((w) => w.checked),
+  set: (val) => {
+    collectablePagedWallets.value.forEach((w) => {
+      w.checked = Boolean(val)
+    })
+  }
+})
+
+const pageIndeterminate = computed(() => {
+  const checkedCount = collectablePagedWallets.value.filter((w) => w.checked).length
+  return checkedCount > 0 && checkedCount < collectablePagedWallets.value.length
+})
+
+const globalAllChecked = computed({
+  get: () => collectableWallets.value.length > 0 && collectableWallets.value.every((w) => w.checked),
+  set: (val) => {
+    collectableWallets.value.forEach((w) => {
+      w.checked = Boolean(val)
+    })
+  }
+})
+
+const goPrev = () => {
+  if (currentPage.value > 1) currentPage.value -= 1
+}
+
+const goNext = () => {
+  if (currentPage.value < totalPages.value) currentPage.value += 1
+}
+
+const fmtTime = () => {
+  const d = new Date()
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`
+}
+
+const loadWallets = async () => {
+  const key = `${selectedCoin.value}|${selectedNetwork.value}`
+  const reqId = ++loadRequestId.value
+  loading.value = true
+  loadError.value = ''
+
+  try {
+    const delay = 800 + Math.floor(Math.random() * 1200)
+    await new Promise((resolve) => setTimeout(resolve, delay))
+
+    if (Math.random() < 0.12) throw new Error('网络响应较慢，请重试')
+    if (reqId !== loadRequestId.value) return
+
+    const previousChecked = new Map(wallets.value.map((w) => [w.id, w.checked]))
+    const source = walletSource[key] || []
+    wallets.value = source.map((item) => {
+      const prev = previousChecked.has(item.id) ? previousChecked.get(item.id) : item.checked
+      const checked = item.status === ASSET_WALLET_STATUS.COLLECTABLE ? Boolean(prev) : false
+      return { ...item, checked }
+    })
+    currentPage.value = 1
+    lastLoadedAt.value = fmtTime()
+  } catch (err) {
+    if (reqId !== loadRequestId.value) return
+    loadError.value = err instanceof Error ? err.message : '加载失败'
+    wallets.value = []
+  } finally {
+    if (reqId === loadRequestId.value) loading.value = false
+  }
+}
+
+watch(
+  selectedCoin,
+  (coin) => {
+    selectedNetwork.value = networkOptionsMap[coin]?.[0] || ''
+  },
+  { immediate: true }
+)
+
+watch(
+  [selectedCoin, selectedNetwork],
+  () => {
+    if (!selectedNetwork.value) return
+    loadWallets()
+  },
+  { immediate: true }
+)
+
+watch(pageSize, () => {
+  currentPage.value = 1
+})
+
+const statusClass = (status) => (status === ASSET_WALLET_STATUS.COLLECTABLE ? 'text-emerald-600' : 'text-amber-500')
+const statusText = (status) => (status === ASSET_WALLET_STATUS.COLLECTABLE ? '可归集' : '低于阈值')
+</script>
+
+<template>
+  <section class="space-y-4">
+    <header>
+      <h1 class="text-2xl font-semibold text-slate-900">手动归集</h1>
+      <p class="mt-1 text-sm text-slate-500">选择币种和网络，手动执行资金归集操作</p>
+    </header>
+
+    <div class="grid gap-4 xl:grid-cols-[1fr,2fr]">
+      <div class="space-y-4">
+        <article class="rounded-xl border border-slate-200 bg-white">
+          <div class="border-b border-slate-200 px-4 py-3">
+            <h3 class="text-lg font-semibold text-slate-900">归集配置</h3>
+          </div>
+          <div class="space-y-4 p-4">
+            <label class="block space-y-1">
+              <span class="text-sm text-slate-600">选择币种</span>
+              <select v-model="selectedCoin" class="w-full rounded-lg border border-slate-300 px-3 py-2">
+                <option v-for="coin in coinOptions" :key="coin">{{ coin }}</option>
+              </select>
+            </label>
+            <label class="block space-y-1">
+              <span class="text-sm text-slate-600">选择网络</span>
+              <select v-model="selectedNetwork" class="w-full rounded-lg border border-slate-300 px-3 py-2">
+                <option v-for="network in currentNetworkOptions" :key="network">{{ network }}</option>
+              </select>
+            </label>
+
+            <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+              <p class="flex justify-between gap-4"><span>归集地址</span><span class="font-medium">{{ detail.collectAddress }}</span></p>
+              <p class="mt-2 flex justify-between gap-4"><span>最小归集数量</span><span class="font-medium">{{ detail.threshold }}</span></p>
+              <p class="mt-2 flex justify-between gap-4"><span>Gas 限制</span><span class="font-medium">{{ detail.gasLimit }}</span></p>
+            </div>
+
+            <div class="space-y-2">
+              <button
+                type="button"
+                class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                :class="loading ? 'bg-slate-100 text-slate-500' : 'bg-white text-slate-700 hover:bg-slate-50'"
+                :disabled="loading"
+                @click="loadWallets"
+              >
+                {{ loading ? '加载中...' : '加载钱包余额' }}
+              </button>
+              <p v-if="lastLoadedAt" class="text-xs text-slate-500">最近加载时间：{{ lastLoadedAt }}</p>
+              <p v-if="loadError" class="text-xs text-rose-600">{{ loadError }}，请重试。</p>
+            </div>
+          </div>
+        </article>
+
+        <article class="rounded-xl border border-slate-200 bg-white">
+          <div class="border-b border-slate-200 px-4 py-3">
+            <h3 class="text-lg font-semibold text-slate-900">归集金额</h3>
+          </div>
+          <div class="space-y-3 p-4">
+            <label class="inline-flex items-center gap-2 text-sm">
+              <input v-model="confirmCollect" type="checkbox" class="h-4 w-4" />
+              我已确认归集操作
+            </label>
+            <p class="text-xs text-slate-500">请确认地址与金额无误后再执行归集。低于阈值地址不可归集。</p>
+            <div class="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm">
+              <p class="flex items-center justify-between"><span class="text-slate-600">已选地址</span><span>{{ selectedCount }} 个</span></p>
+              <p class="mt-2 flex items-center justify-between"><span class="text-slate-600">归集总额</span><span class="font-semibold text-blue-700">{{ selectedTotal.toFixed(4) }} {{ selectedCoin }}</span></p>
+            </div>
+            <button
+              type="button"
+              class="w-full rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+              :disabled="selectedCount === 0 || selectedTotal <= 0 || loading || !confirmCollect"
+            >
+              开始归集
+            </button>
+          </div>
+        </article>
+      </div>
+
+      <article class="rounded-xl border border-slate-200 bg-white">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3">
+          <h3 class="text-lg font-semibold text-slate-900">钱包列表 ({{ total }})</h3>
+          <div class="flex items-center gap-3 text-sm">
+            <label class="inline-flex items-center gap-1.5">
+              <input v-model="globalAllChecked" type="checkbox" class="h-4 w-4" /> 全选
+            </label>
+            <label class="inline-flex items-center gap-1.5">
+              每页
+              <select v-model.number="pageSize" class="rounded border border-slate-300 px-1.5 py-0.5 text-xs">
+                <option :value="10">10</option>
+                <option :value="20">20</option>
+                <option :value="50">50</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div v-if="loading" class="space-y-2 p-4">
+          <div v-for="i in 6" :key="i" class="h-14 animate-pulse rounded-lg bg-slate-100"></div>
+        </div>
+
+        <div v-else-if="loadError" class="p-8 text-center text-sm text-slate-500">
+          <p>钱包数据加载失败</p>
+          <button type="button" class="mt-3 rounded-lg border border-slate-300 px-3 py-1.5 text-xs" @click="loadWallets">重试加载</button>
+        </div>
+
+        <template v-else>
+          <div class="flex items-center justify-between border-b border-slate-100 px-4 py-2 text-xs text-slate-500">
+            <label class="inline-flex items-center gap-1.5">
+              <input
+                :checked="pageAllChecked"
+                :indeterminate.prop="pageIndeterminate"
+                type="checkbox"
+                class="h-4 w-4"
+                :disabled="collectablePagedWallets.length === 0"
+                @change="pageAllChecked = !pageAllChecked"
+              />
+              仅当前页全选
+            </label>
+            <p>第 {{ currentPage }} / {{ totalPages }} 页</p>
+          </div>
+
+          <div class="divide-y divide-slate-200">
+            <article v-for="wallet in pagedWallets" :key="wallet.id" class="flex items-center justify-between gap-3 px-4 py-3">
+              <div class="flex items-center gap-3">
+                <input v-model="wallet.checked" :disabled="wallet.status !== ASSET_WALLET_STATUS.COLLECTABLE" type="checkbox" class="h-4 w-4 disabled:cursor-not-allowed disabled:opacity-50" />
+                <div>
+                  <p class="font-medium text-slate-800">{{ wallet.name }}</p>
+                  <p class="text-sm text-slate-600">{{ wallet.address }}</p>
+                </div>
+              </div>
+              <div class="text-right">
+                <p class="text-lg font-semibold text-slate-900">{{ wallet.balance.toLocaleString() }} {{ selectedCoin }}</p>
+                <p v-if="wallet.status === ASSET_WALLET_STATUS.COLLECTABLE" class="text-xs text-blue-600">预计归集: {{ getCollectAmount(wallet).toFixed(4) }} {{ selectedCoin }}</p>
+                <p class="text-xs" :class="statusClass(wallet.status)">{{ statusText(wallet.status) }}</p>
+              </div>
+            </article>
+          </div>
+
+          <div class="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-sm">
+            <p class="text-slate-500">共 {{ total }} 条地址</p>
+            <div class="flex items-center gap-2">
+              <button type="button" class="rounded border border-slate-300 px-2.5 py-1 text-xs disabled:opacity-40" :disabled="currentPage === 1" @click="goPrev">上一页</button>
+              <span class="text-xs text-slate-600">{{ currentPage }} / {{ totalPages }}</span>
+              <button type="button" class="rounded border border-slate-300 px-2.5 py-1 text-xs disabled:opacity-40" :disabled="currentPage === totalPages" @click="goNext">下一页</button>
+            </div>
+          </div>
+        </template>
+      </article>
+    </div>
+  </section>
+</template>
