@@ -77,6 +77,11 @@ const routes = [
         component: () => import('../pages/delivery/DeliveryOperationLogPage.vue')
       },
       {
+        path: 'delivery/report',
+        name: 'delivery-report',
+        component: () => import('../pages/delivery/DeliveryReportPage.vue')
+      },
+      {
         path: 'delivery/guide',
         name: 'delivery-guide',
         component: () => import('../pages/delivery/DeliveryGuidePage.vue')

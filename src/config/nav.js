@@ -53,8 +53,9 @@ export const navTree = [
     icon: 'delivery',
     children: [
       { title: '交割合约', path: '/delivery/contracts' },
-      { title: '场控操作', path: '/delivery/control' },
-      { title: '操作日志', path: '/delivery/logs' },
+      { title: '单人场控操作', path: '/delivery/control' },
+      { title: '场控操作日志', path: '/delivery/logs' },
+      { title: '场控决策报表', path: '/delivery/report' },
       { title: '使用指南', path: '/delivery/guide' }
     ]
   },
