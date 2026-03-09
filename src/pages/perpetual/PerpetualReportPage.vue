@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { 
   REPORT_TIME_RANGE, 
   REPORT_TIME_RANGE_OPTIONS, 
@@ -124,6 +124,54 @@ const displayedRiskAlerts = computed(() => {
   return filteredRiskAlerts.value.slice(0, 5)
 })
 
+// 大户监控分页
+const whalesCurrentPage = ref(1)
+const whalesPageSize = ref(10)
+const paginatedWhalesList = computed(() => {
+  const start = (whalesCurrentPage.value - 1) * whalesPageSize.value
+  const end = start + whalesPageSize.value
+  return filteredWhalesList.value.slice(start, end)
+})
+const whalesTotalPages = computed(() => {
+  return Math.ceil(filteredWhalesList.value.length / whalesPageSize.value)
+})
+// 计算显示的页码（当页数较多时只显示部分）
+const whalesPageNumbers = computed(() => {
+  const total = whalesTotalPages.value
+  const current = whalesCurrentPage.value
+  const pages = []
+  
+  if (total <= 7) {
+    // 页数少于7页，全部显示
+    for (let i = 1; i <= total; i++) {
+      pages.push(i)
+    }
+  } else {
+    // 页数较多，显示首页、当前页前后2页、末页
+    pages.push(1)
+    
+    if (current > 3) {
+      pages.push('...')
+    }
+    
+    for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i++) {
+      pages.push(i)
+    }
+    
+    if (current < total - 2) {
+      pages.push('...')
+    }
+    
+    pages.push(total)
+  }
+  
+  return pages
+})
+// 监听合约切换，重置页码
+const resetWhalesPage = () => {
+  whalesCurrentPage.value = 1
+}
+
 // 格式化金额
 const formatAmount = (value) => {
   if (Math.abs(value) >= 1000000) {
@@ -158,6 +206,11 @@ const tabs = [
 const refreshData = () => {
   console.log('刷新数据', { timeRange: timeRange.value, contract: selectedContract.value })
 }
+
+// 监听合约切换，重置页码
+watch(selectedContract, () => {
+  whalesCurrentPage.value = 1
+})
 
 // 导出报表
 const exportReport = () => {
@@ -305,6 +358,7 @@ const openRiskHelpModal = () => {
               <p class="text-sm text-slate-600">24小时</p>
             </div>
 
+            <!-- 风险等级 - 已隐藏，让运营人员根据数据自行判断 -->
             <div 
               :class="[
                 'rounded-xl p-6 bg-gradient-to-br',
@@ -411,7 +465,7 @@ const openRiskHelpModal = () => {
                     <th class="px-6 py-3 text-right text-xs font-semibold text-slate-900 uppercase">平台盈亏</th>
                     <th class="px-6 py-3 text-right text-xs font-semibold text-slate-900 uppercase">活跃用户</th>
                     <th class="px-6 py-3 text-center text-xs font-semibold text-slate-900 uppercase">线控</th>
-                    <th class="px-6 py-3 text-center text-xs font-semibold text-slate-900 uppercase">风险</th>
+                    <!-- <th class="px-6 py-3 text-center text-xs font-semibold text-slate-900 uppercase">风险</th> -->
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200">
@@ -451,14 +505,15 @@ const openRiskHelpModal = () => {
                         {{ contract.controlActive ? '开启' : '关闭' }}
                       </span>
                     </td>
-                    <td class="px-6 py-4 text-center">
+                    <!-- 风险等级已隐藏 -->
+                    <!-- <td class="px-6 py-4 text-center">
                       <span
                         :class="RISK_LEVEL_CONFIG[contract.riskLevel].class"
                         class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border"
                       >
                         {{ RISK_LEVEL_CONFIG[contract.riskLevel].text }}
                       </span>
-                    </td>
+                    </td> -->
                   </tr>
                 </tbody>
               </table>
@@ -469,8 +524,8 @@ const openRiskHelpModal = () => {
             </div>
           </div>
 
-          <!-- 操作建议 -->
-          <div>
+          <!-- 操作建议 - 已隐藏，让运营人员根据数据自行决策 -->
+          <div v-if="false">
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-lg font-semibold text-slate-900">
                 <span v-if="selectedContract === 'ALL'">操作建议（全部合约）</span>
@@ -654,8 +709,8 @@ const openRiskHelpModal = () => {
 
         <!-- 风险监控 -->
         <div v-show="activeTab === 'risk'" class="space-y-6">
-          <!-- 风险预警 -->
-          <div>
+          <!-- 风险预警 - 已隐藏 -->
+          <div v-if="false">
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-lg font-semibold text-slate-900">
                 <span v-if="selectedContract === 'ALL'">风险预警（全部合约）</span>
@@ -705,12 +760,6 @@ const openRiskHelpModal = () => {
                 <div class="flex items-start justify-between">
                   <div class="flex-1">
                     <div class="flex items-center gap-2 mb-2">
-                      <span
-                        :class="RISK_LEVEL_CONFIG[alert.level].class"
-                        class="px-2 py-0.5 rounded text-xs font-medium border"
-                      >
-                        {{ RISK_LEVEL_CONFIG[alert.level].text }}
-                      </span>
                       <span class="text-xs text-slate-600">{{ alert.type }}</span>
                       <span v-if="selectedContract === 'ALL'" class="text-xs text-slate-500">{{ alert.contract }}</span>
                       <span class="text-xs text-slate-400">{{ alert.time }}</span>
@@ -741,22 +790,21 @@ const openRiskHelpModal = () => {
               <p class="text-slate-600">该合约暂无大户交易</p>
             </div>
             <div v-else class="bg-white border border-slate-200 rounded-lg overflow-hidden">
-              <div class="max-h-96 overflow-y-auto">
-                <table class="w-full">
-                  <thead class="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
-                    <tr>
-                      <th class="px-6 py-3 text-left text-xs font-semibold text-slate-900 uppercase">用户</th>
-                      <th class="px-6 py-3 text-left text-xs font-semibold text-slate-900 uppercase">类型</th>
-                      <th v-if="selectedContract === 'ALL'" class="px-6 py-3 text-left text-xs font-semibold text-slate-900 uppercase">交易合约</th>
-                      <th class="px-6 py-3 text-right text-xs font-semibold text-slate-900 uppercase">总持仓</th>
-                      <th class="px-6 py-3 text-right text-xs font-semibold text-slate-900 uppercase">多头/空头</th>
-                      <th class="px-6 py-3 text-right text-xs font-semibold text-slate-900 uppercase">杠杆</th>
-                      <th class="px-6 py-3 text-right text-xs font-semibold text-slate-900 uppercase">24h盈亏</th>
-                      <th class="px-6 py-3 text-center text-xs font-semibold text-slate-900 uppercase">风险</th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-slate-200">
-                  <tr v-for="whale in filteredWhalesList" :key="whale.userId" class="hover:bg-slate-50">
+              <table class="w-full">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-slate-900 uppercase">用户</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-slate-900 uppercase">类型</th>
+                    <th v-if="selectedContract === 'ALL'" class="px-6 py-3 text-left text-xs font-semibold text-slate-900 uppercase">交易合约</th>
+                    <th class="px-6 py-3 text-right text-xs font-semibold text-slate-900 uppercase">总持仓</th>
+                    <th class="px-6 py-3 text-right text-xs font-semibold text-slate-900 uppercase">多头/空头</th>
+                    <th class="px-6 py-3 text-right text-xs font-semibold text-slate-900 uppercase">杠杆</th>
+                    <th class="px-6 py-3 text-right text-xs font-semibold text-slate-900 uppercase">24h盈亏</th>
+                    <!-- <th class="px-6 py-3 text-center text-xs font-semibold text-slate-900 uppercase">风险</th> -->
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                <tr v-for="whale in paginatedWhalesList" :key="whale.userId" class="hover:bg-slate-50">
                     <td class="px-6 py-4">
                       <p class="text-sm font-medium text-slate-900">{{ whale.username }}</p>
                       <p class="text-xs text-slate-500">{{ whale.userId }}</p>
@@ -795,17 +843,64 @@ const openRiskHelpModal = () => {
                         ({{ whale.pnlRate >= 0 ? '+' : '' }}{{ whale.pnlRate.toFixed(2) }}%)
                       </p>
                     </td>
-                    <td class="px-6 py-4 text-center">
+                    <!-- 风险等级已隐藏 -->
+                    <!-- <td class="px-6 py-4 text-center">
                       <span :class="RISK_LEVEL_CONFIG[whale.riskLevel].class" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border">
                         {{ RISK_LEVEL_CONFIG[whale.riskLevel].text }}
                       </span>
-                    </td>
+                    </td> -->
                   </tr>
                 </tbody>
               </table>
-              </div>
-              <div v-if="filteredWhalesList.length > 8" class="px-4 py-2 bg-slate-50 border-t border-slate-200 text-xs text-slate-500 text-center">
-                💡 表格内容较多，可向下滚动查看更多大户数据
+              
+              <!-- 分页控件 -->
+              <div v-if="whalesTotalPages > 1" class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+                <div class="text-sm text-slate-600">
+                  共 {{ filteredWhalesList.length }} 个大户，第 {{ whalesCurrentPage }} / {{ whalesTotalPages }} 页
+                </div>
+                <div class="flex items-center gap-2">
+                  <button
+                    @click="whalesCurrentPage = Math.max(1, whalesCurrentPage - 1)"
+                    :disabled="whalesCurrentPage === 1"
+                    :class="[
+                      'px-3 py-1.5 text-sm font-medium rounded-lg transition-colors',
+                      whalesCurrentPage === 1
+                        ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                        : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
+                    ]"
+                  >
+                    上一页
+                  </button>
+                  <div class="flex items-center gap-1">
+                    <template v-for="(page, index) in whalesPageNumbers" :key="index">
+                      <button
+                        v-if="page !== '...'"
+                        @click="whalesCurrentPage = page"
+                        :class="[
+                          'px-3 py-1.5 text-sm font-medium rounded-lg transition-colors',
+                          whalesCurrentPage === page
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
+                        ]"
+                      >
+                        {{ page }}
+                      </button>
+                      <span v-else class="px-2 text-slate-400">...</span>
+                    </template>
+                  </div>
+                  <button
+                    @click="whalesCurrentPage = Math.min(whalesTotalPages, whalesCurrentPage + 1)"
+                    :disabled="whalesCurrentPage === whalesTotalPages"
+                    :class="[
+                      'px-3 py-1.5 text-sm font-medium rounded-lg transition-colors',
+                      whalesCurrentPage === whalesTotalPages
+                        ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                        : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
+                    ]"
+                  >
+                    下一页
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -944,7 +1039,8 @@ const openRiskHelpModal = () => {
             </div>
           </div>
 
-          <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+          <!-- 线控效果总结 - 已隐藏 -->
+          <div v-if="false" class="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
             <div class="flex items-start gap-3">
               <svg class="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
