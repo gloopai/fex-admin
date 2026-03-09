@@ -262,7 +262,7 @@ const save = () => {
 </script>
 
 <template>
-  <div v-if="open" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4" @click.self="emit('close')">
+  <div v-if="open" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4">
     <section class="flex h-[88vh] w-full max-w-5xl overflow-hidden rounded-xl bg-white shadow-2xl">
       <!-- 左侧配置区域 -->
       <div class="flex w-3/5 flex-col border-r border-slate-200">

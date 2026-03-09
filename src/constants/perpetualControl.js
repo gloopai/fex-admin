@@ -32,3 +32,13 @@ export const PERP_CONTROL_OFFSET_DIRECTION = {
   UP: 'up',
   DOWN: 'down'
 }
+
+export const PERP_CONTROL_TIME_WINDOW = {
+  REALTIME: 'realtime',
+  LAST_1MIN: 'last_1min',
+  LAST_5MIN: 'last_5min',
+  LAST_15MIN: 'last_15min',
+  LAST_30MIN: 'last_30min',
+  LAST_1HOUR: 'last_1hour',
+  LAST_4HOUR: 'last_4hour'
+}

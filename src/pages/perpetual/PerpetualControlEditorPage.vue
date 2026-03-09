@@ -6,12 +6,14 @@ import {
   PERP_CONTROL_OFFSET_DIRECTION,
   PERP_CONTROL_RULE_DIRECTION,
   PERP_CONTROL_RULE_MODAL_TAB,
-  PERP_CONTROL_RULE_TRIGGER_TYPE
+  PERP_CONTROL_RULE_TRIGGER_TYPE,
+  PERP_CONTROL_TIME_WINDOW
 } from '../../constants/perpetualControl'
 import {
   createPerpetualControlContractsMock,
   perpetualControlOffsetDirections,
-  perpetualControlRuleTriggers
+  perpetualControlRuleTriggers,
+  perpetualControlTimeWindows
 } from '../../mock/perpetualControl'
 import { createDefaultPerpetualControlConfig } from '../../mock/perpetual'
 
@@ -74,12 +76,15 @@ const editingRuleId = ref(null)
 const ruleModalTab = ref(PERP_CONTROL_RULE_MODAL_TAB.BASIC)
 const ruleTriggers = perpetualControlRuleTriggers
 const offsetDirections = perpetualControlOffsetDirections
+const timeWindows = perpetualControlTimeWindows
 
 const ruleForm = reactive({
   name: '',
   triggerType: PERP_CONTROL_RULE_TRIGGER_TYPE.NET_POSITION,
   thresholdValue: 100000,
   triggerDirection: PERP_CONTROL_RULE_DIRECTION.LONG_HEAVY,
+  positionRatio: 60,
+  timeWindow: PERP_CONTROL_TIME_WINDOW.REALTIME,
   priceOffset: 5,
   offsetDirection: PERP_CONTROL_OFFSET_DIRECTION.AGAINST,
   slippagePct: 0.2,
@@ -89,10 +94,33 @@ const ruleForm = reactive({
 
 const triggerMeta = computed(() => ruleTriggers[ruleForm.triggerType] || ruleTriggers[PERP_CONTROL_RULE_TRIGGER_TYPE.NET_POSITION])
 const triggerOptions = computed(() => Object.entries(ruleTriggers).map(([value, cfg]) => ({ value, label: cfg.label })))
+
+// 判断当前触发类型是否需要时间区间配置
+const needsTimeWindow = computed(() => {
+  return ruleForm.triggerType === PERP_CONTROL_RULE_TRIGGER_TYPE.PNL_RATIO ||
+         ruleForm.triggerType === PERP_CONTROL_RULE_TRIGGER_TYPE.VOLUME_SPIKE || 
+         ruleForm.triggerType === PERP_CONTROL_RULE_TRIGGER_TYPE.VOLATILITY
+})
+
+// 判断当前触发类型是否需要单边占比配置
+const needsPositionRatio = computed(() => {
+  return ruleForm.triggerType === PERP_CONTROL_RULE_TRIGGER_TYPE.NET_POSITION
+})
+
+// 根据触发类型过滤时间区间选项
+const availableTimeWindows = computed(() => {
+  if (!needsTimeWindow.value) {
+    return timeWindows
+  }
+  // 交易量突增和波动率触发，排除"实时数据"选项
+  return timeWindows.filter(tw => tw.value !== PERP_CONTROL_TIME_WINDOW.REALTIME)
+})
+
 const currentTriggerDirectionLabel = computed(
   () => triggerMeta.value.directionOptions.find((item) => item.value === ruleForm.triggerDirection)?.label || '-'
 )
 const currentOffsetDirectionLabel = computed(() => offsetDirections.find((item) => item.value === ruleForm.offsetDirection)?.label || '-')
+const currentTimeWindowLabel = computed(() => timeWindows.find((item) => item.value === ruleForm.timeWindow)?.label || '实时数据')
 const durationText = computed(() => (Number(ruleForm.durationSec) === 0 ? '持续生效' : `${Number(ruleForm.durationSec)} 秒`))
 
 // 数据计算预览
@@ -166,6 +194,17 @@ watch(
     if (!options.some((item) => item.value === ruleForm.triggerDirection)) {
       ruleForm.triggerDirection = options[0]?.value || PERP_CONTROL_RULE_DIRECTION.LONG_HEAVY
     }
+    
+    // 当切换到需要时间区间的触发类型时，设置默认时间区间
+    const needsTime = next === PERP_CONTROL_RULE_TRIGGER_TYPE.PNL_RATIO ||
+                      next === PERP_CONTROL_RULE_TRIGGER_TYPE.VOLUME_SPIKE || 
+                      next === PERP_CONTROL_RULE_TRIGGER_TYPE.VOLATILITY
+    if (!needsTime) {
+      ruleForm.timeWindow = PERP_CONTROL_TIME_WINDOW.REALTIME
+    } else if (ruleForm.timeWindow === PERP_CONTROL_TIME_WINDOW.REALTIME) {
+      // 如果是实时数据，切换到有意义的时间区间
+      ruleForm.timeWindow = PERP_CONTROL_TIME_WINDOW.LAST_5MIN
+    }
   }
 )
 
@@ -178,7 +217,25 @@ const formatThreshold = (type, value) => {
 const ruleConditionText = (rule) => {
   const meta = ruleTriggers[rule.triggerType] || ruleTriggers[PERP_CONTROL_RULE_TRIGGER_TYPE.NET_POSITION]
   const direction = meta.directionOptions.find((item) => item.value === rule.triggerDirection)?.label || ''
-  return `${direction} | ${formatThreshold(rule.triggerType, rule.thresholdValue)}`
+  
+  // 盈亏比、交易量突增和波动率触发才显示时间区间
+  const showTimeWindow = rule.triggerType === PERP_CONTROL_RULE_TRIGGER_TYPE.PNL_RATIO ||
+                         rule.triggerType === PERP_CONTROL_RULE_TRIGGER_TYPE.VOLUME_SPIKE || 
+                         rule.triggerType === PERP_CONTROL_RULE_TRIGGER_TYPE.VOLATILITY
+  const timeWindowLabel = showTimeWindow && rule.timeWindow ? 
+    (timeWindows.find((item) => item.value === rule.timeWindow)?.label || '') : ''
+  
+  const parts = [direction, formatThreshold(rule.triggerType, rule.thresholdValue)]
+  
+  // 净持仓触发显示单边占比
+  if (rule.triggerType === PERP_CONTROL_RULE_TRIGGER_TYPE.NET_POSITION && rule.positionRatio) {
+    const sideLabel = rule.triggerDirection === PERP_CONTROL_RULE_DIRECTION.LONG_HEAVY ? '多头' : '空头'
+    parts.push(`${sideLabel}占比≥${rule.positionRatio}%`)
+  }
+  
+  if (timeWindowLabel) parts.push(timeWindowLabel)
+  
+  return parts.join(' | ')
 }
 
 const ruleActionText = (rule) => {
@@ -193,9 +250,20 @@ const ruleAffectsText = (rule) => {
   return affects.length > 0 ? affects.join('、') : '无影响'
 }
 
-const liveRuleConditionText = computed(
-  () => `${currentTriggerDirectionLabel.value} | ${formatThreshold(ruleForm.triggerType, ruleForm.thresholdValue)}`
-)
+const liveRuleConditionText = computed(() => {
+  const parts = [currentTriggerDirectionLabel.value, formatThreshold(ruleForm.triggerType, ruleForm.thresholdValue)]
+  
+  // 净持仓触发显示单边占比
+  if (needsPositionRatio.value) {
+    const sideLabel = ruleForm.triggerDirection === PERP_CONTROL_RULE_DIRECTION.LONG_HEAVY ? '多头' : '空头'
+    parts.push(`${sideLabel}占比≥${ruleForm.positionRatio}%`)
+  }
+  
+  if (needsTimeWindow.value) {
+    parts.push(currentTimeWindowLabel.value)
+  }
+  return parts.join(' | ')
+})
 const liveRuleActionText = computed(
   () =>
     `偏移 ${ruleForm.priceOffset} 点（${currentOffsetDirectionLabel.value}） | 滑点 ${ruleForm.slippagePct.toFixed(
@@ -216,6 +284,8 @@ const resetRuleForm = () => {
   ruleForm.triggerType = PERP_CONTROL_RULE_TRIGGER_TYPE.NET_POSITION
   ruleForm.thresholdValue = 100000
   ruleForm.triggerDirection = PERP_CONTROL_RULE_DIRECTION.LONG_HEAVY
+  ruleForm.positionRatio = 60
+  ruleForm.timeWindow = PERP_CONTROL_TIME_WINDOW.REALTIME
   ruleForm.priceOffset = 5
   ruleForm.offsetDirection = PERP_CONTROL_OFFSET_DIRECTION.AGAINST
   ruleForm.slippagePct = 0.2
@@ -239,6 +309,8 @@ const openEditRule = (contractId, rule) => {
   ruleForm.triggerType = rule.triggerType || PERP_CONTROL_RULE_TRIGGER_TYPE.NET_POSITION
   ruleForm.thresholdValue = Number(rule.thresholdValue || 100000)
   ruleForm.triggerDirection = rule.triggerDirection || (ruleForm.triggerType === PERP_CONTROL_RULE_TRIGGER_TYPE.NET_POSITION ? PERP_CONTROL_RULE_DIRECTION.LONG_HEAVY : PERP_CONTROL_RULE_DIRECTION.PROFIT_HIGH)
+  ruleForm.positionRatio = Number(rule.positionRatio || 60)
+  ruleForm.timeWindow = rule.timeWindow || PERP_CONTROL_TIME_WINDOW.REALTIME
   ruleForm.priceOffset = Number(rule.priceOffset || 5)
   ruleForm.offsetDirection = rule.offsetDirection || PERP_CONTROL_OFFSET_DIRECTION.AGAINST
   ruleForm.slippagePct = Number(rule.slippagePct || 0.2)
@@ -249,6 +321,7 @@ const openEditRule = (contractId, rule) => {
 
 const saveRule = () => {
   if (!currentContract.value || !ruleForm.name.trim() || Number(ruleForm.thresholdValue) <= 0) return
+  
   const payload = {
     name: ruleForm.name.trim(),
     triggerType: ruleForm.triggerType,
@@ -260,7 +333,15 @@ const saveRule = () => {
     durationSec: Number(ruleForm.durationSec),
     enabled: ruleForm.enabled
   }
-
+  
+  // 只有交易量突增和波动率触发才保存时间区间
+  if (needsTimeWindow.value) {
+    payload.timeWindow = ruleForm.timeWindow
+  }  
+  // 只有净持仓触发才保存单边占比
+  if (needsPositionRatio.value) {
+    payload.positionRatio = Number(ruleForm.positionRatio)
+  }
   contracts.value = contracts.value.map((contract) => {
     if (contract.id !== activeContractId.value) return contract
     if (editingRuleId.value) {
@@ -435,7 +516,7 @@ const toggleContractStatus = (contractId) => {
     @save="saveConfig"
   />
 
-  <div v-if="showRuleModal" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4" @click.self="showRuleModal = false">
+  <div v-if="showRuleModal" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4">
     <section class="flex h-[88vh] w-full max-w-5xl overflow-hidden rounded-xl bg-white shadow-2xl">
       <!-- 左侧配置区域 -->
       <div class="flex w-3/5 flex-col border-r border-slate-200">
@@ -531,6 +612,50 @@ const toggleContractStatus = (contractId) => {
                   <select v-model="ruleForm.triggerDirection" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
                     <option v-for="d in triggerMeta.directionOptions" :key="d.value" :value="d.value">{{ d.label }}</option>
                   </select>
+                </label>
+              </div>
+
+              <!-- 单边占比配置 - 仅净持仓触发时显示 -->
+              <div v-if="needsPositionRatio" class="rounded-lg border border-blue-200 bg-white p-4">
+                <label class="block space-y-3">
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm font-medium text-slate-700">
+                      {{ ruleForm.triggerDirection === PERP_CONTROL_RULE_DIRECTION.LONG_HEAVY ? '多头' : '空头' }}占比阈值 (%)
+                    </span>
+                    <input
+                      v-model.number="ruleForm.positionRatio"
+                      type="number"
+                      min="50"
+                      max="100"
+                      step="1"
+                      class="w-20 rounded-md border border-blue-300 px-2 py-1 text-right text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                  <input v-model.number="ruleForm.positionRatio" type="range" min="50" max="100" step="1" class="w-full accent-blue-600" />
+                  <div class="flex items-start gap-1.5 rounded-md bg-blue-50 px-3 py-2">
+                    <svg class="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span class="text-xs text-blue-700">
+                      定义"过重"：当{{ ruleForm.triggerDirection === PERP_CONTROL_RULE_DIRECTION.LONG_HEAVY ? '多头' : '空头' }}持仓占总持仓的比例达到此阈值时触发
+                    </span>
+                  </div>
+                </label>
+              </div>
+
+              <!-- 时间区间配置 - 盈亏比、交易量突增和波动率触发时显示 -->
+              <div v-if="needsTimeWindow" class="rounded-lg border border-blue-200 bg-white p-4">
+                <label class="block space-y-2">
+                  <span class="text-sm font-medium text-slate-700">统计时间区间</span>
+                  <select v-model="ruleForm.timeWindow" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+                    <option v-for="tw in availableTimeWindows" :key="tw.value" :value="tw.value">{{ tw.label }}</option>
+                  </select>
+                  <div class="flex items-start gap-1.5 rounded-md bg-blue-50 px-3 py-2">
+                    <svg class="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span class="text-xs text-blue-700">指定在哪个时间范围内统计数据来判断是否触发</span>
+                  </div>
                 </label>
               </div>
             </div>
