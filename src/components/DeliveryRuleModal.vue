@@ -27,6 +27,9 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'save'])
 
+// 帮助面板状态
+const showTriggerHelp = ref(false)
+const showActionHelp = ref(false)
 
 // 表单数据
 const form = reactive({
@@ -124,86 +127,324 @@ const triggerTypeOptions = [
   {
     value: DELIVERY_RULE_TRIGGER_TYPE.TRADE_COUNT,
     label: '交易次数',
+    icon: '📊',
+    description: '监测用户在指定时间内的交易次数',
+    unit: '次',
     needsPeriod: true,
     defaultThreshold: 20
   },
   {
     value: DELIVERY_RULE_TRIGGER_TYPE.PROFIT_LOSS,
     label: '累计盈亏',
+    icon: '📈',
+    description: '监测用户在指定时间内的累计盈亏金额',
+    unit: 'USDT',
     needsPeriod: true,
     defaultThreshold: 1000
   },
   {
     value: DELIVERY_RULE_TRIGGER_TYPE.CONSECUTIVE_WINS,
     label: '连续盈利',
+    icon: '🎯',
+    description: '监测用户连续盈利的次数',
+    unit: '次',
     needsPeriod: true,
     defaultThreshold: 5
   },
   {
     value: DELIVERY_RULE_TRIGGER_TYPE.CONSECUTIVE_LOSS,
     label: '连续亏损',
+    icon: '📉',
+    description: '监测用户连续亏损的次数',
+    unit: '次',
     needsPeriod: true,
     defaultThreshold: 5
   }
 ]
 
+// 触发类型详细帮助文档
+const triggerTypeHelpDocs = {
+  [DELIVERY_RULE_TRIGGER_TYPE.TRADE_COUNT]: {
+    title: '交易次数触发',
+    definition: '当用户在指定时间周期内完成的交易笔数达到设定阈值时触发规则。',
+    explanation: '系统会实时统计用户在选定时间窗口内的交易次数（包括已平仓和当前持仓）。每当完成一笔交易后，系统会重新计算该时间段内的总交易次数，如果达到或超过设定的阈值，则立即触发规则执行相应动作。',
+    useCases: [
+      {
+        scenario: '高频交易控盈',
+        config: '时间周期：最近1小时 | 阈值：20次',
+        purpose: '限制在1小时内交易超过20次的高频用户的盈利表现，防止通过快速交易获取超额收益'
+      },
+      {
+        scenario: '日交易量限制',
+        config: '时间周期：今日 | 阈值：50次',
+        purpose: '对当天交易频繁的用户进行风控干预，避免日内过度交易带来的风险'
+      },
+      {
+        scenario: '短期频繁操作监测',
+        config: '时间周期：最近4小时 | 阈值：30次',
+        purpose: '识别短时间内频繁交易的用户，可能的套利行为或异常交易模式'
+      }
+    ],
+    notes: [
+      '交易次数统计包括所有已结算的订单',
+      '未结算的持仓不计入交易次数',
+      '时间窗口为滑动窗口，会实时更新'
+    ]
+  },
+  [DELIVERY_RULE_TRIGGER_TYPE.PROFIT_LOSS]: {
+    title: '累计盈亏触发',
+    definition: '当用户在一段时间内赚了/亏了多少钱后，自动触发对应的规则。',
+    explanation: '简单理解：系统会一直算账，看用户赚了还是亏了。比如设置"最近4小时赚了2000块"，用户一到2000就触发；设置"今天亏了5000块"，亏到5000也会触发。正数代表赚钱（盈利），负数代表亏钱（亏损）。',
+    useCases: [
+      {
+        scenario: '赚太多了要控一控',
+        config: '时间周期：最近4小时 | 阈值：+2000 USDT',
+        purpose: '用户4小时赚了2000块，说明运气太好，接下来让他稍微难赚点'
+      },
+      {
+        scenario: '亏太多了要补一补',
+        config: '时间周期：今日 | 阈值：-5000 USDT',
+        purpose: '用户今天已经亏了5000块，要挽留他，接下来让他容易赚点'
+      },
+      {
+        scenario: '突然暴赚要注意',
+        config: '时间周期：最近1小时 | 阈值：+1000 USDT',
+        purpose: '1小时就赚1000块，可能碰到行情异常或在套利，需要关注一下'
+      }
+    ],
+    notes: [
+      '会把这段时间所有交易的盈亏全加起来算总账',
+      '赚钱填正数（比如+2000），亏钱填负数（比如-5000）',
+      '时间是滑动的，比如"最近1小时"会实时往前推1小时',
+      '如果想实现"今天赚了多少"的功能，选"今日"时间周期就行'
+    ]
+  },
+  [DELIVERY_RULE_TRIGGER_TYPE.CONSECUTIVE_WINS]: {
+    title: '连续盈利触发',
+    definition: '当用户在指定时间周期内连续盈利的次数达到设定阈值时触发规则。',
+    explanation: '系统追踪用户连续平仓盈利的订单数量。只要有一笔订单亏损，计数器重置为0。当连续盈利次数达到阈值时触发规则，通常用于打断用户的连胜状态。',
+    useCases: [
+      {
+        scenario: '连胜阻断',
+        config: '时间周期：最近1小时 | 阈值：5次',
+        purpose: '当用户连续5次盈利后，强制下一单亏损，避免持续盈利影响平台收益'
+      },
+      {
+        scenario: '适度控盈',
+        config: '时间周期：最近4小时 | 阈值：8次',
+        purpose: '连续盈利8次后启动盈亏控制，降低期望值但不强制亏损'
+      },
+      {
+        scenario: '异常盈利监测',
+        config: '时间周期：今日 | 阈值：10次',
+        purpose: '识别当日连续盈利超过10次的异常用户，可能存在策略漏洞'
+      }
+    ],
+    notes: [
+      '只统计连续盈利，中间有亏损则重置计数',
+      '盈利判断标准：结算金额 > 开仓成本',
+      '时间窗口限制统计范围'
+    ]
+  },
+  [DELIVERY_RULE_TRIGGER_TYPE.CONSECUTIVE_LOSS]: {
+    title: '连续亏损触发',
+    definition: '当用户在指定时间周期内连续亏损的次数达到设定阈值时触发规则。',
+    explanation: '系统追踪用户连续平仓亏损的订单数量。只要有一笔订单盈利，计数器重置为0。当连续亏损次数达到阈值时触发规则，通常用于用户保护或挽留策略。',
+    useCases: [
+      {
+        scenario: '用户保护',
+        config: '时间周期：最近1小时 | 阈值：5次',
+        purpose: '当用户连续亏损5次后，强制下一单盈利或提升盈利概率，避免流失'
+      },
+      {
+        scenario: '挽留机制',
+        config: '时间周期：今日 | 阈值：8次',
+        purpose: '识别当日连续亏损8次的用户，给予补偿性盈利机会'
+      },
+      {
+        scenario: '新手保护',
+        config: '时间周期：最近24小时 | 阈值：3次',
+        purpose: '对新用户放宽标准，连续3次亏损即触发保护，提升留存率'
+      }
+    ],
+    notes: [
+      '只统计连续亏损，中间有盈利则重置计数',
+      '亏损判断标准：结算金额 < 开仓成本',
+      '通常用于用户体验优化和留存提升'
+    ]
+  }
+}
 
 // 时间周期选项
 const timePeriodOptions = [
-  { value: DELIVERY_RULE_TIME_PERIOD.REAL_TIME, label: '实时' },
-  { value: DELIVERY_RULE_TIME_PERIOD.LAST_1H, label: '最近1小时' },
-  { value: DELIVERY_RULE_TIME_PERIOD.LAST_4H, label: '最近4小时' },
-  { value: DELIVERY_RULE_TIME_PERIOD.LAST_24H, label: '最近24小时' },
-  { value: DELIVERY_RULE_TIME_PERIOD.TODAY, label: '今日' },
-  { value: DELIVERY_RULE_TIME_PERIOD.LAST_7D, label: '最近7天' }
+  { value: DELIVERY_RULE_TIME_PERIOD.REAL_TIME, label: '实时', description: '立即触发' },
+  { value: DELIVERY_RULE_TIME_PERIOD.LAST_1H, label: '最近1小时', description: '统计最近1小时数据' },
+  { value: DELIVERY_RULE_TIME_PERIOD.LAST_4H, label: '最近4小时', description: '统计最近4小时数据' },
+  { value: DELIVERY_RULE_TIME_PERIOD.LAST_24H, label: '最近24小时', description: '统计最近24小时数据' },
+  { value: DELIVERY_RULE_TIME_PERIOD.TODAY, label: '今日', description: '统计当日数据' },
+  { value: DELIVERY_RULE_TIME_PERIOD.LAST_7D, label: '最近7天', description: '统计最近7天数据' }
 ]
 
 // 执行动作配置（精简版 - 只保留核心功能）
 const actionTypeOptions = [
   {
     value: DELIVERY_RULE_ACTION.PROFIT_CONTROL,
-    label: '盈亏控制'
+    label: '盈亏控制',
+    icon: '🎚️',
+    description: '精确调整用户的交易盈亏金额（线控）',
+    color: 'blue',
+    recommended: true
   },
   {
     value: DELIVERY_RULE_ACTION.FORCE_WIN,
-    label: '强制盈利'
+    label: '强制盈利',
+    icon: '✅',
+    description: '强制下N单结算为盈利',
+    color: 'emerald'
   },
   {
     value: DELIVERY_RULE_ACTION.FORCE_LOSS,
-    label: '强制亏损'
+    label: '强制亏损',
+    icon: '❌',
+    description: '强制下N单结算为亏损',
+    color: 'rose'
   }
 ]
 
+// 执行动作类型详细帮助文档
+const actionTypeHelpDocs = {
+  [DELIVERY_RULE_ACTION.PROFIT_CONTROL]: {
+    title: '盈亏控制（线控）',
+    definition: '根据设定的盈利概率和盈亏金额，动态调整用户交易的盈亏比例。',
+    explanation: '<div class="space-y-3"><div><div class="text-xs font-semibold text-slate-800 mb-1.5">🎯 控制的是什么？</div><div class="text-xs text-slate-600 leading-relaxed">控制的是用户平仓时的结算价格。用户看到的K线是真实的，但平仓时我们可以在合理范围内选择一个对用户有利或不利的价格来结算。</div></div><div><div class="text-xs font-semibold text-slate-800 mb-1.5">⏰ 什么时候控制？</div><div class="text-xs text-slate-600 leading-relaxed">当用户点击平仓（或者到期自动平仓）的那一刻，系统会根据你配置的参数（盈利概率、盈利金额、亏损金额），决定这一单让他赚还是亏，然后选择对应的结算价格。</div></div><div><div class="text-xs font-semibold text-slate-800 mb-1.5">⚙️ 控制原理：</div><ol class="text-xs text-slate-600 leading-relaxed space-y-1 pl-4"><li>你设置三个参数：期望值（平均每单赚/亏多少）、盈利金额、亏损金额</li><li>系统根据期望值自动算出让他赚和让他亏的概率</li><li>每次平仓时，系统"抛硬币"决定这单是盈利还是亏损</li><li>如果是盈利，就挑个高点的价格给他结算；如果是亏损，就挑个低点的价格</li><li>长期下来，用户的平均盈亏就会接近你设置的期望值</li></ol></div><div><div class="text-xs font-semibold text-slate-800 mb-1.5">举个例子：</div><div class="text-xs text-slate-600 leading-relaxed bg-slate-50 rounded p-2 space-y-1"><div>期望值设置 <strong class="text-slate-800">-5%</strong>，盈利 <strong class="text-green-600">+20%</strong>，亏损 <strong class="text-red-600">-15%</strong></div><div>→ 系统计算：盈利概率 <strong class="text-slate-800">约29%</strong>，亏损概率 <strong class="text-slate-800">约71%</strong></div><div>→ 对于 1000 USDT 的单：29%概率盈利200，71%概率亏损150，期望值-50（-5%）</div><div>→ 对于 100 USDT 的单：29%概率盈利20，71%概率亏损15，期望值-5（-5%）</div><div class="mt-2 pt-2 border-t border-slate-200 text-slate-500">计算公式：期望值 = 盈利金额 × 盈利概率 + 亏损金额 × 亏损概率</div></div></div><div><div class="text-xs font-semibold text-slate-800 mb-1.5">👤 规则执行维度：</div><div class="text-xs text-slate-600 leading-relaxed">虽然这是全局规则，但实际执行时是<strong class="text-slate-800">按单个用户维度</strong>来处理的。比如设置"连续亏损5次"触发，系统会单独追踪每个用户的亏损情况，当某个用户达到5次时，就对这个用户执行控制动作。</div></div></div>',
+    useCases: [
+      {
+        scenario: '低盈利概率设置',
+        config: '盈利概率：29% | 盈利：+20% | 亏损：-15%',
+        purpose: '用户长期平均每单亏损约5%，适用于常规风控策略'
+      },
+      {
+        scenario: '高盈利概率设置',
+        config: '盈利概率：65% | 盈利：+18% | 亏损：-8%',
+        purpose: '用户长期平均每单盈利约9%，适用于特定用户分组'
+      },
+      {
+        scenario: '平衡概率设置',
+        config: '盈利概率：50% | 盈利：+20% | 亏损：-20%',
+        purpose: '用户长期盈亏平衡（期望值0%），适用于高价值用户组'
+      }
+    ],
+    notes: [
+      '规则是全局配置，但按单个用户维度触发和执行（不是全平台统计）',
+      '💡 使用百分比模式，对不同规模的订单都按相同比例计算',
+      '期望值由系统自动计算：正数=长期盈利，负数=长期亏损，0=长期打平',
+      '盈利概率越高，期望值越大（对用户越有利）',
+      '通过选择合理范围内的价格来实现，在正常市场波动范围内'
+    ]
+  },
+  [DELIVERY_RULE_ACTION.FORCE_WIN]: {
+    title: '强制盈利',
+    definition: '强制指定用户接下来N单交易结算为盈利。',
+    explanation: '当规则触发后，系统会标记该用户，接下来的N笔订单在结算时会强制选择对用户有利的价格，确保订单盈利。盈利幅度由设定的百分比决定。适用于连续亏损后的补偿等场景。',
+    useCases: [
+      {
+        scenario: '连续亏损补偿',
+        config: '触发：连续亏损5次 | 强制盈利：1单，20%',
+        purpose: '用户连续亏损5次后，下一单强制盈利20%'
+      },
+      {
+        scenario: '累计亏损达阈值',
+        config: '触发：累计亏损>5000 USDT | 强制盈利：2单，15%',
+        purpose: '用户累计亏损超过5000 USDT后，接下来2单强制盈利15%'
+      },
+      {
+        scenario: '特定条件触发',
+        config: '触发：自定义条件 | 强制盈利：3单，10%',
+        purpose: '满足特定条件后，接下来3单强制盈利10%'
+      }
+    ],
+    notes: [
+      '仅影响结算价格，不改变订单方向',
+      '盈利百分比基于订单本金计算',
+      '强制盈利完成后标记自动清除',
+      '适用于连续亏损或特定触发条件后的补偿'
+    ]
+  },
+  [DELIVERY_RULE_ACTION.FORCE_LOSS]: {
+    title: '强制亏损',
+    definition: '强制指定用户接下来N单交易结算为亏损。',
+    explanation: '当规则触发后，系统会标记该用户，接下来的N笔订单在结算时会强制选择对用户不利的价格，确保订单亏损。亏损幅度由设定的百分比决定。适用于连续盈利或异常高盈利的风控场景。',
+    useCases: [
+      {
+        scenario: '连续盈利风控',
+        config: '触发：连续盈利5次 | 强制亏损：1单，30%',
+        purpose: '用户连续盈利5次后，下一单强制亏损30%'
+      },
+      {
+        scenario: '短期高盈利风控',
+        config: '触发：1小时盈利>3000 | 强制亏损：2单，25%',
+        purpose: '用户短时间内高盈利后，接下来2单强制亏损25%'
+      },
+      {
+        scenario: '高频交易风控',
+        config: '触发：1小时交易>30次 | 强制亏损：3单，20%',
+        purpose: '用户高频交易后，接下来3单强制亏损20%'
+      }
+    ],
+    notes: [
+      '仅影响结算价格，不改变订单方向',
+      '亏损百分比基于订单本金计算',
+      '强制亏损完成后标记自动清除',
+      '适用于连续盈利或异常高盈利的风控场景'
+    ]
+  }
+}
 
 // 优先级选项
 const priorityOptions = [
-  { value: DELIVERY_RULE_PRIORITY.HIGH, label: '高优先级' },
-  { value: DELIVERY_RULE_PRIORITY.MEDIUM, label: '中优先级' },
-  { value: DELIVERY_RULE_PRIORITY.LOW, label: '低优先级' }
+  { value: DELIVERY_RULE_PRIORITY.HIGH, label: '高优先级', color: 'rose', icon: '🔴' },
+  { value: DELIVERY_RULE_PRIORITY.MEDIUM, label: '中优先级', color: 'amber', icon: '🟡' },
+  { value: DELIVERY_RULE_PRIORITY.LOW, label: '低优先级', color: 'slate', icon: '⚪' }
 ]
 
 // 状态选项
 const statusOptions = [
-  { value: DELIVERY_RULE_STATUS.ENABLED, label: '运行中' },
-  { value: DELIVERY_RULE_STATUS.PAUSED, label: '已暂停' },
-  { value: DELIVERY_RULE_STATUS.DISABLED, label: '已禁用' }
+  { value: DELIVERY_RULE_STATUS.ENABLED, label: '运行中', color: 'emerald' },
+  { value: DELIVERY_RULE_STATUS.PAUSED, label: '已暂停', color: 'amber' },
+  { value: DELIVERY_RULE_STATUS.DISABLED, label: '已禁用', color: 'slate' }
 ]
 
 // 风险等级选项
 const riskLevelOptions = [
-  { value: USER_RISK_LEVEL.VERY_HIGH, label: '极高风险' },
-  { value: USER_RISK_LEVEL.HIGH, label: '高风险' },
-  { value: USER_RISK_LEVEL.MEDIUM, label: '中风险' },
-  { value: USER_RISK_LEVEL.LOW, label: '低风险' },
-  { value: USER_RISK_LEVEL.SAFE, label: '安全' }
+  { value: USER_RISK_LEVEL.VERY_HIGH, label: '极高风险', color: 'rose' },
+  { value: USER_RISK_LEVEL.HIGH, label: '高风险', color: 'orange' },
+  { value: USER_RISK_LEVEL.MEDIUM, label: '中风险', color: 'amber' },
+  { value: USER_RISK_LEVEL.LOW, label: '低风险', color: 'blue' },
+  { value: USER_RISK_LEVEL.SAFE, label: '安全', color: 'emerald' }
 ]
 
 // 盈亏控制策略选项（技术实现方式）
 const profitControlStrategyOptions = [
-  { value: PROFIT_CONTROL_STRATEGY.SETTLEMENT_PRICE, label: '结算价格选择' },
-  { value: PROFIT_CONTROL_STRATEGY.TIME_WINDOW, label: '时间窗口选择' },
-  { value: PROFIT_CONTROL_STRATEGY.SLIPPAGE, label: '滑点控制' },
-  { value: PROFIT_CONTROL_STRATEGY.KLINE_OFFSET, label: 'K线显示偏移' }
+  { 
+    value: PROFIT_CONTROL_STRATEGY.SETTLEMENT_PRICE, 
+    label: '结算价格选择', 
+    description: '在市场价格范围内选择有利价格（推荐）'
+  },
+  { 
+    value: PROFIT_CONTROL_STRATEGY.TIME_WINDOW, 
+    label: '时间窗口选择', 
+    description: '利用秒级价格波动选择结算时间点'
+  },
+  { 
+    value: PROFIT_CONTROL_STRATEGY.SLIPPAGE, 
+    label: '滑点控制', 
+    description: '通过开仓和平仓滑点影响盈亏'
+  },
+  { 
+    value: PROFIT_CONTROL_STRATEGY.KLINE_OFFSET, 
+    label: 'K线显示偏移', 
+    description: '轻微调整显示价格（< 0.1%）'
+  }
 ]
 
 // 计算属性
@@ -215,41 +456,8 @@ const modalTitle = computed(() => {
   return '新增规则'
 })
 
-
 const currentTriggerConfig = computed(() => {
   return triggerTypeOptions.find(opt => opt.value === form.trigger.type)
-})
-
-// 阈值单位和说明
-const thresholdLabel = computed(() => {
-  switch (form.trigger.type) {
-    case DELIVERY_RULE_TRIGGER_TYPE.TRADE_COUNT:
-      return '交易次数';
-    case DELIVERY_RULE_TRIGGER_TYPE.PROFIT_LOSS:
-      return '累计盈亏 (USDT)';
-    case DELIVERY_RULE_TRIGGER_TYPE.CONSECUTIVE_WINS:
-      return '连续盈利次数';
-    case DELIVERY_RULE_TRIGGER_TYPE.CONSECUTIVE_LOSS:
-      return '连续亏损次数';
-    default:
-      return '阈值';
-  }
-})
-
-const formattedThreshold = computed(() => {
-  const value = form.trigger.threshold
-  switch (form.trigger.type) {
-    case DELIVERY_RULE_TRIGGER_TYPE.TRADE_COUNT:
-      return value + ' 次';
-    case DELIVERY_RULE_TRIGGER_TYPE.PROFIT_LOSS:
-      return value + ' USDT';
-    case DELIVERY_RULE_TRIGGER_TYPE.CONSECUTIVE_WINS:
-      return value + ' 次';
-    case DELIVERY_RULE_TRIGGER_TYPE.CONSECUTIVE_LOSS:
-      return value + ' 次';
-    default:
-      return value;
-  }
 })
 
 const currentActionConfig = computed(() => {
@@ -260,6 +468,13 @@ const needsTimePeriod = computed(() => {
   return currentTriggerConfig.value?.needsPeriod
 })
 
+const currentTriggerHelp = computed(() => {
+  return triggerTypeHelpDocs[form.trigger.type] || null
+})
+
+const currentActionHelp = computed(() => {
+  return actionTypeHelpDocs[form.action.type] || null
+})
 
 // 计算期望值（根据盈利概率、盈利金额、亏损金额自动计算）
 const calculatedExpectedValue = computed(() => {
@@ -316,6 +531,16 @@ const expectedValueRange = computed(() => {
   return { min: 0, max: 0 }
 })
 
+const formattedThreshold = computed(() => {
+  const config = currentTriggerConfig.value
+  if (!config) return ''
+  
+  const value = currentTriggerConfig.value.isPercentage 
+    ? form.trigger.threshold 
+    : form.trigger.threshold
+    
+  return `${value}${config.unit || ''}`
+})
 
 // 方法
 const close = () => {
@@ -529,7 +754,7 @@ watch(() => props.open, (isOpen) => {
                   <label class="block space-y-2">
                     <span class="text-sm font-medium text-slate-700">优先级</span>
                     <select v-model="form.priority" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
-                      <option v-for="priority in priorityOptions" :key="priority.value" :value="priority.value">{{ priority.label }}</option>
+                      <option v-for="priority in priorityOptions" :key="priority.value" :value="priority.value">{{ priority.icon }} {{ priority.label }}</option>
                     </select>
                   </label>
                 </div>
@@ -545,6 +770,17 @@ watch(() => props.open, (isOpen) => {
                   </svg>
                 </div>
                 <h3 class="flex-1 text-base font-semibold text-slate-900">触发条件</h3>
+                <button 
+                  type="button"
+                  @click="showTriggerHelp = !showTriggerHelp"
+                  class="flex items-center gap-1.5 rounded-lg bg-white/80 px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm transition-all hover:bg-white hover:shadow"
+                  :class="{ 'ring-2 ring-blue-400': showTriggerHelp }"
+                >
+                  <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {{ showTriggerHelp ? '关闭帮助' : '查看帮助' }}
+                </button>
               </div>
 
               <div class="space-y-3.5">
@@ -552,21 +788,20 @@ watch(() => props.open, (isOpen) => {
                   <span class="text-sm font-medium text-slate-700">触发类型</span>
                   <select v-model="form.trigger.type" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
                     <option v-for="option in triggerTypeOptions" :key="option.value" :value="option.value">
-                      {{ option.label }}
+                      {{ option.icon }} {{ option.label }}
                     </option>
                   </select>
                 </label>
 
                 <div class="grid gap-3.5 sm:grid-cols-2">
                   <label class="block space-y-2">
-                    <span class="text-sm font-medium text-slate-700">{{ thresholdLabel }} <span class="text-rose-500">*</span></span>
+                    <span class="text-sm font-medium text-slate-700">{{ currentTriggerConfig?.thresholdLabel || '阈值' }} <span class="text-rose-500">*</span></span>
                     <input
                       v-model.number="form.trigger.threshold"
                       type="number"
                       min="0"
                       class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                     />
-                    <div class="text-xs text-slate-500 mt-1">{{ formattedThreshold }}</div>
                   </label>
 
                   <label v-if="needsTimePeriod" class="block space-y-2">
@@ -578,6 +813,51 @@ watch(() => props.open, (isOpen) => {
                 </div>
               </div>
 
+              <!-- 触发类型帮助面板 -->
+              <Transition name="slide-down">
+                <div v-if="showTriggerHelp && currentTriggerHelp" class="rounded-lg border border-blue-300 bg-white p-4 shadow-sm">
+                  <div class="mb-3 flex items-start gap-2 border-b border-blue-100 pb-3">
+                    <span class="text-2xl">{{ currentTriggerConfig?.icon }}</span>
+                    <div class="flex-1">
+                      <h4 class="text-sm font-bold text-blue-900">{{ currentTriggerHelp.title }}</h4>
+                      <p class="mt-1 text-xs leading-relaxed text-slate-600">{{ currentTriggerHelp.definition }}</p>
+                    </div>
+                  </div>
+
+                  <div class="space-y-3">
+                    <div>
+                      <h5 class="mb-1.5 text-xs font-semibold text-slate-700">📖 详细说明</h5>
+                      <p class="text-xs leading-relaxed text-slate-600">{{ currentTriggerHelp.explanation }}</p>
+                    </div>
+
+                    <div>
+                      <h5 class="mb-2 text-xs font-semibold text-slate-700">💡 典型用例</h5>
+                      <div class="space-y-2">
+                        <div 
+                          v-for="(useCase, index) in currentTriggerHelp.useCases" 
+                          :key="index"
+                          class="rounded-md bg-slate-50 p-2.5"
+                        >
+                          <div class="mb-1 flex items-center gap-2">
+                            <span class="text-xs font-semibold text-slate-800">{{ useCase.scenario }}</span>
+                            <span class="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700">{{ useCase.config }}</span>
+                          </div>
+                          <p class="text-xs text-slate-600">{{ useCase.purpose }}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div v-if="currentTriggerHelp.notes && currentTriggerHelp.notes.length > 0">
+                      <h5 class="mb-1.5 text-xs font-semibold text-slate-700">⚠️ 注意事项</h5>
+                      <ul class="space-y-1 pl-3">
+                        <li v-for="(note, index) in currentTriggerHelp.notes" :key="index" class="text-xs text-slate-600">
+                          <span class="mr-1 text-amber-500">•</span>{{ note }}
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </Transition>
             </section>
 
             <!-- 执行动作 -->
@@ -589,6 +869,17 @@ watch(() => props.open, (isOpen) => {
                   </svg>
                 </div>
                 <h3 class="flex-1 text-base font-semibold text-slate-900">执行动作</h3>
+                <button 
+                  type="button"
+                  @click="showActionHelp = !showActionHelp"
+                  class="flex items-center gap-1.5 rounded-lg bg-white/80 px-3 py-1.5 text-xs font-medium text-violet-700 shadow-sm transition-all hover:bg-white hover:shadow"
+                  :class="{ 'ring-2 ring-violet-400': showActionHelp }"
+                >
+                  <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {{ showActionHelp ? '关闭帮助' : '查看帮助' }}
+                </button>
               </div>
 
               <div class="space-y-3.5">
@@ -596,7 +887,7 @@ watch(() => props.open, (isOpen) => {
                   <span class="text-sm font-medium text-slate-700">动作类型</span>
                   <select v-model="form.action.type" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100">
                     <option v-for="action in actionTypeOptions" :key="action.value" :value="action.value">
-                      {{ action.label }}
+                      {{ action.icon }} {{ action.label }}
                     </option>
                   </select>
                 </label>
@@ -724,63 +1015,6 @@ watch(() => props.open, (isOpen) => {
                       </div>
                     </div>
 
-                    <!-- 风控限制（可选） -->
-                    <div class="space-y-3 pt-4">
-                      <div class="flex items-center justify-between">
-                        <h5 class="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                          <span class="inline-block w-1 h-4 bg-amber-500 rounded"></span>
-                          风控限制（可选）
-                        </h5>
-                        <button 
-                          type="button"
-                          @click="form.action.params.profitControl.enableRiskLimits = !form.action.params.profitControl.enableRiskLimits"
-                          class="text-xs text-blue-600 hover:text-blue-700 font-medium"
-                        >
-                          {{ form.action.params.profitControl.enableRiskLimits ? '收起' : '展开' }}
-                        </button>
-                      </div>
-                      <p class="text-xs text-slate-500">达到限制后将暂停规则执行，需要手动重新启用</p>
-                      
-                      <div v-show="form.action.params.profitControl.enableRiskLimits" class="grid gap-3 sm:grid-cols-2 pt-2">
-                        <label class="block space-y-2">
-                          <div class="flex items-center gap-1">
-                            <span class="text-sm text-slate-700">最大累计盈利</span>
-                            <span class="text-xs text-slate-400">(单用户)</span>
-                          </div>
-                          <div class="flex items-center gap-2">
-                            <input
-                              v-model.number="form.action.params.profitControl.maxProfit"
-                              type="number"
-                              step="1000"
-                              placeholder="不限制"
-                              class="flex-1 rounded-md border border-slate-300 px-2.5 py-1.5 text-sm focus:border-amber-500 focus:outline-none"
-                            />
-                            <span class="text-sm text-slate-600 font-medium">USDT</span>
-                          </div>
-                          <p class="text-xs text-slate-500">某用户盈利达到此金额后停止对其控制</p>
-                        </label>
-                        <label class="block space-y-2">
-                          <div class="flex items-center gap-1">
-                            <span class="text-sm text-slate-700">最大单笔亏损</span>
-                            <span class="text-xs text-slate-400">(保护用户)</span>
-                          </div>
-                          <div class="flex items-center gap-2">
-                            <input
-                              v-model.number="form.action.params.profitControl.maxLossRatio"
-                              type="number"
-                              min="0"
-                              max="1"
-                              step="0.05"
-                              placeholder="0.5"
-                              class="flex-1 rounded-md border border-slate-300 px-2.5 py-1.5 text-sm focus:border-amber-500 focus:outline-none"
-                            />
-                            <span class="text-sm text-slate-600 font-medium">{{ ((form.action.params.profitControl.maxLossRatio || 0) * 100).toFixed(0) }}%</span>
-                          </div>
-                          <p class="text-xs text-slate-500">单笔亏损不超过持仓金额的此比例</p>
-                        </label>
-                      </div>
-                    </div>
-
                     <!-- 实现方式 -->
                     <div class="space-y-3 pt-4 border-t border-slate-200">
                       <div class="flex items-center justify-between">
@@ -813,7 +1047,7 @@ watch(() => props.open, (isOpen) => {
                             </div>
                             <div class="flex-1">
                               <div class="text-sm font-medium text-slate-900">{{ strategy.label }}</div>
-                              <!-- <div class="mt-0.5 text-xs text-slate-500">{{ strategy.description }}</div> -->
+                              <div class="mt-0.5 text-xs text-slate-500">{{ strategy.description }}</div>
                             </div>
                           </div>
                         </button>
@@ -954,6 +1188,51 @@ watch(() => props.open, (isOpen) => {
                 </div>
               </div>
 
+              <!-- 执行动作类型帮助面板 -->
+              <Transition name="slide-down">
+                <div v-if="showActionHelp && currentActionHelp" class="rounded-lg border border-violet-300 bg-white p-4 shadow-sm">
+                  <div class="mb-3 flex items-start gap-2 border-b border-violet-100 pb-3">
+                    <span class="text-2xl">{{ currentActionConfig?.icon }}</span>
+                    <div class="flex-1">
+                      <h4 class="text-sm font-bold text-violet-900">{{ currentActionHelp.title }}</h4>
+                      <p class="mt-1 text-xs leading-relaxed text-slate-600">{{ currentActionHelp.definition }}</p>
+                    </div>
+                  </div>
+
+                  <div class="space-y-3">
+                    <div>
+                      <h5 class="mb-1.5 text-xs font-semibold text-slate-700">📖 工作原理</h5>
+                      <div v-html="currentActionHelp.explanation"></div>
+                    </div>
+
+                    <div>
+                      <h5 class="mb-2 text-xs font-semibold text-slate-700">💡 典型场景</h5>
+                      <div class="space-y-2">
+                        <div 
+                          v-for="(useCase, index) in currentActionHelp.useCases" 
+                          :key="index"
+                          class="rounded-md bg-slate-50 p-2.5"
+                        >
+                          <div class="mb-1 flex items-center gap-2">
+                            <span class="text-xs font-semibold text-slate-800">{{ useCase.scenario }}</span>
+                            <span class="rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium text-violet-700">{{ useCase.config }}</span>
+                          </div>
+                          <p class="text-xs text-slate-600">{{ useCase.purpose }}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div v-if="currentActionHelp.notes && currentActionHelp.notes.length > 0">
+                      <h5 class="mb-1.5 text-xs font-semibold text-slate-700">⚠️ 注意事项</h5>
+                      <ul class="space-y-1 pl-3">
+                        <li v-for="(note, index) in currentActionHelp.notes" :key="index" class="text-xs text-slate-600">
+                          <span class="mr-1 text-amber-500">•</span>{{ note }}
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </Transition>
             </section>
           </div>
 
@@ -979,24 +1258,20 @@ watch(() => props.open, (isOpen) => {
         <!-- 右侧帮助区域 -->
         <div class="flex w-2/5 flex-col bg-gradient-to-br from-slate-50 to-slate-100">
           <header class="border-b border-slate-200 px-5 py-4">
-            <h3 class="text-lg font-semibold text-slate-900">配置预览</h3>
-            <p class="mt-1 text-xs text-slate-500">右侧实时展示当前配置的主要参数和期望收益</p>
+            <h3 class="text-lg font-semibold text-slate-900">使用说明</h3>
+            <p class="mt-0.5 text-xs text-slate-500">本区域用于帮助说明，已关闭实时预览和计算</p>
           </header>
           <div class="flex-1 overflow-y-auto px-5 py-4">
             <div class="rounded-lg border border-blue-200 bg-blue-50 p-4">
-              <h4 class="text-sm font-semibold text-blue-900 mb-2">主要参数</h4>
-              <ul class="text-xs text-slate-700 space-y-1">
-                <li>盈利概率：<span class="font-mono">{{ ((form.action.params.profitControl.winProbability || 0) * 100).toFixed(1) }}%</span></li>
-                <li>单笔盈利：<span class="font-mono">+{{ form.action.params.profitControl.avgWinAmount || 0 }}%</span></li>
-                <li>单笔亏损：<span class="font-mono">{{ form.action.params.profitControl.avgLossAmount || 0 }}%</span></li>
-                <li>盈利波动：<span class="font-mono">±{{ form.action.params.profitControl.winFluctuationPercent || 0 }}%</span></li>
-                <li>亏损波动：<span class="font-mono">±{{ form.action.params.profitControl.lossFluctuationPercent || 0 }}%</span></li>
+              <h4 class="text-sm font-semibold text-blue-900 mb-2">如何配置盈亏控制？</h4>
+              <ul class="list-disc pl-5 text-xs text-slate-700 space-y-1">
+                <li>设置“盈利概率”、“单笔盈利”、“单笔亏损”后，系统会自动根据概率决定每单是盈利还是亏损。</li>
+                <li>“盈利/亏损波动范围”可让每单的实际盈亏在设定基础上有一定浮动，更贴近真实市场。</li>
+                <li>风控限制（可选）可防止单用户过度盈利或亏损。</li>
+                <li>如需详细计算公式，请参考下方帮助文档。</li>
               </ul>
-              <div class="mt-4 border-t border-blue-100 pt-3">
-                <div class="text-xs text-slate-600 mb-1">期望收益（长期平均）：</div>
-                <div class="text-xl font-bold" :class="calculatedExpectedValue > 0 ? 'text-green-600' : calculatedExpectedValue < 0 ? 'text-red-600' : 'text-slate-700'">
-                  {{ calculatedExpectedValue > 0 ? '+' : '' }}{{ calculatedExpectedValue.toFixed(2) }}%
-                </div>
+              <div class="mt-3 text-xs text-blue-700">
+                ⚠️ 当前已关闭实时预览，如需查看计算效果请联系管理员开启。
               </div>
             </div>
           </div>
