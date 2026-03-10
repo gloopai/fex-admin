@@ -111,7 +111,8 @@ const deliveryAutoRules = [
       type: DELIVERY_RULE_ACTION.FORCE_LOSS,
       params: {
         nextPositionCount: 1,
-        lossPercent: 0.3
+        lossPercent: 0.3,
+        lossFluctuationPercent: 2
       }
     },
     hitCount: 67,

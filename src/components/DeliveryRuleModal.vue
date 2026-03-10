@@ -71,7 +71,9 @@ const form = reactive({
       // 强制盈利/亏损
       nextPositionCount: 1,
       lossPercent: 0.3,
+      lossFluctuationPercent: 2, // 亏损波动范围，单位%（±2%）
       profitPercent: 0.2,
+      winFluctuationPercent: 2, // 盈利波动范围，单位%（±2%）
 
       // 价格调整
       settlePriceMode: "unfavorable", // 'favorable' | 'unfavorable' | 'market'
@@ -1405,7 +1407,7 @@ watch(
                           />
                           <span class="text-sm font-bold text-rose-700"
                             >{{
-                              (form.action.params.lossPercent * 100).toFixed(0)
+                              (form.action.params.lossPercent ||0 * 100).toFixed(0)
                             }}%</span
                           >
                           <input
@@ -1417,6 +1419,49 @@ watch(
                             class="flex-1 accent-rose-600"
                           />
                         </div>
+                      </label>
+                    </div>
+
+                    <!-- 亏损波动范围 -->
+                    <div class="rounded-lg border border-slate-200 bg-white p-3">
+                      <label class="block space-y-2">
+                        <div class="flex items-center justify-between">
+                          <div>
+                            <div class="text-sm font-medium text-slate-700">
+                              亏损波动范围
+                            </div>
+                            <div class="text-xs text-slate-500 mt-0.5">
+                              实际亏损将在基准比例上下随机波动
+                            </div>
+                          </div>
+                          <span class="text-lg font-bold text-red-600"
+                            >±{{
+                              form.action.params.lossFluctuationPercent || 0
+                            }}%</span
+                          >
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <input
+                            v-model.number="form.action.params.lossFluctuationPercent"
+                            type="range"
+                            min="0"
+                            max="10"
+                            step="0.1"
+                            class="flex-1 accent-rose-600"
+                          />
+                          <input
+                            v-model.number="form.action.params.lossFluctuationPercent"
+                            type="number"
+                            min="0"
+                            max="10"
+                            step="0.1"
+                            class="w-20 rounded border border-slate-300 px-2 py-1 text-sm text-center focus:border-rose-500 focus:outline-none"
+                          />
+                          <span class="text-sm text-slate-500">%</span>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-1">
+                          每单亏损将在 {{ (form.action.params.lossPercent ||0* 100).toFixed(0)}}% 基础上随机波动 ±{{ form.action.params.lossFluctuationPercent || 0 }}%
+                        </p>
                       </label>
                     </div>
 
@@ -1432,8 +1477,11 @@ watch(
                         <strong class="text-base"
                           >{{
                             (form.action.params.lossPercent * 100).toFixed(0)
-                          }}%</strong
+                          }}% ±{{ form.action.params.lossFluctuationPercent || 0 }}%</strong
                         >
+                      </p>
+                      <p class="text-xs text-rose-600 mt-1">
+                        实际亏损范围：{{ ((form.action.params.lossPercent - form.action.params.lossFluctuationPercent / 100) * 100).toFixed(1) }}% ~ {{ ((form.action.params.lossPercent + form.action.params.lossFluctuationPercent / 100) * 100).toFixed(1) }}%
                       </p>
                     </div>
                   </div>
@@ -1495,7 +1543,7 @@ watch(
                           />
                           <span class="text-sm font-bold text-emerald-700"
                             >{{
-                              (form.action.params.profitPercent * 100).toFixed(
+                              (form.action.params.profitPercent ||0 * 100).toFixed(
                                 0,
                               )
                             }}%</span
@@ -1512,6 +1560,49 @@ watch(
                       </label>
                     </div>
 
+                    <!-- 盈利波动范围 -->
+                    <div class="rounded-lg border border-slate-200 bg-white p-3">
+                      <label class="block space-y-2">
+                        <div class="flex items-center justify-between">
+                          <div>
+                            <div class="text-sm font-medium text-slate-700">
+                              盈利波动范围
+                            </div>
+                            <div class="text-xs text-slate-500 mt-0.5">
+                              实际盈利将在基准比例上下随机波动
+                            </div>
+                          </div>
+                          <span class="text-lg font-bold text-green-600"
+                            >±{{
+                              form.action.params.winFluctuationPercent || 0
+                            }}%</span
+                          >
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <input
+                            v-model.number="form.action.params.winFluctuationPercent"
+                            type="range"
+                            min="0"
+                            max="10"
+                            step="0.1"
+                            class="flex-1 accent-emerald-600"
+                          />
+                          <input
+                            v-model.number="form.action.params.winFluctuationPercent"
+                            type="number"
+                            min="0"
+                            max="10"
+                            step="0.1"
+                            class="w-20 rounded border border-slate-300 px-2 py-1 text-sm text-center focus:border-emerald-500 focus:outline-none"
+                          />
+                          <span class="text-sm text-slate-500">%</span>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-1">
+                          每单盈利将在 {{ (form.action.params.profitPercent ||0* 100).toFixed(0) }}% 基础上随机波动 ±{{ form.action.params.winFluctuationPercent || 0 }}%
+                        </p>
+                      </label>
+                    </div>
+
                     <div
                       class="rounded-md bg-emerald-50 border border-emerald-200 px-3 py-2.5"
                     >
@@ -1524,8 +1615,11 @@ watch(
                         <strong class="text-base"
                           >{{
                             (form.action.params.profitPercent * 100).toFixed(0)
-                          }}%</strong
+                          }}% ±{{ form.action.params.winFluctuationPercent || 0 }}%</strong
                         >
+                      </p>
+                      <p class="text-xs text-emerald-600 mt-1">
+                        实际盈利范围：{{ ((form.action.params.profitPercent - form.action.params.winFluctuationPercent / 100) * 100).toFixed(1) }}% ~ {{ ((form.action.params.profitPercent + form.action.params.winFluctuationPercent / 100) * 100).toFixed(1) }}%
                       </p>
                     </div>
                   </div>
