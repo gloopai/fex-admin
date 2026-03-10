@@ -29,7 +29,7 @@ export const PROFIT_CONTROL_STRATEGY = {
   SETTLEMENT_PRICE: 'settlement_price', // 结算价格选择（主要方法）
   TIME_WINDOW: 'time_window',           // 时间窗口选择
   SLIPPAGE: 'slippage',                 // 滑点控制
-  KLINE_OFFSET: 'kline_offset'          // K线显示偏移
+  NONE: 'none'          // 无策略
 }
 
 // 自动规则执行动作配置

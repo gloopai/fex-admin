@@ -180,7 +180,7 @@ const saveRule = (ruleData) => {
 <template>
   <section class="space-y-5">
     <header>
-      <h1 class="text-3xl font-semibold text-slate-900">自动化规则管理</h1>
+      <h1 class="text-3xl font-semibold text-slate-900">场控规则管理</h1>
       <p class="mt-1 text-sm text-slate-500">智能化场控系统，自动触发规则执行干预操作</p>
     </header>
 
@@ -192,7 +192,13 @@ const saveRule = (ruleData) => {
             <p class="text-sm text-slate-500">{{ card.label }}</p>
             <p class="mt-2 text-3xl font-semibold text-slate-900">{{ card.value }}</p>
           </div>
-          <span class="text-3xl">{{ card.icon }}</span>
+          <!-- 线框图标 -->
+          <span>
+            <svg v-if="card.label === '规则总数'" class="h-8 w-8 text-blue-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 8h8M8 12h8M8 16h8"/></svg>
+            <svg v-else-if="card.label === '运行中'" class="h-8 w-8 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2l4 -4"/></svg>
+            <svg v-else-if="card.label === '今日触发'" class="h-8 w-8 text-orange-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+            <svg v-else class="h-8 w-8 text-violet-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
+          </span>
         </div>
       </article>
     </div>
@@ -237,89 +243,117 @@ const saveRule = (ruleData) => {
           :class="rule.status === DELIVERY_RULE_STATUS.ENABLED ? 'border-blue-200 bg-blue-50/30' : 'border-slate-200 bg-white'"
         >
           <div class="flex items-start justify-between gap-4">
-            <div class="flex items-start gap-4 flex-1">
-              <!-- 开关 -->
-              <button
-                type="button"
-                class="relative mt-1 h-6 w-11 rounded-full transition"
-                :class="rule.status === DELIVERY_RULE_STATUS.ENABLED ? 'bg-emerald-600' : 'bg-slate-300'"
-                @click="toggleRuleStatus(rule.id)"
-              >
-                <span
-                  class="absolute top-0.5 h-5 w-5 rounded-full bg-white transition"
-                  :class="rule.status === DELIVERY_RULE_STATUS.ENABLED ? 'left-5' : 'left-0.5'"
-                ></span>
-              </button>
+            <div class="flex-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <h3 class="text-xl text-slate-900">{{ rule.name }}</h3>
+                <span class="rounded-md px-2 py-0.5 text-xs" :class="statusClass(rule.status)">
+                  {{ statusLabel(rule.status) }}
+                </span>
+                <span class="rounded-md px-2 py-0.5 text-xs" :class="priorityClass(rule.priority)">
+                  优先级: {{ priorityLabel(rule.priority) }}
+                </span>
+              </div>
+              <p class="mt-2 text-sm text-slate-600">{{ rule.description }}</p>
 
-              <div class="flex-1">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <h3 class="text-xl font-semibold text-slate-900">{{ rule.name }}</h3>
-                  <span class="rounded-md px-2 py-0.5 text-xs font-medium" :class="statusClass(rule.status)">
-                    {{ statusLabel(rule.status) }}
+              <!-- 触发条件和执行动作 -->
+              <div class="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                <span class="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 text-slate-600 border border-slate-200">
+                  <svg class="h-3 w-3 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <rect x="4" y="4" width="16" height="16" rx="2" stroke-width="2" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 8h8M8 12h8M8 16h8" />
+                  </svg>
+                  <span>
+                    {{ triggerTypeLabel(rule.trigger.type) }}
+                    <template v-if="rule.trigger.threshold !== undefined">
+                      <span> ≥ {{ rule.trigger.threshold }}</span>
+                    </template>
+                    <template v-if="rule.trigger.period">
+                      <span>（{{ rule.trigger.period === 'today' ? '今日' : rule.trigger.period === 'last_1h' ? '1小时' : rule.trigger.period === 'last_4h' ? '4小时' : rule.trigger.period === 'last_24h' ? '24小时' : rule.trigger.period }}）</span>
+                    </template>
+                    <template v-if="rule.trigger.conditions && rule.trigger.conditions.totalProfit">
+                      <span>，盈利 {{ rule.trigger.conditions.totalProfit.operator }} {{ rule.trigger.conditions.totalProfit.value }}</span>
+                    </template>
                   </span>
-                  <span class="rounded-md px-2 py-0.5 text-xs font-medium" :class="priorityClass(rule.priority)">
-                    优先级: {{ priorityLabel(rule.priority) }}
+                </span>
+                <span class="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 text-slate-600 border border-slate-200">
+                  <svg class="h-3 w-3 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <rect x="4" y="4" width="16" height="16" rx="2" stroke-width="2" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 8h8M8 12h8M8 16h8" />
+                  </svg>
+                  <span>
+                    {{ actionTypeLabel(rule.action.type) }}
+                    <template v-if="rule.action.type === 'profit_control' && rule.action.params && rule.action.params.profitControl">
+                      （胜率{{ Math.round((rule.action.params.profitControl.winProbability || 0) * 100) }}%，盈利{{ rule.action.params.profitControl.avgWinAmount || 0 }}%，亏损{{ rule.action.params.profitControl.avgLossAmount || 0 }}%）
+                    </template>
+                    <template v-if="rule.action.type === 'force_loss' && rule.action.params">
+                      （亏损{{ Math.round((rule.action.params.lossPercent || 0) * 100) }}%，{{ rule.action.params.nextPositionCount || 1 }}单）
+                    </template>
+                    <template v-if="rule.action.type === 'force_win' && rule.action.params">
+                      （盈利{{ Math.round((rule.action.params.profitPercent || 0) * 100) }}%，{{ rule.action.params.nextPositionCount || 1 }}单）
+                    </template>
+                    <template v-if="rule.action.type === 'price_adjust' && rule.action.params">
+                      （{{ rule.action.params.settlePriceMode === 'unfavorable' ? '不利结算价' : rule.action.params.settlePriceMode === 'favorable' ? '有利结算价' : '市场价' }}，偏移{{ rule.action.params.offsetPercent || 0 }}%）
+                    </template>
+                    <template v-if="rule.action.type === 'reject_order' && rule.action.params">
+                      （锁定新开仓）
+                    </template>
                   </span>
-                </div>
-                <p class="mt-2 text-sm text-slate-600">{{ rule.description }}</p>
-
-                <!-- 触发条件和执行动作 -->
-                <div class="mt-3 flex flex-wrap items-center gap-4 text-sm">
-                  <div class="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5">
-                    <svg class="h-4 w-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                    <span class="text-blue-700">触发: {{ triggerTypeLabel(rule.trigger.type) }}</span>
-                  </div>
-                  <div class="flex items-center gap-2 rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5">
-                    <svg class="h-4 w-4 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                    </svg>
-                    <span class="text-violet-700">动作: {{ actionTypeLabel(rule.action.type) }}</span>
-                  </div>
+                </span>
                 </div>
 
-                <!-- 统计数据 -->
-                <div class="mt-3 grid grid-cols-3 gap-4">
-                  <div class="rounded-lg bg-slate-50 p-2.5">
-                    <p class="text-xs text-slate-500">触发次数</p>
-                    <p class="mt-1 font-semibold text-slate-900">{{ rule.hitCount }}</p>
-                  </div>
-                  <div class="rounded-lg bg-slate-50 p-2.5">
-                    <p class="text-xs text-slate-500">影响用户</p>
-                    <p class="mt-1 font-semibold text-slate-900">{{ rule.totalAffectedUsers }}</p>
-                  </div>
-                  <div class="rounded-lg bg-slate-50 p-2.5">
-                    <p class="text-xs text-slate-500">最近触发</p>
-                    <p class="mt-1 text-xs font-medium text-slate-700">{{ rule.lastHitAt }}</p>
-                  </div>
+              <!-- 统计数据 -->
+              <div class="mt-3 grid grid-cols-3 gap-4">
+                <div class="rounded-lg bg-slate-50 p-2.5">
+                  <p class="text-xs text-slate-500">触发次数</p>
+                  <p class="mt-1 text-slate-900">{{ rule.hitCount }}</p>
+                </div>
+                <div class="rounded-lg bg-slate-50 p-2.5">
+                  <p class="text-xs text-slate-500">影响用户</p>
+                  <p class="mt-1 text-slate-900">{{ rule.totalAffectedUsers }}</p>
+                </div>
+                <div class="rounded-lg bg-slate-50 p-2.5">
+                  <p class="text-xs text-slate-500">最近触发</p>
+                  <p class="mt-1 text-xs text-slate-700">{{ rule.lastHitAt }}</p>
                 </div>
               </div>
             </div>
 
-            <!-- 操作按钮 -->
-            <div class="flex items-center gap-2 text-sm">
-              <button 
-                type="button" 
-                class="font-medium text-blue-600 hover:text-blue-700"
-                @click="openEditModal(rule)"
-              >
-                编辑
-              </button>
-              <button 
-                type="button" 
-                class="font-medium text-slate-600 hover:text-slate-700"
-                @click="openDuplicateModal(rule)"
-              >
-                复制
-              </button>
-              <button 
-                type="button" 
-                class="font-medium text-rose-600 hover:text-rose-700" 
-                @click="deleteRule(rule.id)"
-              >
-                删除
-              </button>
+            <!-- 操作按钮和开关 -->
+            <div class="flex flex-col items-end gap-2">
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  class="relative h-6 w-11 rounded-full border border-slate-300 transition"
+                  :class="rule.status === DELIVERY_RULE_STATUS.ENABLED ? 'bg-blue-500' : 'bg-slate-100'"
+                  @click="toggleRuleStatus(rule.id)"
+                >
+                  <span
+                    class="absolute top-0.5 h-5 w-5 rounded-full bg-white border border-slate-300 transition"
+                    :class="rule.status === DELIVERY_RULE_STATUS.ENABLED ? 'left-5' : 'left-0.5'"
+                  ></span>
+                </button>
+                <button
+                  type="button"
+                  class="px-3  text-sm py-1 border border-blue-400 rounded text-blue-600 bg-white hover:bg-blue-50 transition"
+                  @click="openEditModal(rule)"
+                >
+                  编辑
+                </button>
+                <button
+                  type="button"
+                  class="px-3 py-1 text-sm border border-slate-400 rounded text-slate-600 bg-white hover:bg-slate-50 transition"
+                  @click="openDuplicateModal(rule)"
+                >
+                  复制
+                </button>
+                <button
+                  type="button"
+                  class="px-3 py-1 text-sm border border-rose-400 rounded text-rose-600 bg-white hover:bg-rose-50 transition"
+                  @click="deleteRule(rule.id)"
+                >
+                  删除
+                </button>
+              </div>
             </div>
           </div>
         </article>

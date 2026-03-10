@@ -710,10 +710,10 @@ const exportReport = () => {
                   <tr v-for="item in deliveryAutoRuleStats.actionsByType" :key="item.action" class="hover:bg-slate-50">
                     <td class="px-4 py-3">
                       <span
-                        :class="DELIVERY_RULE_ACTION_CONFIG[item.action].class"
+                        :class="DELIVERY_RULE_ACTION_CONFIG[item.action]?.class || 'bg-slate-100 text-slate-600'"
                         class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
                       >
-                        {{ DELIVERY_RULE_ACTION_CONFIG[item.action].text }}
+                        {{ DELIVERY_RULE_ACTION_CONFIG[item.action]?.text || item.action }}
                       </span>
                     </td>
                     <td class="px-4 py-3 text-right text-sm font-medium text-slate-900">{{ item.count }}</td>
