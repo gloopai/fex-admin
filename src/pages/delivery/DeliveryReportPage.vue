@@ -6,21 +6,23 @@ import {
   DELIVERY_RISK_LEVEL_CONFIG,
   DELIVERY_USER_TYPE_CONFIG,
   DELIVERY_CYCLE_TYPE_CONFIG,
-  DELIVERY_CONTRACT_STATUS_CONFIG,
-  DELIVERY_CONTROL_ACTION_CONFIG
+  DELIVERY_CONTRACT_STATUS_CONFIG
 } from '../../constants/deliveryReport'
+import { 
+  DELIVERY_RULE_ACTION_CONFIG 
+} from '../../constants/deliveryControl'
 import {
   deliveryMarketOverview,
   deliveryContractsData,
   deliveryExpiryDistribution,
   deliveryPnlDistribution,
   deliveryWhalesList,
-  deliveryControlStats,
-  deliveryControlEffectComparison,
   deliveryHistoryStats,
   deliveryPositionTrendData,
   deliveryPnlTrendData,
-  deliveryVolumeTrendData
+  deliveryVolumeTrendData,
+  deliveryAutoRuleStats,
+  deliveryAutoRuleEffectComparison
 } from '../../mock/deliveryReport'
 
 // 时间范围
@@ -35,7 +37,7 @@ const contractOptions = computed(() => [
 ])
 
 // 当前激活的标签
-const activeTab = ref('overview') // overview, position, pnl, risk, control
+const activeTab = ref('overview') // overview, position, pnl, risk, auto-rules
 
 // 市场概览数据
 const overview = ref(deliveryMarketOverview)
@@ -114,7 +116,7 @@ const tabs = [
   { id: 'position', name: '持仓分析', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
   { id: 'pnl', name: '盈亏分析', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
   { id: 'risk', name: '风险监控', icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' },
-  { id: 'control', name: '场控效果', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' }
+  { id: 'auto-rules', name: '自动化规则效果', icon: 'M13 10V3L4 14h7v7l9-11h-7z' }
 ]
 
 // 刷新数据
@@ -595,95 +597,102 @@ const exportReport = () => {
           </div>
         </div>
 
-        <!-- 场控效果 -->
-        <div v-show="activeTab === 'control'" class="space-y-6">
+        <!-- 自动化规则效果 -->
+        <div v-show="activeTab === 'auto-rules'" class="space-y-6">
+          <!-- 关键指标 -->
           <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div class="bg-white border border-slate-200 rounded-lg p-4">
-              <p class="text-sm text-slate-600 mb-1">24h操作次数</p>
-              <p class="text-2xl font-bold text-slate-900">{{ deliveryControlStats.totalActions }}</p>
-              <p class="text-xs text-slate-500 mt-1">成功: {{ deliveryControlStats.successActions }} / 失败: {{ deliveryControlStats.failedActions }}</p>
-            </div>
-            <div class="bg-white border border-slate-200 rounded-lg p-4">
-              <p class="text-sm text-slate-600 mb-1">24h总影响</p>
-              <p class="text-2xl font-bold text-emerald-600">{{ formatCurrency(deliveryControlStats.totalImpact) }}</p>
-              <p class="text-xs text-slate-500 mt-1">平台盈亏改善</p>
-            </div>
-            <div class="bg-white border border-slate-200 rounded-lg p-4">
-              <p class="text-sm text-slate-600 mb-1">控制类型</p>
-              <p class="text-2xl font-bold text-slate-900">{{ deliveryControlStats.actionsByType.length }}</p>
-              <p class="text-xs text-slate-500 mt-1">种操作类型</p>
-            </div>
-            <div class="bg-white border border-slate-200 rounded-lg p-4">
-              <p class="text-sm text-slate-600 mb-1">成功率</p>
-              <p class="text-2xl font-bold text-slate-900">{{ ((deliveryControlStats.successActions / deliveryControlStats.totalActions) * 100).toFixed(1) }}%</p>
-              <p class="text-xs text-slate-500 mt-1">场控执行成功率</p>
-            </div>
-          </div>
-
-          <div class="bg-white border border-slate-200 rounded-lg p-6">
-            <h3 class="text-lg font-semibold text-slate-900 mb-4">场控效果对比</h3>
-            <div class="space-y-4">
-              <div v-for="item in deliveryControlEffectComparison" :key="item.contract" class="p-4 border border-slate-200 rounded-lg">
-                <div class="flex items-center justify-between mb-3">
-                  <h4 class="font-semibold text-slate-900">{{ item.contract }}</h4>
-                  <span class="text-sm px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 font-medium">
-                    改善 {{ formatCurrency(item.improvement) }}
-                  </span>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                  <div>
-                    <p class="text-xs text-slate-500 mb-2">场控前</p>
-                    <div class="space-y-1 text-sm">
-                      <div class="flex justify-between">
-                        <span class="text-slate-600">平台盈亏:</span>
-                        <span :class="item.beforeControl.platformPnl >= 0 ? 'text-emerald-600' : 'text-rose-600'" class="font-medium">
-                          {{ formatCurrency(item.beforeControl.platformPnl) }}
-                        </span>
-                      </div>
-                      <div class="flex justify-between">
-                        <span class="text-slate-600">多空比:</span>
-                        <span class="font-medium text-slate-900">{{ item.beforeControl.longShortRatio.toFixed(2) }}</span>
-                      </div>
-                      <div class="flex justify-between">
-                        <span class="text-slate-600">风险等级:</span>
-                        <span
-                          :class="DELIVERY_RISK_LEVEL_CONFIG[item.beforeControl.riskLevel].class"
-                          class="text-xs px-2 py-0.5 rounded"
-                        >
-                          {{ DELIVERY_RISK_LEVEL_CONFIG[item.beforeControl.riskLevel].text }}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <p class="text-xs text-slate-500 mb-2">场控后</p>
-                    <div class="space-y-1 text-sm">
-                      <div class="flex justify-between">
-                        <span class="text-slate-600">平台盈亏:</span>
-                        <span :class="item.afterControl.platformPnl >= 0 ? 'text-emerald-600' : 'text-rose-600'" class="font-medium">
-                          {{ formatCurrency(item.afterControl.platformPnl) }}
-                        </span>
-                      </div>
-                      <div class="flex justify-between">
-                        <span class="text-slate-600">多空比:</span>
-                        <span class="font-medium text-slate-900">{{ item.afterControl.longShortRatio.toFixed(2) }}</span>
-                      </div>
-                      <div class="flex justify-between">
-                        <span class="text-slate-600">风险等级:</span>
-                        <span
-                          :class="DELIVERY_RISK_LEVEL_CONFIG[item.afterControl.riskLevel].class"
-                          class="text-xs px-2 py-0.5 rounded"
-                        >
-                          {{ DELIVERY_RISK_LEVEL_CONFIG[item.afterControl.riskLevel].text }}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+            <div class="bg-gradient-to-br from-violet-50 to-purple-50 rounded-xl border border-violet-200 p-5">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-semibold text-slate-900">24h触发次数</h3>
+                <svg class="h-7 w-7 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
               </div>
+              <p class="text-2xl font-bold text-slate-900 mb-1">{{ deliveryAutoRuleStats.totalTriggers24h }}</p>
+              <p class="text-xs text-slate-600">成功: {{ deliveryAutoRuleStats.successTriggers }} / 失败: {{ deliveryAutoRuleStats.failedTriggers }}</p>
+            </div>
+
+            <div class="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-200 p-5">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-semibold text-slate-900">24h总影响</h3>
+                <svg class="h-7 w-7 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <p class="text-2xl font-bold text-emerald-600 mb-1">{{ formatCurrency(deliveryAutoRuleStats.totalImpact24h) }}</p>
+              <p class="text-xs text-slate-600">平台盈利增加</p>
+            </div>
+
+            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-5">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-semibold text-slate-900">规则总数</h3>
+                <svg class="h-7 w-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <p class="text-2xl font-bold text-slate-900 mb-1">{{ deliveryAutoRuleStats.totalRules }}</p>
+              <p class="text-xs text-slate-600">启用中: {{ deliveryAutoRuleStats.activeRules }}</p>
+            </div>
+
+            <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-200 p-5">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-semibold text-slate-900">成功率</h3>
+                <svg class="h-7 w-7 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                </svg>
+              </div>
+              <p class="text-2xl font-bold text-slate-900 mb-1">{{ ((deliveryAutoRuleStats.successTriggers / deliveryAutoRuleStats.totalTriggers24h) * 100).toFixed(1) }}%</p>
+              <p class="text-xs text-slate-600">规则执行成功率</p>
             </div>
           </div>
 
+          <!-- 规则性能排行 -->
+          <div class="bg-white border border-slate-200 rounded-lg p-6">
+            <h3 class="text-lg font-semibold text-slate-900 mb-4">规则性能排行</h3>
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead class="bg-slate-50">
+                  <tr>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-900">规则名称</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-900">触发次数</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-900">成功率</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-900">总影响</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-900">平均影响</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-900">最近触发</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                  <tr v-for="rule in deliveryAutoRuleStats.rulePerformance" :key="rule.ruleId" class="hover:bg-slate-50">
+                    <td class="px-4 py-3">
+                      <div>
+                        <p class="text-sm font-medium text-slate-900">{{ rule.ruleName }}</p>
+                        <p class="text-xs text-slate-500">{{ rule.ruleId }}</p>
+                      </div>
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                      <span class="text-sm font-medium text-slate-900">{{ rule.triggers }}</span>
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                      <span :class="rule.successRate >= 95 ? 'text-emerald-600' : rule.successRate >= 90 ? 'text-amber-600' : 'text-rose-600'" class="text-sm font-medium">
+                        {{ rule.successRate.toFixed(1) }}%
+                      </span>
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                      <span class="text-sm font-medium text-emerald-600">{{ formatCurrency(rule.totalImpact) }}</span>
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                      <span class="text-sm text-slate-700">{{ formatCurrency(rule.avgImpact) }}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                      <span class="text-xs text-slate-600">{{ rule.lastTrigger }}</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 操作类型统计 -->
           <div class="bg-white border border-slate-200 rounded-lg p-6">
             <h3 class="text-lg font-semibold text-slate-900 mb-4">操作类型统计</h3>
             <div class="overflow-x-auto">
@@ -694,16 +703,17 @@ const exportReport = () => {
                     <th class="px-4 py-3 text-right text-xs font-semibold text-slate-900">执行次数</th>
                     <th class="px-4 py-3 text-right text-xs font-semibold text-slate-900">影响金额</th>
                     <th class="px-4 py-3 text-right text-xs font-semibold text-slate-900">平均影响</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-900">平均响应时间</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200">
-                  <tr v-for="item in deliveryControlStats.actionsByType" :key="item.action" class="hover:bg-slate-50">
+                  <tr v-for="item in deliveryAutoRuleStats.actionsByType" :key="item.action" class="hover:bg-slate-50">
                     <td class="px-4 py-3">
                       <span
-                        :class="DELIVERY_CONTROL_ACTION_CONFIG[item.action].class"
+                        :class="DELIVERY_RULE_ACTION_CONFIG[item.action].class"
                         class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
                       >
-                        {{ DELIVERY_CONTROL_ACTION_CONFIG[item.action].text }}
+                        {{ DELIVERY_RULE_ACTION_CONFIG[item.action].text }}
                       </span>
                     </td>
                     <td class="px-4 py-3 text-right text-sm font-medium text-slate-900">{{ item.count }}</td>
@@ -714,12 +724,101 @@ const exportReport = () => {
                     <td class="px-4 py-3 text-right text-sm text-slate-700">
                       {{ formatCurrency(item.impact / item.count) }}
                     </td>
+                    <td class="px-4 py-3 text-right text-sm text-slate-700">
+                      {{ item.avgResponseTime }}s
+                    </td>
                   </tr>
                 </tbody>
               </table>
             </div>
           </div>
+
+          <!-- 规则效果对比 -->
+          <div class="bg-white border border-slate-200 rounded-lg p-6">
+            <h3 class="text-lg font-semibold text-slate-900 mb-4">规则效果对比</h3>
+            <div class="space-y-4">
+              <div v-for="item in deliveryAutoRuleEffectComparison" :key="item.contract" class="p-4 border border-slate-200 rounded-lg">
+                <div class="flex items-center justify-between mb-3">
+                  <h4 class="font-semibold text-slate-900">{{ item.contract }}</h4>
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 font-medium">
+                      改善 {{ formatCurrency(item.improvement) }}
+                    </span>
+                    <div class="flex gap-1">
+                      <span v-for="ruleId in item.rulesApplied" :key="ruleId" class="text-xs px-2 py-0.5 rounded bg-violet-100 text-violet-700 font-medium">
+                        {{ ruleId }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <p class="text-xs text-slate-500 mb-2">规则启用前</p>
+                    <div class="space-y-1 text-sm">
+                      <div class="flex justify-between">
+                        <span class="text-slate-600">平台盈亏:</span>
+                        <span :class="item.beforeRules.platformPnl >= 0 ? 'text-emerald-600' : 'text-rose-600'" class="font-medium">
+                          {{ formatCurrency(item.beforeRules.platformPnl) }}
+                        </span>
+                      </div>
+                      <div class="flex justify-between">
+                        <span class="text-slate-600">多空比:</span>
+                        <span class="font-medium text-slate-900">{{ item.beforeRules.longShortRatio.toFixed(2) }}</span>
+                      </div>
+                      <div class="flex justify-between">
+                        <span class="text-slate-600">平均盈亏:</span>
+                        <span :class="item.beforeRules.avgProfitPerTrade >= 0 ? 'text-emerald-600' : 'text-rose-600'" class="font-medium">
+                          {{ item.beforeRules.avgProfitPerTrade >= 0 ? '+' : '' }}{{ item.beforeRules.avgProfitPerTrade.toFixed(2) }} USDT
+                        </span>
+                      </div>
+                      <div class="flex justify-between">
+                        <span class="text-slate-600">风险等级:</span>
+                        <span
+                          :class="DELIVERY_RISK_LEVEL_CONFIG[item.beforeRules.riskLevel].class"
+                          class="text-xs px-2 py-0.5 rounded"
+                        >
+                          {{ DELIVERY_RISK_LEVEL_CONFIG[item.beforeRules.riskLevel].text }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <p class="text-xs text-slate-500 mb-2">规则启用后</p>
+                    <div class="space-y-1 text-sm">
+                      <div class="flex justify-between">
+                        <span class="text-slate-600">平台盈亏:</span>
+                        <span :class="item.afterRules.platformPnl >= 0 ? 'text-emerald-600' : 'text-rose-600'" class="font-medium">
+                          {{ formatCurrency(item.afterRules.platformPnl) }}
+                        </span>
+                      </div>
+                      <div class="flex justify-between">
+                        <span class="text-slate-600">多空比:</span>
+                        <span class="font-medium text-slate-900">{{ item.afterRules.longShortRatio.toFixed(2) }}</span>
+                      </div>
+                      <div class="flex justify-between">
+                        <span class="text-slate-600">平均盈亏:</span>
+                        <span :class="item.afterRules.avgProfitPerTrade >= 0 ? 'text-emerald-600' : 'text-rose-600'" class="font-medium">
+                          {{ item.afterRules.avgProfitPerTrade >= 0 ? '+' : '' }}{{ item.afterRules.avgProfitPerTrade.toFixed(2) }} USDT
+                        </span>
+                      </div>
+                      <div class="flex justify-between">
+                        <span class="text-slate-600">风险等级:</span>
+                        <span
+                          :class="DELIVERY_RISK_LEVEL_CONFIG[item.afterRules.riskLevel].class"
+                          class="text-xs px-2 py-0.5 rounded"
+                        >
+                          {{ DELIVERY_RISK_LEVEL_CONFIG[item.afterRules.riskLevel].text }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
+
+
       </div>
     </div>
   </section>

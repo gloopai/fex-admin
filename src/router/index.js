@@ -67,14 +67,19 @@ const routes = [
         component: () => import('../pages/delivery/DeliveryManagementPage.vue')
       },
       {
-        path: 'delivery/control',
-        name: 'delivery-control',
-        component: () => import('../pages/delivery/DeliveryControlPage.vue')
+        path: 'delivery/auto-rules',
+        name: 'delivery-auto-rules',
+        component: () => import('../pages/delivery/DeliveryAutoRuleListPage.vue')
       },
       {
-        path: 'delivery/logs',
-        name: 'delivery-logs',
-        component: () => import('../pages/delivery/DeliveryOperationLogPage.vue')
+        path: 'delivery/rule-history',
+        name: 'delivery-rule-history',
+        component: () => import('../pages/delivery/DeliveryRuleHistoryPage.vue')
+      },
+      {
+        path: 'delivery/rule-statistics',
+        name: 'delivery-rule-statistics',
+        component: () => import('../pages/delivery/DeliveryRuleStatisticsPage.vue')
       },
       {
         path: 'delivery/report',

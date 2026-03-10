@@ -85,7 +85,7 @@ const deliveryControlUsers = [
     tradeCount: 156,
     winRate: '39.7%',
     totalPnl: 28500,
-    ruleText: '场控模式: 自动  目标胜率: 35%  盈利上限: $50,000',
+    ruleText: '场控模式: 自动  盈亏目标: -50 USDT/单  盈利上限: $50,000',
     positions: [
       {
         id: 'p1',

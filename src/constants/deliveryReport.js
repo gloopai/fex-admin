@@ -190,44 +190,6 @@ export const DELIVERY_CONTRACT_STATUS_CONFIG = {
   }
 }
 
-// 场控操作类型
-export const DELIVERY_CONTROL_ACTION = {
-  FORCE_LOSS: 'force_loss',       // 强制亏损
-  FORCE_PROFIT: 'force_profit',   // 强制盈利
-  LOCK_POSITION: 'lock_position', // 锁定持仓
-  ADJUST_PRICE: 'adjust_price',   // 价格调整
-  DELAY_SETTLEMENT: 'delay_settlement' // 延迟交割
-}
-
-// 场控操作类型配置
-export const DELIVERY_CONTROL_ACTION_CONFIG = {
-  [DELIVERY_CONTROL_ACTION.FORCE_LOSS]: {
-    text: '强制亏损',
-    class: 'bg-rose-100 text-rose-700',
-    color: 'rose'
-  },
-  [DELIVERY_CONTROL_ACTION.FORCE_PROFIT]: {
-    text: '强制盈利',
-    class: 'bg-emerald-100 text-emerald-700',
-    color: 'emerald'
-  },
-  [DELIVERY_CONTROL_ACTION.LOCK_POSITION]: {
-    text: '锁定持仓',
-    class: 'bg-violet-100 text-violet-700',
-    color: 'violet'
-  },
-  [DELIVERY_CONTROL_ACTION.ADJUST_PRICE]: {
-    text: '价格调整',
-    class: 'bg-amber-100 text-amber-700',
-    color: 'amber'
-  },
-  [DELIVERY_CONTROL_ACTION.DELAY_SETTLEMENT]: {
-    text: '延迟交割',
-    class: 'bg-blue-100 text-blue-700',
-    color: 'blue'
-  }
-}
-
 // 操作建议优先级
 export const SUGGESTION_PRIORITY = {
   URGENT: 'urgent',     // 紧急

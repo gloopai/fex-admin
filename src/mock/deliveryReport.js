@@ -4,9 +4,12 @@ import {
   DELIVERY_USER_TYPE,
   DELIVERY_CYCLE_TYPE,
   DELIVERY_CONTRACT_STATUS,
-  SUGGESTION_PRIORITY,
-  DELIVERY_CONTROL_ACTION
+  SUGGESTION_PRIORITY
 } from '../constants/deliveryReport'
+import { 
+  DELIVERY_RULE_ACTION, 
+  DELIVERY_RULE_STATUS 
+} from '../constants/deliveryControl'
 
 // 市场概览数据
 export const deliveryMarketOverview = {
@@ -330,137 +333,6 @@ export const deliveryRiskAlerts = [
   }
 ]
 
-// 场控操作统计（24小时）
-export const deliveryControlStats = {
-  totalActions: 38,
-  successActions: 35,
-  failedActions: 3,
-  totalImpact: -125000,
-  actionsByType: [
-    { action: DELIVERY_CONTROL_ACTION.FORCE_LOSS, count: 15, impact: -85000 },
-    { action: DELIVERY_CONTROL_ACTION.FORCE_PROFIT, count: 8, impact: 42000 },
-    { action: DELIVERY_CONTROL_ACTION.LOCK_POSITION, count: 10, impact: -58000 },
-    { action: DELIVERY_CONTROL_ACTION.ADJUST_PRICE, count: 3, impact: -18000 },
-    { action: DELIVERY_CONTROL_ACTION.DELAY_SETTLEMENT, count: 2, impact: -6000 }
-  ],
-  actionsByContract: deliveryContractsData.map(c => ({
-    contract: c.symbol,
-    count: Math.floor(Math.random() * 15) + 2,
-    impact: Math.floor(Math.random() * 50000) - 25000
-  }))
-}
-
-// 场控效果对比数据
-export const deliveryControlEffectComparison = [
-  {
-    contract: 'BTC60S',
-    beforeControl: {
-      platformPnl: -45000,
-      userPnl: 45000,
-      longShortRatio: 1.85,
-      riskLevel: DELIVERY_RISK_LEVEL.HIGH
-    },
-    afterControl: {
-      platformPnl: 68500,
-      userPnl: -68500,
-      longShortRatio: 1.40,
-      riskLevel: DELIVERY_RISK_LEVEL.MEDIUM
-    },
-    improvement: 113500
-  },
-  {
-    contract: 'ETH120S',
-    beforeControl: {
-      platformPnl: -28000,
-      userPnl: 28000,
-      longShortRatio: 2.10,
-      riskLevel: DELIVERY_RISK_LEVEL.CRITICAL
-    },
-    afterControl: {
-      platformPnl: 42500,
-      userPnl: -42500,
-      longShortRatio: 1.44,
-      riskLevel: DELIVERY_RISK_LEVEL.HIGH
-    },
-    improvement: 70500
-  },
-  {
-    contract: 'SOL300S',
-    beforeControl: {
-      platformPnl: -52000,
-      userPnl: 52000,
-      longShortRatio: 0.48,
-      riskLevel: DELIVERY_RISK_LEVEL.CRITICAL
-    },
-    afterControl: {
-      platformPnl: -38000,
-      userPnl: 38000,
-      longShortRatio: 0.63,
-      riskLevel: DELIVERY_RISK_LEVEL.HIGH
-    },
-    improvement: 14000
-  }
-]
-
-// 操作建议列表
-export const deliveryActionSuggestions = [
-  {
-    id: 'suggestion_001',
-    priority: SUGGESTION_PRIORITY.URGENT,
-    contract: 'ARB600S',
-    title: '紧急启动交割前平仓控制',
-    description: 'ARB600S距离交割仅10分钟，多空比3.00严重失衡，建议：1) 对大户whale_delivery_02锁定持仓并限制开仓；2) 启动价格微调机制促使部分多头平仓；3) 准备交割时价格控制预案',
-    expectedImpact: '预计减少交割亏损$35,000-$45,000',
-    actionType: [DELIVERY_CONTROL_ACTION.LOCK_POSITION, DELIVERY_CONTROL_ACTION.ADJUST_PRICE],
-    targetUsers: ['user_whale_d002'],
-    riskLevel: DELIVERY_RISK_LEVEL.CRITICAL
-  },
-  {
-    id: 'suggestion_002',
-    priority: SUGGESTION_PRIORITY.HIGH,
-    contract: 'ETH120S',
-    title: '启动2分钟交割预控制',
-    description: 'ETH120S 2分钟内交割，当前持仓$880,000，建议启动交割前控制：1) 对大额持仓进行风险提示；2) 逐步引导部分用户提前平仓；3) 准备交割价格锚定机制',
-    expectedImpact: '预计优化交割结果$20,000-$30,000',
-    actionType: [DELIVERY_CONTROL_ACTION.LOCK_POSITION, DELIVERY_CONTROL_ACTION.ADJUST_PRICE],
-    targetUsers: ['user_whale_d001'],
-    riskLevel: DELIVERY_RISK_LEVEL.HIGH
-  },
-  {
-    id: 'suggestion_003',
-    priority: SUGGESTION_PRIORITY.HIGH,
-    contract: 'SOL300S',
-    title: '空头偏重调控',
-    description: 'SOL300S空头占比62%，平台亏损$38,000，建议：1) 对空头大户whale_delivery_03进行持仓监控；2) 适当调整开仓费率鼓励多头建仓；3) 必要时启动价格引导机制',
-    expectedImpact: '预计改善盈亏$15,000-$25,000',
-    actionType: [DELIVERY_CONTROL_ACTION.ADJUST_PRICE, DELIVERY_CONTROL_ACTION.FORCE_LOSS],
-    targetUsers: ['user_whale_d003'],
-    riskLevel: DELIVERY_RISK_LEVEL.HIGH
-  },
-  {
-    id: 'suggestion_004',
-    priority: SUGGESTION_PRIORITY.MEDIUM,
-    contract: 'BTC60S',
-    title: '大户持仓监控',
-    description: 'BTC60S大户持仓集中，距离交割1分钟，建议：1) 对大额持仓用户进行风险提示；2) 监控大户持仓变化；3) 根据市场波动适时调整风控策略',
-    expectedImpact: '预计降低风险，保护平台资金安全',
-    actionType: [DELIVERY_CONTROL_ACTION.LOCK_POSITION],
-    targetUsers: [],
-    riskLevel: DELIVERY_RISK_LEVEL.MEDIUM
-  },
-  {
-    id: 'suggestion_005',
-    priority: SUGGESTION_PRIORITY.LOW,
-    contract: 'DOGE30S',
-    title: '维持当前策略',
-    description: 'DOGE30S多空比1.03，较为平衡，距离交圢30秒，当前风险可控，建议继续观察，暂不需要特殊干预',
-    expectedImpact: '维持平稳运行',
-    actionType: [],
-    targetUsers: [],
-    riskLevel: DELIVERY_RISK_LEVEL.LOW
-  }
-]
-
 // 交割历史统计（近30天）
 export const deliveryHistoryStats = {
   totalSettlements: 45,
@@ -519,3 +391,131 @@ export const deliveryVolumeTrendData = [
   { date: '03-08', volume: 65000000, contracts: 9 },
   { date: '03-09', volume: 68500000, contracts: 8 }
 ]
+
+// 自动化规则效果统计
+export const deliveryAutoRuleStats = {
+  totalRules: 6,              // 总规则数
+  activeRules: 5,             // 启用中
+  totalTriggers24h: 128,      // 24h触发次数
+  successTriggers: 125,       // 成功触发
+  failedTriggers: 3,          // 失败触发
+  totalImpact24h: 185000,     // 24h总影响金额（平台盈利增加）
+  avgImpactPerTrigger: 1445,  // 平均每次影响
+  actionsByType: [
+    { action: DELIVERY_RULE_ACTION.FORCE_WIN, count: 28, impact: 58000, avgResponseTime: 0.12 },
+    { action: DELIVERY_RULE_ACTION.FORCE_LOSS, count: 45, impact: 92000, avgResponseTime: 0.08 },
+    { action: DELIVERY_RULE_ACTION.PRICE_ADJUST, count: 22, impact: 28000, avgResponseTime: 0.05 },
+    { action: DELIVERY_RULE_ACTION.PROFIT_CONTROL, count: 18, impact: 15000, avgResponseTime: 0.15 },
+    { action: DELIVERY_RULE_ACTION.REJECT_ORDER, count: 10, impact: -5000, avgResponseTime: 0.02 },
+    { action: DELIVERY_RULE_ACTION.LIMIT_POSITION, count: 5, impact: -3000, avgResponseTime: 0.03 }
+  ],
+  rulePerformance: [
+    {
+      ruleId: 'RULE-001',
+      ruleName: '高频交易用户盈利控制',
+      triggers: 35,
+      successRate: 97.1,
+      totalImpact: 68000,
+      avgImpact: 1943,
+      lastTrigger: '2026-03-09 14:28:35'
+    },
+    {
+      ruleId: 'RULE-002',
+      ruleName: '大户持仓风险预警',
+      triggers: 28,
+      successRate: 100,
+      totalImpact: 52000,
+      avgImpact: 1857,
+      lastTrigger: '2026-03-09 14:25:12'
+    },
+    {
+      ruleId: 'RULE-003',
+      ruleName: '新用户前3笔强制亏损',
+      triggers: 22,
+      successRate: 95.5,
+      totalImpact: 28000,
+      avgImpact: 1273,
+      lastTrigger: '2026-03-09 14:22:18'
+    },
+    {
+      ruleId: 'RULE-004',
+      ruleName: '连胜用户自动干预',
+      triggers: 18,
+      successRate: 94.4,
+      totalImpact: 22000,
+      avgImpact: 1222,
+      lastTrigger: '2026-03-09 14:20:45'
+    },
+    {
+      ruleId: 'RULE-005',
+      ruleName: '超大订单拒单保护',
+      triggers: 15,
+      successRate: 100,
+      totalImpact: 10000,
+      avgImpact: 667,
+      lastTrigger: '2026-03-09 14:18:30'
+    }
+  ]
+}
+
+// 自动化规则前后对比
+export const deliveryAutoRuleEffectComparison = [
+  {
+    contract: 'BTC60S',
+    beforeRules: {
+      platformPnl: 45000,
+      userPnl: -45000,
+      longShortRatio: 1.65,
+      avgProfitPerTrade: -85, // 用户平均每笔亏损 85 USDT
+      riskLevel: DELIVERY_RISK_LEVEL.HIGH
+    },
+    afterRules: {
+      platformPnl: 68500,
+      userPnl: -68500,
+      longShortRatio: 1.40,
+      avgProfitPerTrade: -120, // 用户平均每笔亏损 120 USDT
+      riskLevel: DELIVERY_RISK_LEVEL.MEDIUM
+    },
+    improvement: 23500,
+    rulesApplied: ['RULE-001', 'RULE-002', 'RULE-004']
+  },
+  {
+    contract: 'ETH120S',
+    beforeRules: {
+      platformPnl: 28000,
+      userPnl: -28000,
+      longShortRatio: 1.68,
+      avgProfitPerTrade: -65, // 用户平均每笔亏损 65 USDT
+      riskLevel: DELIVERY_RISK_LEVEL.HIGH
+    },
+    afterRules: {
+      platformPnl: 42500,
+      userPnl: -42500,
+      longShortRatio: 1.44,
+      avgProfitPerTrade: -95, // 用户平均每笔亏损 95 USDT
+      riskLevel: DELIVERY_RISK_LEVEL.MEDIUM
+    },
+    improvement: 14500,
+    rulesApplied: ['RULE-001', 'RULE-003']
+  },
+  {
+    contract: 'SOL300S',
+    beforeRules: {
+      platformPnl: 32000,
+      userPnl: -32000,
+      longShortRatio: 0.72,
+      avgProfitPerTrade: -55, // 用户平均每笔亏损 55 USDT
+      riskLevel: DELIVERY_RISK_LEVEL.MEDIUM
+    },
+    afterRules: {
+      platformPnl: 45800,
+      userPnl: -45800,
+      longShortRatio: 0.85,
+      avgProfitPerTrade: -78, // 用户平均每笔亏损 78 USDT
+      riskLevel: DELIVERY_RISK_LEVEL.MEDIUM
+    },
+    improvement: 13800,
+    rulesApplied: ['RULE-001', 'RULE-004', 'RULE-005']
+  }
+]
+
