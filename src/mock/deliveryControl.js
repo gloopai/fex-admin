@@ -5,7 +5,6 @@ import {
   DELIVERY_RULE_PRIORITY,
   DELIVERY_RULE_TIME_PERIOD,
   USER_RISK_LEVEL,
-  PROFIT_CONTROL_MODE,
   PROFIT_CONTROL_STRATEGY
 } from '../constants/deliveryControl'
 
@@ -16,7 +15,7 @@ const deliveryAutoRules = [
   {
     id: 'rule_001',
     name: '高频交易用户控盈',
-    description: '1小时内交易超过20次且累计盈利超过1000的用户，目标期望值-50',
+    description: '1小时内交易超过20次且累计盈利超过1000的用户，控制胜率20%',
     status: DELIVERY_RULE_STATUS.ENABLED,
     priority: DELIVERY_RULE_PRIORITY.HIGH,
     trigger: {
@@ -31,12 +30,16 @@ const deliveryAutoRules = [
       type: DELIVERY_RULE_ACTION.PROFIT_CONTROL,
       params: {
         profitControl: {
-          mode: PROFIT_CONTROL_MODE.EXPECTED_VALUE,
+          winProbability: 0.2,
+          avgWinAmount: 25,
+          avgLossAmount: -18,
           strategy: PROFIT_CONTROL_STRATEGY.SETTLEMENT_PRICE,
-          targetExpectedValue: -50,
-          allowDeviation: 20,
+          enableRiskLimits: true,
+          maxProfit: 5000,
+          maxLossRatio: 0.4
         },
-        applyToNewPositions: true
+        applyToNewPositions: true,
+        duration: 0
       }
     },
     hitCount: 34,
@@ -120,7 +123,7 @@ const deliveryAutoRules = [
   {
     id: 'rule_005',
     name: '高净入金用户保护',
-    description: '净入金超过50000 USDT的用户，目标期望值提升到25',
+    description: '净入金超过50000 USDT的用户，提升胜率到65%',
     status: DELIVERY_RULE_STATUS.PAUSED,
     priority: DELIVERY_RULE_PRIORITY.LOW,
     trigger: {
@@ -131,10 +134,16 @@ const deliveryAutoRules = [
       type: DELIVERY_RULE_ACTION.PROFIT_CONTROL,
       params: {
         profitControl: {
-          mode: PROFIT_CONTROL_MODE.EXPECTED_VALUE,
-          targetExpectedValue: 25
+          winProbability: 0.65,
+          avgWinAmount: 20,
+          avgLossAmount: -10,
+          strategy: PROFIT_CONTROL_STRATEGY.SETTLEMENT_PRICE,
+          enableRiskLimits: false,
+          maxProfit: 10000,
+          maxLossRatio: 0.3
         },
-        duration: 86400 // 24小时
+        applyToNewPositions: true,
+        duration: 1440 // 24小时（分钟）
       }
     },
     hitCount: 8,
@@ -146,7 +155,7 @@ const deliveryAutoRules = [
   {
     id: 'rule_006',
     name: '盈利异常自动干预',
-    description: '4小时内累计盈利超过2000，调整期望值为-100',
+    description: '4小时内累计盈利超过2000，控制胜率降至15%',
     status: DELIVERY_RULE_STATUS.ENABLED,
     priority: DELIVERY_RULE_PRIORITY.MEDIUM,
     trigger: {
@@ -158,10 +167,16 @@ const deliveryAutoRules = [
       type: DELIVERY_RULE_ACTION.PROFIT_CONTROL,
       params: {
         profitControl: {
-          mode: PROFIT_CONTROL_MODE.EXPECTED_VALUE,
-          targetExpectedValue: -100
+          winProbability: 0.15,
+          avgWinAmount: 30,
+          avgLossAmount: -20,
+          strategy: PROFIT_CONTROL_STRATEGY.SETTLEMENT_PRICE,
+          enableRiskLimits: true,
+          maxProfit: 3000,
+          maxLossRatio: 0.5
         },
-        applyToNewPositions: true
+        applyToNewPositions: true,
+        duration: 0
       }
     },
     hitCount: 156,

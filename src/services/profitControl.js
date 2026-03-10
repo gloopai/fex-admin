@@ -181,16 +181,20 @@ class ProfitControlEngine {
     // 简单策略：根据历史盈亏调整
     const totalProfit = userStats.totalProfit || 0
     
+    // 微随机波动范围 ±2%
+    const randomFactor = () => 1 + (Math.random() * 0.04 - 0.02)
     if (totalProfit > 1000) {
       // 用户盈利较多，让他亏
-      targetProfit = avgLossAmount * (1 + Math.random() * 0.5)
+      targetProfit = avgLossAmount * randomFactor()
     } else if (totalProfit < -500) {
       // 用户亏损较多，让他赚
-      targetProfit = avgWinAmount * (0.5 + Math.random() * 0.5)
+      targetProfit = avgWinAmount * randomFactor()
     } else {
       // 随机，但保持目标盈亏比
       const shouldWin = Math.random() < 0.4
-      targetProfit = shouldWin ? avgWinAmount : avgLossAmount
+      targetProfit = shouldWin
+        ? avgWinAmount * randomFactor()
+        : avgLossAmount * randomFactor()
     }
     
     return {

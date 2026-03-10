@@ -7,7 +7,6 @@ import {
   DELIVERY_RULE_PRIORITY,
   DELIVERY_RULE_TIME_PERIOD,
   USER_RISK_LEVEL,
-  PROFIT_CONTROL_MODE,
   PROFIT_CONTROL_STRATEGY
 } from '../constants/deliveryControl'
 
@@ -28,8 +27,6 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'save'])
 
-// 帮助面板状态
-const showTriggerHelp = ref(false)
 
 // 表单数据
 const form = reactive({
@@ -56,14 +53,15 @@ const form = reactive({
   action: {
     type: DELIVERY_RULE_ACTION.PROFIT_CONTROL,
     params: {
-      // 盈亏控制（线控）- 简化版
+      // 盈亏控制（线控）- 百分比模式
       profitControl: {
-        mode: 'simple',                            // 'simple' 简单模式 | 'advanced' 高级模式
-        preset: 'light_control',                   // 预设方案
-        targetExpectedValue: -50,                  // 目标期望值（每单平均盈亏）
+          winFluctuationPercent: 2, // 盈利波动范围，单位%（±2%）
+          lossFluctuationPercent: 2, // 亏损波动范围，单位%（±2%）
+        winProbability: 0.3,                       // 盈利概率30%
+        avgWinAmount: 20,                          // 赢时金额百分比 20%
+        avgLossAmount: -15,                        // 输时金额百分比 -15%
         strategy: PROFIT_CONTROL_STRATEGY.SETTLEMENT_PRICE,  // 技术策略
-        avgWinAmount: 200,                         // 赢时金额
-        avgLossAmount: -150,                       // 输时金额
+        enableRiskLimits: false,                   // 是否启用风控限制
         maxProfit: 10000,                          // 最大累计盈利
         maxLossRatio: 0.3,                         // 最大亏损比例
       },
@@ -126,299 +124,86 @@ const triggerTypeOptions = [
   {
     value: DELIVERY_RULE_TRIGGER_TYPE.TRADE_COUNT,
     label: '交易次数',
-    icon: '📊',
-    description: '监测用户在指定时间内的交易次数',
-    unit: '次',
     needsPeriod: true,
     defaultThreshold: 20
   },
   {
     value: DELIVERY_RULE_TRIGGER_TYPE.PROFIT_LOSS,
     label: '累计盈亏',
-    icon: '📈',
-    description: '监测用户在指定时间内的累计盈亏金额',
-    unit: 'USDT',
     needsPeriod: true,
     defaultThreshold: 1000
   },
   {
     value: DELIVERY_RULE_TRIGGER_TYPE.CONSECUTIVE_WINS,
     label: '连续盈利',
-    icon: '🎯',
-    description: '监测用户连续盈利的次数',
-    unit: '次',
     needsPeriod: true,
     defaultThreshold: 5
   },
   {
     value: DELIVERY_RULE_TRIGGER_TYPE.CONSECUTIVE_LOSS,
     label: '连续亏损',
-    icon: '📉',
-    description: '监测用户连续亏损的次数',
-    unit: '次',
     needsPeriod: true,
     defaultThreshold: 5
   }
 ]
 
-// 触发类型详细帮助文档
-const triggerTypeHelpDocs = {
-  [DELIVERY_RULE_TRIGGER_TYPE.TRADE_COUNT]: {
-    title: '交易次数触发',
-    definition: '当用户在指定时间周期内完成的交易笔数达到设定阈值时触发规则。',
-    explanation: '系统会实时统计用户在选定时间窗口内的交易次数（包括已平仓和当前持仓）。每当完成一笔交易后，系统会重新计算该时间段内的总交易次数，如果达到或超过设定的阈值，则立即触发规则执行相应动作。',
-    useCases: [
-      {
-        scenario: '高频交易控盈',
-        config: '时间周期：最近1小时 | 阈值：20次',
-        purpose: '限制在1小时内交易超过20次的高频用户的盈利表现，防止通过快速交易获取超额收益'
-      },
-      {
-        scenario: '日交易量限制',
-        config: '时间周期：今日 | 阈值：50次',
-        purpose: '对当天交易频繁的用户进行风控干预，避免日内过度交易带来的风险'
-      },
-      {
-        scenario: '短期频繁操作监测',
-        config: '时间周期：最近4小时 | 阈值：30次',
-        purpose: '识别短时间内频繁交易的用户，可能的套利行为或异常交易模式'
-      }
-    ],
-    notes: [
-      '交易次数统计包括所有已结算的订单',
-      '未结算的持仓不计入交易次数',
-      '时间窗口为滑动窗口，会实时更新'
-    ]
-  },
-  [DELIVERY_RULE_TRIGGER_TYPE.PROFIT_LOSS]: {
-    title: '累计盈亏触发',
-    definition: '当用户在指定时间周期内的累计盈亏金额达到设定阈值时触发规则。',
-    explanation: '系统持续追踪用户在时间窗口内所有交易的盈亏总和。盈利为正数，亏损为负数。阈值可以设置为正值（监测盈利）或负值（监测亏损）。当累计金额触达阈值时立即触发规则。',
-    useCases: [
-      {
-        scenario: '盈利过高干预',
-        config: '时间周期：最近4小时 | 阈值：+2000 USDT',
-        purpose: '当用户4小时内累计盈利超过2000 USDT时，启动盈亏控制降低后续盈利概率'
-      },
-      {
-        scenario: '亏损保护',
-        config: '时间周期：今日 | 阈值：-5000 USDT',
-        purpose: '当用户当日累计亏损超过5000 USDT时，触发保护机制提升盈利概率'
-      },
-      {
-        scenario: '短期波动监控',
-        config: '时间周期：最近1小时 | 阈值：+1000 USDT',
-        purpose: '监控短时间内快速盈利的用户，可能存在市场异常或套利行为'
-      }
-    ],
-    notes: [
-      '盈亏金额包含所有已结算订单的净盈亏',
-      '正数表示盈利，负数表示亏损',
-      '时间窗口为滑动窗口，实时计算累计值',
-      '可使用「今日」时间周期来替代原日盈利功能'
-    ]
-  },
-  [DELIVERY_RULE_TRIGGER_TYPE.CONSECUTIVE_WINS]: {
-    title: '连续盈利触发',
-    definition: '当用户在指定时间周期内连续盈利的次数达到设定阈值时触发规则。',
-    explanation: '系统追踪用户连续平仓盈利的订单数量。只要有一笔订单亏损，计数器重置为0。当连续盈利次数达到阈值时触发规则，通常用于打断用户的连胜状态。',
-    useCases: [
-      {
-        scenario: '连胜阻断',
-        config: '时间周期：最近1小时 | 阈值：5次',
-        purpose: '当用户连续5次盈利后，强制下一单亏损，避免持续盈利影响平台收益'
-      },
-      {
-        scenario: '适度控盈',
-        config: '时间周期：最近4小时 | 阈值：8次',
-        purpose: '连续盈利8次后启动盈亏控制，降低期望值但不强制亏损'
-      },
-      {
-        scenario: '异常盈利监测',
-        config: '时间周期：今日 | 阈值：10次',
-        purpose: '识别当日连续盈利超过10次的异常用户，可能存在策略漏洞'
-      }
-    ],
-    notes: [
-      '只统计连续盈利，中间有亏损则重置计数',
-      '盈利判断标准：结算金额 > 开仓成本',
-      '时间窗口限制统计范围'
-    ]
-  },
-  [DELIVERY_RULE_TRIGGER_TYPE.CONSECUTIVE_LOSS]: {
-    title: '连续亏损触发',
-    definition: '当用户在指定时间周期内连续亏损的次数达到设定阈值时触发规则。',
-    explanation: '系统追踪用户连续平仓亏损的订单数量。只要有一笔订单盈利，计数器重置为0。当连续亏损次数达到阈值时触发规则，通常用于用户保护或挽留策略。',
-    useCases: [
-      {
-        scenario: '用户保护',
-        config: '时间周期：最近1小时 | 阈值：5次',
-        purpose: '当用户连续亏损5次后，强制下一单盈利或提升盈利概率，避免流失'
-      },
-      {
-        scenario: '挽留机制',
-        config: '时间周期：今日 | 阈值：8次',
-        purpose: '识别当日连续亏损8次的用户，给予补偿性盈利机会'
-      },
-      {
-        scenario: '新手保护',
-        config: '时间周期：最近24小时 | 阈值：3次',
-        purpose: '对新用户放宽标准，连续3次亏损即触发保护，提升留存率'
-      }
-    ],
-    notes: [
-      '只统计连续亏损，中间有盈利则重置计数',
-      '亏损判断标准：结算金额 < 开仓成本',
-      '通常用于用户体验优化和留存提升'
-    ]
-  }
-}
 
 // 时间周期选项
 const timePeriodOptions = [
-  { value: DELIVERY_RULE_TIME_PERIOD.REAL_TIME, label: '实时', description: '立即触发' },
-  { value: DELIVERY_RULE_TIME_PERIOD.LAST_1H, label: '最近1小时', description: '统计最近1小时数据' },
-  { value: DELIVERY_RULE_TIME_PERIOD.LAST_4H, label: '最近4小时', description: '统计最近4小时数据' },
-  { value: DELIVERY_RULE_TIME_PERIOD.LAST_24H, label: '最近24小时', description: '统计最近24小时数据' },
-  { value: DELIVERY_RULE_TIME_PERIOD.TODAY, label: '今日', description: '统计当日数据' },
-  { value: DELIVERY_RULE_TIME_PERIOD.LAST_7D, label: '最近7天', description: '统计最近7天数据' }
+  { value: DELIVERY_RULE_TIME_PERIOD.REAL_TIME, label: '实时' },
+  { value: DELIVERY_RULE_TIME_PERIOD.LAST_1H, label: '最近1小时' },
+  { value: DELIVERY_RULE_TIME_PERIOD.LAST_4H, label: '最近4小时' },
+  { value: DELIVERY_RULE_TIME_PERIOD.LAST_24H, label: '最近24小时' },
+  { value: DELIVERY_RULE_TIME_PERIOD.TODAY, label: '今日' },
+  { value: DELIVERY_RULE_TIME_PERIOD.LAST_7D, label: '最近7天' }
 ]
 
 // 执行动作配置（精简版 - 只保留核心功能）
 const actionTypeOptions = [
   {
     value: DELIVERY_RULE_ACTION.PROFIT_CONTROL,
-    label: '盈亏控制',
-    icon: '🎚️',
-    description: '精确调整用户的交易盈亏金额（线控）',
-    color: 'blue',
-    recommended: true
+    label: '盈亏控制'
   },
   {
     value: DELIVERY_RULE_ACTION.FORCE_WIN,
-    label: '强制盈利',
-    icon: '✅',
-    description: '强制下N单结算为盈利',
-    color: 'emerald'
+    label: '强制盈利'
   },
   {
     value: DELIVERY_RULE_ACTION.FORCE_LOSS,
-    label: '强制亏损',
-    icon: '❌',
-    description: '强制下N单结算为亏损',
-    color: 'rose'
+    label: '强制亏损'
   }
 ]
 
+
 // 优先级选项
 const priorityOptions = [
-  { value: DELIVERY_RULE_PRIORITY.HIGH, label: '高优先级', color: 'rose', icon: '🔴' },
-  { value: DELIVERY_RULE_PRIORITY.MEDIUM, label: '中优先级', color: 'amber', icon: '🟡' },
-  { value: DELIVERY_RULE_PRIORITY.LOW, label: '低优先级', color: 'slate', icon: '⚪' }
+  { value: DELIVERY_RULE_PRIORITY.HIGH, label: '高优先级' },
+  { value: DELIVERY_RULE_PRIORITY.MEDIUM, label: '中优先级' },
+  { value: DELIVERY_RULE_PRIORITY.LOW, label: '低优先级' }
 ]
 
 // 状态选项
 const statusOptions = [
-  { value: DELIVERY_RULE_STATUS.ENABLED, label: '运行中', color: 'emerald' },
-  { value: DELIVERY_RULE_STATUS.PAUSED, label: '已暂停', color: 'amber' },
-  { value: DELIVERY_RULE_STATUS.DISABLED, label: '已禁用', color: 'slate' }
+  { value: DELIVERY_RULE_STATUS.ENABLED, label: '运行中' },
+  { value: DELIVERY_RULE_STATUS.PAUSED, label: '已暂停' },
+  { value: DELIVERY_RULE_STATUS.DISABLED, label: '已禁用' }
 ]
 
 // 风险等级选项
 const riskLevelOptions = [
-  { value: USER_RISK_LEVEL.VERY_HIGH, label: '极高风险', color: 'rose' },
-  { value: USER_RISK_LEVEL.HIGH, label: '高风险', color: 'orange' },
-  { value: USER_RISK_LEVEL.MEDIUM, label: '中风险', color: 'amber' },
-  { value: USER_RISK_LEVEL.LOW, label: '低风险', color: 'blue' },
-  { value: USER_RISK_LEVEL.SAFE, label: '安全', color: 'emerald' }
-]
-
-// 盈亏控制预设方案
-const profitControlPresets = [
-  {
-    id: 'light_control',
-    name: '轻度控盈',
-    icon: '🟢',
-    description: '用户平均每单小亏',
-    targetExpectedValue: -30,
-    avgWinAmount: 200,
-    avgLossAmount: -120,
-    color: 'emerald'
-  },
-  {
-    id: 'medium_control',
-    name: '中度控盈',
-    icon: '🟡',
-    description: '用户平均每单中等亏损',
-    targetExpectedValue: -80,
-    avgWinAmount: 180,
-    avgLossAmount: -180,
-    color: 'amber'
-  },
-  {
-    id: 'strong_control',
-    name: '强力控盈',
-    icon: '🔴',
-    description: '用户平均每单大幅亏损',
-    targetExpectedValue: -150,
-    avgWinAmount: 150,
-    avgLossAmount: -250,
-    color: 'rose'
-  },
-  {
-    id: 'balanced',
-    name: '盈亏平衡',
-    icon: '⚖️',
-    description: '用户整体不赚不亏',
-    targetExpectedValue: 0,
-    avgWinAmount: 200,
-    avgLossAmount: -200,
-    color: 'slate'
-  },
-  {
-    id: 'profit_boost',
-    name: '盈利提升',
-    icon: '💰',
-    description: '帮助用户盈利（VIP用户）',
-    targetExpectedValue: 50,
-    avgWinAmount: 300,
-    avgLossAmount: -100,
-    color: 'blue'
-  },
-  {
-    id: 'custom',
-    name: '自定义',
-    icon: '⚙️',
-    description: '手动设置所有参数',
-    targetExpectedValue: -50,
-    avgWinAmount: 200,
-    avgLossAmount: -150,
-    color: 'violet'
-  }
+  { value: USER_RISK_LEVEL.VERY_HIGH, label: '极高风险' },
+  { value: USER_RISK_LEVEL.HIGH, label: '高风险' },
+  { value: USER_RISK_LEVEL.MEDIUM, label: '中风险' },
+  { value: USER_RISK_LEVEL.LOW, label: '低风险' },
+  { value: USER_RISK_LEVEL.SAFE, label: '安全' }
 ]
 
 // 盈亏控制策略选项（技术实现方式）
 const profitControlStrategyOptions = [
-  { 
-    value: PROFIT_CONTROL_STRATEGY.SETTLEMENT_PRICE, 
-    label: '结算价格选择', 
-    description: '在市场价格范围内选择有利价格（推荐）'
-  },
-  { 
-    value: PROFIT_CONTROL_STRATEGY.TIME_WINDOW, 
-    label: '时间窗口选择', 
-    description: '利用秒级价格波动选择结算时间点'
-  },
-  { 
-    value: PROFIT_CONTROL_STRATEGY.SLIPPAGE, 
-    label: '滑点控制', 
-    description: '通过开仓和平仓滑点影响盈亏'
-  },
-  { 
-    value: PROFIT_CONTROL_STRATEGY.KLINE_OFFSET, 
-    label: 'K线显示偏移', 
-    description: '轻微调整显示价格（< 0.1%）'
-  }
+  { value: PROFIT_CONTROL_STRATEGY.SETTLEMENT_PRICE, label: '结算价格选择' },
+  { value: PROFIT_CONTROL_STRATEGY.TIME_WINDOW, label: '时间窗口选择' },
+  { value: PROFIT_CONTROL_STRATEGY.SLIPPAGE, label: '滑点控制' },
+  { value: PROFIT_CONTROL_STRATEGY.KLINE_OFFSET, label: 'K线显示偏移' }
 ]
 
 // 计算属性
@@ -430,8 +215,41 @@ const modalTitle = computed(() => {
   return '新增规则'
 })
 
+
 const currentTriggerConfig = computed(() => {
   return triggerTypeOptions.find(opt => opt.value === form.trigger.type)
+})
+
+// 阈值单位和说明
+const thresholdLabel = computed(() => {
+  switch (form.trigger.type) {
+    case DELIVERY_RULE_TRIGGER_TYPE.TRADE_COUNT:
+      return '交易次数';
+    case DELIVERY_RULE_TRIGGER_TYPE.PROFIT_LOSS:
+      return '累计盈亏 (USDT)';
+    case DELIVERY_RULE_TRIGGER_TYPE.CONSECUTIVE_WINS:
+      return '连续盈利次数';
+    case DELIVERY_RULE_TRIGGER_TYPE.CONSECUTIVE_LOSS:
+      return '连续亏损次数';
+    default:
+      return '阈值';
+  }
+})
+
+const formattedThreshold = computed(() => {
+  const value = form.trigger.threshold
+  switch (form.trigger.type) {
+    case DELIVERY_RULE_TRIGGER_TYPE.TRADE_COUNT:
+      return value + ' 次';
+    case DELIVERY_RULE_TRIGGER_TYPE.PROFIT_LOSS:
+      return value + ' USDT';
+    case DELIVERY_RULE_TRIGGER_TYPE.CONSECUTIVE_WINS:
+      return value + ' 次';
+    case DELIVERY_RULE_TRIGGER_TYPE.CONSECUTIVE_LOSS:
+      return value + ' 次';
+    default:
+      return value;
+  }
 })
 
 const currentActionConfig = computed(() => {
@@ -442,43 +260,67 @@ const needsTimePeriod = computed(() => {
   return currentTriggerConfig.value?.needsPeriod
 })
 
-const currentTriggerHelp = computed(() => {
-  return triggerTypeHelpDocs[form.trigger.type] || null
+
+// 计算期望值（根据盈利概率、盈利金额、亏损金额自动计算）
+const calculatedExpectedValue = computed(() => {
+  if (form.action.type === DELIVERY_RULE_ACTION.PROFIT_CONTROL) {
+    const { winProbability, avgWinAmount, avgLossAmount } = form.action.params.profitControl
+    // 安全检查，确保所有值都是有效数字
+    const prob = Number(winProbability) || 0
+    const win = Number(avgWinAmount) || 0
+    const loss = Number(avgLossAmount) || 0
+    // 期望值 = 盈利金额 × 盈利概率 + 亏损金额 × (1 - 盈利概率)
+    const expectedValue = win * prob + loss * (1 - prob)
+    return isNaN(expectedValue) ? 0 : expectedValue
+  }
+  return 0
 })
 
-const formattedThreshold = computed(() => {
-  const config = currentTriggerConfig.value
-  if (!config) return ''
-  
-  const value = currentTriggerConfig.value.isPercentage 
-    ? form.trigger.threshold 
-    : form.trigger.threshold
-    
-  return `${value}${config.unit || ''}`
+// 计算最大波动（取盈利/亏损波动范围较大者）
+const maxFluctuation = computed(() => {
+  if (form.action.type === DELIVERY_RULE_ACTION.PROFIT_CONTROL) {
+    const { winFluctuationPercent = 0, lossFluctuationPercent = 0 } = form.action.params.profitControl
+    return Math.max(Number(winFluctuationPercent) || 0, Number(lossFluctuationPercent) || 0)
+  }
+  return 0
 })
+
+// 计算平均每单收益区间（分别考虑盈利和亏损波动）
+const expectedValueRange = computed(() => {
+  if (form.action.type === DELIVERY_RULE_ACTION.PROFIT_CONTROL) {
+          try {
+            if (
+              form.action &&
+              form.action.type === DELIVERY_RULE_ACTION.PROFIT_CONTROL &&
+              form.action.params &&
+              form.action.params.profitControl
+            ) {
+              const pc = form.action.params.profitControl
+              const win = Number(pc.avgWinAmount) || 0
+              const loss = Number(pc.avgLossAmount) || 0
+              const winFluct = Number(pc.winFluctuationPercent) || 0
+              const lossFluct = Number(pc.lossFluctuationPercent) || 0
+              const winMax = win + winFluct
+              const winMin = win - winFluct
+              const lossMax = loss + lossFluct
+              const lossMin = loss - lossFluct
+              const min = Math.min(winMin, winMax, lossMin, lossMax)
+              const max = Math.max(winMin, winMax, lossMin, lossMax)
+              return { min, max }
+            }
+          } catch (e) {
+            console.error(e)
+          }
+          return { min: 0, max: 0 }
+  }
+  return { min: 0, max: 0 }
+})
+
 
 // 方法
 const close = () => {
   emit('close')
 }
-
-const applyProfitControlPreset = (preset) => {
-  if (preset.id === 'custom') {
-    form.action.params.profitControl.mode = 'advanced'
-    form.action.params.profitControl.preset = 'custom'
-  } else {
-    form.action.params.profitControl.mode = 'simple'
-    form.action.params.profitControl.preset = preset.id
-    form.action.params.profitControl.targetExpectedValue = preset.targetExpectedValue
-    form.action.params.profitControl.avgWinAmount = preset.avgWinAmount
-    form.action.params.profitControl.avgLossAmount = preset.avgLossAmount
-  }
-}
-
-const currentProfitControlPreset = computed(() => {
-  const presetId = form.action.params.profitControl.preset
-  return profitControlPresets.find(p => p.id === presetId) || profitControlPresets[0]
-})
 
 const save = () => {
   // 基础验证
@@ -514,6 +356,35 @@ watch(() => props.open, (isOpen) => {
       // 编辑或复制模式，加载现有数据
       Object.assign(form, JSON.parse(JSON.stringify(props.rule)))
       
+      // 确保新字段存在默认值（数据迁移）
+      if (form.action.params.profitControl) {
+        // 确保 enableRiskLimits 字段存在
+        form.action.params.profitControl.enableRiskLimits = form.action.params.profitControl.enableRiskLimits ?? false
+        
+        // 如果是旧数据结构（使用 targetExpectedValue），迁移到新结构（使用 winProbability）
+        if (form.action.params.profitControl.targetExpectedValue !== undefined && 
+            form.action.params.profitControl.winProbability === undefined) {
+          // 从期望值反推盈利概率：p = (EV - lossAmount) / (winAmount - lossAmount)
+          const ev = Number(form.action.params.profitControl.targetExpectedValue) || -5
+          const win = Number(form.action.params.profitControl.avgWinAmount) || 20
+          const loss = Number(form.action.params.profitControl.avgLossAmount) || -15
+          const calculatedProb = (ev - loss) / (win - loss)
+          form.action.params.profitControl.winProbability = isNaN(calculatedProb) ? 0.3 : Math.max(0, Math.min(1, calculatedProb))
+          // 删除旧字段
+          delete form.action.params.profitControl.targetExpectedValue
+        }
+        
+        // 确保所有数值字段都存在且是有效数字
+        form.action.params.profitControl.winProbability = Number(form.action.params.profitControl.winProbability) || 0.3
+        form.action.params.profitControl.avgWinAmount = Number(form.action.params.profitControl.avgWinAmount) || 20
+        form.action.params.profitControl.avgLossAmount = Number(form.action.params.profitControl.avgLossAmount) || -15
+        form.action.params.profitControl.maxProfit = Number(form.action.params.profitControl.maxProfit) || 10000
+        form.action.params.profitControl.maxLossRatio = Number(form.action.params.profitControl.maxLossRatio) || 0.3
+      }
+      
+      // 确保持续时间字段存在默认值
+      form.action.params.duration = Number(form.action.params.duration) || 0
+      
       // 复制模式，修改名称
       if (props.mode === 'duplicate') {
         form.name = `${form.name} (副本)`
@@ -540,12 +411,11 @@ watch(() => props.open, (isOpen) => {
           type: DELIVERY_RULE_ACTION.PROFIT_CONTROL,
           params: {
             profitControl: {
-              mode: 'simple',
-              preset: 'light_control',
+              winProbability: 0.3,
+              avgWinAmount: 20,
+              avgLossAmount: -15,
               strategy: PROFIT_CONTROL_STRATEGY.SETTLEMENT_PRICE,
-              targetExpectedValue: -30,
-              avgWinAmount: 200,
-              avgLossAmount: -120,
+              enableRiskLimits: false,
               maxProfit: 10000,
               maxLossRatio: 0.3,
             },
@@ -593,73 +463,9 @@ watch(() => props.open, (isOpen) => {
         }
       })
     }
+
   }
 }, { flush: 'post' })
-
-// 实时计算预览
-const mockOrderAmount = 10000 // 模拟订单金额 10000 USDT
-
-const previewSummary = computed(() => {
-  const parts = []
-  const action = form.action
-  
-  if (action.type === DELIVERY_RULE_ACTION.PROFIT_CONTROL) {
-    const profitCtrl = action.params.profitControl
-    const expectedValue = profitCtrl.targetExpectedValue || 0
-    parts.push(`目标期望值: ${expectedValue > 0 ? '+' : ''}${expectedValue} USDT`)
-    
-    const avgWin = profitCtrl.avgWinAmount || 0
-    const avgLoss = profitCtrl.avgLossAmount || 0
-    parts.push(`盈亏: +${avgWin} / ${avgLoss} USDT`)
-  } else if (action.type === DELIVERY_RULE_ACTION.FORCE_LOSS) {
-    parts.push(`强制亏损: ${(action.params.lossPercent * 100).toFixed(0)}%`)
-  } else if (action.type === DELIVERY_RULE_ACTION.FORCE_WIN) {
-    parts.push(`强制盈利: ${(action.params.profitPercent * 100).toFixed(0)}%`)
-  }
-  
-  const duration = action.params.duration || 0
-  parts.push(duration === 0 ? '持续生效' : `${duration} 分钟`)
-  
-  return parts.join(' | ')
-})
-
-const impactAnalysis = computed(() => {
-  const action = form.action
-  let impactPercent = 0
-  let description = ''
-  
-  if (action.type === DELIVERY_RULE_ACTION.PROFIT_CONTROL) {
-    const profitCtrl = action.params.profitControl
-    const expectedValue = profitCtrl.targetExpectedValue || 0
-    const avgWin = profitCtrl.avgWinAmount || 0
-    const avgLoss = Math.abs(profitCtrl.avgLossAmount || 0)
-    
-    // 计算对用户的盈亏影响（负数表示用户亏损）
-    impactPercent = (expectedValue / mockOrderAmount) * 100
-    
-    if (expectedValue < 0) {
-      description = `预期用户平均每单亏损 ${Math.abs(expectedValue).toFixed(2)} USDT（盈利 ${avgWin} USDT 时盈，亏损 ${avgLoss} USDT 时亏）`
-    } else if (expectedValue > 0) {
-      description = `预期用户平均每单盈利 ${expectedValue.toFixed(2)} USDT（盈利 ${avgWin} USDT 时盈，亏损 ${avgLoss} USDT 时亏）`
-    } else {
-      description = `预期用户盈亏平衡（盈利 ${avgWin} USDT 时盈，亏损 ${avgLoss} USDT 时亏）`
-    }
-  } else if (action.type === DELIVERY_RULE_ACTION.FORCE_LOSS) {
-    impactPercent = (action.params.lossPercent || 0) * 100
-    description = `用户下 ${action.params.nextPositionCount} 单将强制亏损 ${impactPercent.toFixed(1)}%`
-  } else if (action.type === DELIVERY_RULE_ACTION.FORCE_WIN) {
-    impactPercent = -(action.params.profitPercent || 0) * 100
-    description = `用户下 ${action.params.nextPositionCount} 单将强制盈利 ${Math.abs(impactPercent).toFixed(1)}%`
-  }
-  
-  const costImpact = (mockOrderAmount * Math.abs(impactPercent) / 100).toFixed(2)
-  
-  return {
-    impactPercent,
-    description,
-    costImpact
-  }
-})
 </script>
 
 <template>
@@ -723,7 +529,7 @@ const impactAnalysis = computed(() => {
                   <label class="block space-y-2">
                     <span class="text-sm font-medium text-slate-700">优先级</span>
                     <select v-model="form.priority" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
-                      <option v-for="priority in priorityOptions" :key="priority.value" :value="priority.value">{{ priority.icon }} {{ priority.label }}</option>
+                      <option v-for="priority in priorityOptions" :key="priority.value" :value="priority.value">{{ priority.label }}</option>
                     </select>
                   </label>
                 </div>
@@ -739,17 +545,6 @@ const impactAnalysis = computed(() => {
                   </svg>
                 </div>
                 <h3 class="flex-1 text-base font-semibold text-slate-900">触发条件</h3>
-                <button 
-                  type="button"
-                  @click="showTriggerHelp = !showTriggerHelp"
-                  class="flex items-center gap-1.5 rounded-lg bg-white/80 px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm transition-all hover:bg-white hover:shadow"
-                  :class="{ 'ring-2 ring-blue-400': showTriggerHelp }"
-                >
-                  <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  {{ showTriggerHelp ? '关闭帮助' : '查看帮助' }}
-                </button>
               </div>
 
               <div class="space-y-3.5">
@@ -757,20 +552,21 @@ const impactAnalysis = computed(() => {
                   <span class="text-sm font-medium text-slate-700">触发类型</span>
                   <select v-model="form.trigger.type" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
                     <option v-for="option in triggerTypeOptions" :key="option.value" :value="option.value">
-                      {{ option.icon }} {{ option.label }}
+                      {{ option.label }}
                     </option>
                   </select>
                 </label>
 
                 <div class="grid gap-3.5 sm:grid-cols-2">
                   <label class="block space-y-2">
-                    <span class="text-sm font-medium text-slate-700">{{ currentTriggerConfig?.thresholdLabel || '阈值' }} <span class="text-rose-500">*</span></span>
+                    <span class="text-sm font-medium text-slate-700">{{ thresholdLabel }} <span class="text-rose-500">*</span></span>
                     <input
                       v-model.number="form.trigger.threshold"
                       type="number"
                       min="0"
                       class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                     />
+                    <div class="text-xs text-slate-500 mt-1">{{ formattedThreshold }}</div>
                   </label>
 
                   <label v-if="needsTimePeriod" class="block space-y-2">
@@ -782,51 +578,6 @@ const impactAnalysis = computed(() => {
                 </div>
               </div>
 
-              <!-- 触发类型帮助面板 -->
-              <Transition name="slide-down">
-                <div v-if="showTriggerHelp && currentTriggerHelp" class="rounded-lg border border-blue-300 bg-white p-4 shadow-sm">
-                  <div class="mb-3 flex items-start gap-2 border-b border-blue-100 pb-3">
-                    <span class="text-2xl">{{ currentTriggerConfig?.icon }}</span>
-                    <div class="flex-1">
-                      <h4 class="text-sm font-bold text-blue-900">{{ currentTriggerHelp.title }}</h4>
-                      <p class="mt-1 text-xs leading-relaxed text-slate-600">{{ currentTriggerHelp.definition }}</p>
-                    </div>
-                  </div>
-
-                  <div class="space-y-3">
-                    <div>
-                      <h5 class="mb-1.5 text-xs font-semibold text-slate-700">📖 详细说明</h5>
-                      <p class="text-xs leading-relaxed text-slate-600">{{ currentTriggerHelp.explanation }}</p>
-                    </div>
-
-                    <div>
-                      <h5 class="mb-2 text-xs font-semibold text-slate-700">💡 典型用例</h5>
-                      <div class="space-y-2">
-                        <div 
-                          v-for="(useCase, index) in currentTriggerHelp.useCases" 
-                          :key="index"
-                          class="rounded-md bg-slate-50 p-2.5"
-                        >
-                          <div class="mb-1 flex items-center gap-2">
-                            <span class="text-xs font-semibold text-slate-800">{{ useCase.scenario }}</span>
-                            <span class="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700">{{ useCase.config }}</span>
-                          </div>
-                          <p class="text-xs text-slate-600">{{ useCase.purpose }}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div v-if="currentTriggerHelp.notes && currentTriggerHelp.notes.length > 0">
-                      <h5 class="mb-1.5 text-xs font-semibold text-slate-700">⚠️ 注意事项</h5>
-                      <ul class="space-y-1 pl-3">
-                        <li v-for="(note, index) in currentTriggerHelp.notes" :key="index" class="text-xs text-slate-600">
-                          <span class="mr-1 text-amber-500">•</span>{{ note }}
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </Transition>
             </section>
 
             <!-- 执行动作 -->
@@ -837,7 +588,7 @@ const impactAnalysis = computed(() => {
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                   </svg>
                 </div>
-                <h3 class="text-base font-semibold text-slate-900">执行动作</h3>
+                <h3 class="flex-1 text-base font-semibold text-slate-900">执行动作</h3>
               </div>
 
               <div class="space-y-3.5">
@@ -845,7 +596,7 @@ const impactAnalysis = computed(() => {
                   <span class="text-sm font-medium text-slate-700">动作类型</span>
                   <select v-model="form.action.type" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100">
                     <option v-for="action in actionTypeOptions" :key="action.value" :value="action.value">
-                      {{ action.icon }} {{ action.label }}
+                      {{ action.label }}
                     </option>
                   </select>
                 </label>
@@ -856,181 +607,227 @@ const impactAnalysis = computed(() => {
                     <span class="text-2xl">🎚️</span>
                     <div class="flex-1">
                       <h4 class="text-sm font-semibold text-blue-900">盈亏控制配置</h4>
-                      <p class="text-xs text-blue-600">选择预设方案，自动调整用户交易盈亏</p>
+                      <p class="text-xs text-blue-600">设置盈利概率和单笔盈亏幅度，系统自动计算期望值</p>
                     </div>
                   </div>
 
-                  <!-- 预设方案选择（简化版） -->
-                  <div class="space-y-3">
-                    <label class="block">
-                      <span class="text-sm font-medium text-slate-700">选择控制方案</span>
-                      <p class="text-xs text-slate-500 mt-1">根据你的需求选择合适的控制强度</p>
-                    </label>
+                  <!-- 核心参数 -->
+                  <div class="space-y-4">
+                    <div class="space-y-1">
+                      <h5 class="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                        <span class="inline-block w-1 h-4 bg-blue-500 rounded"></span>
+                        核心参数
+                      </h5>
+                      <p class="text-xs text-slate-500">按盈利概率随机决定输赢，赢时按固定的单笔盈利%结算，输时按固定的单笔亏损%结算</p>
+                    </div>
                     
-                    <div class="grid gap-2.5 sm:grid-cols-2">
-                      <button
-                        v-for="preset in profitControlPresets"
-                        :key="preset.id"
-                        type="button"
-                        class="flex items-start gap-3 rounded-lg border-2 p-3 text-left transition-all"
-                        :class="[
-                          form.action.params.profitControl.preset === preset.id 
-                            ? {
-                                'border-emerald-500 bg-emerald-50': preset.color === 'emerald',
-                                'border-amber-500 bg-amber-50': preset.color === 'amber',
-                                'border-rose-500 bg-rose-50': preset.color === 'rose',
-                                'border-slate-500 bg-slate-50': preset.color === 'slate',
-                                'border-blue-500 bg-blue-50': preset.color === 'blue',
-                                'border-violet-500 bg-violet-50': preset.color === 'violet'
-                              }
-                            : 'border-slate-200 bg-white hover:border-slate-300'
-                        ]"
-                        @click="applyProfitControlPreset(preset)"
-                      >
-                        <span class="text-xl">{{ preset.icon }}</span>
-                        <div class="flex-1">
-                          <p class="text-sm font-semibold text-slate-900">{{ preset.name }}</p>
-                          <p class="mt-0.5 text-xs text-slate-600">{{ preset.description }}</p>
-                          <div v-if="preset.id !== 'custom'" class="mt-1.5 flex items-center gap-2 text-xs">
-                            <span class="rounded px-1.5 py-0.5 font-mono" 
-                              :class="preset.targetExpectedValue > 0 ? 'bg-emerald-100 text-emerald-700' : preset.targetExpectedValue < 0 ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-700'">
-                              {{ preset.targetExpectedValue > 0 ? '+' : '' }}{{ preset.targetExpectedValue }}
-                            </span>
-                            <span class="text-slate-400">|</span>
-                            <span class="text-slate-600">+{{ preset.avgWinAmount }} / {{ preset.avgLossAmount }}</span>
+                    <!-- 盈利概率 -->
+                    <div class="rounded-lg border border-slate-200 bg-white p-3">
+                      <label class="block space-y-2">
+                        <div class="flex items-center justify-between">
+                          <div>
+                            <div class="text-sm font-medium text-slate-700">盈利概率</div>
+                            <div class="text-xs text-slate-500 mt-0.5">用户赚钱的几率，值越大用户越容易赚</div>
                           </div>
+                          <span class="text-xl font-bold text-blue-600">{{ ((form.action.params.profitControl.winProbability || 0) * 100).toFixed(0) }}%</span>
                         </div>
-                        <div v-if="form.action.params.profitControl.preset === preset.id" 
-                          class="flex h-5 w-5 items-center justify-center rounded-full"
-                          :class="{
-                            'bg-emerald-500': preset.color === 'emerald',
-                            'bg-amber-500': preset.color === 'amber',
-                            'bg-rose-500': preset.color === 'rose',
-                            'bg-slate-500': preset.color === 'slate',
-                            'bg-blue-500': preset.color === 'blue',
-                            'bg-violet-500': preset.color === 'violet'
-                          }">
-                          <svg class="h-3 w-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
-                          </svg>
+                        <div class="flex items-center gap-2">
+                          <input
+                            v-model.number="form.action.params.profitControl.winProbability"
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            class="flex-1 accent-blue-600"
+                          />
+                          <input
+                            v-model.number="form.action.params.profitControl.winProbability"
+                            type="number"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            class="w-16 rounded border border-slate-300 px-2 py-1 text-sm text-center focus:border-blue-500 focus:outline-none"
+                          />
                         </div>
-                      </button>
+                      </label>
                     </div>
 
-                    <!-- 效果说明 -->
-                    <div class="rounded-md bg-blue-50 border border-blue-200 px-3 py-2.5">
-                      <div class="flex items-start gap-2">
-                        <span class="text-lg">💡</span>
-                        <div class="flex-1 space-y-1">
-                          <p class="text-xs font-medium text-blue-900">
-                            {{ currentProfitControlPreset.name }} - 效果说明
-                          </p>
-                          <p class="text-xs text-blue-800">
-                            • 目标：用户平均每单{{ form.action.params.profitControl.targetExpectedValue >= 0 ? '盈利' : '亏损' }} <strong class="font-mono">{{ Math.abs(form.action.params.profitControl.targetExpectedValue) }} USDT</strong>
-                          </p>
-                          <p class="text-xs text-blue-800">
-                            • 当用户盈利时，金额约 <strong class="font-mono">{{ form.action.params.profitControl.avgWinAmount }} USDT</strong>
-                          </p>
-                          <p class="text-xs text-blue-800">
-                            • 当用户亏损时，金额约 <strong class="font-mono">{{ form.action.params.profitControl.avgLossAmount }} USDT</strong>
-                          </p>
-                        </div>
+                    <!-- 盈亏波动范围 -->
+
+                    
+                    <!-- 盈亏幅度 -->
+                    <div class="grid gap-3 sm:grid-cols-2">
+                      <div class="rounded-lg border border-slate-200 bg-white p-3">
+                        <label class="block space-y-2">
+                          <div class="flex items-center gap-1">
+                            <span class="text-sm text-slate-700">单笔盈利</span>
+                            <span class="text-lg font-bold text-green-600">+{{ form.action.params.profitControl.avgWinAmount || 0 }}%</span>
+                          </div>
+                          <div class="flex items-center gap-1">
+                            <input
+                              v-model.number="form.action.params.profitControl.avgWinAmount"
+                              type="number"
+                              min="1"
+                              max="200"
+                              step="1"
+                              class="flex-1 rounded border border-slate-300 px-2.5 py-1.5 text-sm focus:border-green-500 focus:outline-none"
+                            />
+                            <span class="text-sm text-slate-500">%</span>
+                          </div>
+                          <div class="flex items-center gap-2 mt-1">
+                            <span class="text-xs text-slate-500">盈利波动范围：</span>
+                            <input
+                              v-model.number="form.action.params.profitControl.winFluctuationPercent"
+                              type="number"
+                              min="0"
+                              max="10"
+                              step="0.1"
+                              class="w-14 rounded border border-slate-300 px-2 py-1 text-xs text-center focus:border-green-500 focus:outline-none"
+                            />
+                            <span class="text-xs text-green-600">±{{ form.action.params.profitControl.winFluctuationPercent || 0 }}%</span>
+                          </div>
+                          <p class="text-xs text-slate-500">盈利时的收益比例，值越大用户赚得越多。每单盈利将在此基础上随机波动±{{ form.action.params.profitControl.winFluctuationPercent || 0 }}%。</p>
+                        </label>
+                      </div>
+                      
+                      <div class="rounded-lg border border-slate-200 bg-white p-3">
+                        <label class="block space-y-2">
+                          <div class="flex items-center gap-1">
+                            <span class="text-sm text-slate-700">单笔亏损</span>
+                            <span class="text-lg font-bold text-red-600">{{ form.action.params.profitControl.avgLossAmount || 0 }}%</span>
+                          </div>
+                          <div class="flex items-center gap-1">
+                            <input
+                              v-model.number="form.action.params.profitControl.avgLossAmount"
+                              type="number"
+                              min="-200"
+                              max="-1"
+                              step="1"
+                              class="flex-1 rounded border border-slate-300 px-2.5 py-1.5 text-sm focus:border-red-500 focus:outline-none"
+                            />
+                            <span class="text-sm text-slate-500">%</span>
+                          </div>
+                          <div class="flex items-center gap-2 mt-1">
+                            <span class="text-xs text-slate-500">亏损波动范围：</span>
+                            <input
+                              v-model.number="form.action.params.profitControl.lossFluctuationPercent"
+                              type="number"
+                              min="0"
+                              max="10"
+                              step="0.1"
+                              class="w-14 rounded border border-slate-300 px-2 py-1 text-xs text-center focus:border-red-500 focus:outline-none"
+                            />
+                            <span class="text-xs text-red-600">±{{ form.action.params.profitControl.lossFluctuationPercent || 0 }}%</span>
+                          </div>
+                          <p class="text-xs text-slate-500">亏损时的亏损比例，值越小用户亏得越少。每单亏损将在此基础上随机波动±{{ form.action.params.profitControl.lossFluctuationPercent || 0 }}%。</p>
+                        </label>
+                      </div>
+                    </div>
+
+                    <!-- 风控限制（可选） -->
+                    <div class="space-y-3 pt-4">
+                      <div class="flex items-center justify-between">
+                        <h5 class="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                          <span class="inline-block w-1 h-4 bg-amber-500 rounded"></span>
+                          风控限制（可选）
+                        </h5>
+                        <button 
+                          type="button"
+                          @click="form.action.params.profitControl.enableRiskLimits = !form.action.params.profitControl.enableRiskLimits"
+                          class="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                        >
+                          {{ form.action.params.profitControl.enableRiskLimits ? '收起' : '展开' }}
+                        </button>
+                      </div>
+                      <p class="text-xs text-slate-500">达到限制后将暂停规则执行，需要手动重新启用</p>
+                      
+                      <div v-show="form.action.params.profitControl.enableRiskLimits" class="grid gap-3 sm:grid-cols-2 pt-2">
+                        <label class="block space-y-2">
+                          <div class="flex items-center gap-1">
+                            <span class="text-sm text-slate-700">最大累计盈利</span>
+                            <span class="text-xs text-slate-400">(单用户)</span>
+                          </div>
+                          <div class="flex items-center gap-2">
+                            <input
+                              v-model.number="form.action.params.profitControl.maxProfit"
+                              type="number"
+                              step="1000"
+                              placeholder="不限制"
+                              class="flex-1 rounded-md border border-slate-300 px-2.5 py-1.5 text-sm focus:border-amber-500 focus:outline-none"
+                            />
+                            <span class="text-sm text-slate-600 font-medium">USDT</span>
+                          </div>
+                          <p class="text-xs text-slate-500">某用户盈利达到此金额后停止对其控制</p>
+                        </label>
+                        <label class="block space-y-2">
+                          <div class="flex items-center gap-1">
+                            <span class="text-sm text-slate-700">最大单笔亏损</span>
+                            <span class="text-xs text-slate-400">(保护用户)</span>
+                          </div>
+                          <div class="flex items-center gap-2">
+                            <input
+                              v-model.number="form.action.params.profitControl.maxLossRatio"
+                              type="number"
+                              min="0"
+                              max="1"
+                              step="0.05"
+                              placeholder="0.5"
+                              class="flex-1 rounded-md border border-slate-300 px-2.5 py-1.5 text-sm focus:border-amber-500 focus:outline-none"
+                            />
+                            <span class="text-sm text-slate-600 font-medium">{{ ((form.action.params.profitControl.maxLossRatio || 0) * 100).toFixed(0) }}%</span>
+                          </div>
+                          <p class="text-xs text-slate-500">单笔亏损不超过持仓金额的此比例</p>
+                        </label>
+                      </div>
+                    </div>
+
+                    <!-- 实现方式 -->
+                    <div class="space-y-3 pt-4 border-t border-slate-200">
+                      <div class="flex items-center justify-between">
+                        <h5 class="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                          <span class="inline-block w-1 h-4 bg-slate-400 rounded"></span>
+                          实现方式
+                        </h5>
+                      </div>
+                      <div class="grid grid-cols-2 gap-2">
+                        <button
+                          v-for="strategy in profitControlStrategyOptions"
+                          :key="strategy.value"
+                          type="button"
+                          @click="form.action.params.profitControl.strategy = strategy.value"
+                          :class="[
+                            'relative rounded-lg border-2 p-3 text-left transition-all',
+                            form.action.params.profitControl.strategy === strategy.value
+                              ? 'border-blue-500 bg-blue-50'
+                              : 'border-slate-200 bg-white hover:border-slate-300'
+                          ]"
+                        >
+                          <div class="flex items-start gap-2">
+                            <div :class="[
+                              'mt-0.5 h-4 w-4 rounded-full border-2 flex items-center justify-center',
+                              form.action.params.profitControl.strategy === strategy.value
+                                ? 'border-blue-500 bg-blue-500'
+                                : 'border-slate-300'
+                            ]">
+                              <div v-if="form.action.params.profitControl.strategy === strategy.value" class="h-1.5 w-1.5 rounded-full bg-white"></div>
+                            </div>
+                            <div class="flex-1">
+                              <div class="text-sm font-medium text-slate-900">{{ strategy.label }}</div>
+                              <!-- <div class="mt-0.5 text-xs text-slate-500">{{ strategy.description }}</div> -->
+                            </div>
+                          </div>
+                        </button>
+                      </div>
+                      <div class="rounded-md bg-slate-50 border border-slate-200 p-2.5">
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                          <span class="font-medium text-slate-700">推荐使用"结算价格选择"</span> - 在市场真实波动范围内选择对用户更有利或不利的价格点进行结算，自然且不易被发现。
+                        </p>
                       </div>
                     </div>
                   </div>
 
-                  <!-- 高级选项（仅自定义模式显示） -->
-                  <div v-if="form.action.params.profitControl.preset === 'custom'" class="space-y-4 pt-4 border-t border-blue-100">
-                    <div class="flex items-center gap-2">
-                      <svg class="h-4 w-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                      </svg>
-                      <span class="text-sm font-medium text-slate-700">自定义参数</span>
-                    </div>
-
-                    <div class="grid gap-3 sm:grid-cols-3">
-                      <label class="block space-y-2">
-                        <span class="text-sm text-slate-600">目标期望值</span>
-                        <div class="flex items-center gap-1">
-                          <input
-                            v-model.number="form.action.params.profitControl.targetExpectedValue"
-                            type="number"
-                            step="10"
-                            class="flex-1 rounded-md border border-slate-300 px-2.5 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
-                          />
-                          <span class="text-xs text-slate-500">USDT</span>
-                        </div>
-                      </label>
-                      <label class="block space-y-2">
-                        <span class="text-sm text-slate-600">赢时金额</span>
-                        <div class="flex items-center gap-1">
-                          <input
-                            v-model.number="form.action.params.profitControl.avgWinAmount"
-                            type="number"
-                            step="10"
-                            class="flex-1 rounded-md border border-slate-300 px-2.5 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
-                          />
-                          <span class="text-xs text-slate-500">USDT</span>
-                        </div>
-                      </label>
-                      <label class="block space-y-2">
-                        <span class="text-sm text-slate-600">输时金额</span>
-                        <div class="flex items-center gap-1">
-                          <input
-                            v-model.number="form.action.params.profitControl.avgLossAmount"
-                            type="number"
-                            step="10"
-                            class="flex-1 rounded-md border border-slate-300 px-2.5 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
-                          />
-                          <span class="text-xs text-slate-500">USDT</span>
-                        </div>
-                      </label>
-                    </div>
-
-                    <div class="grid gap-3 sm:grid-cols-2">
-                      <label class="block space-y-2">
-                        <span class="text-sm text-slate-600">最大累计盈利</span>
-                        <div class="flex items-center gap-1">
-                          <input
-                            v-model.number="form.action.params.profitControl.maxProfit"
-                            type="number"
-                            step="1000"
-                            class="flex-1 rounded-md border border-slate-300 px-2.5 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
-                          />
-                          <span class="text-xs text-slate-500">USDT</span>
-                        </div>
-                      </label>
-                      <label class="block space-y-2">
-                        <span class="text-sm text-slate-600">最大亏损比例</span>
-                        <div class="flex items-center gap-1">
-                          <input
-                            v-model.number="form.action.params.profitControl.maxLossRatio"
-                            type="number"
-                            min="0"
-                            max="1"
-                            step="0.05"
-                            class="flex-1 rounded-md border border-slate-300 px-2.5 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
-                          />
-                          <span class="text-xs text-slate-500">{{ (form.action.params.profitControl.maxLossRatio * 100).toFixed(0) }}%</span>
-                        </div>
-                      </label>
-                    </div>
-
-                    <label class="block space-y-2">
-                      <span class="text-sm text-slate-600">技术实现策略</span>
-                      <select
-                        v-model="form.action.params.profitControl.strategy"
-                        class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                      >
-                        <option v-for="strategy in profitControlStrategyOptions" :key="strategy.value" :value="strategy.value">
-                          {{ strategy.label }} - {{ strategy.description }}
-                        </option>
-                      </select>
-                    </label>
-                  </div>
-
                   <!-- 通用选项 -->
-                  <div class="space-y-3 pt-3 border-t border-blue-100">
+                  <div class="space-y-3 pt-4 border-t border-slate-200">
                     <label class="flex items-center gap-2">
                       <input
                         v-model="form.action.params.applyToNewPositions"
@@ -1156,6 +953,7 @@ const impactAnalysis = computed(() => {
                   </div>
                 </div>
               </div>
+
             </section>
           </div>
 
@@ -1178,74 +976,26 @@ const impactAnalysis = computed(() => {
           </footer>
         </div>
 
-        <!-- 右侧预览区域 -->
+        <!-- 右侧帮助区域 -->
         <div class="flex w-2/5 flex-col bg-gradient-to-br from-slate-50 to-slate-100">
           <header class="border-b border-slate-200 px-5 py-4">
-            <h3 class="text-lg font-semibold text-slate-900">实时预览</h3>
-            <p class="mt-0.5 text-xs text-slate-500">调整参数后即时显示效果</p>
+            <h3 class="text-lg font-semibold text-slate-900">配置预览</h3>
+            <p class="mt-1 text-xs text-slate-500">右侧实时展示当前配置的主要参数和期望收益</p>
           </header>
-
-          <div class="flex-1 space-y-4 overflow-y-auto px-5 py-4">
-            <!-- 规则概览 -->
-            <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <div class="flex items-center justify-between">
-                <h4 class="text-sm font-semibold text-slate-900">规则概览</h4>
-                <span class="rounded-md px-2 py-1 text-xs font-medium" :class="form.status === DELIVERY_RULE_STATUS.ENABLED ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'">
-                  {{ statusOptions.find(s => s.value === form.status)?.label || '未知' }}
-                </span>
-              </div>
-              <div class="mt-3 space-y-2">
-                <div class="flex items-center justify-between text-sm">
-                  <span class="text-slate-500">规则名称</span>
-                  <span class="font-medium text-slate-900">{{ form.name || '未命名规则' }}</span>
-                </div>
-                <div class="flex items-center justify-between text-sm">
-                  <span class="text-slate-500">优先级</span>
-                  <span class="font-medium text-slate-900">{{ priorityOptions.find(p => p.value === form.priority)?.label || '-' }}</span>
-                </div>
-                <div class="pt-2 border-t border-slate-100">
-                  <div class="text-xs text-slate-600">
-                    <span class="font-medium">触发: </span>{{ currentTriggerConfig?.label || '-' }} ({{ form.trigger.threshold }}{{ currentTriggerConfig?.unit || '' }})
-                  </div>
-                  <div class="mt-1 text-xs text-slate-600">
-                    <span class="font-medium">动作: </span>{{ currentActionConfig?.label || '-' }}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- 影响分析 -->
-            <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-              <h4 class="text-sm font-semibold text-emerald-900">影响分析</h4>
-              <div class="mt-3 space-y-2">
-                <div class="rounded-md border border-emerald-200 bg-white p-3">
-                  <p class="text-xs font-medium text-slate-500">基于 10,000 USDT 订单</p>
-                  <div class="mt-2 flex items-center justify-between">
-                    <span class="text-xs text-slate-600">预估影响成本</span>
-                    <span class="text-sm font-bold" :class="impactAnalysis.impactPercent > 0 ? 'text-rose-600' : impactAnalysis.impactPercent < 0 ? 'text-emerald-600' : 'text-slate-900'">
-                      ${{ impactAnalysis.costImpact }} ({{ Math.abs(impactAnalysis.impactPercent).toFixed(2) }}%)
-                    </span>
-                  </div>
-                </div>
-                <p class="text-xs text-slate-700">{{ impactAnalysis.description }}</p>
-              </div>
-            </div>
-
-            <!-- 规则摘要 -->
+          <div class="flex-1 overflow-y-auto px-5 py-4">
             <div class="rounded-lg border border-blue-200 bg-blue-50 p-4">
-              <h4 class="text-sm font-semibold text-blue-900">规则摘要</h4>
-              <p class="mt-2 text-xs text-blue-700">{{ previewSummary }}</p>
-            </div>
-
-            <!-- 提示信息 -->
-            <div class="rounded-lg border border-amber-200 bg-amber-50 p-4">
-              <div class="flex items-start gap-2">
-                <svg class="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-                </svg>
-                <div class="text-xs text-amber-900">
-                  <p class="font-medium">提示</p>
-                  <p class="mt-1">规则触发后将自动执行设定的动作，请谨慎配置各项参数。建议先在测试环境验证效果。</p>
+              <h4 class="text-sm font-semibold text-blue-900 mb-2">主要参数</h4>
+              <ul class="text-xs text-slate-700 space-y-1">
+                <li>盈利概率：<span class="font-mono">{{ ((form.action.params.profitControl.winProbability || 0) * 100).toFixed(1) }}%</span></li>
+                <li>单笔盈利：<span class="font-mono">+{{ form.action.params.profitControl.avgWinAmount || 0 }}%</span></li>
+                <li>单笔亏损：<span class="font-mono">{{ form.action.params.profitControl.avgLossAmount || 0 }}%</span></li>
+                <li>盈利波动：<span class="font-mono">±{{ form.action.params.profitControl.winFluctuationPercent || 0 }}%</span></li>
+                <li>亏损波动：<span class="font-mono">±{{ form.action.params.profitControl.lossFluctuationPercent || 0 }}%</span></li>
+              </ul>
+              <div class="mt-4 border-t border-blue-100 pt-3">
+                <div class="text-xs text-slate-600 mb-1">期望收益（长期平均）：</div>
+                <div class="text-xl font-bold" :class="calculatedExpectedValue > 0 ? 'text-green-600' : calculatedExpectedValue < 0 ? 'text-red-600' : 'text-slate-700'">
+                  {{ calculatedExpectedValue > 0 ? '+' : '' }}{{ calculatedExpectedValue.toFixed(2) }}%
                 </div>
               </div>
             </div>
