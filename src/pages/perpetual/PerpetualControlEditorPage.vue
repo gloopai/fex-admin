@@ -1,5 +1,6 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
+import MfaVerificationModal from '../../components/MfaVerificationModal.vue'
 import ControlConfigModal from '../../components/ControlConfigModal.vue'
 import {
   PERP_CONTROL_CONTRACT_STATUS,
@@ -58,16 +59,26 @@ const showConfigModal = ref(false)
 const activeConfigContractId = ref('')
 const activeConfig = computed(() => contracts.value.find((item) => item.id === activeConfigContractId.value)?.config || createDefaultPerpetualControlConfig())
 
+// MFA 验证相关
+const showMfaModal = ref(false)
+const pendingSaveData = ref(null)
+const mfaLoading = ref(false)
+const currentSaveAction = ref(null)
+
 const openConfig = (contractId) => {
   activeConfigContractId.value = contractId
   showConfigModal.value = true
 }
 
 const saveConfig = (next) => {
-  contracts.value = contracts.value.map((contract) =>
-    contract.id === activeConfigContractId.value ? { ...contract, config: { ...next } } : contract
-  )
-  showConfigModal.value = false
+  // 准备保存数据
+  pendingSaveData.value = {
+    type: 'CONFIG',
+    contractId: activeConfigContractId.value,
+    config: next
+  }
+  currentSaveAction.value = 'config'
+  showMfaModal.value = true
 }
 
 const showRuleModal = ref(false)
@@ -342,31 +353,16 @@ const saveRule = () => {
   if (needsPositionRatio.value) {
     payload.positionRatio = Number(ruleForm.positionRatio)
   }
-  contracts.value = contracts.value.map((contract) => {
-    if (contract.id !== activeContractId.value) return contract
-    if (editingRuleId.value) {
-      return {
-        ...contract,
-        rules: contract.rules.map((rule) => (rule.id === editingRuleId.value ? { ...rule, ...payload } : rule))
-      }
-    }
-    return {
-      ...contract,
-      rules: [
-        {
-          id: `rule-${Date.now()}`,
-          ...payload,
-          hitCount: 0,
-          lastHitAt: '-'
-        },
-        ...contract.rules
-      ]
-    }
-  })
-
-  showRuleModal.value = false
-  resetRuleForm()
-  editingRuleId.value = null
+  
+  // 准备保存数据，显示 MFA 验证
+  pendingSaveData.value = {
+    type: 'RULE',
+    contractId: activeContractId.value,
+    ruleId: editingRuleId.value,
+    payload
+  }
+  currentSaveAction.value = 'rule'
+  showMfaModal.value = true
 }
 
 const deleteRule = (contractId, ruleId) => {
@@ -393,6 +389,66 @@ const toggleContractStatus = (contractId) => {
       status: contract.status === PERP_CONTROL_CONTRACT_STATUS.RUNNING ? PERP_CONTROL_CONTRACT_STATUS.PAUSED : PERP_CONTROL_CONTRACT_STATUS.RUNNING
     }
   })
+}
+
+// 处理 MFA 验证
+const handleMfaVerify = async (code) => {
+  mfaLoading.value = true
+  
+  try {
+    // TODO: 这里调用后端 API 验证 MFA 验证码
+    // const response = await api.verifyMFA(code)
+    
+    // 模拟 API 调用延迟
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    // 验证成功后执行实际的保存操作
+    if (pendingSaveData.value) {
+      if (currentSaveAction.value === 'config') {
+        // 保存配置
+        contracts.value = contracts.value.map((contract) =>
+          contract.id === pendingSaveData.value.contractId ? { ...contract, config: { ...pendingSaveData.value.config } } : contract
+        )
+        showConfigModal.value = false
+        alert('线控配置保存成功！')
+      } else if (currentSaveAction.value === 'rule') {
+        // 保存规则
+        contracts.value = contracts.value.map((contract) => {
+          if (contract.id !== pendingSaveData.value.contractId) return contract
+          if (pendingSaveData.value.ruleId) {
+            return {
+              ...contract,
+              rules: contract.rules.map((rule) => (rule.id === pendingSaveData.value.ruleId ? { ...rule, ...pendingSaveData.value.payload } : rule))
+            }
+          }
+          return {
+            ...contract,
+            rules: [
+              {
+                id: `rule-${Date.now()}`,
+                ...pendingSaveData.value.payload,
+                hitCount: 0,
+                lastHitAt: '-'
+              },
+              ...contract.rules
+            ]
+          }
+        })
+        showRuleModal.value = false
+        resetRuleForm()
+        editingRuleId.value = null
+        alert('线控规则保存成功！')
+      }
+      
+      pendingSaveData.value = null
+      currentSaveAction.value = null
+      showMfaModal.value = false
+    }
+  } catch (error) {
+    alert('MFA 验证失败：' + (error.message || '请稍后重试'))
+  } finally {
+    mfaLoading.value = false
+  }
 }
 </script>
 
@@ -896,4 +952,14 @@ const toggleContractStatus = (contractId) => {
       </div>
     </section>
   </div>
+
+  <!-- MFA 验证弹窗 -->
+  <MfaVerificationModal
+    v-model:open="showMfaModal"
+    :loading="mfaLoading"
+    title="线控配置验证"
+    description="修改永续合约线控配置属于敏感操作，请输入 MFA 验证码"
+    @verify="handleMfaVerify"
+    @cancel="pendingSaveData = null; currentSaveAction = null"
+  />
 </template>

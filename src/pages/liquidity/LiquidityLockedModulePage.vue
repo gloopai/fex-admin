@@ -1,6 +1,7 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import MfaVerificationModal from '../../components/MfaVerificationModal.vue'
 import {
   ADJUSTMENT_STATUS,
   ADJUSTMENT_TYPE,
@@ -42,6 +43,9 @@ const statusFilter = ref(COMMON_FILTER_ALL)
 // ========== 产品管理 ==========
 const showProductModal = ref(false)
 const editingProductId = ref('')
+const showMfaModal = ref(false)
+const pendingSaveData = ref(null)
+const mfaLoading = ref(false)
 
 const productForm = reactive({
   name: '',
@@ -109,13 +113,40 @@ const saveProduct = () => {
     status: productForm.status
   }
 
-  if (editingProductId.value) {
-    products.value = products.value.map(p => p.id === editingProductId.value ? { ...p, ...payload } : p)
-  } else {
-    products.value.unshift({ id: `prod-${Date.now()}`, ...payload, totalLocked: 0, totalOrders: 0, createdAt: new Date().toISOString().split('T')[0] })
-  }
+  // 保存待提交的数据，先显示 MFA 验证弹窗
+  pendingSaveData.value = payload
+  showMfaModal.value = true
+}
 
-  showProductModal.value = false
+// 处理 MFA 验证
+const handleMfaVerify = async (code) => {
+  mfaLoading.value = true
+  
+  try {
+    // TODO: 这里调用后端 API 验证 MFA 验证码
+    // const response = await api.verifyMFA(code)
+    
+    // 模拟 API 调用延迟
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    // 验证成功后执行实际的保存操作
+    if (pendingSaveData.value) {
+      if (editingProductId.value) {
+        products.value = products.value.map(p => p.id === editingProductId.value ? { ...p, ...pendingSaveData.value } : p)
+      } else {
+        products.value.unshift({ id: `prod-${Date.now()}`, ...pendingSaveData.value, totalLocked: 0, totalOrders: 0, createdAt: new Date().toISOString().split('T')[0] })
+      }
+      
+      showProductModal.value = false
+      pendingSaveData.value = null
+      showMfaModal.value = false
+      alert('产品保存成功！')
+    }
+  } catch (error) {
+    alert('MFA 验证失败：' + (error.message || '请稍后重试'))
+  } finally {
+    mfaLoading.value = false
+  }
 }
 
 const filteredProducts = computed(() => {
@@ -659,5 +690,15 @@ const fmtCurrency = (val, currency, decimals = 2) => {
         </footer>
       </section>
     </div>
+
+    <!-- MFA 验证弹窗 -->
+    <MfaVerificationModal
+      v-model:open="showMfaModal"
+      :loading="mfaLoading"
+      title="安全验证"
+      description="编辑产品比重配置属于敏感操作，请输入 MFA 验证码"
+      @verify="handleMfaVerify"
+      @cancel="pendingSaveData = null"
+    />
   </section>
 </template>

@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, nextTick } from 'vue'
+import MfaVerificationModal from '../../components/MfaVerificationModal.vue'
 import {
   DELIVERY_RULE_STATUS,
   DELIVERY_RULE_PRIORITY,
@@ -21,6 +22,11 @@ const statistics = ref(createRuleStatisticsMock())
 const modalOpen = ref(false)
 const modalMode = ref('create') // 'create' | 'edit' | 'duplicate'
 const currentRule = ref(null)
+
+// MFA 验证相关
+const showMfaModal = ref(false)
+const pendingSaveData = ref(null)
+const mfaLoading = ref(false)
 
 const activeTab = ref('rules')
 const keyword = ref('')
@@ -158,31 +164,65 @@ const closeModal = () => {
 }
 
 const saveRule = (ruleData) => {
-  if (modalMode.value === 'create' || modalMode.value === 'duplicate') {
-    // 新增规则
-    const newRule = {
-      id: `rule_${Date.now()}`,
-      ...ruleData,
-      hitCount: 0,
-      lastHitAt: '-',
-      totalAffectedUsers: 0,
-      createdAt: new Date().toLocaleString('zh-CN'),
-      updatedAt: new Date().toLocaleString('zh-CN')
-    }
-    rules.value.unshift(newRule)
-  } else if (modalMode.value === 'edit') {
-    // 编辑规则
-    const index = rules.value.findIndex(r => r.id === currentRule.value.id)
-    if (index !== -1) {
-      rules.value[index] = {
-        ...rules.value[index],
-        ...ruleData,
-        updatedAt: new Date().toLocaleString('zh-CN')
-      }
-    }
+  // 准备保存数据，显示 MFA 验证
+  pendingSaveData.value = {
+    mode: modalMode.value,
+    ruleData,
+    currentRule: currentRule.value
   }
+  showMfaModal.value = true
+}
+
+// 处理 MFA 验证
+const handleMfaVerify = async (code) => {
+  mfaLoading.value = true
   
-  closeModal()
+  try {
+    // TODO: 这里调用后端 API 验证 MFA 验证码
+    // const response = await api.verifyMFA(code)
+    
+    // 模拟 API 调用延迟
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    // 验证成功后执行实际的保存操作
+    if (pendingSaveData.value) {
+      const { mode, ruleData, currentRule } = pendingSaveData.value
+      
+      if (mode === 'create' || mode === 'duplicate') {
+        // 新增规则
+        const newRule = {
+          id: `rule_${Date.now()}`,
+          ...ruleData,
+          hitCount: 0,
+          lastHitAt: '-',
+          totalAffectedUsers: 0,
+          createdAt: new Date().toLocaleString('zh-CN'),
+          updatedAt: new Date().toLocaleString('zh-CN')
+        }
+        rules.value.unshift(newRule)
+        alert('自动化规则创建成功！')
+      } else if (mode === 'edit') {
+        // 编辑规则
+        const index = rules.value.findIndex(r => r.id === currentRule.id)
+        if (index !== -1) {
+          rules.value[index] = {
+            ...rules.value[index],
+            ...ruleData,
+            updatedAt: new Date().toLocaleString('zh-CN')
+          }
+          alert('自动化规则编辑成功！')
+        }
+      }
+      
+      closeModal()
+      pendingSaveData.value = null
+      showMfaModal.value = false
+    }
+  } catch (error) {
+    alert('MFA 验证失败：' + (error.message || '请稍后重试'))
+  } finally {
+    mfaLoading.value = false
+  }
 }
 </script>
 
@@ -394,20 +434,11 @@ const saveRule = (ruleData) => {
     <!-- 效果统计 -->
     <div v-if="activeTab === 'statistics'">
       <div class="rounded-xl border border-slate-200 bg-white p-6">
-        <h3 class="text-lg font-semibold text-slate-900">过去7天触发趋势</h3>
+        <h3 class="text-lg font-semibold text-slate-900">过去 7 天触发趋势</h3>
         <div class="mt-4 grid grid-cols-7 gap-2">
           <div v-for="data in statistics.performanceData" :key="data.date" class="rounded-lg border border-slate-200 bg-slate-50 p-3 text-center">
             <p class="text-xs text-slate-500">{{ data.date }}</p>
             <p class="mt-2 text-2xl font-bold text-blue-600">{{ data.hits }}</p>
-
-    <!-- 规则配置模态框 -->
-    <DeliveryRuleModal
-      :open="modalOpen"
-      :mode="modalMode"
-      :rule="currentRule"
-      @close="closeModal"
-      @save="saveRule"
-    />
             <p class="mt-1 text-xs text-slate-600">触发次数</p>
             <p class="mt-2 font-semibold text-violet-600">{{ data.affected }}</p>
             <p class="text-xs text-slate-600">影响用户</p>
@@ -430,5 +461,24 @@ const saveRule = (ruleData) => {
         </div>
       </div>
     </div>
+
+    <!-- 规则配置模态框 -->
+    <DeliveryRuleModal
+      :open="modalOpen"
+      :mode="modalMode"
+      :rule="currentRule"
+      @close="closeModal"
+      @save="saveRule"
+    />
+
+    <!-- MFA 验证弹窗 -->
+    <MfaVerificationModal
+      v-model:open="showMfaModal"
+      :loading="mfaLoading"
+      title="自动化规则验证"
+      description="新增或编辑自动化场控规则属于敏感操作，请输入 MFA 验证码"
+      @verify="handleMfaVerify"
+      @cancel="pendingSaveData = null"
+    />
   </section>
 </template>

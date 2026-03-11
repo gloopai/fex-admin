@@ -1,5 +1,6 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
+import MfaVerificationModal from '../../components/MfaVerificationModal.vue'
 import { ASSET_COMMON_FILTER_ALL, ASSET_MODAL_TAB, ASSET_STATUS } from '../../constants/assets'
 import { createAssetsCoinsMock } from '../../mock/assets'
 
@@ -9,6 +10,11 @@ const showEditModal = ref(false)
 const editingCoinId = ref('')
 const modalTab = ref(ASSET_MODAL_TAB.BASIC)
 const activeNetworkId = ref('')
+
+// MFA 验证相关
+const showMfaModal = ref(false)
+const pendingSaveData = ref(null)
+const mfaLoading = ref(false)
 
 const coins = ref(createAssetsCoinsMock())
 
@@ -94,13 +100,40 @@ const saveCoin = () => {
     networks: form.networks.map((n) => ({ ...n, threshold: Number(n.threshold), gasLimit: Number(n.gasLimit) }))
   }
 
-  if (editingCoinId.value) {
-    coins.value = coins.value.map((coin) => (coin.id === editingCoinId.value ? { ...coin, ...payload } : coin))
-  } else {
-    coins.value.unshift({ id: `coin-${Date.now()}`, ...payload })
-  }
+  // 保存待提交的数据，先显示 MFA 验证弹窗
+  pendingSaveData.value = payload
+  showMfaModal.value = true
+}
 
-  showEditModal.value = false
+// 处理 MFA 验证
+const handleMfaVerify = async (code) => {
+  mfaLoading.value = true
+  
+  try {
+    // TODO: 这里调用后端 API 验证 MFA 验证码
+    // const response = await api.verifyMFA(code)
+    
+    // 模拟 API 调用延迟
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    // 验证成功后执行实际的保存操作
+    if (pendingSaveData.value) {
+      if (editingCoinId.value) {
+        coins.value = coins.value.map((coin) => (coin.id === editingCoinId.value ? { ...coin, ...pendingSaveData.value } : coin))
+      } else {
+        coins.value.unshift({ id: `coin-${Date.now()}`, ...pendingSaveData.value })
+      }
+
+      showEditModal.value = false
+      pendingSaveData.value = null
+      showMfaModal.value = false
+      alert('币种配置保存成功！')
+    }
+  } catch (error) {
+    alert('MFA 验证失败：' + (error.message || '请稍后重试'))
+  } finally {
+    mfaLoading.value = false
+  }
 }
 
 const badgeClass = (status) => (status === ASSET_STATUS.ENABLED ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600')
@@ -310,4 +343,14 @@ const badgeClass = (status) => (status === ASSET_STATUS.ENABLED ? 'bg-emerald-10
       </footer>
     </section>
   </div>
+
+  <!-- MFA 验证弹窗 -->
+  <MfaVerificationModal
+    v-model:open="showMfaModal"
+    :loading="mfaLoading"
+    title="安全验证"
+    description="编辑币种配置属于敏感操作，请输入 MFA 验证码"
+    @verify="handleMfaVerify"
+    @cancel="pendingSaveData = null"
+  />
 </template>
