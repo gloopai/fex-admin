@@ -4,7 +4,11 @@ import {
   ASSET_COLLECT_MODE,
   ASSET_COLLECT_RECORD_STATUS,
   ASSET_STATUS,
-  ASSET_WALLET_STATUS
+  ASSET_WALLET_STATUS,
+  EXCHANGE_RATE_SOURCE,
+  EXCHANGE_RATE_TYPE,
+  USER_LEVEL_TIER,
+  FEE_TEMPLATE_TYPE
 } from '../constants/assets'
 
 const clone = (value) => JSON.parse(JSON.stringify(value))
@@ -236,9 +240,179 @@ const manualCollectWalletSource = {
   'BTC|Bitcoin (Native)': buildWallets('1BTC', 19, 0.01, 'BTC')
 }
 
+const exchangeRatePairs = [
+  {
+    id: 'usdt-btc',
+    baseAsset: 'USDT',
+    quoteAsset: 'BTC',
+    source: EXCHANGE_RATE_SOURCE.BINANCE,
+    type: EXCHANGE_RATE_TYPE.FLOATING,
+    marketRate: 0.000023,
+    buyMarkup: 0.005,
+    sellMarkup: 0.005,
+    buyRate: 0.000023115,
+    sellRate: 0.000022885,
+    enabled: true,
+    autoReverse: true,
+    feeTemplateId: 'template-standard',
+    userLevelRates: {
+      [USER_LEVEL_TIER.BASIC]: { buy: 0.005, sell: 0.005 },
+      [USER_LEVEL_TIER.SILVER]: { buy: 0.004, sell: 0.004 },
+      [USER_LEVEL_TIER.GOLD]: { buy: 0.003, sell: 0.003 },
+      [USER_LEVEL_TIER.PLATINUM]: { buy: 0.002, sell: 0.002 },
+      [USER_LEVEL_TIER.VIP]: { buy: 0.001, sell: 0.001 }
+    },
+    lastUpdate: '2026-03-11 10:30:00'
+  },
+  {
+    id: 'usd-usdt',
+    baseAsset: 'USD',
+    quoteAsset: 'USDT',
+    source: EXCHANGE_RATE_SOURCE.OKX,
+    type: EXCHANGE_RATE_TYPE.FLOATING,
+    marketRate: 1.0002,
+    buyMarkup: 0.003,
+    sellMarkup: 0.003,
+    buyRate: 1.0032,
+    sellRate: 0.9972,
+    enabled: true,
+    autoReverse: false,
+    feeTemplateId: 'template-premium',
+    userLevelRates: {
+      [USER_LEVEL_TIER.BASIC]: { buy: 0.003, sell: 0.003 },
+      [USER_LEVEL_TIER.SILVER]: { buy: 0.0025, sell: 0.0025 },
+      [USER_LEVEL_TIER.GOLD]: { buy: 0.002, sell: 0.002 },
+      [USER_LEVEL_TIER.PLATINUM]: { buy: 0.0015, sell: 0.0015 },
+      [USER_LEVEL_TIER.VIP]: { buy: 0.001, sell: 0.001 }
+    },
+    lastUpdate: '2026-03-11 10:29:45'
+  },
+  {
+    id: 'eth-usdt',
+    baseAsset: 'ETH',
+    quoteAsset: 'USDT',
+    source: EXCHANGE_RATE_SOURCE.COINGECKO,
+    type: EXCHANGE_RATE_TYPE.FLOATING,
+    marketRate: 3250.50,
+    buyMarkup: 0.008,
+    sellMarkup: 0.008,
+    buyRate: 3276.50,
+    sellRate: 3224.50,
+    enabled: true,
+    autoReverse: true,
+    userLevelRates: {
+      [USER_LEVEL_TIER.BASIC]: { buy: 0.008, sell: 0.008 },
+      [USER_LEVEL_TIER.SILVER]: { buy: 0.006, sell: 0.006 },
+      [USER_LEVEL_TIER.GOLD]: { buy: 0.004, sell: 0.004 },
+      [USER_LEVEL_TIER.PLATINUM]: { buy: 0.003, sell: 0.003 },
+      [USER_LEVEL_TIER.VIP]: { buy: 0.002, sell: 0.002 }
+    },
+    lastUpdate: '2026-03-11 10:30:15'
+  },
+  {
+    id: 'btc-usd',
+    baseAsset: 'BTC',
+    quoteAsset: 'USD',
+    source: EXCHANGE_RATE_SOURCE.CUSTOM,
+    type: EXCHANGE_RATE_TYPE.FIXED,
+    marketRate: 43500.00,
+    buyMarkup: 0.01,
+    sellMarkup: 0.01,
+    buyRate: 43935.00,
+    sellRate: 43065.00,
+    enabled: false,
+    autoReverse: true,
+    userLevelRates: {
+      [USER_LEVEL_TIER.BASIC]: { buy: 0.01, sell: 0.01 },
+      [USER_LEVEL_TIER.SILVER]: { buy: 0.008, sell: 0.008 },
+      [USER_LEVEL_TIER.GOLD]: { buy: 0.006, sell: 0.006 },
+      [USER_LEVEL_TIER.PLATINUM]: { buy: 0.004, sell: 0.004 },
+      [USER_LEVEL_TIER.VIP]: { buy: 0.002, sell: 0.002 }
+    },
+    lastUpdate: '2026-03-11 09:00:00'
+  }
+]
+
+const feeTemplates = [
+  {
+    id: 'template-standard',
+    name: '标准费率模板',
+    type: FEE_TEMPLATE_TYPE.STANDARD,
+    description: '适用于主流交易对的标准费率配置',
+    baseMarkup: { buy: 0.005, sell: 0.005 },
+    userLevelRates: {
+      [USER_LEVEL_TIER.BASIC]: { buy: 0.005, sell: 0.005 },
+      [USER_LEVEL_TIER.SILVER]: { buy: 0.004, sell: 0.004 },
+      [USER_LEVEL_TIER.GOLD]: { buy: 0.003, sell: 0.003 },
+      [USER_LEVEL_TIER.PLATINUM]: { buy: 0.002, sell: 0.002 },
+      [USER_LEVEL_TIER.VIP]: { buy: 0.001, sell: 0.001 }
+    },
+    enabled: true,
+    usageCount: 12,
+    createdAt: '2026-02-01 10:00:00',
+    updatedAt: '2026-03-10 15:30:00'
+  },
+  {
+    id: 'template-premium',
+    name: '优惠费率模板',
+    type: FEE_TEMPLATE_TYPE.PREMIUM,
+    description: '适用于高流动性交易对的优惠费率',
+    baseMarkup: { buy: 0.003, sell: 0.003 },
+    userLevelRates: {
+      [USER_LEVEL_TIER.BASIC]: { buy: 0.003, sell: 0.003 },
+      [USER_LEVEL_TIER.SILVER]: { buy: 0.0025, sell: 0.0025 },
+      [USER_LEVEL_TIER.GOLD]: { buy: 0.002, sell: 0.002 },
+      [USER_LEVEL_TIER.PLATINUM]: { buy: 0.0015, sell: 0.0015 },
+      [USER_LEVEL_TIER.VIP]: { buy: 0.001, sell: 0.001 }
+    },
+    enabled: true,
+    usageCount: 8,
+    createdAt: '2026-02-05 14:20:00',
+    updatedAt: '2026-03-09 11:45:00'
+  },
+  {
+    id: 'template-vip',
+    name: 'VIP 专属费率模板',
+    type: FEE_TEMPLATE_TYPE.VIP,
+    description: '适用于高端用户的极低费率配置',
+    baseMarkup: { buy: 0.002, sell: 0.002 },
+    userLevelRates: {
+      [USER_LEVEL_TIER.BASIC]: { buy: 0.002, sell: 0.002 },
+      [USER_LEVEL_TIER.SILVER]: { buy: 0.0015, sell: 0.0015 },
+      [USER_LEVEL_TIER.GOLD]: { buy: 0.001, sell: 0.001 },
+      [USER_LEVEL_TIER.PLATINUM]: { buy: 0.0008, sell: 0.0008 },
+      [USER_LEVEL_TIER.VIP]: { buy: 0.0005, sell: 0.0005 }
+    },
+    enabled: true,
+    usageCount: 5,
+    createdAt: '2026-02-10 09:15:00',
+    updatedAt: '2026-03-08 16:20:00'
+  },
+  {
+    id: 'template-custom-high',
+    name: '高收益费率模板',
+    type: FEE_TEMPLATE_TYPE.CUSTOM,
+    description: '适用于长尾交易对的高费率配置',
+    baseMarkup: { buy: 0.01, sell: 0.01 },
+    userLevelRates: {
+      [USER_LEVEL_TIER.BASIC]: { buy: 0.01, sell: 0.01 },
+      [USER_LEVEL_TIER.SILVER]: { buy: 0.008, sell: 0.008 },
+      [USER_LEVEL_TIER.GOLD]: { buy: 0.006, sell: 0.006 },
+      [USER_LEVEL_TIER.PLATINUM]: { buy: 0.004, sell: 0.004 },
+      [USER_LEVEL_TIER.VIP]: { buy: 0.002, sell: 0.002 }
+    },
+    enabled: false,
+    usageCount: 3,
+    createdAt: '2026-02-15 11:30:00',
+    updatedAt: '2026-03-05 10:00:00'
+  }
+]
+
 export const createAssetsCoinsMock = () => clone(assetsCoins)
 export const createAssetsCollectRecordsMock = () => clone(assetsCollectRecords)
 export const createAssetsAddressLogsMock = () => clone(assetsAddressLogs)
+export const createExchangeRatePairsMock = () => clone(exchangeRatePairs)
+export const createFeeTemplatesMock = () => clone(feeTemplates)
 
 export const createManualCollectConfigMock = () =>
   clone({

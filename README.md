@@ -16,6 +16,12 @@ npm run dev
 - Orders page
 - Settings page
 - Tailwind theme extension and base design tokens
+- **资金管理模块**
+  - 币种管理
+  - **兑换汇率管理** (新增)
+  - 手动归集
+  - 归集记录
+  - 链上交易日志
 
 ## Suggested Next Steps
 

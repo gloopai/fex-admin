@@ -40,3 +40,30 @@ export const ASSET_WALLET_STATUS = {
   COLLECTABLE: 'collectable',
   BELOW: 'below'
 }
+
+export const EXCHANGE_RATE_SOURCE = {
+  BINANCE: 'binance',
+  OKX: 'okx',
+  COINGECKO: 'coingecko',
+  CUSTOM: 'custom'
+}
+
+export const EXCHANGE_RATE_TYPE = {
+  FLOATING: 'floating',
+  FIXED: 'fixed'
+}
+
+export const USER_LEVEL_TIER = {
+  BASIC: 'basic',
+  SILVER: 'silver',
+  GOLD: 'gold',
+  PLATINUM: 'platinum',
+  VIP: 'vip'
+}
+
+export const FEE_TEMPLATE_TYPE = {
+  STANDARD: 'standard',
+  PREMIUM: 'premium',
+  VIP: 'vip',
+  CUSTOM: 'custom'
+}

@@ -119,6 +119,11 @@ const routes = [
         component: () => import('../pages/assets/AssetsCurrencyPage.vue')
       },
       {
+        path: 'assets/exchange-fee',
+        name: 'assets-exchange-fee',
+        component: () => import('../pages/assets/AssetsExchangeAndFeePage.vue')
+      },
+      {
         path: 'assets/manual-collect',
         name: 'assets-manual-collect',
         component: () => import('../pages/assets/AssetsManualCollectPage.vue')
