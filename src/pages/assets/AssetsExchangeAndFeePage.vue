@@ -470,6 +470,11 @@ const templateTypeBadgeClass = (type) => {
   }
   return map[type] || 'bg-slate-50 text-slate-600'
 }
+const getTemplateName = (templateId) => {
+  if (!templateId) return '手动配置'
+  const template = feeTemplates.value.find(t => t.id === templateId)
+  return template ? template.name : '未知模板'
+}
 </script>
 
 <template>
@@ -572,19 +577,21 @@ const templateTypeBadgeClass = (type) => {
           <!-- 核心汇率数据 -->
           <div class="grid flex-1 grid-cols-2 gap-4 p-4 md:grid-cols-4">
             <div class="space-y-1">
-              <p class="text-[10px] font-medium uppercase tracking-wider text-slate-400">买入价格</p>
-              <p class="text-base font-bold text-emerald-600">{{ pair.buyRate }}</p>
-              <p class="text-[10px] text-slate-500">费率 {{ (pair.buyMarkup * 100).toFixed(2) }}%</p>
+              <p class="text-[10px] font-medium uppercase tracking-wider text-slate-400">市场中间价</p>
+              <p class="text-base font-bold text-slate-900">{{ pair.marketRate }}</p>
+              <p class="text-[10px] text-slate-500">数据源 {{ sourceLabel(pair.source) }}</p>
             </div>
             <div class="space-y-1 border-r border-slate-50 md:border-r-0">
-              <p class="text-[10px] font-medium uppercase tracking-wider text-slate-400">卖出价格</p>
-              <p class="text-base font-bold text-rose-600">{{ pair.sellRate }}</p>
-              <p class="text-[10px] text-slate-500">费率 {{ (pair.sellMarkup * 100).toFixed(2) }}%</p>
+              <p class="text-[10px] font-medium uppercase tracking-wider text-slate-400">兑换费率加成</p>
+              <p class="text-sm font-bold text-blue-600">正 {{ (pair.sellMarkup * 100).toFixed(2) }}% / 逆 {{ (pair.buyMarkup * 100).toFixed(2) }}%</p>
+              <p class="text-[10px] text-slate-500">{{ getTemplateName(pair.feeTemplateId) }}</p>
             </div>
             <div class="space-y-1 md:col-span-2">
-              <p class="text-[10px] font-medium uppercase tracking-wider text-slate-400">最后更新</p>
+              <p class="text-[10px] font-medium uppercase tracking-wider text-slate-400">状态与更新</p>
               <p class="text-sm font-medium text-slate-600">{{ pair.lastUpdate }}</p>
-              <p class="text-[10px] text-slate-400">市场价 {{ pair.marketRate }}</p>
+              <p class="text-[10px] text-slate-400">
+                反向映射：<span :class="pair.autoReverse ? 'text-indigo-600 font-medium' : 'text-slate-400'">{{ pair.autoReverse ? '已开启' : '已关闭' }}</span>
+              </p>
             </div>
           </div>
 
@@ -635,11 +642,11 @@ const templateTypeBadgeClass = (type) => {
               <p class="text-xs font-semibold text-emerald-900">基础费率设置</p>
               <div class="mt-2 grid grid-cols-2 gap-2 text-xs">
                 <div class="rounded border border-emerald-100 bg-white px-2.5 py-2">
-                  <p class="text-slate-500">买入费率</p>
+                  <p class="text-slate-500">逆向费率 (Quote → Base)</p>
                   <p class="mt-1 font-semibold text-emerald-600">{{ ((Number(template.baseMarkup.buy) || 0) * 100).toFixed(2) }}%</p>
                 </div>
                 <div class="rounded border border-emerald-100 bg-white px-2.5 py-2">
-                  <p class="text-slate-500">卖出费率</p>
+                  <p class="text-slate-500">正向费率 (Base → Quote)</p>
                   <p class="mt-1 font-semibold text-rose-600">{{ ((Number(template.baseMarkup.sell) || 0) * 100).toFixed(2) }}%</p>
                 </div>
               </div>
@@ -656,7 +663,7 @@ const templateTypeBadgeClass = (type) => {
                 </div>
                 <div v-for="([level, rates]) in getVisibleTemplateLevelEntries(template)" :key="`${template.id}-${level}`" class="flex items-center justify-between rounded border border-violet-100 bg-white px-2.5 py-2 text-xs">
                   <span class="font-medium text-slate-700">{{ vipLevelLabel(level) }}</span>
-                  <span class="text-slate-500">买 {{ ((Number(rates.buy) || 0) * 100).toFixed(2) }}% / 卖 {{ ((Number(rates.sell) || 0) * 100).toFixed(2) }}%</span>
+                  <span class="text-slate-500">逆 {{ ((Number(rates.buy) || 0) * 100).toFixed(2) }}% / 正 {{ ((Number(rates.sell) || 0) * 100).toFixed(2) }}%</span>
                 </div>
                 <button
                   v-if="hasMoreTemplateLevels(template)"
@@ -711,8 +718,8 @@ const templateTypeBadgeClass = (type) => {
                   >
                     <option value="">请选择费率模板</option>
                     <option v-for="template in feeTemplates.filter(t => t.enabled)" :key="template.id" :value="template.id">
-                      {{ template.name }} (买：{{ (template.baseMarkup.buy * 100).toFixed(2) }}% | 卖：{{ (template.baseMarkup.sell * 100).toFixed(2) }}%)
-                    </option>
+                  {{ template.name }} (逆：{{ (template.baseMarkup.buy * 100).toFixed(2) }}% | 正：{{ (template.baseMarkup.sell * 100).toFixed(2) }}%)
+                </option>
                   </select>
                 </label>
                 <label class="space-y-2">
@@ -813,8 +820,8 @@ const templateTypeBadgeClass = (type) => {
                 <p class="font-medium text-slate-900">{{ selectedRateTemplate?.name || '未选择模板（当前为手动配置）' }}</p>
                 <p class="mt-1 text-xs text-slate-500">{{ selectedRateTemplate?.description || '可直接编辑当前交易对的基础费率与 VIP 分级费率' }}</p>
                 <div class="mt-2 space-y-1 text-xs text-slate-600">
-                  <p>买入费率：<span class="font-semibold text-emerald-600">{{ ((Number(rateForm.buyMarkup) || 0) * 100).toFixed(2) }}%</span></p>
-                  <p>卖出费率：<span class="font-semibold text-rose-600">{{ ((Number(rateForm.sellMarkup) || 0) * 100).toFixed(2) }}%</span></p>
+                  <p>逆向费率 (Quote → Base)：<span class="font-semibold text-emerald-600">{{ ((Number(rateForm.buyMarkup) || 0) * 100).toFixed(2) }}%</span></p>
+                  <p>正向费率 (Base → Quote)：<span class="font-semibold text-rose-600">{{ ((Number(rateForm.sellMarkup) || 0) * 100).toFixed(2) }}%</span></p>
                 </div>
               </div>
             </div>
@@ -831,7 +838,7 @@ const templateTypeBadgeClass = (type) => {
                 <div v-for="([level, rates]) in getVisibleRatePreviewLevelEntries()" :key="level" class="rounded-md border border-violet-100 bg-white p-3 text-xs">
                   <div class="flex items-center justify-between">
                     <span class="font-semibold text-slate-700">{{ vipLevelLabel(level) }}</span>
-                    <span class="text-slate-500">买 {{ ((Number(rates.buy) || 0) * 100).toFixed(2) }}% / 卖 {{ ((Number(rates.sell) || 0) * 100).toFixed(2) }}%</span>
+                    <span class="text-slate-500">逆向 {{ ((Number(rates.buy) || 0) * 100).toFixed(2) }}% / 正向 {{ ((Number(rates.sell) || 0) * 100).toFixed(2) }}%</span>
                   </div>
                 </div>
                 <button
@@ -898,13 +905,13 @@ const templateTypeBadgeClass = (type) => {
 
             <div class="grid gap-3.5 md:grid-cols-2 rounded-lg bg-white p-4">
               <label class="space-y-1.5">
-                <span class="text-sm font-medium text-slate-700">买入手续费率 (%)</span>
-                <input v-model.number="templateForm.baseMarkup.buy" type="number" step="0.001" @input="updateBaseMarkup" class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
-              </label>
-              <label class="space-y-1.5">
-                <span class="text-sm font-medium text-slate-700">卖出手续费率 (%)</span>
-                <input v-model.number="templateForm.baseMarkup.sell" type="number" step="0.001" @input="updateBaseMarkup" class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
-              </label>
+                  <span class="text-sm font-medium text-slate-700">逆向费率加成 (Quote → Base, %)</span>
+                  <input v-model.number="templateForm.baseMarkup.buy" type="number" step="0.001" @input="updateBaseMarkup" class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+                </label>
+                <label class="space-y-1.5">
+                  <span class="text-sm font-medium text-slate-700">正向费率加成 (Base → Quote, %)</span>
+                  <input v-model.number="templateForm.baseMarkup.sell" type="number" step="0.001" @input="updateBaseMarkup" class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+                </label>
             </div>
             <p class="text-xs text-blue-700">修改基础费率将按 VIP 模块等级重新生成分级费率</p>
           </section>
