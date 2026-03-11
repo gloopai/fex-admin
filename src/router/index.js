@@ -58,6 +58,11 @@ const routes = [
         component: () => import('../pages/perpetual/GuidePage.vue')
       },
       {
+        path: 'perpetual/orders',
+        name: 'perpetual-orders',
+        component: () => import('../pages/perpetual/PerpetualOrderPage.vue')
+      },
+      {
         path: 'delivery',
         redirect: '/delivery/contracts'
       },
@@ -90,6 +95,11 @@ const routes = [
         path: 'delivery/guide',
         name: 'delivery-guide',
         component: () => import('../pages/delivery/DeliveryGuidePage.vue')
+      },
+      {
+        path: 'delivery/orders',
+        name: 'delivery-orders',
+        component: () => import('../pages/delivery/DeliveryOrderPage.vue')
       },
       {
         path: 'delivery/overview',
@@ -248,6 +258,22 @@ const routes = [
         path: 'ai-quant/rules',
         name: 'ai-quant-rules',
         component: () => import('../pages/aiQuant/AiQuantRulePage.vue')
+      },
+      
+      // 现货交易路由
+      {
+        path: 'spot',
+        redirect: '/spot/products'
+      },
+      {
+        path: 'spot/products',
+        name: 'spot-products',
+        component: () => import('../pages/spot/SpotProductPage.vue')
+      },
+      {
+        path: 'spot/orders',
+        name: 'spot-orders',
+        component: () => import('../pages/spot/SpotOrderPage.vue')
       },
       
       // 用户管理路由

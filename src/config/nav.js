@@ -42,6 +42,7 @@ export const navTree = [
     defaultOpen: true,
     children: [
       { title: '合约产品', path: '/perpetual/overview' },
+      { title: '订单管理', path: '/perpetual/orders' },
       { title: '合约线控', path: '/perpetual/contract-monitor' },
       { title: '合约线控日志', path: '/perpetual/contract-log' },
       { title: '线控决策报表', path: '/perpetual/report' },
@@ -53,11 +54,20 @@ export const navTree = [
     icon: 'delivery',
     children: [
       { title: '交割合约', path: '/delivery/contracts' },
+      { title: '订单管理', path: '/delivery/orders' },
       { title: '自动化场控', path: '/delivery/auto-rules' },
       { title: '场控触发日志', path: '/delivery/rule-history' },
       // { title: '规则效果统计', path: '/delivery/rule-statistics' },
       { title: '场控决策报表', path: '/delivery/report' },
       { title: '使用指南', path: '/delivery/guide' }
+    ]
+  },
+   {
+    title: '现货交易',
+    icon: 'exchange',
+    children: [
+      { title: '产品管理', path: '/spot/products' },
+      { title: '订单管理', path: '/spot/orders' }
     ]
   },
   {
@@ -103,5 +113,6 @@ export const navTree = [
       { title: '调控管理', path: '/ai-quant/control' },
       { title: '规则说明', path: '/ai-quant/rules' }
     ]
-  }
+  },
+ 
 ]
