@@ -67,7 +67,7 @@ export const navTree = [
       { title: '币种管理', path: '/assets/currencies' },
       { title: '手动归集', path: '/assets/manual-collect' },
       { title: '归集记录', path: '/assets/collect-records' },
-      { title: '地址日志', path: '/assets/address-logs' }
+      { title: '链上交易日志', path: '/assets/address-logs' }
     ]
   },
   {
