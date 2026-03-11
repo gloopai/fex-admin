@@ -481,8 +481,8 @@ const getTemplateName = (templateId) => {
   <section class="space-y-4">
     <header class="flex flex-wrap items-start justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-semibold text-slate-900">汇率与费率管理</h1>
-        <p class="mt-1 text-sm text-slate-500">管理交易对汇率和可复用的费率模板</p>
+        <h1 class="text-3xl font-semibold text-slate-900">闪兑汇率与费率管理</h1>
+        <p class="mt-1 text-sm text-slate-500">管理闪兑模块兑换汇率以及手续费</p>
       </div>
       <button
         type="button"
