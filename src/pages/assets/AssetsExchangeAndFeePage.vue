@@ -451,26 +451,7 @@ const sourceLabel = (source) => {
   return map[source] || source
 }
 
-const templateTypeLabel = (type) => {
-  const map = {
-    [FEE_TEMPLATE_TYPE.STANDARD]: '标准',
-    [FEE_TEMPLATE_TYPE.PREMIUM]: '优惠',
-    [FEE_TEMPLATE_TYPE.VIP]: 'VIP',
-    [FEE_TEMPLATE_TYPE.CUSTOM]: '自定义'
-  }
-  return map[type] || type
-}
-
-const templateTypeBadgeClass = (type) => {
-  const map = {
-    [FEE_TEMPLATE_TYPE.STANDARD]: 'bg-blue-50 text-blue-600',
-    [FEE_TEMPLATE_TYPE.PREMIUM]: 'bg-purple-50 text-purple-600',
-    [FEE_TEMPLATE_TYPE.VIP]: 'bg-amber-50 text-amber-600',
-    [FEE_TEMPLATE_TYPE.CUSTOM]: 'bg-slate-50 text-slate-600'
-  }
-  return map[type] || 'bg-slate-50 text-slate-600'
-}
-const getTemplateName = (templateId) => {
+const getFeeTemplateName = (templateId) => {
   if (!templateId) return '手动配置'
   const template = feeTemplates.value.find(t => t.id === templateId)
   return template ? template.name : '未知模板'
@@ -583,8 +564,11 @@ const getTemplateName = (templateId) => {
             </div>
             <div class="space-y-1 border-r border-slate-50 md:border-r-0">
               <p class="text-xs font-medium uppercase tracking-wider text-slate-400">兑换费率加成</p>
-              <p class="text-sm font-bold text-blue-600">正 {{ (pair.sellMarkup * 100).toFixed(2) }}% / 逆 {{ (pair.buyMarkup * 100).toFixed(2) }}%</p>
-              <p class="text-xs text-slate-500">{{ getTemplateName(pair.feeTemplateId) }}</p>
+              <p class="text-sm font-bold text-blue-600">
+                <span class="text-emerald-600">→{{ pair.quoteAsset }} {{ (pair.sellMarkup * 100).toFixed(2) }}%</span> / 
+                <span class="text-rose-600">→{{ pair.baseAsset }} {{ (pair.buyMarkup * 100).toFixed(2) }}%</span>
+              </p>
+              <p class="text-xs text-slate-500">{{ getFeeTemplateName(pair.feeTemplateId) }}</p>
             </div>
             <div class="space-y-1 md:col-span-2">
               <p class="text-xs font-medium uppercase tracking-wider text-slate-400">状态与更新</p>
@@ -642,11 +626,11 @@ const getTemplateName = (templateId) => {
               <p class="text-xs font-semibold text-emerald-900">基础费率设置</p>
               <div class="mt-2 grid grid-cols-2 gap-2 text-xs">
                 <div class="rounded border border-emerald-100 bg-white px-2.5 py-2">
-                  <p class="text-slate-500">逆向费率 (Quote → Base)</p>
+                  <p class="text-slate-500">回兑费率 (目标币 → 基础币, Q→B)</p>
                   <p class="mt-1 font-semibold text-emerald-600">{{ ((Number(template.baseMarkup.buy) || 0) * 100).toFixed(2) }}%</p>
                 </div>
                 <div class="rounded border border-emerald-100 bg-white px-2.5 py-2">
-                  <p class="text-slate-500">正向费率 (Base → Quote)</p>
+                  <p class="text-slate-500">兑换费率 (基础币 → 目标币, B→Q)</p>
                   <p class="mt-1 font-semibold text-rose-600">{{ ((Number(template.baseMarkup.sell) || 0) * 100).toFixed(2) }}%</p>
                 </div>
               </div>
@@ -663,7 +647,7 @@ const getTemplateName = (templateId) => {
                 </div>
                 <div v-for="([level, rates]) in getVisibleTemplateLevelEntries(template)" :key="`${template.id}-${level}`" class="flex items-center justify-between rounded border border-violet-100 bg-white px-2.5 py-2 text-xs">
                   <span class="font-medium text-slate-700">{{ vipLevelLabel(level) }}</span>
-                  <span class="text-slate-500">逆 {{ ((Number(rates.buy) || 0) * 100).toFixed(2) }}% / 正 {{ ((Number(rates.sell) || 0) * 100).toFixed(2) }}%</span>
+                  <span class="text-slate-500">回兑 {{ ((Number(rates.buy) || 0) * 100).toFixed(2) }}% / 兑换 {{ ((Number(rates.sell) || 0) * 100).toFixed(2) }}%</span>
                 </div>
                 <button
                   v-if="hasMoreTemplateLevels(template)"
@@ -820,8 +804,8 @@ const getTemplateName = (templateId) => {
                 <p class="font-medium text-slate-900">{{ selectedRateTemplate?.name || '未选择模板（当前为手动配置）' }}</p>
                 <p class="mt-1 text-xs text-slate-500">{{ selectedRateTemplate?.description || '可直接编辑当前交易对的基础费率与 VIP 分级费率' }}</p>
                 <div class="mt-2 space-y-1 text-xs text-slate-600">
-                  <p>逆向费率 (Quote → Base)：<span class="font-semibold text-emerald-600">{{ ((Number(rateForm.buyMarkup) || 0) * 100).toFixed(2) }}%</span></p>
-                  <p>正向费率 (Base → Quote)：<span class="font-semibold text-rose-600">{{ ((Number(rateForm.sellMarkup) || 0) * 100).toFixed(2) }}%</span></p>
+                  <p>{{ rateForm.quoteAsset || '目标币' }} → {{ rateForm.baseAsset || '基础币' }} (回兑)：<span class="font-semibold text-emerald-600">{{ ((Number(rateForm.buyMarkup) || 0) * 100).toFixed(2) }}%</span></p>
+                  <p>{{ rateForm.baseAsset || '基础币' }} → {{ rateForm.quoteAsset || '目标币' }} (兑换)：<span class="font-semibold text-rose-600">{{ ((Number(rateForm.sellMarkup) || 0) * 100).toFixed(2) }}%</span></p>
                 </div>
               </div>
             </div>
@@ -838,7 +822,7 @@ const getTemplateName = (templateId) => {
                 <div v-for="([level, rates]) in getVisibleRatePreviewLevelEntries()" :key="level" class="rounded-md border border-violet-100 bg-white p-3 text-xs">
                   <div class="flex items-center justify-between">
                     <span class="font-semibold text-slate-700">{{ vipLevelLabel(level) }}</span>
-                    <span class="text-slate-500">逆向 {{ ((Number(rates.buy) || 0) * 100).toFixed(2) }}% / 正向 {{ ((Number(rates.sell) || 0) * 100).toFixed(2) }}%</span>
+                    <span class="text-slate-500">回兑 {{ ((Number(rates.buy) || 0) * 100).toFixed(2) }}% / 兑换 {{ ((Number(rates.sell) || 0) * 100).toFixed(2) }}%</span>
                   </div>
                 </div>
                 <button
@@ -905,15 +889,15 @@ const getTemplateName = (templateId) => {
 
             <div class="grid gap-3.5 md:grid-cols-2 rounded-lg bg-white p-4">
               <label class="space-y-1.5">
-                  <span class="text-sm font-medium text-slate-700">逆向费率加成 (Quote → Base, %)</span>
+                  <span class="text-sm font-medium text-slate-700">回兑费率加成 (目标币 → 基础币, %)</span>
                   <input v-model.number="templateForm.baseMarkup.buy" type="number" step="0.001" @input="updateBaseMarkup" class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
                 </label>
                 <label class="space-y-1.5">
-                  <span class="text-sm font-medium text-slate-700">正向费率加成 (Base → Quote, %)</span>
+                  <span class="text-sm font-medium text-slate-700">兑换费率加成 (基础币 → 目标币, %)</span>
                   <input v-model.number="templateForm.baseMarkup.sell" type="number" step="0.001" @input="updateBaseMarkup" class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
                 </label>
             </div>
-            <p class="text-xs text-blue-700">修改基础费率将按 VIP 模块等级重新生成分级费率</p>
+
           </section>
 
           <section class="space-y-4 rounded-xl border border-violet-200 bg-gradient-to-br from-violet-50 to-purple-50 p-5 shadow-sm">
@@ -943,11 +927,11 @@ const getTemplateName = (templateId) => {
                 </div>
                 <div class="grid gap-3 md:grid-cols-2">
                   <label class="space-y-1.5">
-                    <span class="text-xs text-slate-600">买入费率 (%)</span>
+                    <span class="text-xs text-slate-600">回兑费率 (%)</span>
                     <input v-model.number="templateForm.userLevelRates[`vip${vip.level}`].buy" type="number" step="0.001" class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100" />
                   </label>
                   <label class="space-y-1.5">
-                    <span class="text-xs text-slate-600">卖出费率 (%)</span>
+                    <span class="text-xs text-slate-600">兑换费率 (%)</span>
                     <input v-model.number="templateForm.userLevelRates[`vip${vip.level}`].sell" type="number" step="0.001" class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100" />
                   </label>
                 </div>
@@ -988,11 +972,11 @@ const getTemplateName = (templateId) => {
             <h4 class="text-sm font-semibold text-emerald-900">基础费率预览</h4>
             <div class="mt-3 rounded-md border border-emerald-100 bg-white p-3 text-sm">
               <div class="flex items-center justify-between">
-                <span class="text-slate-500">买入费率</span>
+                <span class="text-slate-500">回兑费率 (Q→B)</span>
                 <span class="font-semibold text-emerald-600">{{ ((Number(templateForm.baseMarkup.buy) || 0) * 100).toFixed(2) }}%</span>
               </div>
               <div class="mt-2 flex items-center justify-between">
-                <span class="text-slate-500">卖出费率</span>
+                <span class="text-slate-500">兑换费率 (B→Q)</span>
                 <span class="font-semibold text-rose-600">{{ ((Number(templateForm.baseMarkup.sell) || 0) * 100).toFixed(2) }}%</span>
               </div>
             </div>
@@ -1008,11 +992,11 @@ const getTemplateName = (templateId) => {
                 暂无分级费率数据
               </div>
               <div v-for="([level, rates]) in getVisibleTemplatePreviewLevelEntries()" :key="level" class="rounded-md border border-violet-100 bg-white p-3 text-xs">
-                <div class="flex items-center justify-between">
-                  <span class="font-semibold text-slate-700">{{ vipLevelLabel(level) }}</span>
-                  <span class="text-slate-500">买 {{ ((Number(rates.buy) || 0) * 100).toFixed(2) }}% / 卖 {{ ((Number(rates.sell) || 0) * 100).toFixed(2) }}%</span>
+                  <div class="flex items-center justify-between">
+                    <span class="font-semibold text-slate-700">{{ vipLevelLabel(level) }}</span>
+                    <span class="text-slate-500">回程 {{ ((Number(rates.buy) || 0) * 100).toFixed(2) }}% / 去程 {{ ((Number(rates.sell) || 0) * 100).toFixed(2) }}%</span>
+                  </div>
                 </div>
-              </div>
               <button
                 v-if="hasMoreTemplatePreviewLevels"
                 type="button"
