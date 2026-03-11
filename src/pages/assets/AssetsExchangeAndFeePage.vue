@@ -563,13 +563,13 @@ const getTemplateName = (templateId) => {
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-2">
                 <h3 class="truncate text-lg font-bold text-slate-900">{{ pair.baseAsset }}/{{ pair.quoteAsset }}</h3>
-                <span class="rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider" :class="pair.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'">
+                <span class="rounded px-1.5 py-0.5 text-xs font-bold uppercase tracking-wider" :class="pair.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'">
                   {{ pair.enabled ? 'ON' : 'OFF' }}
                 </span>
               </div>
               <div class="mt-1 flex flex-wrap gap-1.5">
-                <span class="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-600">{{ sourceLabel(pair.source) }}</span>
-                <span v-if="pair.autoReverse" class="rounded bg-indigo-50 px-1.5 py-0.5 text-[10px] font-medium text-indigo-600">反向映射</span>
+                <span class="rounded bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-600">{{ sourceLabel(pair.source) }}</span>
+                <span v-if="pair.autoReverse" class="rounded bg-indigo-50 px-1.5 py-0.5 text-xs font-medium text-indigo-600">反向映射</span>
               </div>
             </div>
           </div>
@@ -577,19 +577,19 @@ const getTemplateName = (templateId) => {
           <!-- 核心汇率数据 -->
           <div class="grid flex-1 grid-cols-2 gap-4 p-4 md:grid-cols-4">
             <div class="space-y-1">
-              <p class="text-[10px] font-medium uppercase tracking-wider text-slate-400">市场中间价</p>
+              <p class="text-xs  text-slate-400">市场中间价</p>
               <p class="text-base font-bold text-slate-900">{{ pair.marketRate }}</p>
-              <p class="text-[10px] text-slate-500">数据源 {{ sourceLabel(pair.source) }}</p>
+              <p class="text-xs text-slate-500">数据源 {{ sourceLabel(pair.source) }}</p>
             </div>
             <div class="space-y-1 border-r border-slate-50 md:border-r-0">
-              <p class="text-[10px] font-medium uppercase tracking-wider text-slate-400">兑换费率加成</p>
+              <p class="text-xs font-medium uppercase tracking-wider text-slate-400">兑换费率加成</p>
               <p class="text-sm font-bold text-blue-600">正 {{ (pair.sellMarkup * 100).toFixed(2) }}% / 逆 {{ (pair.buyMarkup * 100).toFixed(2) }}%</p>
-              <p class="text-[10px] text-slate-500">{{ getTemplateName(pair.feeTemplateId) }}</p>
+              <p class="text-xs text-slate-500">{{ getTemplateName(pair.feeTemplateId) }}</p>
             </div>
             <div class="space-y-1 md:col-span-2">
-              <p class="text-[10px] font-medium uppercase tracking-wider text-slate-400">状态与更新</p>
+              <p class="text-xs font-medium uppercase tracking-wider text-slate-400">状态与更新</p>
               <p class="text-sm font-medium text-slate-600">{{ pair.lastUpdate }}</p>
-              <p class="text-[10px] text-slate-400">
+              <p class="text-xs text-slate-400">
                 反向映射：<span :class="pair.autoReverse ? 'text-indigo-600 font-medium' : 'text-slate-400'">{{ pair.autoReverse ? '已开启' : '已关闭' }}</span>
               </p>
             </div>
