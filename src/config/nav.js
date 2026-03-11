@@ -42,6 +42,7 @@ export const navTree = [
     defaultOpen: true,
     children: [
       { title: '合约产品', path: '/perpetual/overview' },
+      { title: '杠杆模板', path: '/perpetual/leverage-template' },
       { title: '订单管理', path: '/perpetual/orders' },
       { title: '合约线控', path: '/perpetual/contract-monitor' },
       { title: '合约线控日志', path: '/perpetual/contract-log' },
@@ -53,7 +54,8 @@ export const navTree = [
     title: '交割合约',
     icon: 'delivery',
     children: [
-      { title: '交割合约', path: '/delivery/contracts' },
+      { title: '合约产品', path: '/delivery/contracts' },
+      { title: '周期模板', path: '/delivery/templates' },
       { title: '订单管理', path: '/delivery/orders' },
       { title: '自动化场控', path: '/delivery/auto-rules' },
       { title: '场控触发日志', path: '/delivery/rule-history' },
@@ -75,10 +77,11 @@ export const navTree = [
     icon: 'wallet',
     children: [
       { title: '币种管理', path: '/assets/currencies' },
-      { title: '闪兑汇率管理', path: '/assets/exchange-fee' },
       { title: '手动归集', path: '/assets/manual-collect' },
       { title: '归集记录', path: '/assets/collect-records' },
-      { title: '链上交易日志', path: '/assets/address-logs' }
+      { title: '链上交易日志', path: '/assets/address-logs' },
+      { title: '闪兑汇率管理', path: '/assets/exchange-rate' },
+      { title: '闪兑费率模板', path: '/assets/fee-template' },
     ]
   },
   {

@@ -1,23 +1,26 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
 import MfaVerificationModal from '../../components/MfaVerificationModal.vue'
-import { FEE_TEMPLATE_TYPE, USER_LEVEL_TIER, ASSET_STATUS } from '../../constants/assets'
+import {
+  FEE_TEMPLATE_TYPE
+} from '../../constants/assets'
 import { createFeeTemplatesMock } from '../../mock/assets'
+import { getActiveVipLevels } from '../../mock/vip'
 
 const statusTab = ref('all')
 const search = ref('')
 const showEditModal = ref(false)
-const editingTemplateId = ref('')
-const activeSection = ref('basic')
+const editingId = ref('')
 
 // MFA 验证相关
 const showMfaModal = ref(false)
 const pendingSaveData = ref(null)
 const mfaLoading = ref(false)
 
-const templates = ref(createFeeTemplatesMock())
+const feeTemplates = ref(createFeeTemplatesMock())
 
-const form = reactive({
+// 费率模板表单
+const templateForm = reactive({
   name: '',
   type: FEE_TEMPLATE_TYPE.STANDARD,
   description: '',
@@ -28,7 +31,7 @@ const form = reactive({
 
 const filteredTemplates = computed(() => {
   const kw = search.value.trim().toLowerCase()
-  return templates.value.filter((template) => {
+  return feeTemplates.value.filter((template) => {
     const hitStatus = statusTab.value === 'all' || 
       (statusTab.value === 'enabled' && template.enabled) || 
       (statusTab.value === 'disabled' && !template.enabled)
@@ -37,99 +40,212 @@ const filteredTemplates = computed(() => {
   })
 })
 
-const enabledCount = computed(() => templates.value.filter((t) => t.enabled).length)
+const enabledTemplatesCount = computed(() => feeTemplates.value.filter((t) => t.enabled).length)
+const activeVipLevels = computed(() => getActiveVipLevels().slice().sort((a, b) => a.level - b.level))
 
-const cloneTemplateToForm = (template) => {
-  form.name = template.name
-  form.type = template.type
-  form.description = template.description
-  form.baseMarkup = JSON.parse(JSON.stringify(template.baseMarkup))
-  form.userLevelRates = JSON.parse(JSON.stringify(template.userLevelRates))
-  form.enabled = template.enabled
+const templatePreviewLevelEntries = computed(() => {
+  const rates = templateForm.userLevelRates || {}
+  const byVip = activeVipLevels.value
+    .map((vip) => {
+      const key = `vip${vip.level}`
+      return rates[key] ? [key, rates[key]] : null
+    })
+    .filter(Boolean)
+  const has = new Set(byVip.map(([key]) => key))
+  const rest = Object.entries(rates).filter(([key]) => !has.has(key))
+  return [...byVip, ...rest]
+})
+
+const getTemplateLevelEntries = (template) => {
+  const rates = template?.userLevelRates || {}
+  const byVip = activeVipLevels.value
+    .map((vip) => {
+      const key = `vip${vip.level}`
+      return rates[key] ? [key, rates[key]] : null
+    })
+    .filter(Boolean)
+  const has = new Set(byVip.map(([key]) => key))
+  const rest = Object.entries(rates).filter(([key]) => !has.has(key))
+  return [...byVip, ...rest]
 }
 
-const initUserLevelRates = () => {
-  form.userLevelRates = {
-    [USER_LEVEL_TIER.BASIC]: { 
-      buy: form.baseMarkup.buy, 
-      sell: form.baseMarkup.sell 
-    },
-    [USER_LEVEL_TIER.SILVER]: { 
-      buy: form.baseMarkup.buy * 0.8, 
-      sell: form.baseMarkup.sell * 0.8 
-    },
-    [USER_LEVEL_TIER.GOLD]: { 
-      buy: form.baseMarkup.buy * 0.6, 
-      sell: form.baseMarkup.sell * 0.6 
-    },
-    [USER_LEVEL_TIER.PLATINUM]: { 
-      buy: form.baseMarkup.buy * 0.4, 
-      sell: form.baseMarkup.sell * 0.4 
-    },
-    [USER_LEVEL_TIER.VIP]: { 
-      buy: form.baseMarkup.buy * 0.2, 
-      sell: form.baseMarkup.sell * 0.2 
-    }
+const TEMPLATE_LEVEL_PREVIEW_LIMIT = 5
+const templateLevelsExpandedMap = ref({})
+const templatePreviewExpanded = ref(false)
+
+const isTemplateLevelsExpanded = (templateId) => Boolean(templateLevelsExpandedMap.value[templateId])
+
+const toggleTemplateLevelsExpand = (templateId) => {
+  templateLevelsExpandedMap.value = {
+    ...templateLevelsExpandedMap.value,
+    [templateId]: !templateLevelsExpandedMap.value[templateId]
   }
 }
 
-const openEdit = (template) => {
-  editingTemplateId.value = template.id
+const getVisibleTemplateLevelEntries = (template) => {
+  const entries = getTemplateLevelEntries(template)
+  if (isTemplateLevelsExpanded(template.id)) return entries
+  return entries.slice(0, TEMPLATE_LEVEL_PREVIEW_LIMIT)
+}
+
+const hasMoreTemplateLevels = (template) => getTemplateLevelEntries(template).length > TEMPLATE_LEVEL_PREVIEW_LIMIT
+
+const getVisibleTemplatePreviewLevelEntries = () => {
+  if (templatePreviewExpanded.value) return templatePreviewLevelEntries.value
+  return templatePreviewLevelEntries.value.slice(0, TEMPLATE_LEVEL_PREVIEW_LIMIT)
+}
+
+const hasMoreTemplatePreviewLevels = computed(() => templatePreviewLevelEntries.value.length > TEMPLATE_LEVEL_PREVIEW_LIMIT)
+
+// ========== 通用方法 ==========
+const getVipLevelNumber = (level) => {
+  const match = String(level || '').toLowerCase().match(/^vip(\d+)$/)
+  return match ? Number(match[1]) : null
+}
+
+const sortVipLevels = (levels) => {
+  return [...levels].sort((a, b) => {
+    const aNum = getVipLevelNumber(a)
+    const bNum = getVipLevelNumber(b)
+    if (aNum !== null && bNum !== null) return aNum - bNum
+    if (aNum !== null) return -1
+    if (bNum !== null) return 1
+    return String(a).localeCompare(String(b))
+  })
+}
+
+const defaultVipRateFactor = (index) => Math.max(0.2, 1 - index * 0.2)
+
+const normalizeVipLevelRates = (levelRates, baseMarkup = templateForm.baseMarkup) => {
+  const baseBuy = Number(baseMarkup.buy) || 0
+  const baseSell = Number(baseMarkup.sell) || 0
+  const entries = Object.entries(levelRates || {})
+
+  if (!entries.length) {
+    return {
+      vip0: { buy: baseBuy, sell: baseSell }
+    }
+  }
+
+  const normalized = {}
+  let nextIndex = 0
+
+  sortVipLevels(entries.map(([level]) => level)).forEach((level) => {
+    const origin = levelRates[level] || {}
+    const vipIndex = getVipLevelNumber(level) ?? nextIndex
+    const key = `vip${vipIndex}`
+    normalized[key] = {
+      buy: Number(origin.buy) || 0,
+      sell: Number(origin.sell) || 0
+    }
+    nextIndex = Math.max(nextIndex, vipIndex + 1)
+  })
+
+  return normalized
+}
+
+const syncVipLevelRatesWithModule = (levelRates = {}, baseMarkup = templateForm.baseMarkup) => {
+  const normalized = normalizeVipLevelRates(levelRates, baseMarkup)
+  const baseBuy = Number(baseMarkup.buy) || 0
+  const baseSell = Number(baseMarkup.sell) || 0
+
+  return activeVipLevels.value.reduce((acc, vip, index) => {
+    const key = `vip${vip.level}`
+    const fallbackByOrder = normalized[`vip${index}`] || normalized[`vip${index + 1}`]
+    const fallback = normalized[key] || fallbackByOrder
+    const factor = defaultVipRateFactor(index)
+    acc[key] = {
+      buy: Number((Number(fallback?.buy ?? baseBuy * factor) || 0).toFixed(6)),
+      sell: Number((Number(fallback?.sell ?? baseSell * factor) || 0).toFixed(6))
+    }
+    return acc
+  }, {})
+}
+
+const cloneTemplateToForm = (template) => {
+  templateForm.name = template.name
+  templateForm.type = template.type
+  templateForm.description = template.description
+  templateForm.baseMarkup = JSON.parse(JSON.stringify(template.baseMarkup))
+  templateForm.userLevelRates = syncVipLevelRatesWithModule(JSON.parse(JSON.stringify(template.userLevelRates)), template.baseMarkup)
+  templateForm.enabled = template.enabled
+}
+
+const initUserLevelRates = () => {
+  templateForm.userLevelRates = syncVipLevelRatesWithModule({}, templateForm.baseMarkup)
+}
+
+const vipLevelLabel = (level) => {
+  const number = getVipLevelNumber(level)
+  const meta = activeVipLevels.value.find((vip) => vip.level === number)
+  if (meta) {
+    return meta.displayName ? `${meta.name}（${meta.displayName}）` : meta.name
+  }
+  return number !== null ? `VIP ${number}` : String(level || '').toUpperCase()
+}
+
+// ========== 费率模板操作 ==========
+const openEditTemplate = (template) => {
+  editingId.value = template.id
   cloneTemplateToForm(template)
-  activeSection.value = 'basic'
+  templatePreviewExpanded.value = false
   showEditModal.value = true
 }
 
-const openCreate = () => {
-  editingTemplateId.value = ''
-  form.name = ''
-  form.type = FEE_TEMPLATE_TYPE.STANDARD
-  form.description = ''
-  form.baseMarkup = { buy: 0.005, sell: 0.005 }
-  form.userLevelRates = {}
-  form.enabled = true
+const openCreateTemplate = () => {
+  editingId.value = ''
+  Object.assign(templateForm, {
+    name: '',
+    type: FEE_TEMPLATE_TYPE.STANDARD,
+    description: '',
+    baseMarkup: { buy: 0.005, sell: 0.005 },
+    userLevelRates: {},
+    enabled: true
+  })
   initUserLevelRates()
-  activeSection.value = 'basic'
+  templatePreviewExpanded.value = false
   showEditModal.value = true
+}
+
+const updateBaseMarkup = () => {
+  initUserLevelRates()
 }
 
 const saveTemplate = () => {
   const payload = {
-    name: form.name.trim(),
-    type: form.type,
-    description: form.description.trim(),
+    name: templateForm.name.trim(),
+    type: templateForm.type,
+    description: templateForm.description.trim(),
     baseMarkup: {
-      buy: Number(form.baseMarkup.buy),
-      sell: Number(form.baseMarkup.sell)
+      buy: Number(templateForm.baseMarkup.buy),
+      sell: Number(templateForm.baseMarkup.sell)
     },
-    userLevelRates: form.userLevelRates,
-    enabled: Boolean(form.enabled),
+    userLevelRates: templateForm.userLevelRates,
+    enabled: Boolean(templateForm.enabled),
     updatedAt: new Date().toISOString().replace('T', ' ').substring(0, 19)
   }
 
-  // 保存待提交的数据，先显示 MFA 验证弹窗
   pendingSaveData.value = payload
   showMfaModal.value = true
 }
 
-// 处理 MFA 验证
+// ========== MFA 验证处理 ==========
 const handleMfaVerify = async (code) => {
   mfaLoading.value = true
   
   try {
-    // TODO: 这里调用后端 API 验证 MFA 验证码
     await new Promise(resolve => setTimeout(resolve, 1000))
     
-    // 验证成功后执行实际的保存操作
     if (pendingSaveData.value) {
-      if (editingTemplateId.value) {
-        const template = templates.value.find(t => t.id === editingTemplateId.value)
+      // 保存费率模板
+      if (editingId.value) {
+        const template = feeTemplates.value.find(t => t.id === editingId.value)
         Object.assign(template, {
           ...pendingSaveData.value,
-          usageCount: template.usageCount // 保持使用次数不变
+          usageCount: template.usageCount
         })
       } else {
-        templates.value.unshift({ 
+        feeTemplates.value.unshift({ 
           id: `template-${Date.now()}`, 
           ...pendingSaveData.value,
           usageCount: 0,
@@ -148,98 +264,115 @@ const handleMfaVerify = async (code) => {
     mfaLoading.value = false
   }
 }
-
-const badgeClass = (enabled) => enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'
-
-const typeLabel = (type) => {
-  const map = {
-    [FEE_TEMPLATE_TYPE.STANDARD]: '标准',
-    [FEE_TEMPLATE_TYPE.PREMIUM]: '优惠',
-    [FEE_TEMPLATE_TYPE.VIP]: 'VIP',
-    [FEE_TEMPLATE_TYPE.CUSTOM]: '自定义'
-  }
-  return map[type] || type
-}
-
-const typeBadgeClass = (type) => {
-  const map = {
-    [FEE_TEMPLATE_TYPE.STANDARD]: 'bg-blue-50 text-blue-600',
-    [FEE_TEMPLATE_TYPE.PREMIUM]: 'bg-purple-50 text-purple-600',
-    [FEE_TEMPLATE_TYPE.VIP]: 'bg-amber-50 text-amber-600',
-    [FEE_TEMPLATE_TYPE.CUSTOM]: 'bg-slate-50 text-slate-600'
-  }
-  return map[type] || 'bg-slate-50 text-slate-600'
-}
-
-const toggleSection = (section) => {
-  activeSection.value = activeSection.value === section ? '' : section
-}
-
-const updateBaseMarkup = () => {
-  initUserLevelRates()
-}
 </script>
 
 <template>
-  <section class="space-y-3">
+  <section class="space-y-4">
     <header class="flex flex-wrap items-start justify-between gap-4">
       <div>
         <h1 class="text-3xl font-semibold text-slate-900">费率模板管理</h1>
-        <p class="mt-1 text-sm text-slate-500">管理可复用的手续费和分级费率模板</p>
+        <p class="mt-1 text-sm text-slate-500">管理用于闪兑汇率的可复用手续费和 VIP 分级费率模板</p>
       </div>
-      <div class="flex items-center gap-4">
-        <p class="text-sm text-slate-500">启用模板：<span class="font-semibold text-blue-600">{{ enabledCount }}</span> / {{ templates.length }}</p>
-        <button type="button" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" @click="openCreate">+ 新增模板</button>
-      </div>
+      <button
+        type="button"
+        class="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+        @click="openCreateTemplate()"
+      >
+        <span class="text-base">+</span>
+        <span>新增模板</span>
+      </button>
     </header>
 
     <article class="rounded-xl border border-slate-200 bg-white">
-      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-3">
-        <div class="inline-flex items-center gap-4 text-sm">
-          <button type="button" class="font-medium" :class="statusTab === 'all' ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = 'all'">全部</button>
-          <button type="button" class="font-medium" :class="statusTab === 'enabled' ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = 'enabled'">已启用</button>
-          <button type="button" class="font-medium" :class="statusTab === 'disabled' ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = 'disabled'">已禁用</button>
+      <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 p-4">
+        <div class="flex flex-wrap items-center gap-4">
+          <!-- Status Filter -->
+          <div class="inline-flex items-center gap-2 text-sm">
+            <button type="button" class="font-medium" :class="statusTab === 'all' ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = 'all'">全部</button>
+            <button type="button" class="font-medium" :class="statusTab === 'enabled' ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = 'enabled'">已启用</button>
+            <button type="button" class="font-medium" :class="statusTab === 'disabled' ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = 'disabled'">已禁用</button>
+          </div>
         </div>
-        <input v-model="search" type="text" placeholder="搜索模板名称..." class="w-full max-w-sm rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500" />
+
+        <!-- Search -->
+        <div class="flex w-full max-w-2xl flex-wrap items-center justify-end gap-2">
+          <div class="relative w-full max-w-sm">
+            <input
+              v-model="search"
+              type="text"
+              class="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm outline-none focus:border-blue-500"
+              placeholder="搜索模板名称..."
+            />
+            <svg viewBox="0 0 20 20" class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" fill="none">
+              <circle cx="9" cy="9" r="5.8" stroke="currentColor" stroke-width="1.6" />
+              <path d="M13.6 13.6L16.4 16.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+            </svg>
+          </div>
+        </div>
       </div>
 
-      <div class="space-y-3 p-3">
+      <!-- 费率模板内容 -->
+      <div class="space-y-4 p-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+          <p class="text-sm text-slate-600">
+            启用模板：<span class="font-semibold text-blue-600">{{ enabledTemplatesCount }}</span> / {{ feeTemplates.length }}
+          </p>
+        </div>
+
         <article
           v-for="template in filteredTemplates"
           :key="template.id"
-          class="rounded-xl border border-slate-200 bg-white p-3 transition-colors"
+          class="rounded-xl border border-slate-200 bg-white p-4 transition-colors"
           :class="template.enabled ? 'hover:border-emerald-200 hover:bg-emerald-50/30' : 'hover:border-slate-300 hover:bg-slate-50'"
         >
-          <div class="flex flex-wrap items-start justify-between gap-2">
-            <div>
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0 space-y-1">
               <div class="flex flex-wrap items-center gap-2">
-                <h3 class="text-2xl font-semibold leading-none text-slate-900">{{ template.name }}</h3>
-                <span class="rounded-md px-2 py-0.5 text-xs font-medium" :class="badgeClass(template.enabled)">{{ template.enabled ? '已启用' : '已禁用' }}</span>
-                <span class="rounded-md px-2 py-0.5 text-xs font-medium" :class="typeBadgeClass(template.type)">{{ typeLabel(template.type) }}</span>
+                <h3 class="text-xl font-semibold leading-none text-slate-900">{{ template.name }}</h3>
+                <span class="rounded-md px-2 py-0.5 text-xs font-medium" :class="template.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'">{{ template.enabled ? '已启用' : '已禁用' }}</span>
               </div>
-              <p class="mt-1.5 text-sm text-slate-600">{{ template.description }}</p>
-              <p class="mt-1 text-xs text-slate-500">
-                基础买入费率：<span class="font-semibold text-emerald-600">{{ (template.baseMarkup.buy * 100).toFixed(2) }}%</span>
-                <span class="mx-2 text-slate-300">|</span>
-                基础卖出费率：<span class="font-semibold text-rose-600">{{ (template.baseMarkup.sell * 100).toFixed(2) }}%</span>
-                <span class="mx-2 text-slate-300">|</span>
-                已应用：<span class="font-medium text-blue-600">{{ template.usageCount }} 个交易对</span>
-              </p>
-              <p class="mt-1 text-xs text-slate-400">最后更新：{{ template.updatedAt }}</p>
+              <p class="text-sm text-slate-600">{{ template.description || '—' }}</p>
+              <p class="text-xs text-slate-400">最后更新：{{ template.updatedAt }}</p>
             </div>
-            <div class="flex items-center gap-2">
-              <button type="button" class="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50" @click="openEdit(template)">编辑</button>
-            </div>
+            <button type="button" class="shrink-0 rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50" @click="openEditTemplate(template)">编辑</button>
           </div>
 
-          <!-- 分级费率预览 -->
-          <div class="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-            <p class="text-xs font-medium text-slate-700">分级费率设置（共 {{ Object.keys(template.userLevelRates).length }} 级）</p>
-            <div class="mt-2 grid grid-cols-5 gap-2">
-              <div v-for="(rates, level) in template.userLevelRates" :key="level" class="rounded border border-slate-200 bg-white p-2 text-center">
-                <p class="text-xs font-medium text-slate-600">{{ level.toUpperCase() }}</p>
-                <p class="mt-1 text-xs text-slate-500">买：{{ (rates.buy * 100).toFixed(2) }}%</p>
-                <p class="text-xs text-slate-500">卖：{{ (rates.sell * 100).toFixed(2) }}%</p>
+          <div class="mt-4 grid gap-3 lg:grid-cols-2">
+            <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+              <p class="text-xs font-semibold text-emerald-900">基础费率设置</p>
+              <div class="mt-2 grid grid-cols-2 gap-2 text-xs">
+                <div class="rounded border border-emerald-100 bg-white px-2.5 py-2">
+                  <p class="text-slate-500">回兑费率 (目标币 → 基础币, Q→B)</p>
+                  <p class="mt-1 font-semibold text-emerald-600">{{ ((Number(template.baseMarkup.buy) || 0) * 100).toFixed(2) }}%</p>
+                </div>
+                <div class="rounded border border-emerald-100 bg-white px-2.5 py-2">
+                  <p class="text-slate-500">兑换费率 (基础币 → 目标币, B→Q)</p>
+                  <p class="mt-1 font-semibold text-rose-600">{{ ((Number(template.baseMarkup.sell) || 0) * 100).toFixed(2) }}%</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="rounded-lg border border-violet-200 bg-violet-50 p-3">
+              <div class="flex items-center justify-between">
+                <p class="text-xs font-semibold text-violet-900">VIP 分级费率设置</p>
+                <span class="text-xs text-violet-700">共 {{ getTemplateLevelEntries(template).length }} 级</span>
+              </div>
+              <div class="mt-2 space-y-1.5">
+                <div v-if="getTemplateLevelEntries(template).length === 0" class="rounded border border-dashed border-violet-200 bg-white px-2.5 py-2 text-xs text-slate-500">
+                  暂无分级费率
+                </div>
+                <div v-for="([level, rates]) in getVisibleTemplateLevelEntries(template)" :key="`${template.id}-${level}`" class="flex items-center justify-between rounded border border-violet-100 bg-white px-2.5 py-2 text-xs">
+                  <span class="font-medium text-slate-700">{{ vipLevelLabel(level) }}</span>
+                  <span class="text-slate-500">回兑 {{ ((Number(rates.buy) || 0) * 100).toFixed(2) }}% / 兑换 {{ ((Number(rates.sell) || 0) * 100).toFixed(2) }}%</span>
+                </div>
+                <button
+                  v-if="hasMoreTemplateLevels(template)"
+                  type="button"
+                  class="w-full rounded border border-violet-200 bg-white px-2.5 py-1.5 text-xs font-medium text-violet-700 transition hover:bg-violet-100"
+                  @click="toggleTemplateLevelsExpand(template.id)"
+                >
+                  {{ isTemplateLevelsExpanded(template.id) ? '收起' : `展开剩余 ${getTemplateLevelEntries(template).length - TEMPLATE_LEVEL_PREVIEW_LIMIT} 级` }}
+                </button>
               </div>
             </div>
           </div>
@@ -250,146 +383,174 @@ const updateBaseMarkup = () => {
 
   <!-- 编辑/新增弹窗 -->
   <div v-if="showEditModal" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4" @click.self="showEditModal = false">
-    <section class="w-full max-w-4xl rounded-xl bg-white">
-      <header class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-        <h2 class="text-xl font-semibold text-slate-900">{{ editingTemplateId ? '编辑费率模板' : '新增费率模板' }}</h2>
-        <button type="button" class="text-2xl text-slate-400" @click="showEditModal = false">×</button>
-      </header>
+    <section class="flex h-[88vh] w-full max-w-5xl overflow-hidden rounded-xl bg-white shadow-2xl">
+      <div class="flex w-3/5 flex-col border-r border-slate-200">
+        <header class="flex items-center justify-between border-b border-slate-200 bg-gradient-to-r from-violet-50 to-blue-50 px-6 py-4">
+          <div>
+            <h2 class="text-xl font-semibold text-slate-900">{{ editingId ? '编辑费率模板' : '新增费率模板' }}</h2>
+            <p class="mt-0.5 text-xs text-slate-500">左侧配置模板参数，右侧实时预览效果</p>
+          </div>
+          <button type="button" class="text-2xl text-slate-400 transition-colors hover:text-slate-600" @click="showEditModal = false">×</button>
+        </header>
 
-      <div class="max-h-[74vh] space-y-5 overflow-y-auto px-5 py-4">
-        <!-- 基本信息 -->
-        <section class="rounded-lg border border-slate-200">
-          <button 
-            type="button" 
-            class="flex w-full items-center justify-between px-4 py-3"
-            @click="toggleSection('basic')"
-          >
-            <h3 class="text-sm font-medium text-slate-900">基本信息</h3>
-            <span class="text-slate-400 transition-transform" :class="activeSection === 'basic' ? 'rotate-180' : ''">⌄</span>
-          </button>
-          
-          <div v-show="activeSection === 'basic'" class="border-t border-slate-200 px-4 py-4">
-            <div class="grid gap-3 md:grid-cols-2">
-              <label class="space-y-1 md:col-span-2">
-                <span class="text-sm">模板名称</span>
-                <input v-model="form.name" type="text" placeholder="如：标准费率模板" class="w-full rounded-lg border border-slate-300 px-3 py-2" />
+        <div class="flex-1 space-y-5 overflow-y-auto px-6 py-5">
+          <section class="space-y-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="flex items-center gap-2">
+              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100">
+                <svg class="h-4 w-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 class="text-base font-semibold text-slate-900">基本信息</h3>
+            </div>
+
+            <div class="grid gap-3.5 md:grid-cols-2">
+              <label class="space-y-1.5 md:col-span-2">
+                <span class="text-sm font-medium text-slate-700">模板名称</span>
+                <input v-model="templateForm.name" type="text" placeholder="如：标准费率模板" class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
               </label>
-              <label class="space-y-1">
-                <span class="text-sm">模板类型</span>
-                <select v-model="form.type" class="w-full rounded-lg border border-slate-300 px-3 py-2">
-                  <option :value="FEE_TEMPLATE_TYPE.STANDARD">标准费率</option>
-                  <option :value="FEE_TEMPLATE_TYPE.PREMIUM">优惠费率</option>
-                  <option :value="FEE_TEMPLATE_TYPE.VIP">VIP 专属</option>
-                  <option :value="FEE_TEMPLATE_TYPE.CUSTOM">自定义</option>
-                </select>
+              <label class="space-y-1.5 md:col-span-2">
+                <span class="text-sm font-medium text-slate-700">描述说明</span>
+                <input v-model="templateForm.description" type="text" placeholder="模板适用场景说明" class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
               </label>
-              <label class="space-y-1">
-                <span class="text-sm">描述说明</span>
-                <input v-model="form.description" type="text" placeholder="模板适用场景说明" class="w-full rounded-lg border border-slate-300 px-3 py-2" />
-              </label>
-              <label class="inline-flex items-center gap-2 text-sm md:col-span-2">
-                <input v-model="form.enabled" type="checkbox" class="h-4 w-4" />
-                启用该模板
+              <label class="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm md:col-span-2">
+                <span class="text-slate-700">启用该模板</span>
+                <input v-model="templateForm.enabled" type="checkbox" class="h-4 w-4" />
               </label>
             </div>
-          </div>
-        </section>
+          </section>
 
-        <!-- 基础费率设置 -->
-        <section class="rounded-lg border border-slate-200">
-          <button 
-            type="button" 
-            class="flex w-full items-center justify-between px-4 py-3"
-            @click="toggleSection('fee')"
-          >
-            <h3 class="text-sm font-medium text-slate-900">基础手续费与价差</h3>
-            <span class="text-slate-400 transition-transform" :class="activeSection === 'fee' ? 'rotate-180' : ''">⌄</span>
-          </button>
-          
-          <div v-show="activeSection === 'fee'" class="border-t border-slate-200 px-4 py-4">
-            <div class="grid gap-3 md:grid-cols-2">
-              <label class="space-y-1">
-                <span class="text-sm">买入手续费率 (%)</span>
-                <input 
-                  v-model.number="form.baseMarkup.buy" 
-                  type="number" 
-                  step="0.001"
-                  @input="updateBaseMarkup"
-                  class="w-full rounded-lg border border-slate-300 px-3 py-2" 
-                />
-              </label>
-              <label class="space-y-1">
-                <span class="text-sm">卖出手续费率 (%)</span>
-                <input 
-                  v-model.number="form.baseMarkup.sell" 
-                  type="number" 
-                  step="0.001"
-                  @input="updateBaseMarkup"
-                  class="w-full rounded-lg border border-slate-300 px-3 py-2" 
-                />
-              </label>
+          <section class="space-y-4 rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50 p-5 shadow-sm">
+            <div class="flex items-center gap-2">
+              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
+                <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4V9m3 8V7M4 19h16" />
+                </svg>
+              </div>
+              <h3 class="text-base font-semibold text-slate-900">基础费率设置</h3>
             </div>
-            <p class="mt-2 text-xs text-slate-500">
-              修改基础费率将自动同步到所有用户等级
-            </p>
-          </div>
-        </section>
 
-        <!-- 分级费率 -->
-        <section class="rounded-lg border border-slate-200">
-          <button 
-            type="button" 
-            class="flex w-full items-center justify-between px-4 py-3"
-            @click="toggleSection('levels')"
-          >
-            <h3 class="text-sm font-medium text-slate-900">分级费率设置</h3>
-            <span class="text-slate-400 transition-transform" :class="activeSection === 'levels' ? 'rotate-180' : ''">⌄</span>
-          </button>
-          
-          <div v-show="activeSection === 'levels'" class="border-t border-slate-200 px-4 py-4">
-            <p class="text-xs text-slate-500 mb-3">为不同用户等级设置不同的手续费率（基于基础费率的百分比）</p>
-            <div class="space-y-3">
-              <div v-for="(rates, level) in form.userLevelRates" :key="level" class="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                <div class="flex items-center justify-between mb-2">
-                  <span class="text-sm font-medium text-slate-700">{{ level.toUpperCase() }}</span>
-                  <button 
-                    type="button" 
-                    class="text-xs text-blue-600 hover:text-blue-700"
-                    @click="initUserLevelRates"
-                  >
-                    重置为默认
-                  </button>
+            <div class="grid gap-3.5 md:grid-cols-2 rounded-lg bg-white p-4">
+              <label class="space-y-1.5">
+                  <span class="text-sm font-medium text-slate-700">回兑费率加成 (目标币 → 基础币, %)</span>
+                  <input v-model.number="templateForm.baseMarkup.buy" type="number" step="0.001" @input="updateBaseMarkup" class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+                </label>
+                <label class="space-y-1.5">
+                  <span class="text-sm font-medium text-slate-700">兑换费率加成 (基础币 → 目标币, %)</span>
+                  <input v-model.number="templateForm.baseMarkup.sell" type="number" step="0.001" @input="updateBaseMarkup" class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+                </label>
+            </div>
+          </section>
+
+          <section class="space-y-4 rounded-xl border border-violet-200 bg-gradient-to-br from-violet-50 to-purple-50 p-5 shadow-sm">
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex items-center gap-2">
+                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-600">
+                  <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 1.343-3 3s1.343 3 3 3 3-1.343 3-3-1.343-3-3-3z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33h.01a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001-1.51h.01a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82v.01a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" />
+                  </svg>
+                </div>
+                <h3 class="text-base font-semibold text-slate-900">VIP 分级费率设置</h3>
+              </div>
+              <button type="button" class="rounded-md border border-violet-200 bg-white px-2.5 py-1 text-xs text-violet-700 hover:bg-violet-50" @click="initUserLevelRates">按VIP模块重置</button>
+            </div>
+
+            <div v-if="activeVipLevels.length === 0" class="rounded-md border border-dashed border-violet-200 bg-white p-3 text-xs text-slate-500">
+              VIP 模块暂无可用等级，请先在 VIP 配置中启用等级
+            </div>
+            <div v-else class="space-y-3">
+              <div v-for="vip in activeVipLevels" :key="vip.id" class="rounded-lg border border-violet-100 bg-white p-4">
+                <div class="mb-3 flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="rounded-md bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700">VIP {{ vip.level }}</span>
+                    <span class="text-sm font-medium text-slate-700">{{ vip.displayName ? `${vip.name}（${vip.displayName}）` : vip.name }}</span>
+                  </div>
                 </div>
                 <div class="grid gap-3 md:grid-cols-2">
-                  <label class="space-y-1">
-                    <span class="text-xs text-slate-600">买入费率 (%)</span>
-                    <input 
-                      v-model.number="form.userLevelRates[level].buy" 
-                      type="number" 
-                      step="0.001"
-                      class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" 
-                    />
+                  <label class="space-y-1.5">
+                    <span class="text-xs text-slate-600">回兑费率 (%)</span>
+                    <input v-model.number="templateForm.userLevelRates[`vip${vip.level}`].buy" type="number" step="0.001" class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100" />
                   </label>
-                  <label class="space-y-1">
-                    <span class="text-xs text-slate-600">卖出费率 (%)</span>
-                    <input 
-                      v-model.number="form.userLevelRates[level].sell" 
-                      type="number" 
-                      step="0.001"
-                      class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" 
-                    />
+                  <label class="space-y-1.5">
+                    <span class="text-xs text-slate-600">兑换费率 (%)</span>
+                    <input v-model.number="templateForm.userLevelRates[`vip${vip.level}`].sell" type="number" step="0.001" class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100" />
                   </label>
                 </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        </div>
+
+        <footer class="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
+          <button type="button" class="rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-white" @click="showEditModal = false">取消</button>
+          <button type="button" class="rounded-lg bg-violet-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-violet-700" @click="saveTemplate()">保存模板</button>
+        </footer>
       </div>
 
-      <footer class="flex justify-end gap-3 border-t border-slate-200 px-5 py-4">
-        <button type="button" class="rounded-lg border border-slate-300 px-4 py-2" @click="showEditModal = false">取消</button>
-        <button type="button" class="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white" @click="saveTemplate">保存</button>
-      </footer>
+      <div class="flex w-2/5 flex-col bg-gradient-to-br from-slate-50 to-slate-100">
+        <header class="border-b border-slate-200 px-5 py-4">
+          <h3 class="text-lg font-semibold text-slate-900">实时预览</h3>
+          <p class="mt-0.5 text-xs text-slate-500">调整左侧配置后即时更新模板效果</p>
+        </header>
+
+        <div class="flex-1 space-y-4 overflow-y-auto px-5 py-4">
+          <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <div class="flex items-center justify-between">
+              <h4 class="text-sm font-semibold text-slate-900">模板概览</h4>
+              <span class="rounded-md px-2 py-1 text-xs font-medium" :class="templateForm.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'">
+                {{ templateForm.enabled ? '已启用' : '已禁用' }}
+              </span>
+            </div>
+            <div class="mt-3 space-y-2 text-sm">
+              <div class="flex items-center justify-between">
+                <span class="text-slate-500">模板名称</span>
+                <span class="font-medium text-slate-900">{{ templateForm.name || '未命名模板' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+            <h4 class="text-sm font-semibold text-emerald-900">基础费率预览</h4>
+            <div class="mt-3 rounded-md border border-emerald-100 bg-white p-3 text-sm">
+              <div class="flex items-center justify-between">
+                <span class="text-slate-500">回兑费率 (Q→B)</span>
+                <span class="font-semibold text-emerald-600">{{ ((Number(templateForm.baseMarkup.buy) || 0) * 100).toFixed(2) }}%</span>
+              </div>
+              <div class="mt-2 flex items-center justify-between">
+                <span class="text-slate-500">兑换费率 (B→Q)</span>
+                <span class="font-semibold text-rose-600">{{ ((Number(templateForm.baseMarkup.sell) || 0) * 100).toFixed(2) }}%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-lg border border-violet-200 bg-violet-50 p-4">
+            <div class="flex items-center justify-between">
+              <h4 class="text-sm font-semibold text-violet-900">VIP 分级费率预览</h4>
+              <span class="text-xs text-violet-700">共 {{ templatePreviewLevelEntries.length }} 级</span>
+            </div>
+            <div class="mt-3 space-y-2">
+              <div v-if="templatePreviewLevelEntries.length === 0" class="rounded-md border border-dashed border-violet-200 bg-white p-3 text-xs text-slate-500">
+                暂无分级费率数据
+              </div>
+              <div v-for="([level, rates]) in getVisibleTemplatePreviewLevelEntries()" :key="level" class="rounded-md border border-violet-100 bg-white p-3 text-xs">
+                  <div class="flex items-center justify-between">
+                    <span class="font-semibold text-slate-700">{{ vipLevelLabel(level) }}</span>
+                    <span class="text-slate-500">回兑 {{ ((Number(rates.buy) || 0) * 100).toFixed(2) }}% / 兑换 {{ ((Number(rates.sell) || 0) * 100).toFixed(2) }}%</span>
+                  </div>
+                </div>
+              <button
+                v-if="hasMoreTemplatePreviewLevels"
+                type="button"
+                class="w-full rounded border border-violet-200 bg-white px-2.5 py-1.5 text-xs font-medium text-violet-700 transition hover:bg-violet-100"
+                @click="templatePreviewExpanded = !templatePreviewExpanded"
+              >
+                {{ templatePreviewExpanded ? '收起' : `展开剩余 ${templatePreviewLevelEntries.length - TEMPLATE_LEVEL_PREVIEW_LIMIT} 级` }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
   </div>
 

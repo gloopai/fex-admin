@@ -4,8 +4,7 @@ import ControlConfigModal from '../../components/ControlConfigModal.vue'
 import {
   PERPETUAL_COMMON_FILTER_ALL,
   PERPETUAL_CONTRACT_STEP,
-  PERPETUAL_STATUS,
-  PERPETUAL_VIEW_TAB
+  PERPETUAL_STATUS
 } from '../../constants/perpetual'
 import {
   createDefaultPerpetualControlConfig,
@@ -16,11 +15,8 @@ import {
   perpetualProductStatusMeta
 } from '../../mock/perpetual'
 
-const viewTab = ref(PERPETUAL_VIEW_TAB.PRODUCTS)
 const statusTab = ref(PERPETUAL_COMMON_FILTER_ALL)
 const search = ref('')
-
-const leverageLevels = perpetualLeverageLevels
 
 const buildLeverageBadges = (levels = []) => {
   const visible = levels.slice(0, 6)
@@ -129,77 +125,6 @@ const filteredProducts = computed(() => {
   })
     .sort((a, b) => Number(a.sortOrder || 9999) - Number(b.sortOrder || 9999))
 })
-
-const filteredTemplates = computed(() => {
-  const keyword = search.value.trim().toLowerCase()
-  return templates.value.filter((item) => {
-    const matchesStatus = statusTab.value === PERPETUAL_COMMON_FILTER_ALL || item.status === statusTab.value
-    const matchesKeyword = !keyword || item.name.toLowerCase().includes(keyword)
-    return matchesStatus && matchesKeyword
-  })
-})
-
-const showTemplateModal = ref(false)
-const editingTemplateId = ref(null)
-const newTemplateName = ref('')
-const selectedLeverages = ref([])
-
-const toggleLeverage = (value) => {
-  if (selectedLeverages.value.includes(value)) {
-    selectedLeverages.value = selectedLeverages.value.filter((item) => item !== value)
-    return
-  }
-  selectedLeverages.value = [...selectedLeverages.value, value].sort((a, b) => a - b)
-}
-
-const pickLeveragePack = (type) => {
-  if (type === 'all') selectedLeverages.value = [...leverageLevels]
-  if (type === 'clear') selectedLeverages.value = []
-  if (type === 'low') selectedLeverages.value = leverageLevels.filter((item) => item <= 10)
-  if (type === 'mid') selectedLeverages.value = leverageLevels.filter((item) => item >= 10 && item <= 50)
-  if (type === 'high') selectedLeverages.value = leverageLevels.filter((item) => item >= 50)
-}
-
-const openCreateTemplate = () => {
-  editingTemplateId.value = null
-  newTemplateName.value = ''
-  selectedLeverages.value = []
-  showTemplateModal.value = true
-}
-
-const openEditTemplate = (template) => {
-  editingTemplateId.value = template.id
-  newTemplateName.value = template.name
-  selectedLeverages.value = template.levels.map((item) => Number(parseNumeric(item))).filter((item) => Number.isFinite(item))
-  showTemplateModal.value = true
-}
-
-const submitTemplate = () => {
-  if (!newTemplateName.value.trim() || selectedLeverages.value.length === 0) return
-  const payload = {
-    name: newTemplateName.value.trim(),
-    status: PERPETUAL_STATUS.ENABLED,
-    leverageRange: `${Math.min(...selectedLeverages.value)}x - ${Math.max(...selectedLeverages.value)}x`,
-    leverageCount: selectedLeverages.value.length,
-    levels: selectedLeverages.value.map((item) => `${item}x`)
-  }
-  if (editingTemplateId.value) {
-    templates.value = templates.value.map((item) => (item.id === editingTemplateId.value ? { ...item, ...payload } : item))
-  } else {
-    templates.value.unshift({
-      id: `tpl-${Date.now()}`,
-      ...payload,
-      inUseCount: 0,
-      contracts: []
-    })
-  }
-  syncProductsWithTemplates()
-  refreshTemplateUsage()
-  showTemplateModal.value = false
-  editingTemplateId.value = null
-  newTemplateName.value = ''
-  selectedLeverages.value = []
-}
 
 const showContractModal = ref(false)
 const editingContractId = ref(null)
@@ -326,40 +251,21 @@ const stepText = computed(() => {
     <header class="flex flex-wrap items-start justify-between gap-4">
       <div>
         <h1 class="text-3xl font-semibold text-slate-900">永续合约管理</h1>
-        <p class="mt-1 text-sm text-slate-500">管理永续合约产品和杠杆模板配置</p>
+        <p class="mt-1 text-sm text-slate-500">管理永续合约产品配置</p>
       </div>
       <button
         type="button"
         class="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        @click="viewTab === PERPETUAL_VIEW_TAB.PRODUCTS ? openCreateContract() : openCreateTemplate()"
+        @click="openCreateContract"
       >
         <span class="text-base">+</span>
-        <span>{{ viewTab === PERPETUAL_VIEW_TAB.PRODUCTS ? '新增合约' : '新增模板' }}</span>
+        <span>新增合约</span>
       </button>
     </header>
 
     <article class="rounded-xl border border-slate-200 bg-white">
       <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 p-4">
         <div class="flex flex-wrap items-center gap-4">
-          <div class="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
-            <button
-              type="button"
-              class="rounded-md px-4 py-1.5 text-sm"
-              :class="viewTab === PERPETUAL_VIEW_TAB.PRODUCTS ? 'bg-white font-medium text-blue-600 shadow-sm' : 'text-slate-600'"
-              @click="viewTab = PERPETUAL_VIEW_TAB.PRODUCTS"
-            >
-              合约产品
-            </button>
-            <button
-              type="button"
-              class="rounded-md px-4 py-1.5 text-sm"
-              :class="viewTab === PERPETUAL_VIEW_TAB.TEMPLATES ? 'bg-white font-medium text-blue-600 shadow-sm' : 'text-slate-600'"
-              @click="viewTab = PERPETUAL_VIEW_TAB.TEMPLATES"
-            >
-              杠杆模板
-            </button>
-          </div>
-
           <div class="inline-flex items-center gap-2 text-sm">
             <button type="button" class="font-medium" :class="statusTab === PERPETUAL_COMMON_FILTER_ALL ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = PERPETUAL_COMMON_FILTER_ALL">全部</button>
             <button
@@ -387,7 +293,7 @@ const stepText = computed(() => {
               v-model="search"
               type="text"
               class="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm outline-none focus:border-blue-500"
-              :placeholder="viewTab === PERPETUAL_VIEW_TAB.PRODUCTS ? '搜索产品名称或代码...' : '搜索模板名称...'"
+              placeholder="搜索产品名称或代码..."
             />
             <svg viewBox="0 0 20 20" class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" fill="none">
               <circle cx="9" cy="9" r="5.8" stroke="currentColor" stroke-width="1.6" />
@@ -397,7 +303,7 @@ const stepText = computed(() => {
         </div>
       </div>
 
-      <div v-if="viewTab === PERPETUAL_VIEW_TAB.PRODUCTS" class="space-y-4 p-4">
+      <div class="space-y-4 p-4">
         <article v-for="item in filteredProducts" :key="item.id" class="rounded-xl border border-slate-200 bg-white">
           <div class="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 p-4">
             <div>
@@ -479,126 +385,8 @@ const stepText = computed(() => {
 
         <p v-if="filteredProducts.length === 0" class="rounded-lg border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">没有匹配的合约产品</p>
       </div>
-
-      <div v-else class="space-y-4 p-4">
-        <article v-for="tpl in filteredTemplates" :key="tpl.id" class="rounded-xl border border-slate-200 p-4">
-          <div class="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <div class="flex flex-wrap items-center gap-2">
-                <h3 class="text-lg font-semibold text-slate-900">{{ tpl.name }}</h3>
-                <span class="rounded-md bg-blue-50 px-2 py-0.5 text-xs text-blue-600">{{ tpl.leverageCount }} 个档位</span>
-                <span class="rounded-md bg-emerald-50 px-2 py-0.5 text-xs text-emerald-600">{{ tpl.inUseCount }} 个合约使用中</span>
-              </div>
-              <p class="mt-3 text-sm text-slate-600">杠杆范围: <span class="font-medium text-slate-900">{{ tpl.leverageRange }}</span></p>
-            </div>
-            <button type="button" class="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700" @click="openEditTemplate(tpl)">编辑</button>
-          </div>
-
-          <div class="mt-4">
-            <p class="text-sm text-slate-500">可用杠杆档位:</p>
-            <div class="mt-2 flex flex-wrap gap-2">
-              <span v-for="lv in tpl.levels" :key="lv" class="rounded-md bg-blue-50 px-3 py-1 text-sm font-medium text-blue-600">{{ lv }}</span>
-            </div>
-          </div>
-
-          <div class="mt-4">
-            <p class="text-sm text-slate-500">使用此模板的合约:</p>
-            <div class="mt-2 flex flex-wrap gap-2">
-              <span
-                v-for="contract in tpl.contracts"
-                :key="contract"
-                class="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs text-slate-700"
-              >
-                {{ contract }}
-              </span>
-              <span v-if="tpl.contracts.length === 0" class="text-sm text-slate-400">暂无</span>
-            </div>
-          </div>
-        </article>
-
-        <p v-if="filteredTemplates.length === 0" class="rounded-lg border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">没有匹配的杠杆模板</p>
-      </div>
     </article>
   </section>
-
-  <div v-if="showTemplateModal" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4" @click.self="showTemplateModal = false">
-    <section class="w-full max-w-3xl rounded-xl bg-white">
-      <header class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-        <h2 class="text-2xl font-semibold text-slate-900">{{ editingTemplateId ? '编辑杠杆模板' : '新增杠杆模板' }}</h2>
-        <button type="button" class="text-2xl text-slate-400 hover:text-slate-700" @click="showTemplateModal = false">×</button>
-      </header>
-
-      <div class="space-y-5 px-6 py-5">
-        <label class="block space-y-2">
-          <span class="text-sm font-medium text-slate-700">模板名称 <span class="text-rose-500">*</span></span>
-          <input
-            v-model="newTemplateName"
-            type="text"
-            class="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500"
-            placeholder="请输入模板名称"
-          />
-        </label>
-
-        <div class="space-y-3">
-          <div class="flex items-center justify-between">
-            <p class="text-sm font-medium text-slate-700">选择杠杆档位 <span class="text-rose-500">*</span></p>
-            <p class="text-sm text-slate-500">已选择: <span class="font-semibold text-blue-600">{{ selectedLeverages.length }}</span> 个档位</p>
-          </div>
-
-          <div class="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
-            <button
-              v-for="lv in leverageLevels"
-              :key="lv"
-              type="button"
-              class="rounded-lg border px-3 py-2 text-sm"
-              :class="selectedLeverages.includes(lv) ? 'border-blue-300 bg-blue-50 font-medium text-blue-600' : 'border-slate-200 bg-slate-50 text-slate-700'
-              "
-              @click="toggleLeverage(lv)"
-            >
-              {{ lv }}x
-            </button>
-          </div>
-
-          <div class="flex flex-wrap gap-2">
-            <button type="button" class="rounded-md border border-slate-200 px-3 py-1 text-sm" @click="pickLeveragePack('all')">全选</button>
-            <button type="button" class="rounded-md border border-slate-200 px-3 py-1 text-sm" @click="pickLeveragePack('clear')">清空</button>
-            <button type="button" class="rounded-md border border-slate-200 px-3 py-1 text-sm" @click="pickLeveragePack('low')">低杠杆 (1-10x)</button>
-            <button type="button" class="rounded-md border border-slate-200 px-3 py-1 text-sm" @click="pickLeveragePack('mid')">中等杠杆 (10-50x)</button>
-            <button type="button" class="rounded-md border border-slate-200 px-3 py-1 text-sm" @click="pickLeveragePack('high')">高杠杆 (50-125x)</button>
-          </div>
-
-          <div class="rounded-lg border border-blue-200 bg-blue-50 p-4">
-            <p class="font-medium text-slate-800">当前选择的杠杆档位</p>
-            <div v-if="selectedLeverages.length" class="mt-2 flex flex-wrap gap-2">
-              <span v-for="lv in selectedLeverages" :key="`picked-${lv}`" class="rounded-md bg-white px-2 py-0.5 text-sm text-blue-600">{{ lv }}x</span>
-            </div>
-            <p v-else class="mt-2 text-sm text-slate-500">暂无选择任何档位</p>
-          </div>
-
-          <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-            <p class="font-medium">杠杆档位说明:</p>
-            <p class="mt-2">- 1-10x: 低风险，适合稳健投资者</p>
-            <p>- 10-50x: 中等风险，需要一定的风险承受能力</p>
-            <p>- 50-125x: 高风险，仅适合专业交易者</p>
-            <p class="mt-2 font-medium text-rose-500">杠杆越高，强制平仓风险越大</p>
-          </div>
-        </div>
-      </div>
-
-      <footer class="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
-        <button type="button" class="rounded-lg border border-slate-200 px-4 py-2" @click="showTemplateModal = false">取消</button>
-        <button
-          type="button"
-          class="rounded-lg px-4 py-2 font-medium text-white"
-          :class="newTemplateName.trim() && selectedLeverages.length ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-300'"
-          :disabled="!newTemplateName.trim() || !selectedLeverages.length"
-          @click="submitTemplate"
-        >
-          {{ editingTemplateId ? '保存' : '创建' }}
-        </button>
-      </footer>
-    </section>
-  </div>
 
   <div v-if="showContractModal" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4" @click.self="showContractModal = false">
     <section class="w-full max-w-3xl rounded-xl bg-white">

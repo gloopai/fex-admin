@@ -33,6 +33,11 @@ const routes = [
         component: () => import('../pages/perpetual/PerpetualManagementPage.vue')
       },
       {
+        path: 'perpetual/leverage-template',
+        name: 'perpetual-leverage-template',
+        component: () => import('../pages/perpetual/PerpetualLeverageTemplatePage.vue')
+      },
+      {
         path: 'perpetual/user-monitor',
         name: 'perpetual-user-monitor',
         redirect: '/perpetual/contract-monitor'
@@ -70,6 +75,11 @@ const routes = [
         path: 'delivery/contracts',
         name: 'delivery-contracts',
         component: () => import('../pages/delivery/DeliveryManagementPage.vue')
+      },
+      {
+        path: 'delivery/templates',
+        name: 'delivery-templates',
+        component: () => import('../pages/delivery/DeliveryTemplatePage.vue')
       },
       {
         path: 'delivery/auto-rules',
@@ -119,9 +129,14 @@ const routes = [
         component: () => import('../pages/assets/AssetsCurrencyPage.vue')
       },
       {
-        path: 'assets/exchange-fee',
-        name: 'assets-exchange-fee',
-        component: () => import('../pages/assets/AssetsExchangeAndFeePage.vue')
+        path: 'assets/exchange-rate',
+        name: 'assets-exchange-rate',
+        component: () => import('../pages/assets/AssetsExchangeRatePage.vue')
+      },
+      {
+        path: 'assets/fee-template',
+        name: 'assets-fee-template',
+        component: () => import('../pages/assets/AssetsFeeTemplatePage.vue')
       },
       {
         path: 'assets/manual-collect',

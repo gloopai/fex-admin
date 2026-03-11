@@ -6,11 +6,12 @@ import {
   EXCHANGE_RATE_TYPE
 } from '../../constants/assets'
 import { createExchangeRatePairsMock, createFeeTemplatesMock } from '../../mock/assets'
+import { getActiveVipLevels } from '../../mock/vip'
 
 const statusTab = ref('all')
 const search = ref('')
 const showEditModal = ref(false)
-const editingPairId = ref('')
+const editingId = ref('')
 
 // MFA 验证相关
 const showMfaModal = ref(false)
@@ -19,18 +20,18 @@ const mfaLoading = ref(false)
 
 const pairs = ref(createExchangeRatePairsMock())
 const feeTemplates = ref(createFeeTemplatesMock())
+const availableAssets = ref(['USDT', 'BTC', 'ETH', 'BNB', 'SOL', 'ADA', 'XRP', 'DOT', 'TRX', 'DOGE'])
 
-const form = reactive({
+// 汇率管理表单
+const rateForm = reactive({
   baseAsset: '',
   quoteAsset: '',
   source: EXCHANGE_RATE_SOURCE.BINANCE,
   type: EXCHANGE_RATE_TYPE.FLOATING,
   marketRate: 0,
   feeTemplateId: '',
-  buyMarkup: 0,
-  sellMarkup: 0,
-  buyRate: 0,
-  sellRate: 0,
+  buyMarkup: 0.005,
+  sellMarkup: 0.005,
   enabled: true,
   autoReverse: true,
   userLevelRates: {}
@@ -47,116 +48,227 @@ const filteredPairs = computed(() => {
   })
 })
 
-const enabledCount = computed(() => pairs.value.filter((p) => p.enabled).length)
+const enabledPairsCount = computed(() => pairs.value.filter((p) => p.enabled).length)
+const activeVipLevels = computed(() => getActiveVipLevels().slice().sort((a, b) => a.level - b.level))
+const selectedRateTemplate = computed(() => feeTemplates.value.find((t) => t.id === rateForm.feeTemplateId) || null)
+const ratePreviewPair = computed(() => {
+  const base = rateForm.baseAsset.trim().toUpperCase()
+  const quote = rateForm.quoteAsset.trim().toUpperCase()
+  return `${base || '—'}/${quote || '—'}`
+})
+const ratePreviewLevelEntries = computed(() => {
+  const rates = rateForm.userLevelRates || {}
+  const byVip = activeVipLevels.value
+    .map((vip) => {
+      const key = `vip${vip.level}`
+      return rates[key] ? [key, rates[key]] : null
+    })
+    .filter(Boolean)
+  const has = new Set(byVip.map(([key]) => key))
+  const rest = Object.entries(rates).filter(([key]) => !has.has(key))
+  return [...byVip, ...rest]
+})
 
+const RATE_LEVEL_PREVIEW_LIMIT = 5
+const rateLevelsExpanded = ref(false)
+
+const getVisibleRatePreviewLevelEntries = () => {
+  if (rateLevelsExpanded.value) return ratePreviewLevelEntries.value
+  return ratePreviewLevelEntries.value.slice(0, RATE_LEVEL_PREVIEW_LIMIT)
+}
+
+const hasMoreRatePreviewLevels = computed(() => ratePreviewLevelEntries.value.length > RATE_LEVEL_PREVIEW_LIMIT)
+
+// ========== 通用方法 ==========
 const clonePairToForm = (pair) => {
-  form.baseAsset = pair.baseAsset
-  form.quoteAsset = pair.quoteAsset
-  form.source = pair.source
-  form.type = pair.type
-  form.marketRate = pair.marketRate
-  form.feeTemplateId = pair.feeTemplateId || ''
-  form.buyMarkup = pair.buyMarkup || 0
-  form.sellMarkup = pair.sellMarkup || 0
-  form.buyRate = pair.buyRate || 0
-  form.sellRate = pair.sellRate || 0
-  form.enabled = pair.enabled
-  form.autoReverse = pair.autoReverse
-  form.userLevelRates = pair.userLevelRates ? JSON.parse(JSON.stringify(pair.userLevelRates)) : {}
+  rateForm.baseAsset = pair.baseAsset
+  rateForm.quoteAsset = pair.quoteAsset
+  rateForm.source = pair.source || EXCHANGE_RATE_SOURCE.BINANCE
+  rateForm.type = EXCHANGE_RATE_TYPE.FLOATING
+  rateForm.marketRate = pair.marketRate
+  rateForm.feeTemplateId = pair.feeTemplateId || ''
+  rateForm.buyMarkup = pair.buyMarkup
+  rateForm.sellMarkup = pair.sellMarkup
+  rateForm.enabled = pair.enabled
+  rateForm.autoReverse = pair.autoReverse
+  rateForm.userLevelRates = syncRateVipLevelRatesWithModule(
+    JSON.parse(JSON.stringify(pair.userLevelRates || {})),
+    pair.buyMarkup,
+    pair.sellMarkup
+  )
 }
 
-const initUserLevelRates = () => {
-  // 该函数已废弃，使用费率模板功能
-  form.userLevelRates = {}
+const getVipLevelNumber = (level) => {
+  const match = String(level || '').toLowerCase().match(/^vip(\d+)$/)
+  return match ? Number(match[1]) : null
 }
 
-const openEdit = (pair) => {
-  editingPairId.value = pair.id
-  clonePairToForm(pair)
-  showEditModal.value = true
+const sortVipLevels = (levels) => {
+  return [...levels].sort((a, b) => {
+    const aNum = getVipLevelNumber(a)
+    const bNum = getVipLevelNumber(b)
+    if (aNum !== null && bNum !== null) return aNum - bNum
+    if (aNum !== null) return -1
+    if (bNum !== null) return 1
+    return String(a).localeCompare(String(b))
+  })
 }
 
-const openCreate = () => {
-  editingPairId.value = ''
-  form.baseAsset = ''
-  form.quoteAsset = ''
-  form.source = EXCHANGE_RATE_SOURCE.BINANCE
-  form.type = EXCHANGE_RATE_TYPE.FLOATING
-  form.marketRate = 0
-  form.feeTemplateId = ''
-  form.buyMarkup = 0
-  form.sellMarkup = 0
-  form.buyRate = 0
-  form.sellRate = 0
-  form.enabled = true
-  form.autoReverse = true
-  form.userLevelRates = {}
-  showEditModal.value = true
+const defaultVipRateFactor = (index) => Math.max(0.2, 1 - index * 0.2)
+
+const normalizeVipLevelRates = (levelRates, baseMarkup) => {
+  const baseBuy = Number(baseMarkup.buy) || 0
+  const baseSell = Number(baseMarkup.sell) || 0
+  const entries = Object.entries(levelRates || {})
+
+  if (!entries.length) {
+    return {
+      vip0: { buy: baseBuy, sell: baseSell }
+    }
+  }
+
+  const normalized = {}
+  let nextIndex = 0
+
+  sortVipLevels(entries.map(([level]) => level)).forEach((level) => {
+    const origin = levelRates[level] || {}
+    const vipIndex = getVipLevelNumber(level) ?? nextIndex
+    const key = `vip${vipIndex}`
+    normalized[key] = {
+      buy: Number(origin.buy) || 0,
+      sell: Number(origin.sell) || 0
+    }
+    nextIndex = Math.max(nextIndex, vipIndex + 1)
+  })
+
+  return normalized
+}
+
+const syncVipLevelRatesWithModule = (levelRates = {}, baseMarkup) => {
+  const normalized = normalizeVipLevelRates(levelRates, baseMarkup)
+  const baseBuy = Number(baseMarkup.buy) || 0
+  const baseSell = Number(baseMarkup.sell) || 0
+
+  return activeVipLevels.value.reduce((acc, vip, index) => {
+    const key = `vip${vip.level}`
+    const fallbackByOrder = normalized[`vip${index}`] || normalized[`vip${index + 1}`]
+    const fallback = normalized[key] || fallbackByOrder
+    const factor = defaultVipRateFactor(index)
+    acc[key] = {
+      buy: Number((Number(fallback?.buy ?? baseBuy * factor) || 0).toFixed(6)),
+      sell: Number((Number(fallback?.sell ?? baseSell * factor) || 0).toFixed(6))
+    }
+    return acc
+  }, {})
+}
+
+const syncRateVipLevelRatesWithModule = (levelRates = {}, buyMarkup = rateForm.buyMarkup, sellMarkup = rateForm.sellMarkup) => {
+  return syncVipLevelRatesWithModule(levelRates, {
+    buy: Number(buyMarkup) || 0,
+    sell: Number(sellMarkup) || 0
+  })
+}
+
+const initRateUserLevelRates = () => {
+  rateForm.userLevelRates = syncRateVipLevelRatesWithModule({}, rateForm.buyMarkup, rateForm.sellMarkup)
+}
+
+const vipLevelLabel = (level) => {
+  const number = getVipLevelNumber(level)
+  const meta = activeVipLevels.value.find((vip) => vip.level === number)
+  if (meta) {
+    return meta.displayName ? `${meta.name}（${meta.displayName}）` : meta.name
+  }
+  return number !== null ? `VIP ${number}` : String(level || '').toUpperCase()
 }
 
 const calculateRates = () => {
-  // 兼容旧逻辑，但在费率模板模式下不直接使用
-  form.buyRate = form.marketRate * (1 + form.buyMarkup)
-  form.sellRate = form.marketRate * (1 - form.sellMarkup)
+  rateForm.buyRate = rateForm.marketRate * (1 + rateForm.buyMarkup)
+  rateForm.sellRate = rateForm.marketRate * (1 - rateForm.sellMarkup)
 }
 
-const savePair = () => {
-  // 如果选择了费率模板，优先使用模板中的费率值
-  let finalBuyRate = form.buyRate
-n  let finalSellRate = form.sellRate
-  
-  if (form.feeTemplateId) {
-    const template = feeTemplates.value.find(t => t.id === form.feeTemplateId)
-    if (template) {
-      finalBuyRate = form.marketRate * (1 + template.baseMarkup.buy)
-      finalSellRate = form.marketRate * (1 - template.baseMarkup.sell)
-    }
+// ========== 汇率管理操作 ==========
+const openEditRate = (pair) => {
+  editingId.value = pair.id
+  clonePairToForm(pair)
+  rateLevelsExpanded.value = false
+  showEditModal.value = true
+}
+
+const openCreateRate = () => {
+  editingId.value = ''
+  Object.assign(rateForm, {
+    baseAsset: '',
+    quoteAsset: '',
+    source: EXCHANGE_RATE_SOURCE.BINANCE,
+    type: EXCHANGE_RATE_TYPE.FLOATING,
+    marketRate: 0,
+    feeTemplateId: '',
+    buyMarkup: 0.005,
+    sellMarkup: 0.005,
+    enabled: true,
+    autoReverse: true,
+    userLevelRates: {}
+  })
+  initRateUserLevelRates()
+  rateLevelsExpanded.value = false
+  showEditModal.value = true
+}
+
+const applyFeeTemplate = (templateId) => {
+  const template = feeTemplates.value.find(t => t.id === templateId)
+  if (template) {
+    rateForm.feeTemplateId = templateId
+    rateForm.buyMarkup = template.baseMarkup.buy
+    rateForm.sellMarkup = template.baseMarkup.sell
+    rateForm.userLevelRates = syncRateVipLevelRatesWithModule(
+      JSON.parse(JSON.stringify(template.userLevelRates || {})),
+      template.baseMarkup.buy,
+      template.baseMarkup.sell
+    )
+    calculateRates()
   }
+}
+
+const saveRate = () => {
+  calculateRates()
   
   const payload = {
-    baseAsset: form.baseAsset.trim().toUpperCase(),
-    quoteAsset: form.quoteAsset.trim().toUpperCase(),
-    source: form.source,
-    type: form.type,
-    marketRate: Number(form.marketRate),
-    feeTemplateId: form.feeTemplateId || null,
-    buyMarkup: Number(form.buyMarkup),
-    sellMarkup: Number(form.sellMarkup),
-    buyRate: Number(finalBuyRate),
-    sellRate: Number(finalSellRate),
-    enabled: Boolean(form.enabled),
-    autoReverse: Boolean(form.autoReverse),
-    userLevelRates: form.userLevelRates,
+    baseAsset: rateForm.baseAsset.trim().toUpperCase(),
+    quoteAsset: rateForm.quoteAsset.trim().toUpperCase(),
+    source: rateForm.source,
+    type: EXCHANGE_RATE_TYPE.FLOATING,
+    marketRate: Number(rateForm.marketRate),
+    feeTemplateId: rateForm.feeTemplateId || null,
+    buyMarkup: Number(rateForm.buyMarkup),
+    sellMarkup: Number(rateForm.sellMarkup),
+    buyRate: Number(rateForm.buyRate),
+    sellRate: Number(rateForm.sellRate),
+    enabled: Boolean(rateForm.enabled),
+    autoReverse: Boolean(rateForm.autoReverse),
+    userLevelRates: rateForm.userLevelRates,
     lastUpdate: new Date().toISOString().replace('T', ' ').substring(0, 19)
   }
 
-  // 保存待提交的数据，先显示 MFA 验证弹窗
   pendingSaveData.value = payload
   showMfaModal.value = true
 }
 
-// 处理 MFA 验证
+// ========== MFA 验证处理 ==========
 const handleMfaVerify = async (code) => {
   mfaLoading.value = true
   
   try {
-    // TODO: 这里调用后端 API 验证 MFA 验证码
-    // const response = await api.verifyMFA(code)
-    
-    // 模拟 API 调用延迟
     await new Promise(resolve => setTimeout(resolve, 1000))
     
-    // 验证成功后执行实际的保存操作
     if (pendingSaveData.value) {
-      if (editingPairId.value) {
+      // 保存汇率配置
+      if (editingId.value) {
         pairs.value = pairs.value.map((pair) => 
-          pair.id === editingPairId.value ? { ...pair, ...pendingSaveData.value } : pair
+          pair.id === editingId.value ? { ...pair, ...pendingSaveData.value } : pair
         )
       } else {
-        pairs.value.unshift({ 
-          id: `pair-${Date.now()}`, 
-          ...pendingSaveData.value 
-        })
+        pairs.value.unshift({ id: `pair-${Date.now()}`, ...pendingSaveData.value })
       }
 
       showEditModal.value = false
@@ -171,8 +283,7 @@ const handleMfaVerify = async (code) => {
   }
 }
 
-const badgeClass = (enabled) => enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'
-
+// ========== 工具函数 ==========
 const sourceLabel = (source) => {
   const map = {
     [EXCHANGE_RATE_SOURCE.BINANCE]: '币安',
@@ -183,168 +294,303 @@ const sourceLabel = (source) => {
   return map[source] || source
 }
 
-const typeLabel = (type) => {
-  const map = {
-    [EXCHANGE_RATE_TYPE.FLOATING]: '浮动汇率',
-    [EXCHANGE_RATE_TYPE.FIXED]: '固定汇率'
-  }
-  return map[type] || type
-}
-
-const toggleSection = (section) => {
-  activeSection.value = activeSection.value === section ? '' : section
-}
-
-const updateUserLevelRate = (level, type, value) => {
-  if (!form.userLevelRates[level]) {
-    form.userLevelRates[level] = { buy: form.buyMarkup, sell: form.sellMarkup }
-  }
-  form.userLevelRates[level][type] = Number(value)
-}
-
-const applyFeeTemplate = (templateId) => {
+const getFeeTemplateName = (templateId) => {
+  if (!templateId) return '手动配置'
   const template = feeTemplates.value.find(t => t.id === templateId)
-  if (template) {
-    form.feeTemplateId = templateId
-    form.buyMarkup = template.baseMarkup.buy
-    form.sellMarkup = template.baseMarkup.sell
-    form.userLevelRates = JSON.parse(JSON.stringify(template.userLevelRates))
-    calculateRates()
-  }
+  return template ? template.name : '未知模板'
 }
 </script>
 
 <template>
-  <section class="space-y-3">
+  <section class="space-y-4">
     <header class="flex flex-wrap items-start justify-between gap-4">
       <div>
         <h1 class="text-3xl font-semibold text-slate-900">汇率管理</h1>
-        <p class="mt-1 text-sm text-slate-500">管理平台交易对汇率和手续费配置</p>
+        <p class="mt-1 text-sm text-slate-500">管理闪兑模块各交易对的市场汇率及加成配置</p>
       </div>
-      <div class="flex items-center gap-4">
-        <p class="text-sm text-slate-500">启用交易对：<span class="font-semibold text-blue-600">{{ enabledCount }}</span> / {{ pairs.length }}</p>
-        <button type="button" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" @click="openCreate">+ 新增交易对</button>
-      </div>
+      <button
+        type="button"
+        class="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+        @click="openCreateRate()"
+      >
+        <span class="text-base">+</span>
+        <span>新增交易对</span>
+      </button>
     </header>
 
     <article class="rounded-xl border border-slate-200 bg-white">
-      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-3">
-        <div class="inline-flex items-center gap-4 text-sm">
-          <button type="button" class="font-medium" :class="statusTab === 'all' ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = 'all'">全部</button>
-          <button type="button" class="font-medium" :class="statusTab === 'enabled' ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = 'enabled'">已启用</button>
-          <button type="button" class="font-medium" :class="statusTab === 'disabled' ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = 'disabled'">已禁用</button>
+      <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 p-4">
+        <div class="flex flex-wrap items-center gap-4">
+          <!-- Status Filter -->
+          <div class="inline-flex items-center gap-2 text-sm">
+            <button type="button" class="font-medium" :class="statusTab === 'all' ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = 'all'">全部</button>
+            <button type="button" class="font-medium" :class="statusTab === 'enabled' ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = 'enabled'">已启用</button>
+            <button type="button" class="font-medium" :class="statusTab === 'disabled' ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = 'disabled'">已禁用</button>
+          </div>
         </div>
-        <input v-model="search" type="text" placeholder="搜索交易对..." class="w-full max-w-sm rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500" />
+
+        <!-- Search -->
+        <div class="flex w-full max-w-2xl flex-wrap items-center justify-end gap-2">
+          <div class="relative w-full max-w-sm">
+            <input
+              v-model="search"
+              type="text"
+              class="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm outline-none focus:border-blue-500"
+              placeholder="搜索交易对..."
+            />
+            <svg viewBox="0 0 20 20" class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" fill="none">
+              <circle cx="9" cy="9" r="5.8" stroke="currentColor" stroke-width="1.6" />
+              <path d="M13.6 13.6L16.4 16.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+            </svg>
+          </div>
+        </div>
       </div>
 
-      <div class="space-y-3 p-3">
-        <article
+      <!-- 汇率管理内容 -->
+      <div class="space-y-3 p-4">
+        <div class="flex items-center justify-between pb-2">
+          <p class="text-sm text-slate-500">
+            共 <span class="font-semibold text-slate-900">{{ filteredPairs.length }}</span> 个交易对，已启用 <span class="font-semibold text-emerald-600">{{ enabledPairsCount }}</span>
+          </p>
+        </div>
+
+        <div
           v-for="pair in filteredPairs"
           :key="pair.id"
-          class="rounded-xl border border-slate-200 bg-white p-3 transition-colors"
-          :class="pair.enabled ? 'hover:border-emerald-200 hover:bg-emerald-50/30' : 'hover:border-slate-300 hover:bg-slate-50'"
+          class="group flex flex-col items-stretch overflow-hidden rounded-xl border border-slate-200 bg-white transition-all hover:border-blue-200 hover:shadow-md md:flex-row md:items-center"
         >
-          <div class="flex flex-wrap items-start justify-between gap-2">
-            <div>
-              <div class="flex flex-wrap items-center gap-2">
-                <h3 class="text-2xl font-semibold leading-none text-slate-900">{{ pair.baseAsset }}/{{ pair.quoteAsset }}</h3>
-                <span class="rounded-md px-2 py-0.5 text-xs font-medium" :class="badgeClass(pair.enabled)">{{ pair.enabled ? '已启用' : '已禁用' }}</span>
-                <span class="rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-600">{{ sourceLabel(pair.source) }}</span>
-                <span class="rounded-md bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-600">{{ typeLabel(pair.type) }}</span>
-              </div>
-              <p class="mt-1.5 text-xs text-slate-600">
-                市场价：<span class="font-semibold text-slate-900">{{ pair.marketRate }}</span>
-              </p>
-              <p class="mt-1 text-xs text-slate-500">
-                反向映射：<span class="font-medium" :class="pair.autoReverse ? 'text-blue-600' : 'text-slate-500'">{{ pair.autoReverse ? '开启' : '关闭' }}</span>
-              </p>
-              <p class="mt-1 text-xs text-slate-400">最后更新：{{ pair.lastUpdate }}</p>
+          <!-- 交易对基础信息 -->
+          <div class="flex w-full items-center gap-4 border-b border-slate-100 bg-slate-50/50 p-4 md:w-1/4 md:border-b-0 md:border-r md:bg-white">
+            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-50 text-lg font-bold text-blue-600">
+              {{ pair.baseAsset[0] }}
             </div>
-            <button type="button" class="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50" @click="openEdit(pair)">编辑</button>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <h3 class="truncate text-lg font-bold text-slate-900">{{ pair.baseAsset }}/{{ pair.quoteAsset }}</h3>
+                <span class="rounded px-1.5 py-0.5 text-xs font-bold uppercase tracking-wider" :class="pair.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'">
+                  {{ pair.enabled ? 'ON' : 'OFF' }}
+                </span>
+              </div>
+              <div class="mt-1 flex flex-wrap gap-1.5">
+                <span class="rounded bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-600">{{ sourceLabel(pair.source) }}</span>
+                <span v-if="pair.autoReverse" class="rounded bg-indigo-50 px-1.5 py-0.5 text-xs font-medium text-indigo-600">反向映射</span>
+              </div>
+            </div>
           </div>
-        </article>
+
+          <!-- 核心汇率数据 -->
+          <div class="grid flex-1 grid-cols-2 gap-4 p-4 md:grid-cols-4">
+            <div class="space-y-1">
+              <p class="text-xs  text-slate-400">市场中间价</p>
+              <p class="text-base font-bold text-slate-900">{{ pair.marketRate }}</p>
+              <p class="text-xs text-slate-500">数据源 {{ sourceLabel(pair.source) }}</p>
+            </div>
+            <div class="space-y-1 border-r border-slate-50 md:border-r-0">
+              <p class="text-xs font-medium uppercase tracking-wider text-slate-400">兑换费率加成</p>
+              <p class="text-sm font-bold text-blue-600">
+                <span class="text-emerald-600">→{{ pair.quoteAsset }} {{ (pair.sellMarkup * 100).toFixed(2) }}%</span> / 
+                <span class="text-rose-600">→{{ pair.baseAsset }} {{ (pair.buyMarkup * 100).toFixed(2) }}%</span>
+              </p>
+              <p class="text-xs text-slate-500">{{ getFeeTemplateName(pair.feeTemplateId) }}</p>
+            </div>
+            <div class="space-y-1 md:col-span-2">
+              <p class="text-xs font-medium uppercase tracking-wider text-slate-400">状态与更新</p>
+              <p class="text-sm font-medium text-slate-600">{{ pair.lastUpdate }}</p>
+              <p class="text-xs text-slate-400">
+                反向映射：<span :class="pair.autoReverse ? 'text-indigo-600 font-medium' : 'text-slate-400'">{{ pair.autoReverse ? '已开启' : '已关闭' }}</span>
+              </p>
+            </div>
+          </div>
+
+          <!-- 操作区 -->
+          <div class="flex items-center justify-end border-t border-slate-100 bg-slate-50/30 p-4 md:w-32 md:border-t-0 md:bg-white">
+            <button 
+              type="button" 
+              class="flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm transition-all hover:bg-blue-600 hover:text-white hover:border-blue-600 active:scale-95 md:w-20"
+              @click="openEditRate(pair)"
+            >
+              <span>编辑</span>
+              <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        </div>
       </div>
     </article>
   </section>
 
   <!-- 编辑/新增弹窗 -->
   <div v-if="showEditModal" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4" @click.self="showEditModal = false">
-    <section class="w-full max-w-4xl rounded-xl bg-white">
-      <header class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-        <h2 class="text-xl font-semibold text-slate-900">{{ editingPairId ? '编辑汇率配置' : '新增汇率配置' }}</h2>
-        <button type="button" class="text-2xl text-slate-400" @click="showEditModal = false">×</button>
-      </header>
-
-      <div class="max-h-[74vh] space-y-5 overflow-y-auto px-5 py-4">
-        <!-- 基本信息 -->
-        <section class="rounded-lg border border-slate-200">
-          <div class="px-4 py-4">
-            <!-- 快速选择费率模板 -->
-            <div class="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
-              <label class="space-y-1">
-                <span class="text-sm font-medium text-blue-900">💰 费率模板选择</span>
-                <select 
-                  v-model="form.feeTemplateId" 
-                  @change="applyFeeTemplate(form.feeTemplateId)"
-                  class="w-full rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm"
-                >
-                  <option value="">—— 请选择费率模板 ——</option>
-                  <option v-for="template in feeTemplates.filter(t => t.enabled)" :key="template.id" :value="template.id">
-                    {{ template.name }} (买：{{ (template.baseMarkup.buy * 100).toFixed(2) }}% | 卖：{{ (template.baseMarkup.sell * 100).toFixed(2) }}%)
-                  </option>
-                </select>
-              </label>
-              <p class="mt-2 text-xs text-blue-700">
-                💡 选择费率模板后，所有费率配置将从模板中自动填充
-              </p>
-            </div>
-
-            <div class="grid gap-3 md:grid-cols-2">
-              <label class="space-y-1">
-                <span class="text-sm">基础资产</span>
-                <input v-model="form.baseAsset" type="text" placeholder="如：USDT" class="w-full rounded-lg border border-slate-300 px-3 py-2" />
-              </label>
-              <label class="space-y-1">
-                <span class="text-sm">目标资产</span>
-                <input v-model="form.quoteAsset" type="text" placeholder="如：BTC" class="w-full rounded-lg border border-slate-300 px-3 py-2" />
-              </label>
-              <label class="space-y-1">
-                <span class="text-sm">数据源</span>
-                <select v-model="form.source" class="w-full rounded-lg border border-slate-300 px-3 py-2">
-                  <option :value="EXCHANGE_RATE_SOURCE.BINANCE">币安 (Binance)</option>
-                  <option :value="EXCHANGE_RATE_SOURCE.OKX">OKX</option>
-                  <option :value="EXCHANGE_RATE_SOURCE.COINGECKO">CoinGecko</option>
-                  <option :value="EXCHANGE_RATE_SOURCE.CUSTOM">自定义</option>
-                </select>
-              </label>
-              <label class="space-y-1">
-                <span class="text-sm">汇率类型</span>
-                <select v-model="form.type" class="w-full rounded-lg border border-slate-300 px-3 py-2">
-                  <option :value="EXCHANGE_RATE_TYPE.FLOATING">浮动汇率</option>
-                  <option :value="EXCHANGE_RATE_TYPE.FIXED">固定汇率</option>
-                </select>
-              </label>
-              <label class="space-y-1">
-                <span class="text-sm">市场汇率</span>
-                <input v-model.number="form.marketRate" type="number" step="any" class="w-full rounded-lg border border-slate-300 px-3 py-2" />
-              </label>
-              <label class="inline-flex items-center gap-2 text-sm">
-                <input v-model="form.enabled" type="checkbox" class="h-4 w-4" />
-                启用该交易对
-              </label>
-              <label class="inline-flex items-center gap-2 text-sm">
-                <input v-model="form.autoReverse" type="checkbox" class="h-4 w-4" />
-                自动反向映射
-              </label>
-            </div>
+    <section class="flex max-h-[75vh] w-full max-w-5xl overflow-hidden rounded-xl bg-white shadow-2xl">
+      <div class="flex w-3/5 flex-col border-r border-slate-200">
+        <header class="flex items-center justify-between border-b border-slate-200 bg-gradient-to-r from-blue-50 to-cyan-50 px-6 py-4">
+          <div>
+            <h2 class="text-xl font-semibold text-slate-900">{{ editingId ? '编辑汇率配置' : '新增交易对' }}</h2>
+            <p class="mt-0.5 text-xs text-slate-500">左侧配置基本信息，费率详情请参考右侧预览</p>
           </div>
-        </section>
+          <button type="button" class="text-2xl text-slate-400 transition-colors hover:text-slate-600" @click="showEditModal = false">×</button>
+        </header>
+
+        <div class="flex-1 space-y-5 overflow-y-auto px-6 py-5">
+          <section class="space-y-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="flex items-center gap-2">
+              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100">
+                <svg class="h-4 w-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 class="text-base font-semibold text-slate-900">基本信息</h3>
+            </div>
+
+            <div class="grid gap-4 md:grid-cols-2">
+              <label class="space-y-2 md:col-span-2">
+                <div class="flex flex-col">
+                  <span class="text-sm font-medium text-slate-700">费率模板</span>
+                  <span class="text-xs text-slate-500">选择模板后，基础费率和 VIP 分级费率将自动从模板同步，无需手动配置</span>
+                </div>
+                <select
+                  v-model="rateForm.feeTemplateId"
+                  @change="applyFeeTemplate(rateForm.feeTemplateId)"
+                  class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                >
+                  <option value="">请选择费率模板</option>
+                  <option v-for="template in feeTemplates.filter(t => t.enabled)" :key="template.id" :value="template.id">
+                {{ template.name }} (逆：{{ (template.baseMarkup.buy * 100).toFixed(2) }}% | 正：{{ (template.baseMarkup.sell * 100).toFixed(2) }}%)
+              </option>
+                </select>
+              </label>
+              <label class="space-y-2">
+                <div class="flex flex-col">
+                  <span class="text-sm font-medium text-slate-700">基础资产</span>
+                  <span class="text-xs text-slate-500">交易对的主体资产（如 USDT）</span>
+                </div>
+                <select
+                  v-model="rateForm.baseAsset"
+                  class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                >
+                  <option value="">请选择资产</option>
+                  <option v-for="asset in availableAssets" :key="asset" :value="asset">{{ asset }}</option>
+                </select>
+              </label>
+              <label class="space-y-2">
+                <div class="flex flex-col">
+                  <span class="text-sm font-medium text-slate-700">目标资产</span>
+                  <span class="text-xs text-slate-500">交易对的兑换资产（如 BTC）</span>
+                </div>
+                <select
+                  v-model="rateForm.quoteAsset"
+                  class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                >
+                  <option value="">请选择资产</option>
+                  <option v-for="asset in availableAssets" :key="asset" :value="asset">{{ asset }}</option>
+                </select>
+              </label>
+              <label class="flex items-center justify-between rounded-lg border border-blue-100 bg-blue-50/50 px-4 py-3 md:col-span-2">
+                <div class="flex flex-col">
+                  <span class="text-sm font-medium text-blue-900">自动反向映射</span>
+                  <span class="text-xs text-blue-700">开启后，系统会自动创建反向交易对（如 BTC/USDT）并保持汇率联动</span>
+                </div>
+                <input v-model="rateForm.autoReverse" type="checkbox" class="h-5 w-5 rounded border-blue-300 text-blue-600 focus:ring-blue-500" />
+              </label>
+              <label class="space-y-2 md:col-span-2">
+                <div class="flex flex-col">
+                  <span class="text-sm font-medium text-slate-700">市场汇率来源</span>
+                  <span class="text-xs text-slate-500">实时获取 market 中间价的价格接口来源</span>
+                </div>
+                <select
+                  v-model="rateForm.source"
+                  class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                >
+                  <option :value="EXCHANGE_RATE_SOURCE.BINANCE">币安 (Binance)</option>
+                </select>
+              </label>
+              <label class="flex items-center justify-between rounded-lg border border-emerald-100 bg-emerald-50/50 px-4 py-3 md:col-span-2">
+                <div class="flex flex-col">
+                  <span class="text-sm font-medium text-emerald-900">启用该交易对</span>
+                  <span class="text-xs text-emerald-700">是否允许用户在前端看到并交易此币对</span>
+                </div>
+                <input v-model="rateForm.enabled" type="checkbox" class="h-5 w-5 rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500" />
+              </label>
+            </div>
+          </section>
+        </div>
+
+        <footer class="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
+          <button type="button" class="rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-white" @click="showEditModal = false">取消</button>
+          <button type="button" class="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700" @click="saveRate()">保存</button>
+        </footer>
       </div>
 
-      <footer class="flex justify-end gap-3 border-t border-slate-200 px-5 py-4">
-        <button type="button" class="rounded-lg border border-slate-300 px-4 py-2" @click="showEditModal = false">取消</button>
-        <button type="button" class="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white" @click="savePair">保存</button>
-      </footer>
+      <div class="flex w-2/5 flex-col bg-gradient-to-br from-slate-50 to-slate-100">
+        <header class="border-b border-slate-200 px-5 py-4">
+          <h3 class="text-lg font-semibold text-slate-900">实时预览</h3>
+          <p class="mt-0.5 text-xs text-slate-500">调整左侧配置后即时更新</p>
+        </header>
+
+        <div class="flex-1 space-y-4 overflow-y-auto px-5 py-4">
+          <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <div class="flex items-center justify-between">
+              <h4 class="text-sm font-semibold text-slate-900">交易对概览</h4>
+              <span class="rounded-md px-2 py-1 text-xs font-medium" :class="rateForm.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'">
+                {{ rateForm.enabled ? '已启用' : '已禁用' }}
+              </span>
+            </div>
+            <div class="mt-3 space-y-2 text-sm">
+              <div class="flex items-center justify-between">
+                <span class="text-slate-500">交易对</span>
+                <span class="font-semibold text-slate-900">{{ ratePreviewPair }}</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-slate-500">数据源</span>
+                <span class="font-medium text-slate-900">{{ sourceLabel(rateForm.source) }}</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-slate-500">反向映射</span>
+                <span class="font-medium" :class="rateForm.autoReverse ? 'text-blue-600' : 'text-slate-500'">{{ rateForm.autoReverse ? '开启' : '关闭' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-lg border border-blue-200 bg-blue-50 p-4">
+            <h4 class="text-sm font-semibold text-blue-900">费率配置预览</h4>
+            <div class="mt-3 rounded-md border border-blue-100 bg-white p-3 text-sm">
+              <p class="font-medium text-slate-900">{{ selectedRateTemplate?.name || '未选择模板（当前为手动配置）' }}</p>
+              <p class="mt-1 text-xs text-slate-500">{{ selectedRateTemplate?.description || '可直接编辑当前交易对的基础费率与 VIP 分级费率' }}</p>
+              <div class="mt-2 space-y-1 text-xs text-slate-600">
+                <p>{{ rateForm.quoteAsset || '目标币' }} → {{ rateForm.baseAsset || '基础币' }} (回兑)：<span class="font-semibold text-emerald-600">{{ ((Number(rateForm.buyMarkup) || 0) * 100).toFixed(2) }}%</span></p>
+                <p>{{ rateForm.baseAsset || '基础币' }} → {{ rateForm.quoteAsset || '目标币' }} (兑换)：<span class="font-semibold text-rose-600">{{ ((Number(rateForm.sellMarkup) || 0) * 100).toFixed(2) }}%</span></p>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-lg border border-violet-200 bg-violet-50 p-4">
+            <div class="flex items-center justify-between">
+              <h4 class="text-sm font-semibold text-violet-900">分级费率预览</h4>
+              <span class="text-xs text-violet-700">共 {{ ratePreviewLevelEntries.length }} 级</span>
+            </div>
+            <div class="mt-3 space-y-2">
+              <div v-if="ratePreviewLevelEntries.length === 0" class="rounded-md border border-dashed border-violet-200 bg-white p-3 text-xs text-slate-500">
+                暂无分级费率数据
+              </div>
+              <div v-for="([level, rates]) in getVisibleRatePreviewLevelEntries()" :key="level" class="rounded-md border border-violet-100 bg-white p-3 text-xs">
+                <div class="flex items-center justify-between">
+                  <span class="font-semibold text-slate-700">{{ vipLevelLabel(level) }}</span>
+                  <span class="text-slate-500">回兑 {{ ((Number(rates.buy) || 0) * 100).toFixed(2) }}% / 兑换 {{ ((Number(rates.sell) || 0) * 100).toFixed(2) }}%</span>
+                </div>
+              </div>
+              <button
+                v-if="hasMoreRatePreviewLevels"
+                type="button"
+                class="w-full rounded border border-violet-200 bg-white px-2.5 py-1.5 text-xs font-medium text-violet-700 transition hover:bg-violet-100"
+                @click="rateLevelsExpanded = !rateLevelsExpanded"
+              >
+                {{ rateLevelsExpanded ? '收起' : `展开剩余 ${ratePreviewLevelEntries.length - RATE_LEVEL_PREVIEW_LIMIT} 级` }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
   </div>
 
