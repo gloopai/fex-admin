@@ -3,9 +3,7 @@ import { computed, reactive, ref } from 'vue'
 import MfaVerificationModal from '../../components/MfaVerificationModal.vue'
 import {
   EXCHANGE_RATE_SOURCE,
-  EXCHANGE_RATE_TYPE,
-  USER_LEVEL_TIER,
-  ASSET_STATUS
+  EXCHANGE_RATE_TYPE
 } from '../../constants/assets'
 import { createExchangeRatePairsMock, createFeeTemplatesMock } from '../../mock/assets'
 
@@ -13,7 +11,6 @@ const statusTab = ref('all')
 const search = ref('')
 const showEditModal = ref(false)
 const editingPairId = ref('')
-const activeSection = ref('basic')
 
 // MFA 验证相关
 const showMfaModal = ref(false)
@@ -30,8 +27,10 @@ const form = reactive({
   type: EXCHANGE_RATE_TYPE.FLOATING,
   marketRate: 0,
   feeTemplateId: '',
-  buyMarkup: 0.005,
-  sellMarkup: 0.005,
+  buyMarkup: 0,
+  sellMarkup: 0,
+  buyRate: 0,
+  sellRate: 0,
   enabled: true,
   autoReverse: true,
   userLevelRates: {}
@@ -57,27 +56,23 @@ const clonePairToForm = (pair) => {
   form.type = pair.type
   form.marketRate = pair.marketRate
   form.feeTemplateId = pair.feeTemplateId || ''
-  form.buyMarkup = pair.buyMarkup
-  form.sellMarkup = pair.sellMarkup
+  form.buyMarkup = pair.buyMarkup || 0
+  form.sellMarkup = pair.sellMarkup || 0
+  form.buyRate = pair.buyRate || 0
+  form.sellRate = pair.sellRate || 0
   form.enabled = pair.enabled
   form.autoReverse = pair.autoReverse
-  form.userLevelRates = JSON.parse(JSON.stringify(pair.userLevelRates))
+  form.userLevelRates = pair.userLevelRates ? JSON.parse(JSON.stringify(pair.userLevelRates)) : {}
 }
 
 const initUserLevelRates = () => {
-  form.userLevelRates = {
-    [USER_LEVEL_TIER.BASIC]: { buy: form.buyMarkup, sell: form.sellMarkup },
-    [USER_LEVEL_TIER.SILVER]: { buy: form.buyMarkup * 0.8, sell: form.sellMarkup * 0.8 },
-    [USER_LEVEL_TIER.GOLD]: { buy: form.buyMarkup * 0.6, sell: form.sellMarkup * 0.6 },
-    [USER_LEVEL_TIER.PLATINUM]: { buy: form.buyMarkup * 0.4, sell: form.sellMarkup * 0.4 },
-    [USER_LEVEL_TIER.VIP]: { buy: form.buyMarkup * 0.2, sell: form.sellMarkup * 0.2 }
-  }
+  // 该函数已废弃，使用费率模板功能
+  form.userLevelRates = {}
 }
 
 const openEdit = (pair) => {
   editingPairId.value = pair.id
   clonePairToForm(pair)
-  activeSection.value = 'basic'
   showEditModal.value = true
 }
 
@@ -89,22 +84,34 @@ const openCreate = () => {
   form.type = EXCHANGE_RATE_TYPE.FLOATING
   form.marketRate = 0
   form.feeTemplateId = ''
-  form.buyMarkup = 0.005
-  form.sellMarkup = 0.005
+  form.buyMarkup = 0
+  form.sellMarkup = 0
+  form.buyRate = 0
+  form.sellRate = 0
   form.enabled = true
   form.autoReverse = true
-  initUserLevelRates()
-  activeSection.value = 'basic'
+  form.userLevelRates = {}
   showEditModal.value = true
 }
 
 const calculateRates = () => {
+  // 兼容旧逻辑，但在费率模板模式下不直接使用
   form.buyRate = form.marketRate * (1 + form.buyMarkup)
   form.sellRate = form.marketRate * (1 - form.sellMarkup)
 }
 
 const savePair = () => {
-  calculateRates()
+  // 如果选择了费率模板，优先使用模板中的费率值
+  let finalBuyRate = form.buyRate
+n  let finalSellRate = form.sellRate
+  
+  if (form.feeTemplateId) {
+    const template = feeTemplates.value.find(t => t.id === form.feeTemplateId)
+    if (template) {
+      finalBuyRate = form.marketRate * (1 + template.baseMarkup.buy)
+      finalSellRate = form.marketRate * (1 - template.baseMarkup.sell)
+    }
+  }
   
   const payload = {
     baseAsset: form.baseAsset.trim().toUpperCase(),
@@ -115,8 +122,8 @@ const savePair = () => {
     feeTemplateId: form.feeTemplateId || null,
     buyMarkup: Number(form.buyMarkup),
     sellMarkup: Number(form.sellMarkup),
-    buyRate: Number(form.buyRate),
-    sellRate: Number(form.sellRate),
+    buyRate: Number(finalBuyRate),
+    sellRate: Number(finalSellRate),
     enabled: Boolean(form.enabled),
     autoReverse: Boolean(form.autoReverse),
     userLevelRates: form.userLevelRates,
@@ -247,33 +254,13 @@ const applyFeeTemplate = (templateId) => {
               </div>
               <p class="mt-1.5 text-xs text-slate-600">
                 市场价：<span class="font-semibold text-slate-900">{{ pair.marketRate }}</span>
-                <span class="mx-2 text-slate-300">|</span>
-                买入价：<span class="font-semibold text-emerald-600">{{ pair.buyRate }}</span>
-                <span class="mx-2 text-slate-300">|</span>
-                卖出价：<span class="font-semibold text-rose-600">{{ pair.sellRate }}</span>
               </p>
               <p class="mt-1 text-xs text-slate-500">
-                买入手续费：<span class="font-medium text-slate-700">{{ (pair.buyMarkup * 100).toFixed(2) }}%</span>
-                <span class="mx-2 text-slate-300">|</span>
-                卖出手续费：<span class="font-medium text-slate-700">{{ (pair.sellMarkup * 100).toFixed(2) }}%</span>
-                <span class="mx-2 text-slate-300">|</span>
                 反向映射：<span class="font-medium" :class="pair.autoReverse ? 'text-blue-600' : 'text-slate-500'">{{ pair.autoReverse ? '开启' : '关闭' }}</span>
               </p>
               <p class="mt-1 text-xs text-slate-400">最后更新：{{ pair.lastUpdate }}</p>
             </div>
             <button type="button" class="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50" @click="openEdit(pair)">编辑</button>
-          </div>
-
-          <!-- 分级费率预览 -->
-          <div class="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-            <p class="text-xs font-medium text-slate-700">分级费率设置</p>
-            <div class="mt-2 grid grid-cols-5 gap-2">
-              <div v-for="(rates, level) in pair.userLevelRates" :key="level" class="rounded border border-slate-200 bg-white p-2 text-center">
-                <p class="text-xs font-medium text-slate-600">{{ level.toUpperCase() }}</p>
-                <p class="mt-1 text-xs text-slate-500">买：{{ (rates.buy * 100).toFixed(2) }}%</p>
-                <p class="text-xs text-slate-500">卖：{{ (rates.sell * 100).toFixed(2) }}%</p>
-              </div>
-            </div>
           </div>
         </article>
       </div>
@@ -291,20 +278,11 @@ const applyFeeTemplate = (templateId) => {
       <div class="max-h-[74vh] space-y-5 overflow-y-auto px-5 py-4">
         <!-- 基本信息 -->
         <section class="rounded-lg border border-slate-200">
-          <button 
-            type="button" 
-            class="flex w-full items-center justify-between px-4 py-3"
-            @click="toggleSection('basic')"
-          >
-            <h3 class="text-sm font-medium text-slate-900">基本信息</h3>
-            <span class="text-slate-400 transition-transform" :class="activeSection === 'basic' ? 'rotate-180' : ''">⌄</span>
-          </button>
-          
-          <div v-show="activeSection === 'basic'" class="border-t border-slate-200 px-4 py-4">
+          <div class="px-4 py-4">
             <!-- 快速选择费率模板 -->
             <div class="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
               <label class="space-y-1">
-                <span class="text-sm font-medium text-blue-900">💰 快速应用费率模板</span>
+                <span class="text-sm font-medium text-blue-900">💰 费率模板选择</span>
                 <select 
                   v-model="form.feeTemplateId" 
                   @change="applyFeeTemplate(form.feeTemplateId)"
@@ -317,7 +295,7 @@ const applyFeeTemplate = (templateId) => {
                 </select>
               </label>
               <p class="mt-2 text-xs text-blue-700">
-                💡 选择模板后将自动填充基础费率和分级费率，也可手动调整
+                💡 选择费率模板后，所有费率配置将从模板中自动填充
               </p>
             </div>
 
@@ -358,94 +336,6 @@ const applyFeeTemplate = (templateId) => {
                 <input v-model="form.autoReverse" type="checkbox" class="h-4 w-4" />
                 自动反向映射
               </label>
-            </div>
-          </div>
-        </section>
-
-        <!-- 手续费设置 -->
-        <section class="rounded-lg border border-slate-200">
-          <button 
-            type="button" 
-            class="flex w-full items-center justify-between px-4 py-3"
-            @click="toggleSection('fee')"
-          >
-            <h3 class="text-sm font-medium text-slate-900">手续费与价差</h3>
-            <span class="text-slate-400 transition-transform" :class="activeSection === 'fee' ? 'rotate-180' : ''">⌄</span>
-          </button>
-          
-          <div v-show="activeSection === 'fee'" class="border-t border-slate-200 px-4 py-4">
-            <div class="grid gap-3 md:grid-cols-2">
-              <label class="space-y-1">
-                <span class="text-sm">买入手续费率 (%)</span>
-                <input v-model.number="form.buyMarkup" type="number" step="0.001" @input="calculateRates" class="w-full rounded-lg border border-slate-300 px-3 py-2" />
-              </label>
-              <label class="space-y-1">
-                <span class="text-sm">卖出手续费率 (%)</span>
-                <input v-model.number="form.sellMarkup" type="number" step="0.001" @input="calculateRates" class="w-full rounded-lg border border-slate-300 px-3 py-2" />
-              </label>
-              <label class="space-y-1">
-                <span class="text-sm">计算买入价</span>
-                <input v-model.number="form.buyRate" type="number" step="any" readonly class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-500" />
-              </label>
-              <label class="space-y-1">
-                <span class="text-sm">计算卖出价</span>
-                <input v-model.number="form.sellRate" type="number" step="any" readonly class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-500" />
-              </label>
-            </div>
-            <p class="mt-2 text-xs text-slate-500">
-              买入价 = 市场价 × (1 + 买入费率) | 卖出价 = 市场价 × (1 - 卖出费率)
-            </p>
-          </div>
-        </section>
-
-        <!-- 分级费率 -->
-        <section class="rounded-lg border border-slate-200">
-          <button 
-            type="button" 
-            class="flex w-full items-center justify-between px-4 py-3"
-            @click="toggleSection('levels')"
-          >
-            <h3 class="text-sm font-medium text-slate-900">分级费率设置</h3>
-            <span class="text-slate-400 transition-transform" :class="activeSection === 'levels' ? 'rotate-180' : ''">⌄</span>
-          </button>
-          
-          <div v-show="activeSection === 'levels'" class="border-t border-slate-200 px-4 py-4">
-            <p class="text-xs text-slate-500 mb-3">为不同用户等级设置不同的手续费率（相对于基础费率的百分比）</p>
-            <div class="space-y-3">
-              <div v-for="(rates, level) in form.userLevelRates" :key="level" class="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                <div class="flex items-center justify-between mb-2">
-                  <span class="text-sm font-medium text-slate-700">{{ level.toUpperCase() }}</span>
-                  <button 
-                    type="button" 
-                    class="text-xs text-blue-600 hover:text-blue-700"
-                    @click="initUserLevelRates"
-                  >
-                    重置为默认
-                  </button>
-                </div>
-                <div class="grid gap-3 md:grid-cols-2">
-                  <label class="space-y-1">
-                    <span class="text-xs text-slate-600">买入费率 (%)</span>
-                    <input 
-                      v-model.number="form.userLevelRates[level].buy" 
-                      type="number" 
-                      step="0.001"
-                      @input="calculateRates"
-                      class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" 
-                    />
-                  </label>
-                  <label class="space-y-1">
-                    <span class="text-xs text-slate-600">卖出费率 (%)</span>
-                    <input 
-                      v-model.number="form.userLevelRates[level].sell" 
-                      type="number" 
-                      step="0.001"
-                      @input="calculateRates"
-                      class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" 
-                    />
-                  </label>
-                </div>
-              </div>
             </div>
           </div>
         </section>

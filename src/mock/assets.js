@@ -7,7 +7,6 @@ import {
   ASSET_WALLET_STATUS,
   EXCHANGE_RATE_SOURCE,
   EXCHANGE_RATE_TYPE,
-  USER_LEVEL_TIER,
   FEE_TEMPLATE_TYPE
 } from '../constants/assets'
 
@@ -256,11 +255,12 @@ const exchangeRatePairs = [
     autoReverse: true,
     feeTemplateId: 'template-standard',
     userLevelRates: {
-      [USER_LEVEL_TIER.BASIC]: { buy: 0.005, sell: 0.005 },
-      [USER_LEVEL_TIER.SILVER]: { buy: 0.004, sell: 0.004 },
-      [USER_LEVEL_TIER.GOLD]: { buy: 0.003, sell: 0.003 },
-      [USER_LEVEL_TIER.PLATINUM]: { buy: 0.002, sell: 0.002 },
-      [USER_LEVEL_TIER.VIP]: { buy: 0.001, sell: 0.001 }
+      vip0: { buy: 0.005, sell: 0.005 },
+      vip1: { buy: 0.0045, sell: 0.0045 },
+      vip2: { buy: 0.004, sell: 0.004 },
+      vip3: { buy: 0.0035, sell: 0.0035 },
+      vip4: { buy: 0.003, sell: 0.003 },
+      vip5: { buy: 0.0025, sell: 0.0025 }
     },
     lastUpdate: '2026-03-11 10:30:00'
   },
@@ -279,11 +279,12 @@ const exchangeRatePairs = [
     autoReverse: false,
     feeTemplateId: 'template-premium',
     userLevelRates: {
-      [USER_LEVEL_TIER.BASIC]: { buy: 0.003, sell: 0.003 },
-      [USER_LEVEL_TIER.SILVER]: { buy: 0.0025, sell: 0.0025 },
-      [USER_LEVEL_TIER.GOLD]: { buy: 0.002, sell: 0.002 },
-      [USER_LEVEL_TIER.PLATINUM]: { buy: 0.0015, sell: 0.0015 },
-      [USER_LEVEL_TIER.VIP]: { buy: 0.001, sell: 0.001 }
+      vip0: { buy: 0.003, sell: 0.003 },
+      vip1: { buy: 0.0028, sell: 0.0028 },
+      vip2: { buy: 0.0025, sell: 0.0025 },
+      vip3: { buy: 0.0022, sell: 0.0022 },
+      vip4: { buy: 0.002, sell: 0.002 },
+      vip5: { buy: 0.0018, sell: 0.0018 }
     },
     lastUpdate: '2026-03-11 10:29:45'
   },
@@ -301,11 +302,12 @@ const exchangeRatePairs = [
     enabled: true,
     autoReverse: true,
     userLevelRates: {
-      [USER_LEVEL_TIER.BASIC]: { buy: 0.008, sell: 0.008 },
-      [USER_LEVEL_TIER.SILVER]: { buy: 0.006, sell: 0.006 },
-      [USER_LEVEL_TIER.GOLD]: { buy: 0.004, sell: 0.004 },
-      [USER_LEVEL_TIER.PLATINUM]: { buy: 0.003, sell: 0.003 },
-      [USER_LEVEL_TIER.VIP]: { buy: 0.002, sell: 0.002 }
+      vip0: { buy: 0.008, sell: 0.008 },
+      vip1: { buy: 0.007, sell: 0.007 },
+      vip2: { buy: 0.006, sell: 0.006 },
+      vip3: { buy: 0.005, sell: 0.005 },
+      vip4: { buy: 0.004, sell: 0.004 },
+      vip5: { buy: 0.003, sell: 0.003 }
     },
     lastUpdate: '2026-03-11 10:30:15'
   },
@@ -323,11 +325,12 @@ const exchangeRatePairs = [
     enabled: false,
     autoReverse: true,
     userLevelRates: {
-      [USER_LEVEL_TIER.BASIC]: { buy: 0.01, sell: 0.01 },
-      [USER_LEVEL_TIER.SILVER]: { buy: 0.008, sell: 0.008 },
-      [USER_LEVEL_TIER.GOLD]: { buy: 0.006, sell: 0.006 },
-      [USER_LEVEL_TIER.PLATINUM]: { buy: 0.004, sell: 0.004 },
-      [USER_LEVEL_TIER.VIP]: { buy: 0.002, sell: 0.002 }
+      vip0: { buy: 0.01, sell: 0.01 },
+      vip1: { buy: 0.009, sell: 0.009 },
+      vip2: { buy: 0.008, sell: 0.008 },
+      vip3: { buy: 0.007, sell: 0.007 },
+      vip4: { buy: 0.006, sell: 0.006 },
+      vip5: { buy: 0.005, sell: 0.005 }
     },
     lastUpdate: '2026-03-11 09:00:00'
   }
@@ -341,11 +344,14 @@ const feeTemplates = [
     description: '适用于主流交易对的标准费率配置',
     baseMarkup: { buy: 0.005, sell: 0.005 },
     userLevelRates: {
-      [USER_LEVEL_TIER.BASIC]: { buy: 0.005, sell: 0.005 },
-      [USER_LEVEL_TIER.SILVER]: { buy: 0.004, sell: 0.004 },
-      [USER_LEVEL_TIER.GOLD]: { buy: 0.003, sell: 0.003 },
-      [USER_LEVEL_TIER.PLATINUM]: { buy: 0.002, sell: 0.002 },
-      [USER_LEVEL_TIER.VIP]: { buy: 0.001, sell: 0.001 }
+      vip0: { buy: 0.005, sell: 0.005 },
+      vip1: { buy: 0.0045, sell: 0.0045 },
+      vip2: { buy: 0.004, sell: 0.004 },
+      vip3: { buy: 0.0035, sell: 0.0035 },
+      vip4: { buy: 0.003, sell: 0.003 },
+      vip5: { buy: 0.0025, sell: 0.0025 },
+      vip6: { buy: 0.0022, sell: 0.0022 },
+      vip7: { buy: 0.002, sell: 0.002 }
     },
     enabled: true,
     usageCount: 12,
@@ -359,11 +365,12 @@ const feeTemplates = [
     description: '适用于高流动性交易对的优惠费率',
     baseMarkup: { buy: 0.003, sell: 0.003 },
     userLevelRates: {
-      [USER_LEVEL_TIER.BASIC]: { buy: 0.003, sell: 0.003 },
-      [USER_LEVEL_TIER.SILVER]: { buy: 0.0025, sell: 0.0025 },
-      [USER_LEVEL_TIER.GOLD]: { buy: 0.002, sell: 0.002 },
-      [USER_LEVEL_TIER.PLATINUM]: { buy: 0.0015, sell: 0.0015 },
-      [USER_LEVEL_TIER.VIP]: { buy: 0.001, sell: 0.001 }
+      vip0: { buy: 0.003, sell: 0.003 },
+      vip1: { buy: 0.0028, sell: 0.0028 },
+      vip2: { buy: 0.0025, sell: 0.0025 },
+      vip3: { buy: 0.0022, sell: 0.0022 },
+      vip4: { buy: 0.002, sell: 0.002 },
+      vip5: { buy: 0.0018, sell: 0.0018 }
     },
     enabled: true,
     usageCount: 8,
@@ -377,11 +384,15 @@ const feeTemplates = [
     description: '适用于高端用户的极低费率配置',
     baseMarkup: { buy: 0.002, sell: 0.002 },
     userLevelRates: {
-      [USER_LEVEL_TIER.BASIC]: { buy: 0.002, sell: 0.002 },
-      [USER_LEVEL_TIER.SILVER]: { buy: 0.0015, sell: 0.0015 },
-      [USER_LEVEL_TIER.GOLD]: { buy: 0.001, sell: 0.001 },
-      [USER_LEVEL_TIER.PLATINUM]: { buy: 0.0008, sell: 0.0008 },
-      [USER_LEVEL_TIER.VIP]: { buy: 0.0005, sell: 0.0005 }
+      vip0: { buy: 0.002, sell: 0.002 },
+      vip1: { buy: 0.0018, sell: 0.0018 },
+      vip2: { buy: 0.0015, sell: 0.0015 },
+      vip3: { buy: 0.0012, sell: 0.0012 },
+      vip4: { buy: 0.001, sell: 0.001 },
+      vip5: { buy: 0.0008, sell: 0.0008 },
+      vip6: { buy: 0.0006, sell: 0.0006 },
+      vip7: { buy: 0.0005, sell: 0.0005 },
+      vip8: { buy: 0.0004, sell: 0.0004 }
     },
     enabled: true,
     usageCount: 5,
@@ -395,11 +406,12 @@ const feeTemplates = [
     description: '适用于长尾交易对的高费率配置',
     baseMarkup: { buy: 0.01, sell: 0.01 },
     userLevelRates: {
-      [USER_LEVEL_TIER.BASIC]: { buy: 0.01, sell: 0.01 },
-      [USER_LEVEL_TIER.SILVER]: { buy: 0.008, sell: 0.008 },
-      [USER_LEVEL_TIER.GOLD]: { buy: 0.006, sell: 0.006 },
-      [USER_LEVEL_TIER.PLATINUM]: { buy: 0.004, sell: 0.004 },
-      [USER_LEVEL_TIER.VIP]: { buy: 0.002, sell: 0.002 }
+      vip0: { buy: 0.01, sell: 0.01 },
+      vip1: { buy: 0.009, sell: 0.009 },
+      vip2: { buy: 0.008, sell: 0.008 },
+      vip3: { buy: 0.007, sell: 0.007 },
+      vip4: { buy: 0.006, sell: 0.006 },
+      vip5: { buy: 0.005, sell: 0.005 }
     },
     enabled: false,
     usageCount: 3,
