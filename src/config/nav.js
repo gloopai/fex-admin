@@ -77,6 +77,7 @@ export const navTree = [
     icon: 'wallet',
     children: [
       { title: '币种管理', path: '/assets/currencies' },
+      { title: '交易对管理', path: '/spot/symbols' },
       { title: '手动归集', path: '/assets/manual-collect' },
       { title: '归集记录', path: '/assets/collect-records' },
       { title: '链上交易日志', path: '/assets/address-logs' },
@@ -123,7 +124,7 @@ export const navTree = [
     title: '系统设置',
     icon: 'spark',
     children: [
-      { title: '交易对管理', path: '/spot/symbols' },
+      
       { title: '错误码管理', path: '/system/error-codes' }
     ]
   },
