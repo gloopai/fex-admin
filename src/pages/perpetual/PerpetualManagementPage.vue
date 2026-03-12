@@ -388,7 +388,7 @@ onMounted(() => {
               </p>
             </div>
             <div class="flex items-center gap-2">
-              <div class="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
+              <!-- <div class="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
                 <button
                   type="button"
                   class="rounded px-2 py-1 text-xs"
@@ -407,7 +407,7 @@ onMounted(() => {
                 >
                   下移
                 </button>
-              </div>
+              </div> -->
               <button
                 type="button"
                 class="rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5 text-sm text-violet-600"
