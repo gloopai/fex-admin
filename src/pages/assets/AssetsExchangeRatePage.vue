@@ -13,6 +13,10 @@ const search = ref('')
 const showEditModal = ref(false)
 const editingId = ref('')
 
+// 分页相关
+const currentPage = ref(1)
+const pageSize = ref(5)
+
 // MFA 验证相关
 const showMfaModal = ref(false)
 const pendingSaveData = ref(null)
@@ -47,6 +51,24 @@ const filteredPairs = computed(() => {
     return hitStatus && hitKeyword
   })
 })
+
+const totalPages = computed(() => Math.ceil(filteredPairs.value.length / pageSize.value))
+const pagedPairs = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return filteredPairs.value.slice(start, start + pageSize.value)
+})
+
+const goPrev = () => {
+  if (currentPage.value > 1) currentPage.value--
+}
+const goNext = () => {
+  if (currentPage.value < totalPages.value) currentPage.value++
+}
+
+// 当搜索或筛选状态改变时，重置页码
+const handleFilterChange = () => {
+  currentPage.value = 1
+}
 
 const enabledPairsCount = computed(() => pairs.value.filter((p) => p.enabled).length)
 const activeVipLevels = computed(() => getActiveVipLevels().slice().sort((a, b) => a.level - b.level))
@@ -323,9 +345,9 @@ const getFeeTemplateName = (templateId) => {
         <div class="flex flex-wrap items-center gap-4">
           <!-- Status Filter -->
           <div class="inline-flex items-center gap-2 text-sm">
-            <button type="button" class="font-medium" :class="statusTab === 'all' ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = 'all'">全部</button>
-            <button type="button" class="font-medium" :class="statusTab === 'enabled' ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = 'enabled'">已启用</button>
-            <button type="button" class="font-medium" :class="statusTab === 'disabled' ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = 'disabled'">已禁用</button>
+            <button type="button" class="font-medium" :class="statusTab === 'all' ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = 'all'; handleFilterChange()">全部</button>
+            <button type="button" class="font-medium" :class="statusTab === 'enabled' ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = 'enabled'; handleFilterChange()">已启用</button>
+            <button type="button" class="font-medium" :class="statusTab === 'disabled' ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = 'disabled'; handleFilterChange()">已禁用</button>
           </div>
         </div>
 
@@ -337,6 +359,7 @@ const getFeeTemplateName = (templateId) => {
               type="text"
               class="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm outline-none focus:border-blue-500"
               placeholder="搜索交易对..."
+              @input="handleFilterChange"
             />
             <svg viewBox="0 0 20 20" class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" fill="none">
               <circle cx="9" cy="9" r="5.8" stroke="currentColor" stroke-width="1.6" />
@@ -355,7 +378,7 @@ const getFeeTemplateName = (templateId) => {
         </div>
 
         <div
-          v-for="pair in filteredPairs"
+          v-for="pair in pagedPairs"
           :key="pair.id"
           class="group flex flex-col items-stretch overflow-hidden rounded-xl border border-slate-200 bg-white transition-all hover:border-blue-200 hover:shadow-md md:flex-row md:items-center"
         >
@@ -416,7 +439,35 @@ const getFeeTemplateName = (templateId) => {
             </button>
           </div>
         </div>
+
+        <div v-if="filteredPairs.length === 0" class="p-12 text-center text-slate-500">
+          未找到匹配的交易对
+        </div>
       </div>
+
+      <!-- 分页栏 -->
+      <footer v-if="totalPages > 1" class="flex items-center justify-between border-t border-slate-200 px-6 py-4 text-sm">
+        <p class="text-slate-500">共 {{ filteredPairs.length }} 个交易对</p>
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            class="rounded border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-transparent"
+            :disabled="currentPage === 1"
+            @click="goPrev"
+          >
+            上一页
+          </button>
+          <span class="text-xs font-medium text-slate-600">{{ currentPage }} / {{ totalPages }}</span>
+          <button
+            type="button"
+            class="rounded border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-transparent"
+            :disabled="currentPage === totalPages"
+            @click="goNext"
+          >
+            下一页
+          </button>
+        </div>
+      </footer>
     </article>
   </section>
 

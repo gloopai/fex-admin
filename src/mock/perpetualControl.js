@@ -196,3 +196,35 @@ export const perpetualControlTimeWindows = [
 ]
 
 export const createPerpetualControlContractsMock = () => clone(perpetualControlContracts)
+
+export const createPerpetualControlLogsMock = () => {
+  const logs = []
+  const contracts = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'ADAUSDT']
+  const actions = ['触发规则', '编辑参数', '暂停线控', '新增规则', '启用规则']
+  const operators = ['system', 'ops_admin', 'risk_manager', 'super_admin']
+  const results = ['success', 'failed']
+  const rules = ['多头过重自动调整', '用户盈利过高干预', '短时成交异常保护', '回撤率触发保护', '手动调整', '流动性不足防护']
+
+  for (let i = 0; i < 45; i++) {
+    const date = new Date('2026-03-08 10:31:12')
+    date.setMinutes(date.getMinutes() - i * 15)
+    
+    const action = actions[Math.floor(Math.random() * actions.length)]
+    const contract = contracts[Math.floor(Math.random() * contracts.length)]
+    const result = Math.random() > 0.1 ? 'success' : 'failed'
+    
+    logs.push({
+      id: `L-${10039 - i}`,
+      time: date.toISOString().replace('T', ' ').split('.')[0],
+      contract,
+      action,
+      rule: rules[Math.floor(Math.random() * rules.length)],
+      operator: operators[Math.floor(Math.random() * operators.length)],
+      result,
+      detail: result === 'success' 
+        ? `${action}操作执行成功，参数已更新` 
+        : `${action}操作失败：系统校验未通过`
+    })
+  }
+  return logs
+}

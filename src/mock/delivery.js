@@ -194,7 +194,32 @@ const deliveryOperationLogs = [
   }
 ]
 
-export const createDeliveryTemplatesMock = () => clone(deliveryTemplates)
-export const createDeliveryProductsMock = () => clone(deliveryProducts)
+export const createDeliveryTemplatesMock = () => {
+  const templates = clone(deliveryTemplates)
+  // 生成更多模板数据用于测试分页
+  for (let i = 1; i <= 10; i++) {
+    templates.push({
+      ...templates[0],
+      id: `tpl-test-${i}`,
+      name: `测试模板 ${i}`,
+      status: i % 2 === 0 ? DELIVERY_STATUS.ENABLED : DELIVERY_STATUS.DISABLED
+    })
+  }
+  return templates
+}
+export const createDeliveryProductsMock = () => {
+  const products = clone(deliveryProducts)
+  // 生成更多数据用于测试分页
+  for (let i = 1; i <= 15; i++) {
+    products.push({
+      ...products[0],
+      id: `prod-${i}`,
+      name: `测试合约 ${i}`,
+      code: `TEST_${i}`,
+      pair: `TEST${i}/USDT`
+    })
+  }
+  return products
+}
 export const createDeliveryControlUsersMock = () => clone(deliveryControlUsers)
 export const createDeliveryOperationLogsMock = () => clone(deliveryOperationLogs)

@@ -8,6 +8,10 @@ const statusFilter = ref(ASSET_COMMON_FILTER_ALL)
 const coinFilter = ref(ASSET_COMMON_FILTER_ALL)
 const keyword = ref('')
 
+// 分页相关
+const currentPage = ref(1)
+const pageSize = ref(5)
+
 const records = ref(createAssetsCollectRecordsMock())
 
 const relatedPageSize = 5
@@ -66,6 +70,24 @@ const filtered = computed(() => {
   })
 })
 
+const totalPages = computed(() => Math.ceil(filtered.value.length / pageSize.value))
+const pagedRecords = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return filtered.value.slice(start, start + pageSize.value)
+})
+
+const goPrev = () => {
+  if (currentPage.value > 1) currentPage.value--
+}
+const goNext = () => {
+  if (currentPage.value < totalPages.value) currentPage.value++
+}
+
+// 当搜索或筛选状态改变时，重置页码
+const handleFilterChange = () => {
+  currentPage.value = 1
+}
+
 const badgeClass = (status) => ({
   [ASSET_COLLECT_RECORD_STATUS.DONE]: 'bg-emerald-100 text-emerald-700',
   [ASSET_COLLECT_RECORD_STATUS.PROCESSING]: 'bg-blue-100 text-blue-700',
@@ -104,21 +126,21 @@ const modeText = (mode) => (mode === ASSET_COLLECT_MODE.AUTO ? '自动' : '手�
     <article class="rounded-xl border border-slate-200 bg-white">
       <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4">
         <div class="inline-flex items-center gap-4 text-sm">
-          <button type="button" class="font-medium" :class="statusTab === ASSET_COMMON_FILTER_ALL ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = ASSET_COMMON_FILTER_ALL">全部</button>
-          <button type="button" class="font-medium" :class="statusTab === ASSET_COLLECT_RECORD_STATUS.PENDING ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = ASSET_COLLECT_RECORD_STATUS.PENDING">待处理</button>
-          <button type="button" class="font-medium" :class="statusTab === ASSET_COLLECT_RECORD_STATUS.PROCESSING ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = ASSET_COLLECT_RECORD_STATUS.PROCESSING">处理中</button>
-          <button type="button" class="font-medium" :class="statusTab === ASSET_COLLECT_RECORD_STATUS.DONE ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = ASSET_COLLECT_RECORD_STATUS.DONE">已完成</button>
-          <button type="button" class="font-medium" :class="statusTab === ASSET_COLLECT_RECORD_STATUS.FAILED ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = ASSET_COLLECT_RECORD_STATUS.FAILED">失败</button>
+          <button type="button" class="font-medium" :class="statusTab === ASSET_COMMON_FILTER_ALL ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = ASSET_COMMON_FILTER_ALL; handleFilterChange()">全部</button>
+          <button type="button" class="font-medium" :class="statusTab === ASSET_COLLECT_RECORD_STATUS.PENDING ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = ASSET_COLLECT_RECORD_STATUS.PENDING; handleFilterChange()">待处理</button>
+          <button type="button" class="font-medium" :class="statusTab === ASSET_COLLECT_RECORD_STATUS.PROCESSING ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = ASSET_COLLECT_RECORD_STATUS.PROCESSING; handleFilterChange()">处理中</button>
+          <button type="button" class="font-medium" :class="statusTab === ASSET_COLLECT_RECORD_STATUS.DONE ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = ASSET_COLLECT_RECORD_STATUS.DONE; handleFilterChange()">已完成</button>
+          <button type="button" class="font-medium" :class="statusTab === ASSET_COLLECT_RECORD_STATUS.FAILED ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = ASSET_COLLECT_RECORD_STATUS.FAILED; handleFilterChange()">失败</button>
         </div>
         <div class="flex w-full flex-wrap items-center gap-2 lg:w-auto lg:flex-nowrap">
-          <select v-model="statusFilter" class="h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm">
+          <select v-model="statusFilter" class="h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm" @change="handleFilterChange">
             <option :value="ASSET_COMMON_FILTER_ALL">全部状态</option>
             <option :value="ASSET_COLLECT_RECORD_STATUS.PENDING">待处理</option>
             <option :value="ASSET_COLLECT_RECORD_STATUS.PROCESSING">处理中</option>
             <option :value="ASSET_COLLECT_RECORD_STATUS.DONE">已完成</option>
             <option :value="ASSET_COLLECT_RECORD_STATUS.FAILED">失败</option>
           </select>
-          <select v-model="coinFilter" class="h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm">
+          <select v-model="coinFilter" class="h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm" @change="handleFilterChange">
             <option :value="ASSET_COMMON_FILTER_ALL">全部币种</option>
             <option value="USDT">USDT</option>
             <option value="BTC">BTC</option>
@@ -128,12 +150,13 @@ const modeText = (mode) => (mode === ASSET_COLLECT_MODE.AUTO ? '自动' : '手�
             type="text"
             placeholder="搜索交易哈希或地址..."
             class="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm lg:w-72"
+            @input="handleFilterChange"
           />
         </div>
       </div>
 
       <div class="space-y-3 p-4">
-        <article v-for="record in filtered" :key="record.id" class="rounded-xl border border-slate-200 bg-white p-4">
+        <article v-for="record in pagedRecords" :key="record.id" class="rounded-xl border border-slate-200 bg-white p-4">
           <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
               <div class="flex flex-wrap items-center gap-2">
@@ -197,7 +220,35 @@ const modeText = (mode) => (mode === ASSET_COLLECT_MODE.AUTO ? '自动' : '手�
             </div>
           </div>
         </article>
+
+        <div v-if="filtered.length === 0" class="p-8 text-center text-sm text-slate-500">
+          未找到匹配的归集记录
+        </div>
       </div>
+
+      <!-- 分页栏 -->
+      <footer v-if="totalPages > 1" class="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-sm">
+        <p class="text-slate-500">共 {{ filtered.length }} 条记录</p>
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            class="rounded border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-transparent"
+            :disabled="currentPage === 1"
+            @click="goPrev"
+          >
+            上一页
+          </button>
+          <span class="text-xs font-medium text-slate-600">{{ currentPage }} / {{ totalPages }}</span>
+          <button
+            type="button"
+            class="rounded border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-transparent"
+            :disabled="currentPage === totalPages"
+            @click="goNext"
+          >
+            下一页
+          </button>
+        </div>
+      </footer>
     </article>
   </section>
 </template>

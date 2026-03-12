@@ -1,53 +1,24 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
+import { createPerpetualControlLogsMock } from '../../mock/perpetualControl'
 
 const contractFilter = ref('all')
 const actionFilter = ref('all')
 const resultFilter = ref('all')
 const keyword = ref('')
 
-const logs = ref([
-  {
-    id: 'L-10039',
-    time: '2026-03-08 10:31:12',
-    contract: 'BTCUSDT',
-    action: '触发规则',
-    rule: '多头过重自动调整',
-    operator: 'system',
-    result: 'success',
-    detail: '净多头超过阈值，自动增加价格偏移和滑点'
-  },
-  {
-    id: 'L-10038',
-    time: '2026-03-08 10:02:44',
-    contract: 'ETHUSDT',
-    action: '编辑参数',
-    rule: '手动调整',
-    operator: 'ops_admin',
-    result: 'success',
-    detail: '滑点率由 0.08% 调整到 0.10%'
-  },
-  {
-    id: 'L-10037',
-    time: '2026-03-08 09:18:02',
-    contract: 'BTCUSDT',
-    action: '暂停线控',
-    rule: '手动操作',
-    operator: 'risk_manager',
-    result: 'success',
-    detail: '临时暂停合约线控，等待风控参数回滚'
-  },
-  {
-    id: 'L-10036',
-    time: '2026-03-08 08:55:17',
-    contract: 'SOLUSDT',
-    action: '新增规则',
-    rule: '回撤率触发保护',
-    operator: 'ops_admin',
-    result: 'failed',
-    detail: '新增失败：规则条件表达式校验未通过'
-  }
-])
+const logs = ref([])
+const currentPage = ref(1)
+const pageSize = ref(10)
+
+onMounted(() => {
+  logs.value = createPerpetualControlLogsMock()
+})
+
+// 监听筛选条件变化，重置页码
+watch([contractFilter, actionFilter, resultFilter, keyword], () => {
+  currentPage.value = 1
+})
 
 const filteredLogs = computed(() => {
   const kw = keyword.value.trim().toLowerCase()
@@ -59,6 +30,22 @@ const filteredLogs = computed(() => {
     return matchContract && matchAction && matchResult && matchKeyword
   })
 })
+
+const paginatedLogs = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return filteredLogs.value.slice(start, end)
+})
+
+const totalPages = computed(() => Math.ceil(filteredLogs.value.length / pageSize.value))
+
+const prevPage = () => {
+  if (currentPage.value > 1) currentPage.value--
+}
+
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) currentPage.value++
+}
 </script>
 
 <template>
@@ -116,7 +103,7 @@ const filteredLogs = computed(() => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="log in filteredLogs" :key="log.id" class="border-t border-slate-100 align-top">
+            <tr v-for="log in paginatedLogs" :key="log.id" class="border-t border-slate-100 align-top">
               <td class="px-4 py-3 text-slate-600">{{ log.time }}</td>
               <td class="px-4 py-3 font-medium text-slate-900">{{ log.id }}</td>
               <td class="px-4 py-3 text-slate-700">{{ log.contract }}</td>
@@ -132,6 +119,31 @@ const filteredLogs = computed(() => {
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- 分页 -->
+      <div v-if="filteredLogs.length > 0" class="flex items-center justify-between border-t border-slate-200 px-4 py-3">
+        <div class="text-sm text-slate-600">
+          共 {{ filteredLogs.length }} 条日志 · 第 {{ currentPage }} / {{ totalPages }} 页
+        </div>
+        <div class="flex items-center gap-3">
+          <button 
+            type="button" 
+            :disabled="currentPage === 1" 
+            class="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" 
+            @click="prevPage"
+          >
+            上一页
+          </button>
+          <button 
+            type="button" 
+            :disabled="currentPage === totalPages" 
+            class="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" 
+            @click="nextPage"
+          >
+            下一页
+          </button>
+        </div>
       </div>
 
       <p v-if="filteredLogs.length === 0" class="p-8 text-center text-sm text-slate-500">没有符合条件的日志记录</p>

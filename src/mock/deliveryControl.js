@@ -273,6 +273,18 @@ const ruleStatistics = {
   ]
 }
 
-export const createDeliveryAutoRulesMock = () => clone(deliveryAutoRules)
+export const createDeliveryAutoRulesMock = () => {
+  const rules = clone(deliveryAutoRules)
+  // 生成更多数据用于测试分页
+  for (let i = 1; i <= 12; i++) {
+    rules.push({
+      ...rules[0],
+      id: `rule_test_${i}`,
+      name: `自动控盈规则 ${i}`,
+      status: i % 3 === 0 ? DELIVERY_RULE_STATUS.PAUSED : (i % 2 === 0 ? DELIVERY_RULE_STATUS.ENABLED : DELIVERY_RULE_STATUS.DISABLED)
+    })
+  }
+  return rules
+}
 export const createRuleHitHistoryMock = () => clone(ruleHitHistory)
 export const createRuleStatisticsMock = () => clone(ruleStatistics)

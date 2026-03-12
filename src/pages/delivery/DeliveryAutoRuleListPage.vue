@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, nextTick } from 'vue'
+import { computed, ref, nextTick, reactive, watch } from 'vue'
 import {
   DELIVERY_RULE_STATUS,
   DELIVERY_RULE_PRIORITY,
@@ -24,6 +24,13 @@ const keyword = ref('')
 const statusFilter = ref('all')
 const priorityFilter = ref('all')
 
+// 分页状态
+const pagination = reactive({
+  currentPage: 1,
+  pageSize: 5,
+  total: 0
+})
+
 const summary = computed(() => [
   { label: '规则总数', value: statistics.value.totalRules, icon: '📋', color: 'blue' },
   { label: '运行中', value: statistics.value.enabledRules, icon: '✅', color: 'emerald' },
@@ -31,7 +38,7 @@ const summary = computed(() => [
   { label: '今日影响用户', value: statistics.value.todayAffectedUsers, icon: '👥', color: 'violet' }
 ])
 
-const filteredRules = computed(() => {
+const allFilteredRules = computed(() => {
   const kw = keyword.value.trim().toLowerCase()
   return rules.value.filter((r) => {
     const hitStatus = statusFilter.value === 'all' || r.status === statusFilter.value
@@ -39,6 +46,19 @@ const filteredRules = computed(() => {
     const hitKw = !kw || `${r.name} ${r.description}`.toLowerCase().includes(kw)
     return hitStatus && hitPriority && hitKw
   })
+})
+
+const filteredRules = computed(() => {
+  const start = (pagination.currentPage - 1) * pagination.pageSize
+  const end = start + pagination.pageSize
+  return allFilteredRules.value.slice(start, end)
+})
+
+const totalPages = computed(() => Math.ceil(allFilteredRules.value.length / pagination.pageSize))
+
+// 监听筛选变化，重置页码
+watch([statusFilter, priorityFilter, keyword], () => {
+  pagination.currentPage = 1
 })
 
 const priorityClass = (priority) => {
@@ -357,6 +377,31 @@ const saveRule = (ruleData) => {
             </div>
           </div>
         </article>
+      </div>
+
+      <!-- 分页组件 -->
+      <div v-if="totalPages > 1" class="mt-6 flex items-center justify-between rounded-xl border border-slate-200 bg-white px-6 py-4">
+        <div class="text-sm text-slate-600">
+          共 <span class="font-medium">{{ allFilteredRules.length }}</span> 条规则，第 <span class="font-medium">{{ pagination.currentPage }}</span> / <span class="font-medium">{{ totalPages }}</span> 页
+        </div>
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            @click="pagination.currentPage--"
+            :disabled="pagination.currentPage === 1"
+            class="px-3 py-1.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            上一页
+          </button>
+          <button
+            type="button"
+            @click="pagination.currentPage++"
+            :disabled="pagination.currentPage === totalPages"
+            class="px-3 py-1.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            下一页
+          </button>
+        </div>
       </div>
     </div>
 

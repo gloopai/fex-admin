@@ -11,6 +11,10 @@ const editingCoinId = ref('')
 const modalTab = ref(ASSET_MODAL_TAB.BASIC)
 const activeNetworkId = ref('')
 
+// 分页相关
+const currentPage = ref(1)
+const pageSize = ref(5)
+
 // MFA 验证相关
 const showMfaModal = ref(false)
 const pendingSaveData = ref(null)
@@ -36,6 +40,24 @@ const filteredCoins = computed(() => {
     return hitStatus && hitKeyword
   })
 })
+
+const totalPages = computed(() => Math.ceil(filteredCoins.value.length / pageSize.value))
+const pagedCoins = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return filteredCoins.value.slice(start, start + pageSize.value)
+})
+
+const goPrev = () => {
+  if (currentPage.value > 1) currentPage.value--
+}
+const goNext = () => {
+  if (currentPage.value < totalPages.value) currentPage.value++
+}
+
+// 当搜索或筛选状态改变时，重置页码
+const handleFilterChange = () => {
+  currentPage.value = 1
+}
 
 const enabledCount = computed(() => coins.value.filter((c) => c.status === ASSET_STATUS.ENABLED).length)
 
@@ -155,16 +177,16 @@ const badgeClass = (status) => (status === ASSET_STATUS.ENABLED ? 'bg-emerald-10
     <article class="rounded-xl border border-slate-200 bg-white">
       <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-3">
         <div class="inline-flex items-center gap-4 text-sm">
-          <button type="button" class="font-medium" :class="statusTab === ASSET_COMMON_FILTER_ALL ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = ASSET_COMMON_FILTER_ALL">全部</button>
-          <button type="button" class="font-medium" :class="statusTab === ASSET_STATUS.ENABLED ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = ASSET_STATUS.ENABLED">已启用</button>
-          <button type="button" class="font-medium" :class="statusTab === ASSET_STATUS.DISABLED ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = ASSET_STATUS.DISABLED">已禁用</button>
+          <button type="button" class="font-medium" :class="statusTab === ASSET_COMMON_FILTER_ALL ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = ASSET_COMMON_FILTER_ALL; handleFilterChange()">全部</button>
+          <button type="button" class="font-medium" :class="statusTab === ASSET_STATUS.ENABLED ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = ASSET_STATUS.ENABLED; handleFilterChange()">已启用</button>
+          <button type="button" class="font-medium" :class="statusTab === ASSET_STATUS.DISABLED ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = ASSET_STATUS.DISABLED; handleFilterChange()">已禁用</button>
         </div>
-        <input v-model="search" type="text" placeholder="搜索币种名称或符号..." class="w-full max-w-sm rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500" />
+        <input v-model="search" type="text" placeholder="搜索币种名称或符号..." class="w-full max-w-sm rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500" @input="handleFilterChange" />
       </div>
 
       <div class="space-y-3 p-3">
         <article
-          v-for="coin in filteredCoins"
+          v-for="coin in pagedCoins"
           :key="coin.id"
           class="rounded-xl border border-slate-200 bg-white p-3 transition-colors"
           :class="coin.status === ASSET_STATUS.ENABLED ? 'hover:border-emerald-200 hover:bg-emerald-50/30' : 'hover:border-slate-300 hover:bg-slate-50'"
@@ -200,7 +222,35 @@ const badgeClass = (status) => (status === ASSET_STATUS.ENABLED ? 'bg-emerald-10
             </article>
           </div>
         </article>
+
+        <div v-if="filteredCoins.length === 0" class="p-8 text-center text-sm text-slate-500">
+          未找到匹配的币种
+        </div>
       </div>
+
+      <!-- 分页栏 -->
+      <footer v-if="totalPages > 1" class="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-sm">
+        <p class="text-slate-500">共 {{ filteredCoins.length }} 个币种</p>
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            class="rounded border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-transparent"
+            :disabled="currentPage === 1"
+            @click="goPrev"
+          >
+            上一页
+          </button>
+          <span class="text-xs font-medium text-slate-600">{{ currentPage }} / {{ totalPages }}</span>
+          <button
+            type="button"
+            class="rounded border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-transparent"
+            :disabled="currentPage === totalPages"
+            @click="goNext"
+          >
+            下一页
+          </button>
+        </div>
+      </footer>
     </article>
   </section>
 

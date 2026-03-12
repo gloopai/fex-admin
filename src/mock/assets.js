@@ -90,6 +90,66 @@ const assetsCoins = [
         status: ASSET_STATUS.DISABLED
       }
     ]
+  },
+  {
+    id: 'ltc',
+    name: 'Litecoin',
+    symbol: 'LTC',
+    precision: 8,
+    status: ASSET_STATUS.ENABLED,
+    autoCollect: true,
+    intervalMin: 180,
+    networks: [
+      {
+        id: 'ltc-native',
+        name: 'Litecoin (Native)',
+        contract: '-',
+        collectAddress: 'LgeP8pXnNfN6x1uH2m2P6R4y7G1jK5W8Vz',
+        threshold: 0.5,
+        gasLimit: 1,
+        status: ASSET_STATUS.ENABLED
+      }
+    ]
+  },
+  {
+    id: 'sol',
+    name: 'Solana',
+    symbol: 'SOL',
+    precision: 9,
+    status: ASSET_STATUS.ENABLED,
+    autoCollect: true,
+    intervalMin: 60,
+    networks: [
+      {
+        id: 'sol-native',
+        name: 'Solana (Native)',
+        contract: '-',
+        collectAddress: '7pP5kR1qV6W7x2p9r7vK4f5g3h2j1l0m9n8o7p6q5r4s',
+        threshold: 1,
+        gasLimit: 1,
+        status: ASSET_STATUS.ENABLED
+      }
+    ]
+  },
+  {
+    id: 'doge',
+    name: 'Dogecoin',
+    symbol: 'DOGE',
+    precision: 8,
+    status: ASSET_STATUS.ENABLED,
+    autoCollect: true,
+    intervalMin: 120,
+    networks: [
+      {
+        id: 'doge-native',
+        name: 'Dogecoin (Native)',
+        contract: '-',
+        collectAddress: 'DKv8pXnNfN6x1uH2m2P6R4y7G1jK5W8Vz',
+        threshold: 100,
+        gasLimit: 1,
+        status: ASSET_STATUS.ENABLED
+      }
+    ]
   }
 ]
 
@@ -136,6 +196,74 @@ const assetsCollectRecords = [
       { address: 'TRX23456...bcdef1', amount: 9000, status: ASSET_COLLECT_RECORD_STATUS.PROCESSING },
       { address: 'TRX34567...cdef12', amount: 1200, status: ASSET_COLLECT_RECORD_STATUS.PROCESSING },
       { address: 'TRX45678...def123', amount: 840, status: ASSET_COLLECT_RECORD_STATUS.PROCESSING }
+    ]
+  },
+  {
+    id: 'r3',
+    coin: 'BTC',
+    network: 'Bitcoin (Native)',
+    mode: ASSET_COLLECT_MODE.AUTO,
+    status: ASSET_COLLECT_RECORD_STATUS.DONE,
+    amount: 1.25,
+    fee: 0.0001,
+    from: '1BvBMSEY...JaNVN2',
+    to: '1BvBMSEY...JaNVN2',
+    txHash: 'btc12345...abcdef',
+    createdAt: '03/07 10:00',
+    finishedAt: '03/07 10:45',
+    related: [
+      { address: '1BvBMSEY...JaNVN2', amount: 1.25, status: ASSET_COLLECT_RECORD_STATUS.DONE }
+    ]
+  },
+  {
+    id: 'r4',
+    coin: 'USDT',
+    network: 'Ethereum (ERC20)',
+    mode: ASSET_COLLECT_MODE.AUTO,
+    status: ASSET_COLLECT_RECORD_STATUS.FAILED,
+    amount: 1000,
+    fee: 5,
+    from: '0x987654...fedcba',
+    to: '0x742d35...5f0bEb',
+    txHash: '0xfail123...456789',
+    createdAt: '03/07 14:00',
+    finishedAt: '03/07 14:05',
+    related: [
+      { address: '0x987654...fedcba', amount: 1000, status: ASSET_COLLECT_RECORD_STATUS.FAILED }
+    ]
+  },
+  {
+    id: 'r5',
+    coin: 'USDT',
+    network: 'TRON (TRC20)',
+    mode: ASSET_COLLECT_MODE.AUTO,
+    status: ASSET_COLLECT_RECORD_STATUS.PENDING,
+    amount: 3000,
+    fee: 1,
+    from: 'TRX55555...666666',
+    to: 'TKzxdSv2...KMg2Ax',
+    txHash: 'trxpend1...222222',
+    createdAt: '03/07 16:30',
+    finishedAt: '-',
+    related: [
+      { address: 'TRX55555...666666', amount: 3000, status: ASSET_COLLECT_RECORD_STATUS.PENDING }
+    ]
+  },
+  {
+    id: 'r6',
+    coin: 'USDT',
+    network: 'Ethereum (ERC20)',
+    mode: ASSET_COLLECT_MODE.MANUAL,
+    status: ASSET_COLLECT_RECORD_STATUS.DONE,
+    amount: 800,
+    fee: 2,
+    from: '0x111111...222222',
+    to: '0x742d35...5f0bEb',
+    txHash: '0xdone123...333333',
+    createdAt: '03/08 09:00',
+    finishedAt: '03/08 09:15',
+    related: [
+      { address: '0x111111...222222', amount: 800, status: ASSET_COLLECT_RECORD_STATUS.DONE }
     ]
   }
 ]
@@ -200,6 +328,42 @@ const assetsAddressLogs = [
     block: '-',
     status: ASSET_ADDRESS_LOG_STATUS.FAILED,
     time: '03/06 18:10:00'
+  },
+  {
+    id: 'l6',
+    type: ASSET_ADDRESS_LOG_TYPE.DEPOSIT,
+    coin: 'ETH',
+    network: 'Ethereum (Native)',
+    address: '0xeth123...456789',
+    amount: '+1.5 ETH',
+    txHash: '0xethlog...123456',
+    block: '19,235,000 (100 确认)',
+    status: ASSET_ADDRESS_LOG_STATUS.CONFIRMED,
+    time: '03/07 09:30:00'
+  },
+  {
+    id: 'l7',
+    type: ASSET_ADDRESS_LOG_TYPE.TRANSFER,
+    coin: 'USDT',
+    network: 'TRON (TRC20)',
+    address: 'TRX77777...888888',
+    amount: '-500 USDT',
+    txHash: 'trxtran...111111',
+    block: '58,915,000 (10 确认)',
+    status: ASSET_ADDRESS_LOG_STATUS.PENDING,
+    time: '03/07 11:20:00'
+  },
+  {
+    id: 'l8',
+    type: ASSET_ADDRESS_LOG_TYPE.COLLECT,
+    coin: 'SOL',
+    network: 'Solana (Native)',
+    address: '7pP5kR1q...r4s',
+    amount: '-10 SOL',
+    txHash: 'sollog...222222',
+    block: '245,678,901 (MAX)',
+    status: ASSET_ADDRESS_LOG_STATUS.CONFIRMED,
+    time: '03/07 14:45:00'
   }
 ]
 
@@ -333,6 +497,63 @@ const exchangeRatePairs = [
       vip5: { buy: 0.005, sell: 0.005 }
     },
     lastUpdate: '2026-03-11 09:00:00'
+  },
+  {
+    id: 'sol-usdt',
+    baseAsset: 'SOL',
+    quoteAsset: 'USDT',
+    source: EXCHANGE_RATE_SOURCE.BINANCE,
+    type: EXCHANGE_RATE_TYPE.FLOATING,
+    marketRate: 145.2,
+    buyMarkup: 0.006,
+    sellMarkup: 0.006,
+    buyRate: 146.0712,
+    sellRate: 144.3288,
+    enabled: true,
+    autoReverse: true,
+    userLevelRates: {
+      vip0: { buy: 0.006, sell: 0.006 },
+      vip1: { buy: 0.005, sell: 0.005 }
+    },
+    lastUpdate: '2026-03-11 11:00:00'
+  },
+  {
+    id: 'bnb-usdt',
+    baseAsset: 'BNB',
+    quoteAsset: 'USDT',
+    source: EXCHANGE_RATE_SOURCE.BINANCE,
+    type: EXCHANGE_RATE_TYPE.FLOATING,
+    marketRate: 580.5,
+    buyMarkup: 0.004,
+    sellMarkup: 0.004,
+    buyRate: 582.822,
+    sellRate: 578.178,
+    enabled: true,
+    autoReverse: true,
+    userLevelRates: {
+      vip0: { buy: 0.004, sell: 0.004 },
+      vip1: { buy: 0.003, sell: 0.003 }
+    },
+    lastUpdate: '2026-03-11 11:05:00'
+  },
+  {
+    id: 'ada-usdt',
+    baseAsset: 'ADA',
+    quoteAsset: 'USDT',
+    source: EXCHANGE_RATE_SOURCE.OKX,
+    type: EXCHANGE_RATE_TYPE.FLOATING,
+    marketRate: 0.45,
+    buyMarkup: 0.007,
+    sellMarkup: 0.007,
+    buyRate: 0.45315,
+    sellRate: 0.44685,
+    enabled: true,
+    autoReverse: false,
+    userLevelRates: {
+      vip0: { buy: 0.007, sell: 0.007 },
+      vip1: { buy: 0.006, sell: 0.006 }
+    },
+    lastUpdate: '2026-03-11 11:10:00'
   }
 ]
 
@@ -417,6 +638,37 @@ const feeTemplates = [
     usageCount: 3,
     createdAt: '2026-02-15 11:30:00',
     updatedAt: '2026-03-05 10:00:00'
+  },
+  {
+    id: 'template-lite',
+    name: '极简费率模板',
+    type: FEE_TEMPLATE_TYPE.STANDARD,
+    description: '适用于小额交易的低成本费率模板',
+    baseMarkup: { buy: 0.0025, sell: 0.0025 },
+    userLevelRates: {
+      vip0: { buy: 0.0025, sell: 0.0025 },
+      vip1: { buy: 0.002, sell: 0.002 }
+    },
+    enabled: true,
+    usageCount: 2,
+    createdAt: '2026-03-01 12:00:00',
+    updatedAt: '2026-03-12 09:00:00'
+  },
+  {
+    id: 'template-institutional',
+    name: '机构大额费率模板',
+    type: FEE_TEMPLATE_TYPE.VIP,
+    description: '针对机构用户定制的超低费率',
+    baseMarkup: { buy: 0.001, sell: 0.001 },
+    userLevelRates: {
+      vip0: { buy: 0.001, sell: 0.001 },
+      vip1: { buy: 0.0008, sell: 0.0008 },
+      vip2: { buy: 0.0005, sell: 0.0005 }
+    },
+    enabled: true,
+    usageCount: 1,
+    createdAt: '2026-03-05 15:30:00',
+    updatedAt: '2026-03-12 10:00:00'
   }
 ]
 

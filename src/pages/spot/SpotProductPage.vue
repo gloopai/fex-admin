@@ -37,7 +37,7 @@
       </div>
 
       <div class="space-y-4 p-4">
-        <article v-for="product in filteredProducts" :key="product.productId" class="rounded-xl border border-slate-200 bg-white">
+        <article v-for="product in paginatedProducts" :key="product.productId" class="rounded-xl border border-slate-200 bg-white">
           <div class="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 p-4">
             <div class="flex-1">
               <div class="flex items-center gap-2">
@@ -122,6 +122,29 @@
         <p v-if="filteredProducts.length === 0" class="rounded-lg border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">
           没有匹配的现货产品
         </p>
+
+        <!-- 分页 -->
+        <div v-if="totalPages > 1" class="p-4 border-t border-slate-200 flex items-center justify-between">
+          <p class="text-sm text-slate-600">
+            第 <span class="font-medium">{{ pagination.currentPage }}</span> / <span class="font-medium">{{ totalPages }}</span> 页，共 <span class="font-medium">{{ totalItems }}</span> 条记录
+          </p>
+          <div class="flex items-center gap-2">
+            <button
+              @click="pagination.currentPage--"
+              :disabled="pagination.currentPage <= 1"
+              class="px-3 py-1.5 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              上一页
+            </button>
+            <button
+              @click="pagination.currentPage++"
+              :disabled="pagination.currentPage >= totalPages"
+              class="px-3 py-1.5 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              下一页
+            </button>
+          </div>
+        </div>
       </div>
     </article>
 
@@ -467,7 +490,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { mockSpotProducts } from '../../mock/spot'
 
 const products = ref([])
@@ -479,6 +502,12 @@ const activeTab = ref('basic')
 
 const filters = ref({
   status: ''
+})
+
+// 分页
+const pagination = ref({
+  currentPage: 1,
+  pageSize: 5
 })
 
 const formData = ref({
@@ -503,6 +532,11 @@ onMounted(() => {
   products.value = mockSpotProducts
 })
 
+// 监听筛选和搜索变化，重置分页
+watch([filters, searchKeyword], () => {
+  pagination.value.currentPage = 1
+}, { deep: true })
+
 const filteredProducts = computed(() => {
   let result = products.value
 
@@ -520,8 +554,17 @@ const filteredProducts = computed(() => {
       p.quoteCurrency.toLowerCase().includes(keyword)
     )
   }
-
+  
   return result
+})
+
+const totalItems = computed(() => filteredProducts.value.length)
+const totalPages = computed(() => Math.ceil(totalItems.value / pagination.value.pageSize))
+
+const paginatedProducts = computed(() => {
+  const start = (pagination.value.currentPage - 1) * pagination.value.pageSize
+  const end = start + pagination.value.pageSize
+  return filteredProducts.value.slice(start, end)
 })
 
 const formatCurrency = (value) => {

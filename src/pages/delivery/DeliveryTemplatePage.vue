@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { COMMON_FILTER_ALL, DELIVERY_STATUS } from '../../constants/delivery'
 import { createDeliveryTemplatesMock } from '../../mock/delivery'
 
@@ -19,13 +19,33 @@ const isExpanded = (id) => expandedTemplateIds.value.has(id)
 
 const templates = ref(createDeliveryTemplatesMock())
 
-const filteredTemplates = computed(() => {
+// 分页状态
+const pagination = reactive({
+  currentPage: 1,
+  pageSize: 5,
+  total: 0
+})
+
+const allFilteredTemplates = computed(() => {
   const kw = search.value.trim().toLowerCase()
   return templates.value.filter((t) => {
     const hitStatus = statusTab.value === COMMON_FILTER_ALL || t.status === statusTab.value
     const hitKw = !kw || t.name.toLowerCase().includes(kw)
     return hitStatus && hitKw
   })
+})
+
+const filteredTemplates = computed(() => {
+  const start = (pagination.currentPage - 1) * pagination.pageSize
+  const end = start + pagination.pageSize
+  return allFilteredTemplates.value.slice(start, end)
+})
+
+const totalPages = computed(() => Math.ceil(allFilteredTemplates.value.length / pagination.pageSize))
+
+// 监听筛选变化，重置页码
+watch([statusTab, search], () => {
+  pagination.currentPage = 1
 })
 
 const durationLabel = (sec) => {
@@ -166,6 +186,31 @@ const statusClass = (status) => (status === DELIVERY_STATUS.ENABLED ? 'bg-emeral
             </div>
           </div>
         </article>
+      </div>
+
+      <!-- 分页组件 -->
+      <div v-if="totalPages > 1" class="border-t border-slate-200 px-6 py-4 flex items-center justify-between">
+        <div class="text-sm text-slate-600">
+          共 <span class="font-medium">{{ allFilteredTemplates.length }}</span> 条记录，第 <span class="font-medium">{{ pagination.currentPage }}</span> / <span class="font-medium">{{ totalPages }}</span> 页
+        </div>
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            @click="pagination.currentPage--"
+            :disabled="pagination.currentPage === 1"
+            class="px-3 py-1.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            上一页
+          </button>
+          <button
+            type="button"
+            @click="pagination.currentPage++"
+            :disabled="pagination.currentPage === totalPages"
+            class="px-3 py-1.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            下一页
+          </button>
+        </div>
       </div>
     </article>
   </section>

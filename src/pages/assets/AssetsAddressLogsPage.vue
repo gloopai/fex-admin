@@ -8,6 +8,10 @@ const coinFilter = ref(ASSET_COMMON_FILTER_ALL)
 const statusFilter = ref(ASSET_COMMON_FILTER_ALL)
 const keyword = ref('')
 
+// 分页相关
+const currentPage = ref(1)
+const pageSize = ref(5)
+
 const logs = ref(createAssetsAddressLogsMock())
 
 const countByType = computed(() => ({
@@ -27,6 +31,24 @@ const filtered = computed(() => {
     return tabOk && coinOk && statusOk && kwOk
   })
 })
+
+const totalPages = computed(() => Math.ceil(filtered.value.length / pageSize.value))
+const pagedLogs = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return filtered.value.slice(start, start + pageSize.value)
+})
+
+const goPrev = () => {
+  if (currentPage.value > 1) currentPage.value--
+}
+const goNext = () => {
+  if (currentPage.value < totalPages.value) currentPage.value++
+}
+
+// 当搜索或筛选状态改变时，重置页码
+const handleFilterChange = () => {
+  currentPage.value = 1
+}
 
 const typeText = (type) => ({
   [ASSET_ADDRESS_LOG_TYPE.DEPOSIT]: '充值',
@@ -80,20 +102,20 @@ const statusText = (status) => ({
     <article class="rounded-xl border border-slate-200 bg-white">
       <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4">
         <div class="inline-flex items-center gap-4 text-sm">
-          <button type="button" class="font-medium" :class="typeTab === ASSET_COMMON_FILTER_ALL ? 'text-blue-600' : 'text-slate-500'" @click="typeTab = ASSET_COMMON_FILTER_ALL">全部</button>
-          <button type="button" class="font-medium" :class="typeTab === ASSET_ADDRESS_LOG_TYPE.DEPOSIT ? 'text-blue-600' : 'text-slate-500'" @click="typeTab = ASSET_ADDRESS_LOG_TYPE.DEPOSIT">充值</button>
-          <button type="button" class="font-medium" :class="typeTab === ASSET_ADDRESS_LOG_TYPE.WITHDRAW ? 'text-blue-600' : 'text-slate-500'" @click="typeTab = ASSET_ADDRESS_LOG_TYPE.WITHDRAW">提现</button>
-          <button type="button" class="font-medium" :class="typeTab === ASSET_ADDRESS_LOG_TYPE.COLLECT ? 'text-blue-600' : 'text-slate-500'" @click="typeTab = ASSET_ADDRESS_LOG_TYPE.COLLECT">归集</button>
-          <button type="button" class="font-medium" :class="typeTab === ASSET_ADDRESS_LOG_TYPE.TRANSFER ? 'text-blue-600' : 'text-slate-500'" @click="typeTab = ASSET_ADDRESS_LOG_TYPE.TRANSFER">转账</button>
+          <button type="button" class="font-medium" :class="typeTab === ASSET_COMMON_FILTER_ALL ? 'text-blue-600' : 'text-slate-500'" @click="typeTab = ASSET_COMMON_FILTER_ALL; handleFilterChange()">全部</button>
+          <button type="button" class="font-medium" :class="typeTab === ASSET_ADDRESS_LOG_TYPE.DEPOSIT ? 'text-blue-600' : 'text-slate-500'" @click="typeTab = ASSET_ADDRESS_LOG_TYPE.DEPOSIT; handleFilterChange()">充值</button>
+          <button type="button" class="font-medium" :class="typeTab === ASSET_ADDRESS_LOG_TYPE.WITHDRAW ? 'text-blue-600' : 'text-slate-500'" @click="typeTab = ASSET_ADDRESS_LOG_TYPE.WITHDRAW; handleFilterChange()">提现</button>
+          <button type="button" class="font-medium" :class="typeTab === ASSET_ADDRESS_LOG_TYPE.COLLECT ? 'text-blue-600' : 'text-slate-500'" @click="typeTab = ASSET_ADDRESS_LOG_TYPE.COLLECT; handleFilterChange()">归集</button>
+          <button type="button" class="font-medium" :class="typeTab === ASSET_ADDRESS_LOG_TYPE.TRANSFER ? 'text-blue-600' : 'text-slate-500'" @click="typeTab = ASSET_ADDRESS_LOG_TYPE.TRANSFER; handleFilterChange()">转账</button>
         </div>
         <div class="flex w-full flex-wrap items-center gap-2 lg:w-auto lg:flex-nowrap">
-          <select v-model="coinFilter" class="h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm">
+          <select v-model="coinFilter" class="h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm" @change="handleFilterChange">
             <option :value="ASSET_COMMON_FILTER_ALL">全部币种</option>
             <option value="USDT">USDT</option>
             <option value="BTC">BTC</option>
             <option value="ETH">ETH</option>
           </select>
-          <select v-model="statusFilter" class="h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm">
+          <select v-model="statusFilter" class="h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm" @change="handleFilterChange">
             <option :value="ASSET_COMMON_FILTER_ALL">全部状态</option>
             <option :value="ASSET_ADDRESS_LOG_STATUS.CONFIRMED">已确认</option>
             <option :value="ASSET_ADDRESS_LOG_STATUS.PENDING">待确认</option>
@@ -104,6 +126,7 @@ const statusText = (status) => ({
             type="text"
             placeholder="搜索交易哈希或地址..."
             class="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm lg:w-72"
+            @input="handleFilterChange"
           />
         </div>
       </div>
@@ -123,7 +146,7 @@ const statusText = (status) => ({
             </tr>
           </thead>
           <tbody>
-            <tr v-for="row in filtered" :key="row.id" class="border-b border-slate-100">
+            <tr v-for="row in pagedLogs" :key="row.id" class="border-b border-slate-100">
               <td class="px-4 py-3">
                 <span class="font-medium" :class="typeColor(row.type)">{{ typeIcon(row.type) }} {{ typeText(row.type) }}</span>
               </td>
@@ -138,9 +161,36 @@ const statusText = (status) => ({
               <td class="px-4 py-3"><span class="rounded-md px-2 py-0.5 text-xs" :class="statusClass(row.status)">{{ statusText(row.status) }}</span></td>
               <td class="px-4 py-3 text-slate-700">{{ row.time }}</td>
             </tr>
+            <tr v-if="filtered.length === 0">
+              <td colspan="8" class="p-8 text-center text-sm text-slate-500">未找到匹配的交易日志</td>
+            </tr>
           </tbody>
         </table>
       </div>
+
+      <!-- 分页栏 -->
+      <footer v-if="totalPages > 1" class="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-sm">
+        <p class="text-slate-500">共 {{ filtered.length }} 条日志</p>
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            class="rounded border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-transparent"
+            :disabled="currentPage === 1"
+            @click="goPrev"
+          >
+            上一页
+          </button>
+          <span class="text-xs font-medium text-slate-600">{{ currentPage }} / {{ totalPages }}</span>
+          <button
+            type="button"
+            class="rounded border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-transparent"
+            :disabled="currentPage === totalPages"
+            @click="goNext"
+          >
+            下一页
+          </button>
+        </div>
+      </footer>
     </article>
   </section>
 </template>
