@@ -27,6 +27,15 @@ const props = defineProps({
 
 const emit = defineEmits(["close", "save"]);
 
+const defaultProfitControlParams = {
+  winProbability: 0.3,
+  avgWinAmount: 20,
+  avgLossAmount: -15,
+  strategy: PROFIT_CONTROL_STRATEGY.SETTLEMENT_PRICE,
+  winFluctuationPercent: 2,
+  lossFluctuationPercent: 2,
+};
+
 // 表单数据
 const form = reactive({
   // 基本信息
@@ -59,7 +68,7 @@ const form = reactive({
         winProbability: 0.3, // 盈利概率30%
         avgWinAmount: 20, // 赢时金额百分比 20%
         avgLossAmount: -15, // 输时金额百分比 -15%
-        strategy: PROFIT_CONTROL_STRATEGY.SETTLEMENT_PRICE, // 技术策略
+        strategy: PROFIT_CONTROL_STRATEGY.NONE, // 技术策略
       },
       applyToNewPositions: true,
       duration: 0,
@@ -209,9 +218,9 @@ const statusOptions = [
 // 盈亏控制策略选项
 const profitControlStrategyOptions = [
   { value: PROFIT_CONTROL_STRATEGY.NONE, label: "无策略", description: "完全按照参数执行" },
-  { value: PROFIT_CONTROL_STRATEGY.TIME_WINDOW, label: "时间窗口", description: "秒级价格波动选择" },
-  { value: PROFIT_CONTROL_STRATEGY.SETTLEMENT_PRICE, label: "结算价格", description: "多数据源最优选择" },
-  { value: PROFIT_CONTROL_STRATEGY.SLIPPAGE, label: "滑点控制", description: "通过滑点影响盈亏" },
+  { value: PROFIT_CONTROL_STRATEGY.TIME_WINDOW, label: "时间窗口", description: "交易时间内价格波动选择适当值" },
+  // { value: PROFIT_CONTROL_STRATEGY.SETTLEMENT_PRICE, label: "结算价格", description: "多数据源最优选择" },
+  // { value: PROFIT_CONTROL_STRATEGY.SLIPPAGE, label: "滑点控制", description: "通过滑点影响盈亏" },
 ];
 
 // 计算属性
@@ -239,15 +248,72 @@ const calculatedExpectedValue = computed(() => {
   return 0;
 });
 
+const formatFluctuationRange = (baseValue, fluctuationPercent) => {
+  const base = Number(baseValue);
+  const fluct = Number(fluctuationPercent);
+  const safeBase = Number.isFinite(base) ? base : 0;
+  const safeFluct = Number.isFinite(fluct) ? Math.max(0, fluct) : 0;
+  const factor = safeFluct / 100;
+  const a = safeBase * (1 - factor);
+  const b = safeBase * (1 + factor);
+  const min = Math.min(a, b);
+  const max = Math.max(a, b);
+  return `${min.toFixed(2)}% ~ ${max.toFixed(2)}%`;
+};
+
+const winAmountRangeText = computed(() => {
+  const pc = form.action?.params?.profitControl || defaultProfitControlParams;
+  return formatFluctuationRange(pc.avgWinAmount, pc.winFluctuationPercent);
+});
+
+const lossAmountRangeText = computed(() => {
+  const pc = form.action?.params?.profitControl || defaultProfitControlParams;
+  return formatFluctuationRange(pc.avgLossAmount, pc.lossFluctuationPercent);
+});
+
+const normalize = () => {
+  if (!form.action) {
+    form.action = { type: DELIVERY_RULE_ACTION.PROFIT_CONTROL, params: {} };
+  }
+  if (!form.action.params) form.action.params = {};
+  if (!form.action.params.profitControl) form.action.params.profitControl = {};
+
+  const pc = form.action.params.profitControl;
+  pc.winProbability = Number.isFinite(Number(pc.winProbability)) ? Number(pc.winProbability) : defaultProfitControlParams.winProbability;
+  pc.avgWinAmount = Number.isFinite(Number(pc.avgWinAmount)) ? Number(pc.avgWinAmount) : defaultProfitControlParams.avgWinAmount;
+  pc.avgLossAmount = Number.isFinite(Number(pc.avgLossAmount)) ? Number(pc.avgLossAmount) : defaultProfitControlParams.avgLossAmount;
+  pc.strategy = pc.strategy || defaultProfitControlParams.strategy;
+  pc.winFluctuationPercent = Number.isFinite(Number(pc.winFluctuationPercent)) ? Number(pc.winFluctuationPercent) : defaultProfitControlParams.winFluctuationPercent;
+  pc.lossFluctuationPercent = Number.isFinite(Number(pc.lossFluctuationPercent)) ? Number(pc.lossFluctuationPercent) : defaultProfitControlParams.lossFluctuationPercent;
+
+  form.action.params.applyToNewPositions = form.action.params.applyToNewPositions ?? true;
+  form.action.params.duration = Number.isFinite(Number(form.action.params.duration)) ? Number(form.action.params.duration) : 0;
+};
+
 // 方法
 const close = () => {
   emit("close");
 };
 
 const save = () => {
+  normalize();
+
   if (!form.name.trim()) { alert("请输入规则名称"); return; }
   if (!form.description.trim()) { alert("请输入规则描述"); return; }
   if (!form.trigger.threshold || form.trigger.threshold <= 0) { alert("请设置有效的触发阈值"); return; }
+
+  if (form.action.type === DELIVERY_RULE_ACTION.PROFIT_CONTROL) {
+    const pc = form.action.params.profitControl;
+    const winAmount = Number(pc.avgWinAmount);
+    const lossAmount = Number(pc.avgLossAmount);
+    const winFluct = Number(pc.winFluctuationPercent);
+    const lossFluct = Number(pc.lossFluctuationPercent);
+
+    if (!Number.isFinite(winAmount) || winAmount <= 0) { alert("请设置有效的单笔净盈利（大于 0）"); return; }
+    if (!Number.isFinite(lossAmount) || lossAmount >= 0) { alert("请设置有效的单笔亏损（小于 0）"); return; }
+    if (!Number.isFinite(winFluct) || winFluct < 0 || winFluct > 10) { alert("单笔净盈利波动比例需在 0 ~ 10 之间"); return; }
+    if (!Number.isFinite(lossFluct) || lossFluct < 0 || lossFluct > 10) { alert("单笔亏损波动比例需在 0 ~ 10 之间"); return; }
+  }
 
   emit("save", { ...form });
   close();
@@ -265,6 +331,7 @@ watch(() => props.open, (isOpen) => {
     if (props.rule && (props.mode === "edit" || props.mode === "duplicate")) {
       Object.assign(form, JSON.parse(JSON.stringify(props.rule)));
       if (props.mode === "duplicate") form.name = `${form.name} (副本)`;
+      normalize();
     } else {
       // 重置为默认值
       Object.assign(form, {
@@ -426,21 +493,46 @@ watch(() => props.open, (isOpen) => {
                       <div class="text-sm font-mono font-medium" :class="calculatedExpectedValue >= 0 ? 'text-emerald-500' : 'text-rose-500'">{{ calculatedExpectedValue.toFixed(2) }}%</div>
                     </div>
                     <div class="space-y-1.5">
-                      <label class="text-sm text-black/65">单笔盈利 %</label>
+                      <label class="text-sm text-black/65">单笔净盈利 %</label>
                       <input v-model.number="form.action.params.profitControl.avgWinAmount" type="number" class="ant-input !py-2" />
-                      <p class="text-sm text-black/45">单次盈利结算的目标百分比。</p>
+                      <p class="text-sm text-black/45">单次盈利结算的基准百分比。</p>
                     </div>
                     <div class="space-y-1.5">
                       <label class="text-sm text-black/65">单笔亏损 %</label>
                       <input v-model.number="form.action.params.profitControl.avgLossAmount" type="number" class="ant-input !py-2" />
-                      <p class="text-sm text-black/45">单次亏损结算的目标百分比（通常为负数）。</p>
+                      <p class="text-sm text-black/45">单次亏损结算的基准百分比。</p>
+                    </div>
+                    <div class="space-y-1.5">
+                      <div class=" flex items-center gap-2 justify-between">
+                        <label class="text-sm text-black/65">盈利波动比例 ±</label>
+                          <input v-model.number="form.action.params.profitControl.winFluctuationPercent" type="number" min="0" max="10" step="0.1" class="ant-input !py-2 !w-28" />
+                        <div class="text-sm">
+                          %
+                        </div>
+                      </div>
+                      <p class="text-sm text-black/45">实际净盈利范围：{{ winAmountRangeText }}</p>
+                    </div>
+                    <div class="space-y-1.5">
+                      <div class=" flex items-center gap-2 justify-between">
+                          <label class="text-sm text-black/65">亏损波动比例 ±</label>
+                          <input v-model.number="form.action.params.profitControl.lossFluctuationPercent" type="number" min="0" max="10" step="0.1" class="ant-input !py-2 !w-28" />
+                          <div class="text-sm">
+                          %
+                        </div>  
+                        </div> 
+                      <p class="text-sm text-black/45">实际亏损范围：{{ lossAmountRangeText }}</p>
                     </div>
                   </div>
                   <div class="space-y-1.5">
                     <label class="text-sm text-black/65">价格修正策略</label>
-                    <p class="text-sm text-black/45">选择结算价格修正方式，影响成交与盈亏分布。</p>
+                    <p class="text-sm text-black/45">选择结算价格修正方式，影响成交与盈亏分布。通过修正尽量的减少用户感知</p>
                     <div class="grid grid-cols-2 gap-2">
-                      <button v-for="opt in profitControlStrategyOptions" :key="opt.value" type="button" @click="form.action.params.profitControl.strategy = opt.value" :class="form.action.params.profitControl.strategy === opt.value ? 'border-antd-primary bg-antd-primary/5 text-antd-primary' : 'border-black/10 bg-white text-black/65'" class="text-sm py-2 px-3 border rounded-md transition-all">{{ opt.label }}</button>
+                      <button v-for="opt in profitControlStrategyOptions" :key="opt.value" type="button" @click="form.action.params.profitControl.strategy = opt.value" :class="form.action.params.profitControl.strategy === opt.value ? 'border-antd-primary bg-antd-primary/5 text-antd-primary' : 'border-black/10 bg-white text-black/65'" class="text-sm py-2 px-3 border rounded-md transition-all">
+                        <div class=" flex  flex-col items-start">
+                          <div> {{ opt.label }}</div>
+                         <div class="text-sm text-black/45">{{ opt.description }}</div>
+                        </div>
+                      </button>
                     </div>
                   </div>
                 </div>
