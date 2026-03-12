@@ -209,10 +209,10 @@ const openPerpManualDialog = (contractId) => {
   manualInitialConfig.value = {
     priceOffset: Number(contract?.config?.priceOffset ?? 5),
     offsetDirection: contract?.config?.offsetDirection ?? PERP_CONTROL_OFFSET_DIRECTION.AGAINST,
-    slippagePct: Number(contract?.config?.slippagePct ?? 0.2),
-    latencyMs: Number(contract?.config?.latencyMs ?? 80)
+    slippagePct: 0,
+    latencyMs: 0
   }
-  manualInitialDurationSec.value = 1800
+  manualInitialDurationSec.value = 0
   showPerpManualModal.value = true
 }
 
@@ -411,7 +411,7 @@ const openDeliveryContracts = () => router.push('/delivery/contracts')
         </button>
       </div>
       <div class="flex items-center gap-3 text-xs text-slate-500">
-        <span>实时刷新 {{ Number(refreshIntervalMs) / 1000 }}s</span>
+        <!-- <span>实时刷新 {{ Number(refreshIntervalMs) / 1000 }}s</span> -->
         <span>最后刷新：{{ lastRefreshAt || '-' }}</span>
       </div>
     </div>

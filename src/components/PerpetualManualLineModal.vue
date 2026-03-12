@@ -43,7 +43,7 @@ const props = defineProps({
   },
   initialDurationSec: {
     type: Number,
-    default: 1800
+    default: 0
   },
   allowRemove: {
     type: Boolean,
@@ -60,9 +60,9 @@ const emit = defineEmits(['close', 'save', 'remove'])
 const form = reactive({
   priceOffset: 5,
   offsetDirection: PERP_CONTROL_OFFSET_DIRECTION.AGAINST,
-  slippagePct: 0.,
-  latencyMs: 80,
-  durationSec: 1800
+  slippagePct: 0,
+  latencyMs: 0,
+  durationSec: 0
 })
 
 const quickManualInputs = {
@@ -104,9 +104,9 @@ const initFromProps = () => {
   const cfg = props.initialConfig || {}
   form.priceOffset = Number(cfg.priceOffset ?? 5)
   form.offsetDirection = cfg.offsetDirection ?? PERP_CONTROL_OFFSET_DIRECTION.AGAINST
-  form.slippagePct = Number(cfg.slippagePct ?? 0.2)
-  form.latencyMs = Number(cfg.latencyMs ?? 80)
-  form.durationSec = Number(props.initialDurationSec ?? 1800)
+  form.slippagePct = Number(cfg.slippagePct ?? 0)
+  form.latencyMs = Number(cfg.latencyMs ?? 0)
+  form.durationSec = Number(props.initialDurationSec ?? 0)
 }
 
 watch(

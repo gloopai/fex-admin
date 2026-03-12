@@ -452,7 +452,7 @@ const saveConfig = (next) => {
 const showManualModal = ref(false)
 const manualContractId = ref('')
 const manualInitialConfig = ref({})
-const manualInitialDurationSec = ref(1800)
+const manualInitialDurationSec = ref(0)
 
 const manualContract = computed(() => contracts.value.find((c) => c.id === manualContractId.value) || null)
 const manualContractMetrics = computed(() => {
@@ -481,10 +481,10 @@ const openManualLine = (contractId) => {
   manualInitialConfig.value = {
     priceOffset: Number(contract?.config?.priceOffset ?? 5),
     offsetDirection: contract?.config?.offsetDirection ?? PERP_CONTROL_OFFSET_DIRECTION.AGAINST,
-    slippagePct: Number(contract?.config?.slippagePct ?? 0.2),
-    latencyMs: Number(contract?.config?.latencyMs ?? 80)
+    slippagePct: 0,
+    latencyMs: 0
   }
-  manualInitialDurationSec.value = 1800
+  manualInitialDurationSec.value = 0
   showManualModal.value = true
 }
 
@@ -952,7 +952,7 @@ const handleMfaVerify = async (code) => {
           <p class="mt-0.5 text-xs text-slate-500">按 24h 交易量排序，支持手动插线与快速解除</p>
         </div>
         <div class="flex flex-wrap items-center gap-3">
-          <span class="text-xs text-slate-500">实时刷新中（{{ Number(boardRefreshIntervalMs) / 1000 }}s）</span>
+          <!-- <span class="text-xs text-slate-500">实时刷新中（{{ Number(boardRefreshIntervalMs) / 1000 }}s）</span> -->
           <span class="text-xs text-slate-500">最后刷新：{{ boardLastRefreshAt || '-' }}</span>
         </div>
       </div>
