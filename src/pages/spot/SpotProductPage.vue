@@ -1,212 +1,413 @@
 <template>
-  <div class="-m-4 md:-m-8">
-    <!-- Page Header -->
-    <header class="bg-white px-4 py-4 mb-6 border-b border-black/[0.06] md:px-8">
-      <div class="mb-2 flex items-center gap-2 text-sm text-black/45">
-        <span>首页</span>
-        <span class="text-black/15">/</span>
-        <span>现货管理</span>
-        <span class="text-black/15">/</span>
-        <span class="text-black/85">现货产品管理</span>
-      </div>
-      <div class="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 class="text-xl font-semibold text-black/85">现货产品管理</h1>
-          <p class="mt-2 text-sm text-black/45">管理现货交易产品、交易对及费率配置，支持产品的上下架和费率调整。</p>
-        </div>
-        <button type="button" class="ant-btn ant-btn-primary" @click="showAddProduct">
-          + 添加产品
-        </button>
+  <section class="space-y-4">
+    <header class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <h1 class="text-3xl font-semibold text-slate-900">现货产品管理</h1>
+        <p class="mt-1 text-sm text-slate-500">管理现货交易产品、交易对及费率配置，支持产品的上下架和费率调整。</p>
       </div>
     </header>
 
-    <!-- Main Content -->
-    <div class="px-4 pb-8 md:px-8">
-      <div class="pro-card p-6">
-        <!-- Filters -->
-        <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <div class="flex flex-wrap items-center gap-4">
-            <div class="flex items-center gap-2">
-              <span class="text-sm text-black/85">状态:</span>
-              <select v-model="filters.status" class="ant-select !w-32">
-                <option value="">全部状态</option>
-                <option value="trading">交易中</option>
-                <option value="suspended">暂停交易</option>
-                <option value="delisted">已下架</option>
-              </select>
-            </div>
-            <button type="button" class="ant-btn" @click="resetFilters">重置</button>
-          </div>
+    <article class="rounded-xl border border-slate-200 bg-white">
+      <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 p-4">
+        <div class="inline-flex items-center gap-6 text-sm">
+          <button
+            type="button"
+            class="relative py-2 font-medium transition-colors"
+            :class="filters.status === '' ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600' : 'text-slate-500 hover:text-slate-700'"
+            @click="filters.status = ''"
+          >
+            全部
+          </button>
+          <button
+            type="button"
+            class="relative py-2 font-medium transition-colors"
+            :class="filters.status === 'trading' ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600' : 'text-slate-500 hover:text-slate-700'"
+            @click="filters.status = 'trading'"
+          >
+            交易中
+          </button>
+          <button
+            type="button"
+            class="relative py-2 font-medium transition-colors"
+            :class="filters.status === 'suspended' ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600' : 'text-slate-500 hover:text-slate-700'"
+            @click="filters.status = 'suspended'"
+          >
+            已暂停
+          </button>
+          <button
+            type="button"
+            class="relative py-2 font-medium transition-colors"
+            :class="filters.status === 'delisted' ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600' : 'text-slate-500 hover:text-slate-700'"
+            @click="filters.status = 'delisted'"
+          >
+            已下架
+          </button>
+        </div>
 
-          <div class="relative w-full max-w-sm">
+        <div class="flex flex-wrap items-center gap-3">
+          <div class="relative w-72">
             <input
               v-model="searchKeyword"
               type="text"
-              class="ant-input pl-9"
-              placeholder="搜索产品名称或交易对..."
+              class="ant-input w-full pl-9"
+              placeholder="搜索产品名称 / 产品ID / 币种..."
+              @keyup.enter="handleSearch"
             />
-            <svg viewBox="0 0 20 20" class="pointer-events-none absolute left-3 top-2 h-4 w-4 text-black/25" fill="none">
+            <svg viewBox="0 0 20 20" class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" fill="none">
               <circle cx="9" cy="9" r="5.8" stroke="currentColor" stroke-width="1.6" />
               <path d="M13.6 13.6L16.4 16.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
             </svg>
           </div>
-        </div>
-
-        <!-- Table-like List -->
-        <div class="space-y-4">
-          <div v-for="product in paginatedProducts" :key="product.productId" class="group relative overflow-hidden rounded-lg border border-black/[0.06] bg-white transition-all hover:border-antd-primary/30 hover:shadow-md">
-            <div class="flex flex-wrap items-start justify-between gap-4 p-4">
-              <div class="flex-1">
-                <div class="flex items-center gap-3">
-                  <h3 class="text-base font-medium text-black/85">{{ product.productName }}</h3>
-                  <span class="text-xs text-black/45 font-mono bg-black/5 px-1.5 py-0.5 rounded">{{ product.productId }}</span>
-                  <span 
-                    class="relative flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-medium rounded-full"
-                    :class="{
-                      'bg-emerald-50 text-emerald-600': product.status === 'trading',
-                      'bg-orange-50 text-orange-600': product.status === 'suspended',
-                      'bg-gray-100 text-gray-500': product.status === 'delisted'
-                    }"
-                  >
-                    <span class="h-1.5 w-1.5 rounded-full" :class="{
-                      'bg-emerald-500': product.status === 'trading',
-                      'bg-orange-500': product.status === 'suspended',
-                      'bg-gray-400': product.status === 'delisted'
-                    }"></span>
-                    {{ statusLabel(product.status) }}
-                  </span>
-                </div>
-                <div class="mt-3 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-y-3 gap-x-8 text-sm">
-                  <div>
-                    <p class="text-black/45 text-xs mb-0.5">交易对</p>
-                    <p class="text-black/85 font-medium">{{ product.baseCurrency }}/{{ product.quoteCurrency }}</p>
-                  </div>
-                  <div>
-                    <p class="text-black/45 text-xs mb-0.5">买入费率</p>
-                    <p class="text-black/85">{{ product.buyFee }}%</p>
-                  </div>
-                  <div>
-                    <p class="text-black/45 text-xs mb-0.5">卖出费率</p>
-                    <p class="text-black/85">{{ product.sellFee }}%</p>
-                  </div>
-                  <div>
-                    <p class="text-black/45 text-xs mb-0.5">价格精度</p>
-                    <p class="text-black/85">{{ product.pricePrecision }}</p>
-                  </div>
-                  <div>
-                    <p class="text-black/45 text-xs mb-0.5">数量精度</p>
-                    <p class="text-black/85">{{ product.quantityPrecision }}</p>
-                  </div>
-                  <div>
-                    <p class="text-black/45 text-xs mb-0.5">最小交易量</p>
-                    <p class="text-black/85">{{ product.minOrderQuantity }}</p>
-                  </div>
-                </div>
-              </div>
-              <div class="flex items-center gap-3">
-                <button 
-                  type="button" 
-                  class="ant-btn ant-btn-link"
-                  @click="editProduct(product)"
-                >
-                  编辑
-                </button>
-                <div class="w-px h-3 bg-black/10"></div>
-                <button 
-                  type="button" 
-                  class="ant-btn ant-btn-link"
-                  :class="product.status === 'trading' ? '!text-orange-500 hover:!text-orange-600' : '!text-emerald-500 hover:!text-emerald-600'"
-                  @click="toggleProductStatus(product)"
-                >
-                  {{ product.status === 'trading' ? '暂停' : '恢复' }}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Pagination -->
-        <div class="mt-6 flex justify-between items-center">
-          <p class="text-sm text-black/45">
-            共 <span class="text-black/85 font-medium">{{ totalItems }}</span> 条
-          </p>
-          <div class="flex items-center gap-2">
-            <button 
-              class="ant-pagination-item !m-0 disabled:opacity-30"
-              @click="pagination.currentPage--"
-              :disabled="pagination.currentPage <= 1"
-            >&lt;</button>
-            <span v-for="page in totalPages" :key="page" 
-              class="ant-pagination-item !m-0"
-              :class="{ 'ant-pagination-item-active': pagination.currentPage === page }"
-              @click="pagination.currentPage = page"
-            >
-              <a class="text-inherit">{{ page }}</a>
-            </span>
-            <button 
-              class="ant-pagination-item !m-0 disabled:opacity-30"
-              @click="pagination.currentPage++"
-              :disabled="pagination.currentPage >= totalPages"
-            >&gt;</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Product Modal (Mock) -->
-    <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" @click.self="closeModal">
-      <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl overflow-hidden">
-        <div class="px-6 py-4 border-b border-black/[0.06] flex items-center justify-between">
-          <h2 class="text-lg font-medium text-black/85">{{ isEditing ? '编辑产品' : '添加产品' }}</h2>
-          <button type="button" class="text-black/45 hover:text-black/65 transition-colors" @click="closeModal">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+          <button
+            type="button"
+            class="ant-btn ant-btn-primary inline-flex items-center gap-1.5"
+            @click="showAddProduct"
+          >
+            <span class="text-lg leading-none">+</span>
+            <span>新增产品</span>
           </button>
         </div>
-        <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm text-black/85 mb-1.5">产品名称</label>
-              <input v-model="formData.productName" type="text" class="ant-input" />
+      </div>
+
+      <div class="p-4 space-y-4">
+        <article
+          v-for="product in paginatedProducts"
+          :key="product.productId"
+          class="rounded-lg border border-slate-200 bg-white transition-all hover:border-blue-500/30 hover:shadow-md"
+        >
+          <div class="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 p-4">
+            <div class="flex-1">
+              <div class="flex items-center gap-3 flex-wrap">
+                <h3 class="text-base font-semibold text-slate-900">{{ product.productName }}</h3>
+                <span class="text-sm font-mono text-slate-500">{{ product.productId }}</span>
+                <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded border" :class="statusTagClass(product.status)">
+                  {{ statusLabel(product.status) }}
+                </span>
+                <span class="px-2 py-0.5 text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded">
+                  {{ product.baseCurrency }}/{{ product.quoteCurrency }}
+                </span>
+              </div>
+              <p class="mt-2 text-sm text-slate-600">
+                24h 成交量: <span class="text-slate-900 font-medium font-mono">{{ formatVolume(product.volume24h) }}</span>
+                <span class="mx-3 text-slate-200">|</span>
+                24h 涨跌:
+                <span class="font-medium font-mono" :class="product.priceChange24h >= 0 ? 'text-emerald-600' : 'text-rose-600'">
+                  {{ formatSignedPercent(product.priceChange24h) }}
+                </span>
+                <span class="mx-3 text-slate-200">|</span>
+                精度: <span class="text-slate-900 font-medium font-mono">{{ product.pricePrecision }} / {{ product.quantityPrecision }}</span>
+              </p>
             </div>
-            <div>
-              <label class="block text-sm text-black/85 mb-1.5">状态</label>
-              <select v-model="formData.status" class="ant-select">
-                <option value="trading">交易中</option>
-                <option value="suspended">暂停交易</option>
-                <option value="delisted">已下架</option>
-              </select>
+
+            <div class="flex items-center gap-2">
+              <button type="button" class="ant-btn text-xs" @click="editProduct(product)">编辑</button>
+              <button
+                type="button"
+                class="ant-btn text-xs"
+                :disabled="product.status === 'delisted'"
+                :class="product.status === 'trading' ? '!text-orange-500 hover:!text-orange-600 disabled:!text-slate-300' : '!text-emerald-600 hover:!text-emerald-700 disabled:!text-slate-300'"
+                @click="togglePause(product)"
+              >
+                {{ product.status === 'trading' ? '暂停' : '恢复' }}
+              </button>
+      
             </div>
           </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm text-black/85 mb-1.5">基础币种</label>
-              <input v-model="formData.baseCurrency" type="text" class="ant-input" />
+
+          <div class="grid gap-0 md:grid-cols-2 bg-slate-50/30">
+            <div class="border-b border-slate-100 p-4 md:border-b-0 md:border-r">
+              <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">交易限制</p>
+              <ul class="mt-3 grid grid-cols-3 gap-4 text-sm">
+                <li class="flex flex-col gap-1">
+                  <span class="text-slate-500 text-xs">最小下单量</span>
+                  <span class="text-slate-900 font-semibold font-mono">{{ formatAmount(product.minOrderQuantity) }}</span>
+                </li>
+                <li class="flex flex-col gap-1">
+                  <span class="text-slate-500 text-xs">最小下单额</span>
+                  <span class="text-slate-900 font-semibold font-mono">{{ formatAmount(product.minOrderValue) }}</span>
+                </li>
+                <li class="flex flex-col gap-1">
+                  <span class="text-slate-500 text-xs">最大下单额</span>
+                  <span class="text-slate-900 font-semibold font-mono">{{ formatAmount(product.maxOrderValue) }}</span>
+                </li>
+              </ul>
             </div>
-            <div>
-              <label class="block text-sm text-black/85 mb-1.5">计价币种</label>
-              <input v-model="formData.quoteCurrency" type="text" class="ant-input" />
+
+            <div class="p-4">
+              <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">费率与深度</p>
+              <ul class="mt-3 grid grid-cols-3 gap-4 text-sm">
+                <li class="flex flex-col gap-1">
+                  <span class="text-slate-500 text-xs">买入费率</span>
+                  <span class="text-emerald-600 font-bold font-mono">{{ formatRate(product.buyFee) }}</span>
+                </li>
+                <li class="flex flex-col gap-1">
+                  <span class="text-slate-500 text-xs">卖出费率</span>
+                  <span class="text-rose-600 font-bold font-mono">{{ formatRate(product.sellFee) }}</span>
+                </li>
+                <li class="flex flex-col gap-1">
+                  <span class="text-slate-500 text-xs">深度(买/卖)</span>
+                  <span class="text-slate-900 font-semibold font-mono">{{ formatVolume(product.bidDepth) }} / {{ formatVolume(product.askDepth) }}</span>
+                </li>
+              </ul>
             </div>
           </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm text-black/85 mb-1.5">买入费率 (%)</label>
-              <input v-model.number="formData.buyFee" type="number" step="0.001" class="ant-input" />
-            </div>
-            <div>
-              <label class="block text-sm text-black/85 mb-1.5">卖出费率 (%)</label>
-              <input v-model.number="formData.sellFee" type="number" step="0.001" class="ant-input" />
-            </div>
+        </article>
+
+        <p v-if="paginatedProducts.length === 0" class="rounded-lg border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">暂无数据</p>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 p-4">
+        <div class="flex flex-wrap items-center gap-4 text-sm text-slate-500">
+          <div>
+            共 <span class="font-medium text-slate-900">{{ totalItems }}</span> 条记录
+          </div>
+          <div class="flex items-center gap-2">
+            <span>每页</span>
+            <select v-model.number="pagination.pageSize" class="ant-select !w-20" @change="handlePageSizeChange">
+              <option :value="5">5</option>
+              <option :value="10">10</option>
+              <option :value="20">20</option>
+              <option :value="50">50</option>
+            </select>
+            <span>条</span>
           </div>
         </div>
-        <div class="px-6 py-4 bg-gray-50 border-t border-black/[0.06] flex justify-end gap-2">
-          <button type="button" class="ant-btn" @click="closeModal">取消</button>
-          <button type="button" class="ant-btn ant-btn-primary" @click="saveProduct">确定</button>
+
+        <div v-if="totalPages > 1" class="flex items-center gap-2">
+          <button
+            type="button"
+            class="ant-btn ant-btn-sm"
+            :disabled="pagination.currentPage <= 1"
+            @click="goToPage(pagination.currentPage - 1)"
+          >
+            上一页
+          </button>
+          <div class="flex items-center gap-1">
+            <template v-for="p in pageButtons" :key="String(p)">
+              <span v-if="p === '...'" class="px-2 text-slate-400">...</span>
+              <button
+                v-else
+                type="button"
+                class="ant-btn ant-btn-sm w-8 p-0"
+                :class="pagination.currentPage === p ? 'ant-btn-primary' : ''"
+                @click="goToPage(p)"
+              >
+                {{ p }}
+              </button>
+            </template>
+          </div>
+          <button
+            type="button"
+            class="ant-btn ant-btn-sm"
+            :disabled="pagination.currentPage >= totalPages"
+            @click="goToPage(pagination.currentPage + 1)"
+          >
+            下一页
+          </button>
         </div>
       </div>
+    </article>
+
+    <div
+      v-if="showModal"
+      class="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm"
+      @click.self="closeModal"
+    >
+      <section class="flex h-[90vh] w-full max-w-6xl overflow-hidden rounded-lg bg-white shadow-2xl border border-black/[0.06]">
+        <div class="flex w-3/5 flex-col border-r border-black/[0.06]">
+          <header class="flex items-center justify-between border-b border-black/[0.06] bg-white px-6 py-4">
+            <div>
+              <h2 class="text-lg font-semibold text-black/85">{{ isEditing ? '编辑现货产品' : '新增现货产品' }}</h2>
+              <p class="mt-1 text-sm text-black/65">配置现货交易产品的基础信息、精度限制与费率</p>
+              <p v-if="isEditing" class="mt-1 text-xs text-black/45 font-mono">{{ editingProductId }}</p>
+            </div>
+            <button type="button" class="text-black/45 hover:text-black/85 transition-colors text-2xl leading-none" @click="closeModal">×</button>
+          </header>
+
+          <div class="flex-1 space-y-6 overflow-y-auto px-6 py-6 bg-[#f0f2f5]">
+            <section class="space-y-4 rounded-lg border border-black/[0.06] bg-white p-6 shadow-sm">
+              <div class="flex items-center gap-3 mb-2">
+                <div class="flex h-8 w-8 items-center justify-center rounded bg-black/5">
+                  <svg class="h-4 w-4 text-black/45" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <h3 class="text-sm font-semibold text-black/85">基本信息</h3>
+              </div>
+
+              <div class="space-y-4">
+                <div class="space-y-1.5">
+                  <label class="text-sm text-black/85 font-medium">产品名称 <span class="text-rose-500">*</span></label>
+                  <p class="text-sm text-black/45">用于列表展示与搜索，建议使用交易对命名（如 BTC/USDT）。</p>
+                  <input v-model="formData.productName" type="text" placeholder="如：BTC/USDT" class="ant-input" />
+                </div>
+
+                <div class="grid gap-4 sm:grid-cols-2">
+                  <div class="space-y-1.5">
+                    <label class="text-sm text-black/85 font-medium">状态</label>
+                    <p class="text-sm text-black/45">交易中会开放交易；暂停会限制交易行为。</p>
+                    <select v-model="formData.status" class="ant-select">
+                      <option value="trading">交易中</option>
+                      <option value="suspended">暂停交易</option>
+                    </select>
+                  </div>
+                  <div class="space-y-1.5">
+                    <label class="text-sm text-black/85 font-medium">交易对</label>
+                    <p class="text-sm text-black/45">基础币种 / 计价币种。</p>
+                    <div class="grid grid-cols-2 gap-3">
+                      <input v-model="formData.baseCurrency" type="text" class="ant-input uppercase" placeholder="基础币种" />
+                      <input v-model="formData.quoteCurrency" type="text" class="ant-input uppercase" placeholder="计价币种" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="space-y-4 rounded-lg border border-black/[0.06] bg-white p-6 shadow-sm">
+              <div class="flex items-center gap-3 mb-2">
+                <div class="flex h-8 w-8 items-center justify-center rounded bg-antd-primary/10">
+                  <svg class="h-4 w-4 text-antd-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                </div>
+                <h3 class="text-sm font-semibold text-black/85">精度与限制</h3>
+              </div>
+
+              <div class="space-y-4">
+                <div class="grid gap-4 sm:grid-cols-2">
+                  <div class="space-y-1.5">
+                    <label class="text-sm text-black/85 font-medium">价格精度</label>
+                    <p class="text-sm text-black/45">价格允许的小数位数。</p>
+                    <input v-model.number="formData.pricePrecision" type="number" min="0" step="1" class="ant-input font-mono" />
+                  </div>
+                  <div class="space-y-1.5">
+                    <label class="text-sm text-black/85 font-medium">数量精度</label>
+                    <p class="text-sm text-black/45">数量允许的小数位数。</p>
+                    <input v-model.number="formData.quantityPrecision" type="number" min="0" step="1" class="ant-input font-mono" />
+                  </div>
+                </div>
+
+                <div class="grid gap-4 sm:grid-cols-3">
+                  <div class="space-y-1.5">
+                    <label class="text-sm text-black/85 font-medium">最小下单量</label>
+                    <p class="text-sm text-black/45">单笔最小基础币数量。</p>
+                    <input v-model.number="formData.minOrderQuantity" type="number" min="0" step="0.00000001" class="ant-input font-mono" />
+                  </div>
+                  <div class="space-y-1.5">
+                    <label class="text-sm text-black/85 font-medium">最小下单额</label>
+                    <p class="text-sm text-black/45">单笔最小计价币金额。</p>
+                    <input v-model.number="formData.minOrderValue" type="number" min="0" step="0.01" class="ant-input font-mono" />
+                  </div>
+                  <div class="space-y-1.5">
+                    <label class="text-sm text-black/85 font-medium">最大下单额</label>
+                    <p class="text-sm text-black/45">单笔最大计价币金额。</p>
+                    <input v-model.number="formData.maxOrderValue" type="number" min="0" step="0.01" class="ant-input font-mono" />
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="space-y-4 rounded-lg border border-black/[0.06] bg-white p-6 shadow-sm">
+              <div class="flex items-center gap-3 mb-2">
+                <div class="flex h-8 w-8 items-center justify-center rounded bg-violet-100">
+                  <svg class="h-4 w-4 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                </div>
+                <h3 class="text-sm font-semibold text-black/85">费率设置</h3>
+              </div>
+
+              <div class="grid gap-4 sm:grid-cols-2">
+                <div class="space-y-1.5">
+                  <label class="text-sm text-black/85 font-medium">买入费率 (%)</label>
+                  <p class="text-sm text-black/45">对买入成交额收取的费率。</p>
+                  <input v-model.number="formData.buyFee" type="number" min="0" step="0.001" class="ant-input font-mono" />
+                </div>
+                <div class="space-y-1.5">
+                  <label class="text-sm text-black/85 font-medium">卖出费率 (%)</label>
+                  <p class="text-sm text-black/45">对卖出成交额收取的费率。</p>
+                  <input v-model.number="formData.sellFee" type="number" min="0" step="0.001" class="ant-input font-mono" />
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <footer class="flex justify-end gap-3 border-t border-black/[0.06] bg-white px-6 py-4">
+            <button type="button" class="ant-btn" @click="closeModal">取消</button>
+            <button type="button" class="ant-btn ant-btn-primary" @click="saveProduct">保存</button>
+          </footer>
+        </div>
+
+        <div class="flex w-2/5 flex-col bg-black/[0.01]">
+          <header class="border-b border-black/[0.06] px-6 py-4">
+            <h3 class="text-base font-semibold text-black/85">预览</h3>
+            <p class="mt-1 text-sm text-black/65">实时预览产品在列表中的展示效果</p>
+          </header>
+
+          <div class="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+            <article class="rounded-lg border border-black/[0.06] bg-white overflow-hidden shadow-sm">
+              <div class="border-b border-black/[0.06] p-4">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <h4 class="truncate text-sm font-semibold text-black/85">{{ formData.productName || '未命名产品' }}</h4>
+                    <p class="mt-1 text-xs font-mono text-black/45">
+                      {{ String(formData.baseCurrency || '-').toUpperCase() }}/{{ String(formData.quoteCurrency || '-').toUpperCase() }}
+                    </p>
+                  </div>
+                  <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded border" :class="statusTagClass(formData.status)">
+                    {{ statusLabel(formData.status) }}
+                  </span>
+                </div>
+
+                <div class="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-black/65">
+                  <span class="px-2 py-0.5 rounded border border-black/[0.06] bg-black/[0.02] font-mono">
+                    精度 {{ Number(formData.pricePrecision || 0) }} / {{ Number(formData.quantityPrecision || 0) }}
+                  </span>
+                  <span class="px-2 py-0.5 rounded border border-black/[0.06] bg-black/[0.02] font-mono">
+                    费率 {{ formatRate(formData.buyFee) }} / {{ formatRate(formData.sellFee) }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="grid gap-0 bg-black/[0.01]">
+                <div class="border-b border-black/[0.06] p-4">
+                  <p class="text-[10px] font-bold text-black/35 uppercase tracking-wider">交易限制</p>
+                  <ul class="mt-3 grid grid-cols-2 gap-3 text-sm">
+                    <li class="flex flex-col gap-0.5">
+                      <span class="text-black/45 text-xs">最小下单量</span>
+                      <span class="text-black/85 font-semibold font-mono">{{ formatAmount(formData.minOrderQuantity) }}</span>
+                    </li>
+                    <li class="flex flex-col gap-0.5">
+                      <span class="text-black/45 text-xs">最小下单额</span>
+                      <span class="text-black/85 font-semibold font-mono">{{ formatAmount(formData.minOrderValue) }}</span>
+                    </li>
+                    <li class="flex flex-col gap-0.5">
+                      <span class="text-black/45 text-xs">最大下单额</span>
+                      <span class="text-black/85 font-semibold font-mono">{{ formatAmount(formData.maxOrderValue) }}</span>
+                    </li>
+                    <li class="flex flex-col gap-0.5">
+                      <span class="text-black/45 text-xs">深度(买/卖)</span>
+                      <span class="text-black/85 font-semibold font-mono">{{ formatVolume(Number(formData.bidDepth || 0)) }} / {{ formatVolume(Number(formData.askDepth || 0)) }}</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div class="p-4">
+                  <p class="text-[10px] font-bold text-black/35 uppercase tracking-wider">市场数据</p>
+                  <ul class="mt-3 grid grid-cols-2 gap-3 text-sm">
+                    <li class="flex flex-col gap-0.5">
+                      <span class="text-black/45 text-xs">24h 成交量</span>
+                      <span class="text-black/85 font-semibold font-mono">{{ formatVolume(Number(formData.volume24h || 0)) }}</span>
+                    </li>
+                    <li class="flex flex-col gap-0.5">
+                      <span class="text-black/45 text-xs">24h 涨跌</span>
+                      <span class="font-semibold font-mono" :class="Number(formData.priceChange24h || 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'">
+                        {{ formatSignedPercent(Number(formData.priceChange24h || 0)) }}
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
     </div>
-  </div>
+  </section>
 </template>
 
 <script setup>
@@ -218,7 +419,6 @@ const showModal = ref(false)
 const isEditing = ref(false)
 const editingProductId = ref(null)
 const searchKeyword = ref('')
-const activeTab = ref('basic')
 
 const filters = ref({
   status: ''
@@ -227,7 +427,7 @@ const filters = ref({
 // 分页
 const pagination = ref({
   currentPage: 1,
-  pageSize: 5
+  pageSize: 10
 })
 
 const formData = ref({
@@ -256,6 +456,24 @@ onMounted(() => {
 watch([filters, searchKeyword], () => {
   pagination.value.currentPage = 1
 }, { deep: true })
+
+const pageButtons = computed(() => {
+  const total = totalPages.value
+  const current = pagination.value.currentPage
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+
+  const pages = new Set([1, total, current - 1, current, current + 1])
+  const normalized = Array.from(pages).filter(p => p >= 1 && p <= total).sort((a, b) => a - b)
+
+  const result = []
+  for (let i = 0; i < normalized.length; i++) {
+    const p = normalized[i]
+    const prev = normalized[i - 1]
+    if (prev !== undefined && p - prev > 1) result.push('...')
+    result.push(p)
+  }
+  return result
+})
 
 const filteredProducts = computed(() => {
   let result = products.value
@@ -286,6 +504,49 @@ const paginatedProducts = computed(() => {
   const end = start + pagination.value.pageSize
   return filteredProducts.value.slice(start, end)
 })
+
+const handleSearch = () => {
+  pagination.value.currentPage = 1
+}
+
+const resetAll = () => {
+  filters.value = { status: '' }
+  searchKeyword.value = ''
+  pagination.value.currentPage = 1
+}
+
+const handlePageSizeChange = () => {
+  pagination.value.currentPage = 1
+}
+
+const goToPage = (page) => {
+  const next = Math.min(Math.max(1, page), totalPages.value || 1)
+  pagination.value.currentPage = next
+}
+
+const formatAmount = (value) => {
+  if (value === null || value === undefined || isNaN(value)) return '-'
+  return Number(value).toLocaleString('zh-CN', { maximumFractionDigits: 8 })
+}
+
+const formatRate = (value) => {
+  if (value === null || value === undefined || isNaN(value)) return '-'
+  return `${Number(value).toLocaleString('zh-CN', { maximumFractionDigits: 6 })}%`
+}
+
+const formatSignedPercent = (value) => {
+  if (value === null || value === undefined || isNaN(value)) return '-'
+  const n = Number(value)
+  const sign = n > 0 ? '+' : ''
+  return `${sign}${n.toFixed(2)}%`
+}
+
+const statusTagClass = (status) => {
+  if (status === 'trading') return 'bg-emerald-50 text-emerald-600 border-emerald-100'
+  if (status === 'suspended') return 'bg-orange-50 text-orange-600 border-orange-100'
+  if (status === 'delisted') return 'bg-slate-50 text-slate-500 border-slate-200'
+  return 'bg-slate-50 text-slate-500 border-slate-200'
+}
 
 const formatCurrency = (value) => {
   return new Intl.NumberFormat('zh-CN', {
@@ -347,7 +608,6 @@ const showAddProduct = () => {
   isEditing.value = false
   editingProductId.value = null
   resetFormData()
-  activeTab.value = 'basic'
   showModal.value = true
 }
 
@@ -371,18 +631,15 @@ const editProduct = (product) => {
     bidDepth: product.bidDepth,
     askDepth: product.askDepth
   }
-  activeTab.value = 'basic'
   showModal.value = true
 }
 
 const closeModal = () => {
   showModal.value = false
-  activeTab.value = 'basic'
   resetFormData()
 }
 
 const saveProduct = () => {
-  // 表单验证
   if (!formData.value.productName) {
     alert('请输入产品名称')
     return
@@ -391,12 +648,38 @@ const saveProduct = () => {
     alert('请选择基础币种和计价币种')
     return
   }
-  if (formData.value.minOrderValue >= formData.value.maxOrderValue) {
-    alert('最大订单金额必须大于最小订单金额')
+  const pricePrecision = Number(formData.value.pricePrecision)
+  const quantityPrecision = Number(formData.value.quantityPrecision)
+  const minOrderQuantity = Number(formData.value.minOrderQuantity)
+  const minOrderValue = Number(formData.value.minOrderValue)
+  const maxOrderValue = Number(formData.value.maxOrderValue)
+  const buyFee = Number(formData.value.buyFee)
+  const sellFee = Number(formData.value.sellFee)
+
+  const isNonNegativeInt = (n) => Number.isFinite(n) && n >= 0 && Math.floor(n) === n
+
+  if (!isNonNegativeInt(pricePrecision) || !isNonNegativeInt(quantityPrecision)) {
+    alert('精度必须为非负整数')
     return
   }
-  if (formData.value.buyFee < 0 || formData.value.sellFee < 0) {
+  if (!Number.isFinite(minOrderQuantity) || minOrderQuantity <= 0) {
+    alert('最小下单量必须大于 0')
+    return
+  }
+  if (!Number.isFinite(minOrderValue) || minOrderValue < 0 || !Number.isFinite(maxOrderValue) || maxOrderValue <= 0) {
+    alert('请输入有效的下单额限制')
+    return
+  }
+  if (minOrderValue >= maxOrderValue) {
+    alert('最大下单额必须大于最小下单额')
+    return
+  }
+  if (!Number.isFinite(buyFee) || !Number.isFinite(sellFee) || buyFee < 0 || sellFee < 0) {
     alert('费率不能为负数')
+    return
+  }
+  if (buyFee > 100 || sellFee > 100) {
+    alert('费率不能超过 100%')
     return
   }
 
@@ -433,5 +716,21 @@ const toggleProductStatus = (product) => {
     const newStatus = products.value[index].status === 'trading' ? 'suspended' : 'trading'
     products.value[index].status = newStatus
   }
+}
+
+const togglePause = (product) => {
+  const index = products.value.findIndex(p => p.productId === product.productId)
+  if (index === -1) return
+  if (products.value[index].status === 'delisted') return
+  products.value[index].status = products.value[index].status === 'trading' ? 'suspended' : 'trading'
+}
+
+const toggleListing = (product) => {
+  const index = products.value.findIndex(p => p.productId === product.productId)
+  if (index === -1) return
+  const next = products.value[index].status === 'delisted' ? 'trading' : 'delisted'
+  const ok = window.confirm(next === 'delisted' ? '确认下架该产品？' : '确认上架该产品？')
+  if (!ok) return
+  products.value[index].status = next
 }
 </script>

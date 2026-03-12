@@ -132,102 +132,98 @@ const exportReport = () => {
 </script>
 
 <template>
-  <div class="-m-4 md:-m-8">
-    <!-- Page Header -->
-    <header class="bg-white px-4 py-4 mb-6 border-b border-black/[0.06] md:px-8">
-      <div class="mb-2 flex items-center gap-2 text-sm text-black/45">
-        <span>首页</span>
-        <span class="text-black/15">/</span>
-        <span>交割控制</span>
-        <span class="text-black/15">/</span>
-        <span class="text-black/85">场控决策报表</span>
+  <section class="space-y-5">
+    <header class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <h1 class="text-3xl font-semibold text-slate-900">场控操作决策报表</h1>
+        <p class="mt-1 text-sm text-slate-500">提供交割合约场控数据分析，辅助交割前后的调控决策。</p>
       </div>
-      <div class="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 class="text-xl font-semibold text-black/85">场控操作决策报表</h1>
-          <p class="mt-2 text-sm text-black/45">提供交割合约场控数据分析，辅助交割前后的调控决策。</p>
-        </div>
-        <div class="flex items-center gap-3">
-          <button type="button" class="ant-btn flex items-center gap-2" @click="refreshData">
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-            刷新
-          </button>
-          <button type="button" class="ant-btn ant-btn-primary flex items-center gap-2" @click="exportReport">
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-            导出报表
-          </button>
-        </div>
+
+      <div class="flex items-center gap-3">
+        <button type="button" class="ant-btn inline-flex items-center gap-2" @click="refreshData">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+          刷新
+        </button>
+        <button type="button" class="ant-btn ant-btn-primary inline-flex items-center gap-2" @click="exportReport">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+          导出报表
+        </button>
       </div>
     </header>
 
-    <div class="px-4 pb-8 md:px-8 space-y-6">
-      <!-- 筛选区域 -->
-      <article class="pro-card p-4 flex flex-wrap items-center gap-6">
-        <div class="flex items-center gap-3">
-          <span class="text-sm font-medium text-black/85">选择合约:</span>
-          <select v-model="selectedContract" class="ant-select !w-40">
+    <div class="pro-card p-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="space-y-1.5">
+          <label class="block text-sm font-medium text-slate-700">合约</label>
+          <select v-model="selectedContract" class="ant-select !py-1.5">
             <option v-for="option in contractOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
           </select>
         </div>
-        
-        <div class="flex items-center gap-3">
-          <span class="text-sm font-medium text-black/85">统计周期:</span>
-          <div class="inline-flex rounded-lg border border-black/[0.06] bg-black/[0.02] p-1">
-            <button v-for="option in DELIVERY_REPORT_TIME_RANGE_OPTIONS" :key="option.value" @click="timeRange = option.value" :class="timeRange === option.value ? 'bg-white text-antd-primary shadow-sm' : 'text-black/45 hover:text-black/85'" class="rounded-md px-4 py-1.5 text-xs font-medium transition-all">{{ option.label }}</button>
+
+        <div class="space-y-1.5">
+          <label class="block text-sm font-medium text-slate-700">统计周期</label>
+          <select v-model="timeRange" class="ant-select !py-1.5">
+            <option v-for="option in DELIVERY_REPORT_TIME_RANGE_OPTIONS" :key="option.value" :value="option.value">{{ option.label }}</option>
+          </select>
+        </div>
+
+        <div v-if="timeRange === DELIVERY_REPORT_TIME_RANGE.CUSTOM" class="space-y-1.5">
+          <label class="block text-sm font-medium text-slate-700">自定义日期</label>
+          <div class="flex items-center gap-2">
+            <input v-model="customDateRange.start" type="date" class="ant-input !py-1.5" />
+            <span class="text-slate-400">-</span>
+            <input v-model="customDateRange.end" type="date" class="ant-input !py-1.5" />
           </div>
         </div>
+      </div>
+    </div>
 
-        <div v-if="timeRange === DELIVERY_REPORT_TIME_RANGE.CUSTOM" class="flex items-center gap-2">
-          <input v-model="customDateRange.start" type="date" class="ant-input !py-1 !text-xs" />
-          <span class="text-black/25">-</span>
-          <input v-model="customDateRange.end" type="date" class="ant-input !py-1 !text-xs" />
-        </div>
-      </article>
-
-      <!-- 核心内容区 -->
-      <article class="pro-card overflow-hidden">
-        <!-- Tab 导航 -->
-        <div class="border-b border-black/[0.06] bg-white px-6">
-          <div class="flex gap-8">
-            <button v-for="tab in tabs" :key="tab.id" type="button" @click="activeTab = tab.id" class="px-1 py-4 text-sm transition-all relative" :class="activeTab === tab.id ? 'text-antd-primary font-medium after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-antd-primary' : 'text-black/45 hover:text-black/85'">
-              <div class="flex items-center gap-2">
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="tab.icon" /></svg>
-                <span>{{ tab.name }}</span>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        <div class="p-6 bg-[#f0f2f5]">
-          <!-- 市场概览 -->
-          <div v-show="activeTab === 'overview'" class="space-y-6">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div class="bg-white p-5 rounded-lg border border-black/[0.06] shadow-sm">
-                <div class="flex items-center justify-between mb-3 text-black/45"><h3 class="text-xs font-medium uppercase tracking-wider">24h 交易量</h3><svg class="h-5 w-5 text-antd-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg></div>
-                <p class="text-2xl font-bold text-black/85 font-mono">${{ formatAmount(filteredOverview.totalVolume24h) }}</p>
-                <p class="mt-2 text-[11px] text-black/25">当前结算币种: USDT</p>
-              </div>
-
-              <div class="bg-white p-5 rounded-lg border border-black/[0.06] shadow-sm">
-                <div class="flex items-center justify-between mb-3 text-black/45"><h3 class="text-xs font-medium uppercase tracking-wider">平台总盈亏</h3><svg class="h-5 w-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
-                <p class="text-2xl font-bold font-mono" :class="filteredOverview.platformPnl24h >= 0 ? 'text-emerald-500' : 'text-rose-500'">{{ formatCurrency(filteredOverview.platformPnl24h) }}</p>
-                <p class="mt-2 text-[11px] text-black/25">统计周期: 24小时</p>
-              </div>
-
-              <div class="bg-white p-5 rounded-lg border border-black/[0.06] shadow-sm">
-                <div class="flex items-center justify-between mb-3 text-black/45"><h3 class="text-xs font-medium uppercase tracking-wider">临近交割</h3><svg class="h-5 w-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
-                <p class="text-2xl font-bold text-black/85 font-mono">{{ filteredOverview.nearExpiryContracts }}</p>
-                <p class="mt-2 text-[11px] text-black/25">3天内到期的活跃合约</p>
-              </div>
-
-              <div class="bg-white p-5 rounded-lg border border-black/[0.06] shadow-sm">
-                <div class="flex items-center justify-between mb-3 text-black/45"><h3 class="text-xs font-medium uppercase tracking-wider">系统风险等级</h3><svg class="h-5 w-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg></div>
-                <div class="flex items-center gap-2">
-                  <span class="text-base font-bold" :class="DELIVERY_RISK_LEVEL_CONFIG[filteredOverview.riskLevel].class.replace('bg-', 'text-').replace('text-', 'text-')">{{ DELIVERY_RISK_LEVEL_CONFIG[filteredOverview.riskLevel].text }}</span>
-                </div>
-                <p class="mt-2 text-[11px] text-black/25">基于全平台持仓分布计算</p>
-              </div>
+    <article class="pro-card overflow-hidden">
+      <div class="border-b border-black/[0.06] bg-white px-6">
+        <div class="flex gap-8">
+          <button
+            v-for="tab in tabs"
+            :key="tab.id"
+            type="button"
+            class="relative px-1 py-4 text-sm transition-all"
+            :class="activeTab === tab.id ? 'text-antd-primary font-medium after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-antd-primary' : 'text-black/45 hover:text-black/85'"
+            @click="activeTab = tab.id"
+          >
+            <div class="flex items-center gap-2">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="tab.icon" /></svg>
+              <span>{{ tab.name }}</span>
             </div>
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-[#f0f2f5] p-6">
+        <div v-show="activeTab === 'overview'" class="space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="pro-card p-5">
+              <div class="flex items-center justify-between mb-3 text-black/45"><h3 class="text-xs font-medium uppercase tracking-wider">24h 交易量</h3><svg class="h-5 w-5 text-antd-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg></div>
+              <p class="text-2xl font-bold text-black/85 font-mono">${{ formatAmount(filteredOverview.totalVolume24h) }}</p>
+              <p class="mt-2 text-[11px] text-black/25">当前结算币种: USDT</p>
+            </div>
+
+            <div class="pro-card p-5">
+              <div class="flex items-center justify-between mb-3 text-black/45"><h3 class="text-xs font-medium uppercase tracking-wider">平台总盈亏</h3><svg class="h-5 w-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
+              <p class="text-2xl font-bold font-mono" :class="filteredOverview.platformPnl24h >= 0 ? 'text-emerald-500' : 'text-rose-500'">{{ formatCurrency(filteredOverview.platformPnl24h) }}</p>
+              <p class="mt-2 text-[11px] text-black/25">统计周期: 24小时</p>
+            </div>
+
+            <div class="pro-card p-5">
+              <div class="flex items-center justify-between mb-3 text-black/45"><h3 class="text-xs font-medium uppercase tracking-wider">临近交割</h3><svg class="h-5 w-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
+              <p class="text-2xl font-bold text-black/85 font-mono">{{ filteredOverview.nearExpiryContracts }}</p>
+              <p class="mt-2 text-[11px] text-black/25">3天内到期的活跃合约</p>
+            </div>
+
+            <div class="pro-card p-5">
+              <div class="flex items-center justify-between mb-3 text-black/45"><h3 class="text-xs font-medium uppercase tracking-wider">系统风险等级</h3><svg class="h-5 w-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg></div>
+              <span :class="DELIVERY_RISK_LEVEL_CONFIG[filteredOverview.riskLevel].class" class="inline-flex items-center px-2 py-1 rounded text-xs font-medium border">{{ DELIVERY_RISK_LEVEL_CONFIG[filteredOverview.riskLevel].text }}</span>
+              <p class="mt-2 text-[11px] text-black/25">基于全平台持仓分布计算</p>
+            </div>
+          </div>
 
             <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div class="bg-white p-4 rounded border border-black/[0.06]"><p class="text-[11px] text-black/45 mb-1 uppercase">当前总持仓</p><p class="text-lg font-bold text-black/85 font-mono">${{ formatAmount(filteredOverview.totalPosition) }}</p></div>
@@ -239,7 +235,7 @@ const exportReport = () => {
               <header class="px-6 py-4 border-b border-black/[0.06] flex items-center justify-between"><h3 class="text-sm font-semibold text-black/85">交割合约明细</h3><button class="ant-btn ant-btn-link !text-xs">查看全部</button></header>
               <div class="overflow-x-auto">
                 <table class="ant-table">
-                  <thead>
+                  <thead class="ant-table-thead">
                     <tr>
                       <th>合约名称</th>
                       <th class="text-center">交割时间</th>
@@ -250,9 +246,9 @@ const exportReport = () => {
                       <th class="text-center">风险</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody class="ant-table-tbody">
                     <tr v-for="contract in filteredContracts" :key="contract.symbol" class="group transition-all hover:bg-black/[0.01]">
-                      <td class="px-6 py-4">
+                      <td>
                         <div class="text-sm font-medium text-black/85">{{ contract.name }}</div>
                         <span :class="DELIVERY_CYCLE_TYPE_CONFIG[contract.cycleType].class" class="inline-flex items-center px-1.5 py-0.5 mt-1 rounded text-[10px] font-medium">{{ DELIVERY_CYCLE_TYPE_CONFIG[contract.cycleType].text }}</span>
                       </td>
@@ -283,7 +279,7 @@ const exportReport = () => {
               <header class="px-6 py-4 border-b border-black/[0.06]"><h3 class="text-sm font-semibold text-black/85">持仓到期分布</h3></header>
               <div class="overflow-x-auto">
                 <table class="ant-table">
-                  <thead>
+                  <thead class="ant-table-thead">
                     <tr>
                       <th>到期范围</th>
                       <th class="text-right">多头人数</th>
@@ -293,7 +289,7 @@ const exportReport = () => {
                       <th class="text-right">净持仓 (Delta)</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody class="ant-table-tbody">
                     <tr v-for="item in deliveryExpiryDistribution" :key="item.range" class="hover:bg-black/[0.01]">
                       <td class="text-sm font-medium text-black/85">{{ item.range }}</td>
                       <td class="text-right font-mono text-black/45">{{ item.longCount }}</td>
@@ -349,7 +345,7 @@ const exportReport = () => {
               <header class="px-6 py-4 border-b border-black/[0.06]"><h3 class="text-sm font-semibold text-black/85">大户异常监控</h3></header>
               <div class="overflow-x-auto">
                 <table class="ant-table">
-                  <thead>
+                  <thead class="ant-table-thead">
                     <tr>
                       <th>用户信息</th>
                       <th class="text-center">账号类型</th>
@@ -360,7 +356,7 @@ const exportReport = () => {
                       <th class="text-center">风险等级</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody class="ant-table-tbody">
                     <tr v-for="whale in paginatedWhalesList" :key="whale.userId" class="hover:bg-black/[0.01]">
                       <td><div class="text-sm font-medium text-black/85">{{ whale.username }}</div><div class="text-[11px] text-black/45 font-mono">{{ whale.userId }}</div></td>
                       <td class="text-center"><span :class="DELIVERY_USER_TYPE_CONFIG[whale.type].class" class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium">{{ DELIVERY_USER_TYPE_CONFIG[whale.type].icon }} {{ DELIVERY_USER_TYPE_CONFIG[whale.type].text }}</span></td>
@@ -394,7 +390,7 @@ const exportReport = () => {
               <header class="px-6 py-4 border-b border-black/[0.06]"><h3 class="text-sm font-semibold text-black/85">规则性能排行榜</h3></header>
               <div class="overflow-x-auto">
                 <table class="ant-table">
-                  <thead>
+                  <thead class="ant-table-thead">
                     <tr>
                       <th>规则名称</th>
                       <th class="text-right">触发次数</th>
@@ -404,7 +400,7 @@ const exportReport = () => {
                       <th>最近触发</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody class="ant-table-tbody">
                     <tr v-for="rule in deliveryAutoRuleStats.rulePerformance" :key="rule.ruleId" class="hover:bg-black/[0.01]">
                       <td><div class="text-sm font-medium text-black/85">{{ rule.ruleName }}</div><div class="text-[11px] text-black/45 font-mono">{{ rule.ruleId }}</div></td>
                       <td class="text-right font-mono text-sm">{{ rule.triggers }}</td>
@@ -423,14 +419,14 @@ const exportReport = () => {
                 <header class="px-6 py-4 border-b border-black/[0.06]"><h3 class="text-sm font-semibold text-black/85">操作类型分布</h3></header>
                 <div class="overflow-x-auto">
                   <table class="ant-table">
-                    <thead>
+                    <thead class="ant-table-thead">
                       <tr>
                         <th>类型</th>
                         <th class="text-right">次数</th>
                         <th class="text-right">影响</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="ant-table-tbody">
                       <tr v-for="item in deliveryAutoRuleStats.actionsByType" :key="item.action">
                         <td><span :class="DELIVERY_RULE_ACTION_CONFIG[item.action]?.class || 'bg-black/5 text-black/45'" class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium">{{ DELIVERY_RULE_ACTION_CONFIG[item.action]?.text || item.action }}</span></td>
                         <td class="text-right font-mono text-sm">{{ item.count }}</td>
@@ -456,14 +452,6 @@ const exportReport = () => {
             </div>
           </div>
         </div>
-      </article>
-    </div>
-  </div>
+    </article>
+  </section>
 </template>
-
-<style scoped>
-.pro-card {
-  @apply bg-white rounded-lg;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
-}
-</style>
