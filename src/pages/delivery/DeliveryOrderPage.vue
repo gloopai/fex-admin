@@ -148,29 +148,14 @@ const nextPage = () => {
         <h1 class="text-3xl font-semibold text-slate-900">交割合约订单</h1>
         <p class="mt-1 text-sm text-slate-500">监控用户交割合约投资、收益与结算状态，支持多维度订单筛选与导出</p>
       </div>
-      <button
-        type="button"
-        class="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
-        @click="exportOrders"
-      >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-          />
-        </svg>
-        <span>导出订单</span>
-      </button>
     </header>
 
     <article class="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
       <!-- 筛选区域 -->
-      <div class="flex flex-wrap items-center gap-3 border-b border-slate-200 p-4 md:px-6">
+      <div class="flex flex-wrap items-center gap-3 border-b border-slate-200 p-4 md:px-6 bg-slate-50/30">
         <select
           v-model="filters.status"
-          class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          class="ant-select !w-36"
         >
           <option value="">全部状态</option>
           <option :value="DELIVERY_ORDER_STATUS.PENDING">待结算</option>
@@ -180,7 +165,7 @@ const nextPage = () => {
 
         <select
           v-model="filters.product"
-          class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          class="ant-select !w-36"
         >
           <option value="">全部产品</option>
           <option value="BTC 期权">BTC 期权</option>
@@ -189,7 +174,7 @@ const nextPage = () => {
 
         <select
           v-model="filters.result"
-          class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          class="ant-select !w-32"
         >
           <option value="">全部结果</option>
           <option :value="DELIVERY_ORDER_RESULT.WIN">赢利</option>
@@ -201,7 +186,7 @@ const nextPage = () => {
             v-model="filters.userId"
             type="text"
             placeholder="搜索用户 ID..."
-            class="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm outline-none focus:border-blue-500"
+            class="ant-input pl-9"
           />
           <svg viewBox="0 0 20 20" class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" fill="none">
             <circle cx="9" cy="9" r="5.8" stroke="currentColor" stroke-width="1.6" />
@@ -211,7 +196,7 @@ const nextPage = () => {
 
         <button
           type="button"
-          class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+          class="ant-btn inline-flex items-center gap-1.5"
           @click="showAdvancedFilters = !showAdvancedFilters"
         >
           <span>{{ showAdvancedFilters ? '收起' : '高级筛选' }}</span>
@@ -228,59 +213,77 @@ const nextPage = () => {
 
         <button
           type="button"
-          class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+          class="ant-btn"
           @click="resetFilters"
         >
           重置
+        </button>
+
+        <div class="flex-1"></div>
+
+        <button
+          type="button"
+          class="ant-btn inline-flex items-center gap-2"
+          @click="exportOrders"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+            />
+          </svg>
+          <span>导出订单</span>
         </button>
       </div>
 
       <!-- 高级筛选 -->
       <div v-show="showAdvancedFilters" class="border-b border-slate-200 bg-slate-50/50 p-4 md:px-6">
         <div class="grid gap-6 md:grid-cols-4">
-          <div class="space-y-2">
-            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">投资金额 (USDT)</label>
+          <div class="space-y-1.5">
+            <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">投资金额 (USDT)</label>
             <div class="flex items-center gap-2">
               <input
                 v-model.number="filters.minInvest"
                 type="number"
                 placeholder="最小"
-                class="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm outline-none focus:border-blue-500"
+                class="ant-input !py-1 text-xs"
               />
               <span class="text-slate-300">-</span>
               <input
                 v-model.number="filters.maxInvest"
                 type="number"
                 placeholder="最大"
-                class="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm outline-none focus:border-blue-500"
+                class="ant-input !py-1 text-xs"
               />
             </div>
           </div>
 
-          <div class="space-y-2">
-            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">实际收益 (%)</label>
+          <div class="space-y-1.5">
+            <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">实际收益 (%)</label>
             <div class="flex items-center gap-2">
               <input
                 v-model.number="filters.minYield"
                 type="number"
                 placeholder="最小"
-                class="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm outline-none focus:border-blue-500"
+                class="ant-input !py-1 text-xs"
               />
               <span class="text-slate-300">-</span>
               <input
                 v-model.number="filters.maxYield"
                 type="number"
                 placeholder="最大"
-                class="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm outline-none focus:border-blue-500"
+                class="ant-input !py-1 text-xs"
               />
             </div>
           </div>
 
-          <div class="space-y-2">
-            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">周期类型</label>
+          <div class="space-y-1.5">
+            <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">周期类型</label>
             <select
               v-model="filters.cycleType"
-              class="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm outline-none focus:border-blue-500"
+              class="ant-select !py-1 text-xs"
             >
               <option value="">全部周期</option>
               <option value="short">短周期 (≤60s)</option>
@@ -289,12 +292,12 @@ const nextPage = () => {
             </select>
           </div>
 
-          <div class="space-y-2">
-            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">下单日期</label>
+          <div class="space-y-1.5">
+            <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">下单日期</label>
             <input
               v-model="filters.dateRange"
               type="date"
-              class="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm outline-none focus:border-blue-500"
+              class="ant-input !py-1 text-xs"
             />
           </div>
         </div>
@@ -302,8 +305,8 @@ const nextPage = () => {
 
       <!-- 表格内容 -->
       <div class="overflow-x-auto">
-        <table class="w-full border-collapse text-left">
-          <thead class="bg-slate-50/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+        <table class="w-full border-collapse text-left ant-table">
+          <thead class="ant-table-thead">
             <tr>
               <th class="px-6 py-4">订单信息</th>
               <th class="px-6 py-4">用户信息</th>
@@ -314,11 +317,11 @@ const nextPage = () => {
               <th class="px-6 py-4 text-center">操作</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100">
+          <tbody class="ant-table-tbody divide-y divide-slate-100">
             <tr
               v-for="order in paginatedOrders"
               :key="order.id"
-              class="text-sm hover:bg-slate-50/50 transition-colors group"
+              class="text-sm group"
             >
               <td class="px-6 py-4">
                 <div class="flex flex-col">
@@ -373,7 +376,7 @@ const nextPage = () => {
               </td>
               <td class="px-6 py-4">
                 <span
-                  class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border shadow-sm"
+                  class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border"
                   :class="deliveryOrderStatusMeta[order.status]?.class"
                 >
                   <span class="h-1.5 w-1.5 rounded-full bg-current"></span>
@@ -383,7 +386,7 @@ const nextPage = () => {
               <td class="px-6 py-4 text-center">
                 <button
                   type="button"
-                  class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600 hover:border-blue-600 transition-all shadow-sm"
+                  class="ant-btn ant-btn-sm"
                   @click="viewOrder(order)"
                 >
                   详情
@@ -397,21 +400,32 @@ const nextPage = () => {
       <!-- 分页 -->
       <div v-if="totalPages > 1" class="flex items-center justify-between border-t border-slate-100 p-4 md:px-6">
         <div class="text-sm text-slate-500">
-          共 <span class="font-bold text-slate-900">{{ filteredOrders.length }}</span> 条订单，第
-          <span class="font-bold text-slate-900">{{ currentPage }}</span> / {{ totalPages }} 页
+          共 <span class="font-medium text-slate-900">{{ filteredOrders.length }}</span> 条订单
         </div>
         <div class="flex items-center gap-2">
           <button
             type="button"
-            class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            class="ant-btn ant-btn-sm"
             :disabled="currentPage === 1"
             @click="prevPage"
           >
             上一页
           </button>
+          <div class="flex items-center gap-1">
+            <button
+              v-for="p in totalPages"
+              :key="p"
+              type="button"
+              class="ant-btn ant-btn-sm w-8 p-0"
+              :class="currentPage === p ? 'ant-btn-primary' : ''"
+              @click="currentPage = p"
+            >
+              {{ p }}
+            </button>
+          </div>
           <button
             type="button"
-            class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            class="ant-btn ant-btn-sm"
             :disabled="currentPage === totalPages"
             @click="nextPage"
           >
@@ -425,16 +439,16 @@ const nextPage = () => {
     <Transition name="modal">
       <div
         v-if="showDetailModal"
-        class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
+        class="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm"
         @click.self="closeDetailModal"
       >
         <section
-          class="flex flex-col w-full max-w-4xl h-[85vh] overflow-hidden rounded-xl bg-white shadow-2xl border border-slate-200"
+          class="flex flex-col w-full max-w-4xl h-[85vh] overflow-hidden rounded-lg bg-white shadow-xl"
         >
-          <header class="flex items-center justify-between border-b border-slate-200 bg-slate-50/50 px-6 py-4">
+          <header class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
             <div>
-              <h2 class="text-xl font-semibold text-slate-900">订单详情</h2>
-              <p class="mt-0.5 text-xs text-slate-500 font-mono">#{{ currentOrder?.id }}</p>
+              <h2 class="text-lg font-semibold text-slate-900">订单详情</h2>
+              <p class="mt-0.5 text-xs text-slate-400 font-mono">#{{ currentOrder?.id }}</p>
             </div>
             <button
               type="button"
@@ -445,16 +459,16 @@ const nextPage = () => {
             </button>
           </header>
 
-          <div class="px-6 py-3 border-b border-slate-200 bg-white">
-            <div class="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
+          <div class="px-6 border-b border-slate-100 bg-white">
+            <div class="flex gap-8">
               <button
                 v-for="tab in detailTabs"
                 :key="tab.id"
                 type="button"
-                class="rounded-md px-4 py-1.5 text-sm transition-all"
+                class="relative py-3 text-sm transition-all"
                 :class="
                   currentTab === tab.id
-                    ? 'bg-white text-blue-600 shadow-sm font-medium'
+                    ? 'text-blue-600 font-medium after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
                     : 'text-slate-500 hover:text-slate-700'
                 "
                 @click="currentTab = tab.id"
@@ -464,19 +478,19 @@ const nextPage = () => {
             </div>
           </div>
 
-          <div class="flex-1 overflow-y-auto bg-slate-50/30 p-6">
-            <div v-if="currentOrder" class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-8">
+          <div class="flex-1 overflow-y-auto bg-white p-6">
+            <div v-if="currentOrder" class="space-y-8">
               <div v-if="currentTab === 'overview'" class="grid gap-8 md:grid-cols-2">
-                <div class="space-y-6">
-                  <h3 class="text-sm font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">
+                <div class="space-y-4">
+                  <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">
                     交易方向
                   </h3>
                   <div class="flex items-center gap-4">
                     <div
-                      class="h-16 w-16 rounded-xl flex items-center justify-center text-2xl shadow-inner"
+                      class="h-12 w-12 rounded-lg flex items-center justify-center text-xl shadow-inner"
                       :class="currentOrder.direction === 'up' ? 'bg-emerald-50 text-emerald-500' : 'bg-rose-50 text-rose-500'"
                     >
-                      <svg v-if="currentOrder.direction === 'up'" class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg v-if="currentOrder.direction === 'up'" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 10l7-7m0 0l7 7m-7-7v18" />
                       </svg>
                       <svg v-else class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -484,9 +498,9 @@ const nextPage = () => {
                       </svg>
                     </div>
                     <div>
-                      <p class="text-2xl font-bold text-slate-900">{{ currentOrder.productName }}</p>
+                      <p class="text-xl font-bold text-slate-900">{{ currentOrder.productName }}</p>
                       <p
-                        class="mt-1 font-bold text-sm"
+                        class="mt-0.5 font-bold text-xs"
                         :class="currentOrder.direction === 'up' ? 'text-emerald-600' : 'text-rose-600'"
                       >
                         {{ currentOrder.direction === 'up' ? '看涨 (Buy Up)' : '看跌 (Buy Down)' }}
@@ -495,41 +509,41 @@ const nextPage = () => {
                   </div>
                 </div>
 
-                <div class="space-y-6">
-                  <h3 class="text-sm font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">
+                <div class="space-y-4">
+                  <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">
                     投资金额
                   </h3>
-                  <div class="flex items-baseline gap-2">
-                    <span class="text-3xl font-black text-slate-900">{{ currentOrder.investAmount }}</span>
-                    <span class="text-sm font-bold text-slate-400">USDT</span>
+                  <div class="flex items-baseline gap-1.5">
+                    <span class="text-2xl font-black text-slate-900">{{ currentOrder.investAmount }}</span>
+                    <span class="text-xs font-bold text-slate-400">USDT</span>
                   </div>
-                  <div class="flex items-center gap-4 text-xs font-medium">
-                    <span class="px-2 py-1 rounded bg-slate-100 text-slate-600">周期: {{ currentOrder.cycleSeconds }}s</span>
-                    <span class="px-2 py-1 rounded bg-blue-50 text-blue-600">预期收益: {{ currentOrder.expectedYield }}%</span>
+                  <div class="flex items-center gap-3 text-[10px] font-medium">
+                    <span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">周期: {{ currentOrder.cycleSeconds }}s</span>
+                    <span class="px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-100">预期收益: {{ currentOrder.expectedYield }}%</span>
                   </div>
                 </div>
 
-                <div class="md:col-span-2 space-y-6">
-                  <h3 class="text-sm font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">
+                <div class="md:col-span-2 space-y-4">
+                  <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">
                     结算统计
                   </h3>
                   <div class="grid gap-4 sm:grid-cols-3">
-                    <div class="p-4 rounded-xl border border-slate-100 bg-slate-50/50">
+                    <div class="p-4 rounded border border-slate-100 bg-slate-50/50">
                       <p class="text-[10px] text-slate-400 font-bold uppercase">盈亏金额</p>
                       <p
-                        class="mt-1 text-lg font-black"
+                        class="mt-1 text-base font-black"
                         :class="currentOrder.result === 'win' ? 'text-emerald-600' : 'text-rose-600'"
                       >
                         {{ currentOrder.result === 'win' ? '+' : '' }}{{ currentOrder.pnlAmount }} USDT
                       </p>
                     </div>
-                    <div class="p-4 rounded-xl border border-slate-100 bg-slate-50/50">
+                    <div class="p-4 rounded border border-slate-100 bg-slate-50/50">
                       <p class="text-[10px] text-slate-400 font-bold uppercase">实际收益率</p>
-                      <p class="mt-1 text-lg font-black text-slate-900">{{ currentOrder.actualYield }}%</p>
+                      <p class="mt-1 text-base font-black text-slate-900">{{ currentOrder.actualYield }}%</p>
                     </div>
-                    <div class="p-4 rounded-xl border border-slate-100 bg-slate-50/50">
+                    <div class="p-4 rounded border border-slate-100 bg-slate-50/50">
                       <p class="text-[10px] text-slate-400 font-bold uppercase">手续费</p>
-                      <p class="mt-1 text-lg font-black text-slate-900">{{ currentOrder.fee }} USDT</p>
+                      <p class="mt-1 text-base font-black text-slate-900">{{ currentOrder.fee }} USDT</p>
                     </div>
                   </div>
                 </div>
@@ -547,21 +561,21 @@ const nextPage = () => {
                     '投资周期': currentOrder.cycleSeconds + ' 秒',
                     '预期收益': currentOrder.expectedYield + '%'
                   }" :key="label" class="flex flex-col gap-1 border-b border-slate-50 pb-2">
-                    <span class="text-xs font-bold text-slate-400">{{ label }}</span>
+                    <span class="text-[11px] font-bold text-slate-400">{{ label }}</span>
                     <span class="text-sm font-medium text-slate-900 font-mono">{{ val }}</span>
                   </div>
                 </div>
               </div>
 
               <div v-if="currentTab === 'user'" class="space-y-6">
-                <div class="flex items-center gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100">
-                  <div class="h-12 w-12 rounded-full bg-blue-600 flex items-center justify-center text-white text-xl font-bold">
+                <div class="flex items-center gap-4 p-4 rounded bg-slate-50 border border-slate-100">
+                  <div class="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center text-white text-lg font-bold">
                     {{ currentOrder.userName.charAt(0) }}
                   </div>
                   <div>
-                    <p class="text-lg font-bold text-slate-900">{{ currentOrder.userName }}</p>
+                    <p class="text-base font-bold text-slate-900">{{ currentOrder.userName }}</p>
                     <div class="flex items-center gap-2 mt-0.5">
-                      <span class="text-xs text-slate-500 font-mono">UID: {{ currentOrder.userId }}</span>
+                      <span class="text-[11px] text-slate-500 font-mono">UID: {{ currentOrder.userId }}</span>
                       <span
                         class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase"
                         :class="vipLevelMeta[currentOrder.userVip]?.class"
@@ -573,41 +587,41 @@ const nextPage = () => {
                 </div>
                 <div class="grid gap-6 sm:grid-cols-3">
                   <div class="flex flex-col gap-1">
-                    <span class="text-xs font-bold text-slate-400">账号余额</span>
+                    <span class="text-[11px] font-bold text-slate-400">账号余额</span>
                     <span class="text-sm font-bold text-slate-900 font-mono">42,500.00 USDT</span>
                   </div>
                   <div class="flex flex-col gap-1">
-                    <span class="text-xs font-bold text-slate-400">累计充值</span>
+                    <span class="text-[11px] font-bold text-slate-400">累计充值</span>
                     <span class="text-sm font-bold text-slate-900 font-mono">150,000.00 USDT</span>
                   </div>
                   <div class="flex flex-col gap-1">
-                    <span class="text-xs font-bold text-slate-400">风控状态</span>
+                    <span class="text-[11px] font-bold text-slate-400">风控状态</span>
                     <span class="text-sm font-bold text-emerald-600">正常</span>
                   </div>
                 </div>
               </div>
 
               <div v-if="currentTab === 'settlement'" class="space-y-4">
-                <div class="relative pl-6 space-y-8 before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-px before:bg-slate-200">
+                <div class="relative pl-6 space-y-6 before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-px before:bg-slate-200">
                   <div class="relative">
                     <div class="absolute -left-6 top-1.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-blue-600 shadow-sm"></div>
                     <div class="flex flex-col">
-                      <span class="text-xs font-bold text-slate-400 uppercase">2024-03-12 14:30:00</span>
-                      <span class="mt-1 text-sm font-medium text-slate-900">订单已创建，冻结资金 {{ currentOrder.investAmount }} USDT</span>
+                      <span class="text-[11px] font-bold text-slate-400 uppercase">2024-03-12 14:30:00</span>
+                      <span class="mt-0.5 text-sm font-medium text-slate-900">订单已创建，冻结资金 {{ currentOrder.investAmount }} USDT</span>
                     </div>
                   </div>
                   <div class="relative">
                     <div class="absolute -left-6 top-1.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-slate-300 shadow-sm"></div>
                     <div class="flex flex-col">
-                      <span class="text-xs font-bold text-slate-400 uppercase">2024-03-12 14:30:01</span>
-                      <span class="mt-1 text-sm font-medium text-slate-900">入场价格已记录: {{ currentOrder.entryPrice }} USDT</span>
+                      <span class="text-[11px] font-bold text-slate-400 uppercase">2024-03-12 14:30:01</span>
+                      <span class="mt-0.5 text-sm font-medium text-slate-900">入场价格已记录: {{ currentOrder.entryPrice }} USDT</span>
                     </div>
                   </div>
                   <div class="relative" v-if="currentOrder.status !== 'pending'">
                     <div class="absolute -left-6 top-1.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-500 shadow-sm"></div>
                     <div class="flex flex-col">
-                      <span class="text-xs font-bold text-slate-400 uppercase">{{ currentOrder.settleTime }}</span>
-                      <span class="mt-1 text-sm font-medium text-slate-900">
+                      <span class="text-[11px] font-bold text-slate-400 uppercase">{{ currentOrder.settleTime }}</span>
+                      <span class="mt-0.5 text-sm font-medium text-slate-900">
                         结算完成，结果: {{ currentOrder.result === 'win' ? '赢利' : '亏损' }}，返还资金 {{ currentOrder.pnlAmount }} USDT
                       </span>
                     </div>
@@ -617,10 +631,10 @@ const nextPage = () => {
             </div>
           </div>
 
-          <footer class="flex justify-end gap-3 border-t border-slate-200 bg-white px-6 py-4">
+          <footer class="flex justify-end gap-2 border-t border-slate-100 px-6 py-4">
             <button
               type="button"
-              class="rounded-md border border-slate-300 px-6 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
+              class="ant-btn"
               @click="closeDetailModal"
             >
               关闭

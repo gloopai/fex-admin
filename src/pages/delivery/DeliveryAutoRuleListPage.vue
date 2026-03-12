@@ -200,19 +200,9 @@ const saveRule = (ruleData) => {
 <template>
   <section class="space-y-4">
     <!-- Page Header -->
-    <header class="flex flex-wrap items-start justify-between gap-4">
-      <div>
-        <h1 class="text-3xl font-semibold text-slate-900">场控规则管理</h1>
-        <p class="mt-1 text-sm text-slate-500">智能化场控系统，根据用户交易行为自动触发规则并执行干预操作</p>
-      </div>
-      <button
-        type="button"
-        class="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-        @click="openCreateModal"
-      >
-        <span class="text-base">+</span>
-        <span>新增规则</span>
-      </button>
+    <header>
+      <h1 class="text-3xl font-semibold text-slate-900">场控规则管理</h1>
+      <p class="mt-1 text-sm text-slate-500">智能化场控系统，根据用户交易行为自动触发规则并执行干预操作</p>
     </header>
 
     <div class="space-y-6">
@@ -315,7 +305,7 @@ const saveRule = (ruleData) => {
             </select>
             <button
               type="button"
-              class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+              class="rounded-md border border-slate-200 bg-white px-4 h-9 text-sm font-medium text-slate-700 hover:text-[#1677ff] hover:border-[#1677ff] transition-colors"
               @click="
                 keyword = '';
                 statusFilter = 'all';
@@ -325,6 +315,14 @@ const saveRule = (ruleData) => {
               重置
             </button>
           </div>
+          <button
+            type="button"
+            class="inline-flex items-center gap-1.5 h-9 px-4 rounded-md bg-[#1677ff] text-white text-sm font-medium shadow-sm hover:bg-[#4096ff] active:bg-[#0958d9] transition-colors"
+            @click="openCreateModal"
+          >
+            <span class="text-base">+</span>
+            <span>新增规则</span>
+          </button>
         </div>
 
         <div class="p-4 md:p-6 space-y-4">
@@ -393,51 +391,30 @@ const saveRule = (ruleData) => {
                 </div>
 
                 <!-- 操作按钮 -->
-                <div class="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div class="flex items-center gap-2">
                   <button
                     type="button"
-                    class="rounded-lg bg-white border border-slate-200 p-2 text-slate-600 hover:text-blue-600 hover:border-blue-600 transition-all shadow-sm"
+                    class="ant-btn !h-8 !px-3 !text-xs"
                     title="编辑"
                     @click="openEditModal(rule)"
                   >
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                      />
-                    </svg>
+                    编辑
                   </button>
                   <button
                     type="button"
-                    class="rounded-lg bg-white border border-slate-200 p-2 text-slate-600 hover:text-emerald-600 hover:border-emerald-600 transition-all shadow-sm"
+                    class="ant-btn !h-8 !px-3 !text-xs"
                     title="复制"
                     @click="openDuplicateModal(rule)"
                   >
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"
-                      />
-                    </svg>
+                    复制
                   </button>
                   <button
                     type="button"
-                    class="rounded-lg bg-white border border-slate-200 p-2 text-slate-600 hover:text-rose-600 hover:border-rose-600 transition-all shadow-sm"
+                    class="ant-btn !h-8 !px-3 !text-xs !text-rose-600 !border-rose-300 hover:!text-rose-700 hover:!border-rose-500"
                     title="删除"
                     @click="deleteRule(rule.id)"
                   >
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                      />
-                    </svg>
+                    删除
                   </button>
                 </div>
               </div>
