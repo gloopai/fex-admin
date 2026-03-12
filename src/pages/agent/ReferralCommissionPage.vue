@@ -194,23 +194,8 @@ const formatDate = (dateString) => {
     <!-- 页面标题 -->
     <div class="flex justify-between items-center">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">分佣记录</h1>
-        <p class="mt-1 text-sm text-gray-500">查看和管理所有分佣记录</p>
-      </div>
-      <div class="flex space-x-3">
-        <button
-          v-if="selectedRecords.length > 0"
-          @click="batchExecute"
-          class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-        >
-          批量执行 ({{ selectedRecords.length }})
-        </button>
-        <button
-          @click="exportData"
-          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          导出数据
-        </button>
+        <h1 class="text-2xl font-bold text-slate-900">分佣记录</h1>
+        <p class="mt-1 text-sm text-slate-500">查看和管理所有分佣记录</p>
       </div>
     </div>
 
@@ -219,117 +204,139 @@ const formatDate = (dateString) => {
       <div
         v-for="stat in stats"
         :key="stat.label"
-        class="bg-white rounded-lg shadow p-4"
+        class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm"
       >
-        <p class="text-xs text-gray-600">{{ stat.label }}</p>
-        <p class="mt-1 text-xl font-bold" :class="`text-${stat.color}-600`">{{ stat.value }}</p>
+        <p class="text-xs text-slate-500 font-medium">{{ stat.label }}</p>
+        <p class="mt-1 text-xl font-bold" :class="`text-${stat.color === 'yellow' ? 'amber' : (stat.color === 'green' ? 'emerald' : (stat.color === 'purple' ? 'purple' : 'blue'))}-600`">{{ stat.value }}</p>
       </div>
     </div>
 
-    <!-- 搜索和筛选 -->
-    <div class="bg-white rounded-lg shadow p-4">
-      <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <div class="flex flex-col space-y-1">
-          <label class="text-xs text-gray-500 ml-1">关键词搜索</label>
-          <input
-            v-model="searchKeyword"
-            type="text"
-            placeholder="ID、代理或用户..."
-            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            @keyup.enter="handleSearch"
-          />
-        </div>
-        
-        <div class="flex flex-col space-y-1">
-          <label class="text-xs text-gray-500 ml-1">状态筛选</label>
-          <select
-            v-model="statusFilter"
-            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            @change="handleSearch"
-          >
-            <option value="all">全部状态</option>
-            <option v-for="status in COMMISSION_STATUS_OPTIONS" :key="status.value" :value="status.value">
-              {{ status.label }}
-            </option>
-          </select>
-        </div>
-        
-        <div class="flex flex-col space-y-1">
-          <label class="text-xs text-gray-500 ml-1">类型筛选</label>
-          <select
-            v-model="typeFilter"
-            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            @change="handleSearch"
-          >
-            <option value="all">全部类型</option>
-            <option v-for="type in REFERRAL_TYPE_OPTIONS" :key="type.value" :value="type.value">
-              {{ type.label }}
-            </option>
-          </select>
-        </div>
-        
-        <div class="flex flex-col space-y-1">
-          <label class="text-xs text-gray-500 ml-1">层级筛选</label>
-          <select
-            v-model="levelFilter"
-            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            @change="handleSearch"
-          >
-            <option value="all">全部层级</option>
-            <option value="1">一级</option>
-            <option value="2">二级</option>
-            <option value="3">三级</option>
-            <option value="4">四级</option>
-            <option value="5">五级</option>
-          </select>
-        </div>
-
-        <div class="flex items-end space-x-2">
+    <!-- 分佣记录卡片 (包含筛选和表格) -->
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm relative min-h-[400px]">
+      <div class="flex items-center justify-between border-b border-slate-200 p-4 bg-white">
+        <h3 class="text-base font-semibold text-slate-900">记录列表</h3>
+        <div class="flex items-center gap-3">
           <button
-            @click="handleSearch"
-            class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+            v-if="selectedRecords.length > 0"
+            @click="batchExecute"
+            class="ant-btn ant-btn-primary !bg-emerald-600 !border-emerald-600"
           >
-            搜索
+            批量执行 ({{ selectedRecords.length }})
           </button>
           <button
-            @click="handleReset"
-            class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+            @click="exportData"
+            class="ant-btn"
           >
-            重置
+            <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            导出数据
           </button>
         </div>
       </div>
-    </div>
 
-    <!-- 记录列表表格 -->
-    <div class="bg-white rounded-lg shadow overflow-hidden">
-      <div class="overflow-x-auto relative">
+      <!-- 筛选栏 -->
+      <div class="p-4 border-b border-slate-100 bg-slate-50/30">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div class="flex flex-col space-y-1.5">
+            <label class="text-xs font-medium text-slate-500 ml-1">关键词搜索</label>
+            <input
+              v-model="searchKeyword"
+              type="text"
+              placeholder="ID、代理或用户..."
+              class="ant-input !py-1.5"
+              @keyup.enter="handleSearch"
+            />
+          </div>
+          
+          <div class="flex flex-col space-y-1.5">
+            <label class="text-xs font-medium text-slate-500 ml-1">状态筛选</label>
+            <select
+              v-model="statusFilter"
+              class="ant-select !py-1.5"
+              @change="handleSearch"
+            >
+              <option value="all">全部状态</option>
+              <option v-for="status in COMMISSION_STATUS_OPTIONS" :key="status.value" :value="status.value">
+                {{ status.label }}
+              </option>
+            </select>
+          </div>
+          
+          <div class="flex flex-col space-y-1.5">
+            <label class="text-xs font-medium text-slate-500 ml-1">类型筛选</label>
+            <select
+              v-model="typeFilter"
+              class="ant-select !py-1.5"
+              @change="handleSearch"
+            >
+              <option value="all">全部类型</option>
+              <option v-for="type in REFERRAL_TYPE_OPTIONS" :key="type.value" :value="type.value">
+                {{ type.label }}
+              </option>
+            </select>
+          </div>
+          
+          <div class="flex flex-col space-y-1.5">
+            <label class="text-xs font-medium text-slate-500 ml-1">层级筛选</label>
+            <select
+              v-model="levelFilter"
+              class="ant-select !py-1.5"
+              @change="handleSearch"
+            >
+              <option value="all">全部层级</option>
+              <option value="1">一级</option>
+              <option value="2">二级</option>
+              <option value="3">三级</option>
+              <option value="4">四级</option>
+              <option value="5">五级</option>
+            </select>
+          </div>
+
+          <div class="flex items-end space-x-2">
+            <button
+              @click="handleSearch"
+              class="ant-btn ant-btn-primary flex-1 !h-[34px]"
+            >
+              搜索
+            </button>
+            <button
+              @click="handleReset"
+              class="ant-btn flex-1 !h-[34px]"
+            >
+              重置
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
         <!-- 加载遮罩 -->
-        <div v-if="loading" class="absolute inset-0 bg-white bg-opacity-60 z-10 flex items-center justify-center">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div v-if="loading" class="absolute inset-0 bg-white/60 z-10 flex items-center justify-center">
+          <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
         </div>
 
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
+        <table class="min-w-full divide-y divide-slate-200">
+          <thead class="bg-slate-50">
             <tr>
               <th class="px-6 py-3 text-left">
                 <input
                   type="checkbox"
-                  class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  class="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                   :checked="recordList.length > 0 && selectedRecords.length === recordList.length"
                   @change="toggleSelectAll"
                 />
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">记录ID</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">代理信息</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">贡献用户</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分佣详情</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">时间</th>
-              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">记录ID</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">代理信息</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">贡献用户</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">分佣详情</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">状态</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">时间</th>
+              <th class="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">操作</th>
             </tr>
           </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
+          <tbody class="bg-white divide-y divide-slate-200">
             <tr v-for="record in recordList" :key="record.id" class="hover:bg-gray-50">
               <td class="px-6 py-4">
                 <input
@@ -395,13 +402,13 @@ const formatDate = (dateString) => {
       </div>
 
       <!-- 分页 -->
-      <div v-if="pagination.total > 0" class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
-        <div class="text-sm text-gray-700">
+      <div v-if="pagination.total > 0" class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+        <div class="text-sm text-slate-700">
           共 <span class="font-medium">{{ pagination.total }}</span> 条记录，
           每页显示
           <select 
             v-model="pagination.pageSize" 
-            class="mx-1 border border-gray-300 rounded px-1 py-0.5 text-sm"
+            class="ant-select !w-16 !h-7 !py-0 !px-1 text-xs"
             @change="handleSearch"
           >
             <option :value="10">10</option>
@@ -415,7 +422,7 @@ const formatDate = (dateString) => {
           <button
             @click="pagination.currentPage--"
             :disabled="pagination.currentPage === 1 || loading"
-            class="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            class="ant-btn !h-8 !px-3 !text-xs disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             上一页
           </button>
@@ -426,23 +433,23 @@ const formatDate = (dateString) => {
                 v-if="page === 1 || page === totalPages || (page >= pagination.currentPage - 1 && page <= pagination.currentPage + 1)"
                 @click="pagination.currentPage = page"
                 :class="[
-                  'px-3 py-1 border rounded-md text-sm font-medium transition-colors',
+                  'ant-btn !h-8 !w-8 !p-0 !text-xs transition-colors',
                   pagination.currentPage === page 
-                    ? 'bg-blue-600 border-blue-600 text-white' 
-                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                    ? 'ant-btn-primary' 
+                    : ''
                 ]"
               >
                 {{ page }}
               </button>
-              <span v-else-if="page === 2 && pagination.currentPage > 3" class="text-gray-400">...</span>
-              <span v-else-if="page === totalPages - 1 && pagination.currentPage < totalPages - 2" class="text-gray-400">...</span>
+              <span v-else-if="page === 2 && pagination.currentPage > 3" class="text-slate-400 text-xs px-1">...</span>
+              <span v-else-if="page === totalPages - 1 && pagination.currentPage < totalPages - 2" class="text-slate-400 text-xs px-1">...</span>
             </template>
           </div>
 
           <button
             @click="pagination.currentPage++"
             :disabled="pagination.currentPage === totalPages || loading"
-            class="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            class="ant-btn !h-8 !px-3 !text-xs disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             下一页
           </button>

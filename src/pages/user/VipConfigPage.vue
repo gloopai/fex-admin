@@ -203,19 +203,22 @@ const sortedVipLevels = computed(() => {
         <h1 class="text-2xl font-bold text-slate-900">VIP等级配置</h1>
         <p class="text-sm text-slate-500 mt-1">配置平台VIP等级、图标、权益等信息</p>
       </div>
-      <button 
-        @click="openAddModal"
-        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-      >
-        + 添加VIP等级
-      </button>
     </div>
 
     <!-- VIP等级列表 -->
     <div class="rounded-xl border border-slate-200 bg-white overflow-hidden">
+      <div class="flex items-center justify-between border-b border-slate-200 p-4 bg-white">
+        <h3 class="text-base font-semibold text-slate-900">等级列表</h3>
+        <button 
+          @click="openAddModal"
+          class="ant-btn ant-btn-primary"
+        >
+          + 添加VIP等级
+        </button>
+      </div>
       <div class="overflow-x-auto">
         <table class="w-full">
-          <thead class="bg-slate-50 border-b border-slate-200">
+          <thead class="bg-slate-50">
             <tr>
               <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">等级</th>
               <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">名称</th>

@@ -230,15 +230,6 @@ const exportData = () => {
         <h1 class="text-2xl font-bold text-slate-900">信用分变动审核</h1>
         <p class="text-sm text-slate-500 mt-1">审核用户信用分变动申请</p>
       </div>
-      <button
-        @click="exportData"
-        class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors inline-flex items-center gap-2"
-      >
-        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-        导出数据
-      </button>
     </div>
 
     <!-- 统计卡片 -->
@@ -246,99 +237,115 @@ const exportData = () => {
       <div
         v-for="(stat, index) in statistics"
         :key="index"
-        :class="`bg-white rounded-xl border border-${stat.color}-200 p-4`"
+        class="bg-white rounded-xl border p-4 shadow-sm transition-all hover:shadow-md"
+        :class="`border-${stat.color}-100 bg-${stat.color}-50/10`"
       >
-        <p class="text-sm text-slate-600 mb-1">{{ stat.label }}</p>
-        <p :class="`text-2xl font-bold text-${stat.color}-600 mb-1`">{{ stat.value }}</p>
-        <p class="text-xs text-slate-500">{{ stat.trend }}</p>
+        <p class="text-sm text-slate-600 mb-1 font-medium">{{ stat.label }}</p>
+        <div class="flex items-end justify-between">
+          <p :class="`text-2xl font-bold text-${stat.color}-600`">{{ stat.value }}</p>
+          <p class="text-xs text-slate-400 font-medium mb-1">{{ stat.trend }}</p>
+        </div>
       </div>
     </div>
 
-    <!-- 筛选和搜索 -->
-    <div class="bg-white rounded-xl border border-slate-200 p-4">
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <!-- 搜索框 -->
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1.5">搜索</label>
-          <input
-            v-model="searchKeyword"
-            type="text"
-            placeholder="用户名/ID/原因..."
-            class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        
-        <!-- 变动类型筛选 -->
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1.5">变动类型</label>
-          <select
-            v-model="filterChangeType"
-            class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">全部类型</option>
-            <option
-              v-for="option in CREDIT_SCORE_CHANGE_TYPE_OPTIONS"
-              :key="option.value"
-              :value="option.value"
-            >
-              {{ option.label }}
-            </option>
-          </select>
-        </div>
-        
-        <!-- 状态筛选 -->
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1.5">审核状态</label>
-          <select
-            v-model="filterStatus"
-            class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">全部状态</option>
-            <option
-              v-for="option in CREDIT_SCORE_AUDIT_STATUS_OPTIONS"
-              :key="option.value"
-              :value="option.value"
-            >
-              {{ option.label }}
-            </option>
-          </select>
-        </div>
+    <!-- 审核列表卡片 -->
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden relative min-h-[400px] shadow-sm">
+      <div class="flex items-center justify-between border-b border-slate-200 p-4 bg-white">
+        <h3 class="text-base font-semibold text-slate-900">待审核列表</h3>
+        <button
+          @click="exportData"
+          class="ant-btn inline-flex items-center gap-2"
+        >
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          导出数据
+        </button>
+      </div>
 
-        <!-- 开始日期 -->
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1.5">开始日期</label>
-          <input
-            v-model="dateRange.start"
-            type="date"
-            class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        <!-- 结束日期 -->
-        <div class="flex items-end gap-2">
-          <div class="flex-1">
-            <label class="block text-sm font-medium text-slate-700 mb-1.5">结束日期</label>
+      <!-- 筛选栏 -->
+      <div class="p-4 border-b border-slate-100 bg-slate-50/30">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <!-- 搜索框 -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1.5">搜索</label>
             <input
-              v-model="dateRange.end"
-              type="date"
-              class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              v-model="searchKeyword"
+              type="text"
+              placeholder="用户名/ID/原因..."
+              class="ant-input !py-1.5"
             />
           </div>
-          <button
-            @click="resetFilters"
-            title="重置筛选"
-            class="p-2 text-slate-500 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
-          >
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-          </button>
+          
+          <!-- 变动类型筛选 -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1.5">变动类型</label>
+            <select
+              v-model="filterChangeType"
+              class="ant-select !py-1.5"
+            >
+              <option value="all">全部类型</option>
+              <option
+                v-for="option in CREDIT_SCORE_CHANGE_TYPE_OPTIONS"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </select>
+          </div>
+          
+          <!-- 状态筛选 -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1.5">审核状态</label>
+            <select
+              v-model="filterStatus"
+              class="ant-select !py-1.5"
+            >
+              <option value="all">全部状态</option>
+              <option
+                v-for="option in CREDIT_SCORE_AUDIT_STATUS_OPTIONS"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </select>
+          </div>
+
+          <!-- 开始日期 -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1.5">开始日期</label>
+            <input
+              v-model="dateRange.start"
+              type="date"
+              class="ant-input !py-1.5"
+            />
+          </div>
+
+          <!-- 结束日期 -->
+          <div class="flex items-end gap-2">
+            <div class="flex-1">
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">结束日期</label>
+              <input
+                v-model="dateRange.end"
+                type="date"
+                class="ant-input !py-1.5"
+              />
+            </div>
+            <button
+              @click="resetFilters"
+              title="重置筛选"
+              class="p-2 text-slate-500 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+            >
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- 审核列表 -->
-    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden relative min-h-[400px]">
       <!-- 加载遮罩 -->
       <div v-if="loading" class="absolute inset-0 bg-white/60 z-10 flex items-center justify-center">
         <div class="flex flex-col items-center">
@@ -349,7 +356,7 @@ const exportData = () => {
 
       <div class="overflow-x-auto">
         <table class="w-full">
-          <thead class="bg-slate-50 border-b border-slate-200">
+          <thead class="bg-slate-50">
             <tr>
               <th class="px-6 py-3 text-left text-xs font-semibold text-slate-900 uppercase tracking-wider">用户信息</th>
               <th class="px-6 py-3 text-left text-xs font-semibold text-slate-900 uppercase tracking-wider">变动类型</th>

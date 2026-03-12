@@ -343,25 +343,6 @@ const tabs = [
         <h1 class="text-2xl font-bold text-slate-900">信用分配置</h1>
         <p class="text-sm text-slate-500 mt-1">配置信用分规则、自动升级策略，并实时预览效果</p>
       </div>
-      <div class="flex items-center gap-3">
-        <span v-if="hasUnsavedChanges" class="text-sm text-amber-600 flex items-center gap-1">
-          <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-          </svg>
-          有未保存的修改
-        </span>
-        <button
-          @click="saveConfig"
-          :disabled="isSaving"
-          class="px-6 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-400 disabled:cursor-not-allowed inline-flex items-center gap-2"
-        >
-          <svg v-if="isSaving" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          {{ isSaving ? '保存中...' : '保存配置' }}
-        </button>
-      </div>
     </div>
 
     <!-- 成功提示 -->
@@ -388,6 +369,30 @@ const tabs = [
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- 左侧：标签页配置表单 -->
       <div class="lg:col-span-2 space-y-6">
+        <!-- 操作栏 -->
+        <div class="rounded-xl border border-slate-200 bg-white p-4 flex items-center justify-between shadow-sm">
+          <div class="flex items-center gap-2">
+            <h2 class="text-base font-semibold text-slate-900">配置参数</h2>
+            <span v-if="hasUnsavedChanges" class="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full flex items-center gap-1 border border-amber-100">
+              <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+              </svg>
+              有未保存的修改
+            </span>
+          </div>
+          <button
+            @click="saveConfig"
+            :disabled="isSaving"
+            class="ant-btn ant-btn-primary !h-9"
+          >
+            <svg v-if="isSaving" class="animate-spin h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            {{ isSaving ? '保存中...' : '保存配置' }}
+          </button>
+        </div>
+
         <!-- 系统开关 -->
         <div class="rounded-xl border border-slate-200 bg-white p-6">
           <div class="flex items-center justify-between">
@@ -452,7 +457,7 @@ const tabs = [
                       type="number"
                       min="0"
                       max="1000"
-                      class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      class="ant-input"
                     />
                     <p class="text-xs text-slate-500 mt-1">信用分上限</p>
                   </div>
@@ -463,10 +468,8 @@ const tabs = [
                       type="number"
                       min="0"
                       :max="formData.maxScore"
-                      :class="[
-                        'w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2',
-                        validationErrors.initialScore ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-300 focus:ring-blue-500'
-                      ]"
+                      class="ant-input"
+                      :class="{'!border-rose-500': validationErrors.initialScore}"
                     />
                     <p v-if="validationErrors.initialScore" class="text-xs text-rose-600 mt-1">{{ validationErrors.initialScore }}</p>
                     <p v-else class="text-xs text-slate-500 mt-1">新用户默认分数</p>
@@ -501,10 +504,8 @@ const tabs = [
                       type="number"
                       min="0"
                       :max="formData.maxScore"
-                      :class="[
-                        'w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2',
-                        validationErrors.autoUpgradeVip1Score ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-300 focus:ring-blue-500'
-                      ]"
+                      class="ant-input"
+                      :class="{'!border-rose-500': validationErrors.autoUpgradeVip1Score}"
                     />
                     <p v-if="validationErrors.autoUpgradeVip1Score" class="text-xs text-rose-600 mt-1">{{ validationErrors.autoUpgradeVip1Score }}</p>
                     <p v-else class="text-xs text-slate-500 mt-1">普通用户达到此分数自动升级为VIP1</p>
@@ -519,7 +520,7 @@ const tabs = [
                         type="number"
                         min="0"
                         step="1000"
-                        class="w-32 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        class="ant-input !w-32"
                       />
                       <span class="text-sm text-slate-600">USDT 升一级</span>
                     </div>
@@ -545,10 +546,8 @@ const tabs = [
                     type="number"
                     min="0"
                     step="1000"
-                    :class="[
-                      'w-32 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2',
-                      validationErrors.rechargeAmount ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-300 focus:ring-blue-500'
-                    ]"
+                    class="ant-input !w-32"
+                    :class="{'!border-rose-500': validationErrors.rechargeAmount}"
                   />
                   <span class="text-sm text-slate-600">USDT，获得</span>
                   <span class="px-3 py-2 bg-blue-50 text-blue-700 font-semibold rounded-lg">+1</span>
@@ -570,7 +569,7 @@ const tabs = [
                       type="number"
                       min="0"
                       :max="formData.maxScore"
-                      class="w-20 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      class="ant-input !w-24"
                     />
                     <span class="text-sm text-slate-600">信用分</span>
                   </div>
@@ -583,7 +582,7 @@ const tabs = [
                       type="number"
                       min="0"
                       :max="formData.maxScore"
-                      class="w-20 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      class="ant-input !w-24"
                     />
                     <span class="text-sm text-slate-600">信用分</span>
                   </div>
@@ -622,7 +621,7 @@ const tabs = [
                         type="number"
                         min="0"
                         :max="formData.maxScore"
-                        class="w-20 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+                        class="ant-input !w-24"
                       />
                       <span class="text-sm text-slate-600">分</span>
                     </div>
@@ -636,7 +635,7 @@ const tabs = [
                         type="number"
                         min="0"
                         :max="formData.maxScore"
-                        class="w-20 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+                        class="ant-input !w-24"
                       />
                       <span class="text-sm text-slate-600">分</span>
                     </div>
@@ -650,7 +649,7 @@ const tabs = [
                         type="number"
                         min="0"
                         :max="formData.maxScore"
-                        class="w-20 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+                        class="ant-input !w-24"
                       />
                       <span class="text-sm text-slate-600">分</span>
                     </div>
@@ -664,7 +663,7 @@ const tabs = [
                         type="number"
                         min="0"
                         :max="formData.maxScore"
-                        class="w-20 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+                        class="ant-input !w-24"
                       />
                       <span class="text-sm text-slate-600">分</span>
                     </div>
@@ -678,7 +677,7 @@ const tabs = [
                         type="number"
                         min="0"
                         :max="formData.maxScore"
-                        class="w-20 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+                        class="ant-input !w-24"
                       />
                       <span class="text-sm text-slate-600">分</span>
                     </div>
@@ -692,7 +691,7 @@ const tabs = [
                         type="number"
                         min="0"
                         :max="formData.maxScore"
-                        class="w-20 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+                        class="ant-input !w-24"
                       />
                       <span class="text-sm text-slate-600">分</span>
                     </div>
@@ -708,7 +707,7 @@ const tabs = [
                       v-model.number="formData.inactiveDays"
                       type="number"
                       min="0"
-                      class="w-20 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+                      class="ant-input !w-24"
                     />
                     <span class="text-sm text-slate-600">天不登录，扣</span>
                     <input
@@ -716,7 +715,7 @@ const tabs = [
                       type="number"
                       min="0"
                       :max="formData.maxScore"
-                      class="w-20 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+                      class="ant-input !w-24"
                     />
                     <span class="text-sm text-slate-600">信用分</span>
                   </div>
@@ -730,7 +729,7 @@ const tabs = [
                     type="number"
                     min="0"
                     :max="formData.maxScore"
-                    class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+                    class="ant-input"
                   />
                   <p class="text-xs text-slate-500 mt-1">扣分后不会低于此值（0表示无保护）</p>
                 </div>
@@ -777,7 +776,7 @@ const tabs = [
                       type="number"
                       min="0"
                       :max="formData.maxScore"
-                      class="w-20 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      class="ant-input !w-24"
                     />
                     <span class="text-sm text-slate-600">分时需要审核</span>
                   </div>
@@ -881,7 +880,7 @@ const tabs = [
                 type="number"
                 min="0"
                 step="10000"
-                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                class="ant-input bg-white"
               />
               <p class="text-xs text-slate-500 mt-1">当前输入：{{ formatNumber(calculatorInputs.rechargeAmount) }} USDT</p>
             </div>

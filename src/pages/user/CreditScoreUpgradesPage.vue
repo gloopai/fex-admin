@@ -141,15 +141,6 @@ const exportData = () => {
         <h1 class="text-2xl font-bold text-slate-900">VIP升级日志</h1>
         <p class="text-sm text-slate-500 mt-1">查看所有用户的VIP等级升级记录</p>
       </div>
-      <button
-        @click="exportData"
-        class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors inline-flex items-center gap-2"
-      >
-        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-        导出数据
-      </button>
     </div>
 
     <!-- 统计卡片 -->
@@ -164,109 +155,121 @@ const exportData = () => {
       </div>
     </div>
 
-    <!-- 筛选栏 -->
-    <div class="bg-white rounded-xl border border-slate-200 p-4">
-      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-        <!-- 搜索 -->
-        <div class="xl:col-span-1">
-          <label class="block text-sm font-medium text-slate-700 mb-1.5">搜索</label>
-          <input
-            v-model="searchKeyword"
-            type="text"
-            placeholder="用户名/ID..."
-            class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+    <!-- 筛选栏与数据表格合并 -->
+    <div class="rounded-xl border border-slate-200 bg-white overflow-hidden relative min-h-[400px]">
+      <div class="flex items-center justify-between border-b border-slate-200 p-4 bg-white">
+        <h3 class="text-base font-semibold text-slate-900">日志列表</h3>
+        <button
+          @click="exportData"
+          class="ant-btn inline-flex items-center gap-2"
+        >
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          导出数据
+        </button>
+      </div>
 
-        <!-- 升级原因 -->
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1.5">升级原因</label>
-          <select
-            v-model="selectedUpgradeReason"
-            class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">全部原因</option>
-            <option
-              v-for="option in VIP_UPGRADE_REASON_OPTIONS"
-              :key="option.value"
-              :value="option.value"
-            >
-              {{ option.label }}
-            </option>
-          </select>
-        </div>
-
-        <!-- 起始等级 -->
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1.5">起始等级</label>
-          <select
-            v-model="selectedFromVipLevel"
-            class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">全部</option>
-            <option
-              v-for="level in vipLevelOptions"
-              :key="level"
-              :value="level"
-            >
-              {{ level === 0 ? '普通用户' : `VIP${level}` }}
-            </option>
-          </select>
-        </div>
-
-        <!-- 目标等级 -->
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1.5">目标等级</label>
-          <select
-            v-model="selectedToVipLevel"
-            class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">全部</option>
-            <option
-              v-for="level in vipLevelOptions"
-              :key="level"
-              :value="level"
-            >
-              {{ level === 0 ? '普通用户' : `VIP${level}` }}
-            </option>
-          </select>
-        </div>
-
-        <!-- 开始日期 -->
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1.5">开始日期</label>
-          <input
-            v-model="dateRange.start"
-            type="date"
-            class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        <!-- 结束日期 -->
-        <div class="flex items-end gap-2">
-          <div class="flex-1">
-            <label class="block text-sm font-medium text-slate-700 mb-1.5">结束日期</label>
+      <div class="p-4 border-b border-slate-100 bg-slate-50/30">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+          <!-- 搜索 -->
+          <div class="xl:col-span-1">
+            <label class="block text-sm font-medium text-slate-700 mb-1.5">搜索</label>
             <input
-              v-model="dateRange.end"
-              type="date"
-              class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              v-model="searchKeyword"
+              type="text"
+              placeholder="用户名/ID..."
+              class="ant-input !py-1.5"
             />
           </div>
-          <button
-            @click="resetFilters"
-            title="重置筛选"
-            class="p-2 text-slate-500 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
-          >
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-          </button>
+
+          <!-- 升级原因 -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1.5">升级原因</label>
+            <select
+              v-model="selectedUpgradeReason"
+              class="ant-select !py-1.5"
+            >
+              <option value="all">全部原因</option>
+              <option
+                v-for="option in VIP_UPGRADE_REASON_OPTIONS"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </select>
+          </div>
+
+          <!-- 起始等级 -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1.5">起始等级</label>
+            <select
+              v-model="selectedFromVipLevel"
+              class="ant-select !py-1.5"
+            >
+              <option value="all">全部</option>
+              <option
+                v-for="level in vipLevelOptions"
+                :key="level"
+                :value="level"
+              >
+                {{ level === 0 ? '普通用户' : `VIP${level}` }}
+              </option>
+            </select>
+          </div>
+
+          <!-- 目标等级 -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1.5">目标等级</label>
+            <select
+              v-model="selectedToVipLevel"
+              class="ant-select !py-1.5"
+            >
+              <option value="all">全部</option>
+              <option
+                v-for="level in vipLevelOptions"
+                :key="level"
+                :value="level"
+              >
+                {{ level === 0 ? '普通用户' : `VIP${level}` }}
+              </option>
+            </select>
+          </div>
+
+          <!-- 开始日期 -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1.5">开始日期</label>
+            <input
+              v-model="dateRange.start"
+              type="date"
+              class="ant-input !py-1.5"
+            />
+          </div>
+
+          <!-- 结束日期 -->
+          <div class="flex items-end gap-2">
+            <div class="flex-1">
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">结束日期</label>
+              <input
+                v-model="dateRange.end"
+                type="date"
+                class="ant-input !py-1.5"
+              />
+            </div>
+            <button
+              @click="resetFilters"
+              title="重置筛选"
+              class="p-2 text-slate-500 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+            >
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- 数据表格 -->
-    <div class="rounded-xl border border-slate-200 bg-white overflow-hidden relative min-h-[400px]">
       <!-- 加载遮罩 -->
       <div v-if="loading" class="absolute inset-0 bg-white/60 z-10 flex items-center justify-center">
         <div class="flex flex-col items-center">
@@ -277,7 +280,7 @@ const exportData = () => {
 
       <div class="overflow-x-auto">
         <table class="w-full">
-          <thead class="bg-slate-50 border-b border-slate-200">
+          <thead class="bg-slate-50">
             <tr>
               <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">用户</th>
               <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">等级变化</th>

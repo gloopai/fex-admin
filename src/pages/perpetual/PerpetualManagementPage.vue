@@ -270,14 +270,6 @@ const stepText = computed(() => {
         <h1 class="text-3xl font-semibold text-slate-900">永续合约管理</h1>
         <p class="mt-1 text-sm text-slate-500">管理永续合约产品配置</p>
       </div>
-      <button
-        type="button"
-        class="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        @click="openCreateContract"
-      >
-        <span class="text-base">+</span>
-        <span>新增合约</span>
-      </button>
     </header>
 
     <article class="rounded-xl border border-slate-200 bg-white">
@@ -317,6 +309,9 @@ const stepText = computed(() => {
               <path d="M13.6 13.6L16.4 16.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
             </svg>
           </div>
+          <button type="button" class="ant-btn ant-btn-primary" @click="openCreateContract">
+            <span>+ 新增合约</span>
+          </button>
         </div>
       </div>
 

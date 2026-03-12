@@ -207,15 +207,9 @@ const formatDate = (dateString) => {
     <!-- 页面标题 -->
     <div class="flex justify-between items-center">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">代理管理</h1>
-        <p class="mt-1 text-sm text-gray-500">管理平台代理用户，升级普通用户为代理</p>
+        <h1 class="text-2xl font-bold text-slate-900">代理管理</h1>
+        <p class="mt-1 text-sm text-slate-500">管理平台代理用户，升级普通用户为代理</p>
       </div>
-      <button
-        @click="openUpgradeModal"
-        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-      >
-        升级为代理
-      </button>
     </div>
 
     <!-- 统计卡片 -->
@@ -223,104 +217,116 @@ const formatDate = (dateString) => {
       <div
         v-for="card in statCards"
         :key="card.label"
-        class="bg-white rounded-lg shadow p-6"
+        class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm"
       >
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-gray-600">{{ card.label }}</p>
-            <p class="mt-2 text-2xl font-semibold text-gray-900">{{ card.value }}</p>
-            <p class="mt-1 text-xs" :class="card.good ? 'text-green-600' : 'text-gray-500'">
+            <p class="text-sm text-slate-600 font-medium">{{ card.label }}</p>
+            <p class="mt-2 text-2xl font-bold text-slate-900">{{ card.value }}</p>
+            <p class="mt-1 text-xs font-medium" :class="card.good ? 'text-emerald-600' : 'text-slate-500'">
               {{ card.trend }}
             </p>
           </div>
-          <div :class="`w-12 h-12 bg-${card.color}-100 rounded-lg flex items-center justify-center`">
-            <div :class="`w-6 h-6 bg-${card.color}-500 rounded`"></div>
+          <div :class="`w-12 h-12 bg-${card.color}-50 rounded-xl flex items-center justify-center border border-${card.color}-100 transition-all hover:scale-105 font-medium`">
+             <div :class="`w-6 h-6 bg-${card.color}-500 rounded-lg shadow-sm opacity-80 text-white flex items-center justify-center text-xs font-bold italic font-medium`">
+               {{ card.label.charAt(0) }}
+             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 搜索和筛选 -->
-    <div class="bg-white rounded-lg shadow p-4">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="flex flex-col space-y-1">
-          <label class="text-xs text-gray-500 ml-1">关键词搜索</label>
-          <input
-            v-model="searchKeyword"
-            type="text"
-            placeholder="UID、用户名或邮箱..."
-            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            @keyup.enter="handleSearch"
-          />
-        </div>
-        
-        <div class="flex flex-col space-y-1">
-          <label class="text-xs text-gray-500 ml-1">状态筛选</label>
-          <select
-            v-model="statusFilter"
-            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            @change="handleSearch"
-          >
-            <option value="all">全部状态</option>
-            <option v-for="status in AGENT_STATUS_OPTIONS" :key="status.value" :value="status.value">
-              {{ status.label }}
-            </option>
-          </select>
-        </div>
-        
-        <div class="flex flex-col space-y-1">
-          <label class="text-xs text-gray-500 ml-1">等级筛选</label>
-          <select
-            v-model="levelFilter"
-            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            @change="handleSearch"
-          >
-            <option value="all">全部等级</option>
-            <option v-for="level in AGENT_LEVEL_OPTIONS" :key="level.value" :value="level.value">
-              {{ level.label }}
-            </option>
-          </select>
-        </div>
+    <!-- 代理列表卡片 (包含筛选和表格) -->
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm relative min-h-[400px]">
+      <div class="flex items-center justify-between border-b border-slate-200 p-4 bg-white">
+        <h3 class="text-base font-semibold text-slate-900">代理列表</h3>
+        <button
+          @click="openUpgradeModal"
+          class="ant-btn ant-btn-primary"
+        >
+          + 升级为代理
+        </button>
+      </div>
 
-        <div class="flex items-end space-x-2">
-          <button
-            @click="handleSearch"
-            class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-          >
-            搜索
-          </button>
-          <button
-            @click="handleReset"
-            class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
-          >
-            重置
-          </button>
+      <!-- 筛选栏 -->
+      <div class="p-4 border-b border-slate-100 bg-slate-50/30">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="flex flex-col space-y-1.5">
+            <label class="text-xs font-medium text-slate-500 ml-1">关键词搜索</label>
+            <input
+              v-model="searchKeyword"
+              type="text"
+              placeholder="UID、用户名或邮箱..."
+              class="ant-input !py-1.5"
+              @keyup.enter="handleSearch"
+            />
+          </div>
+          
+          <div class="flex flex-col space-y-1.5">
+            <label class="text-xs font-medium text-slate-500 ml-1">状态筛选</label>
+            <select
+              v-model="statusFilter"
+              class="ant-select !py-1.5"
+              @change="handleSearch"
+            >
+              <option value="all">全部状态</option>
+              <option v-for="status in AGENT_STATUS_OPTIONS" :key="status.value" :value="status.value">
+                {{ status.label }}
+              </option>
+            </select>
+          </div>
+          
+          <div class="flex flex-col space-y-1.5">
+            <label class="text-xs font-medium text-slate-500 ml-1">等级筛选</label>
+            <select
+              v-model="levelFilter"
+              class="ant-select !py-1.5"
+              @change="handleSearch"
+            >
+              <option value="all">全部等级</option>
+              <option v-for="level in AGENT_LEVEL_OPTIONS" :key="level.value" :value="level.value">
+                {{ level.label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="flex items-end space-x-2">
+            <button
+              @click="handleSearch"
+              class="ant-btn ant-btn-primary flex-1 !h-[34px]"
+            >
+              搜索
+            </button>
+            <button
+              @click="handleReset"
+              class="ant-btn flex-1 !h-[34px]"
+            >
+              重置
+            </button>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- 代理列表表格 -->
-    <div class="bg-white rounded-lg shadow overflow-hidden">
-      <div class="overflow-x-auto relative">
+      <div class="overflow-x-auto">
         <!-- 加载遮罩 -->
-        <div v-if="loading" class="absolute inset-0 bg-white bg-opacity-60 z-10 flex items-center justify-center">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div v-if="loading" class="absolute inset-0 bg-white/60 z-10 flex items-center justify-center">
+          <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
         </div>
 
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
+        <table class="min-w-full divide-y divide-slate-200">
+          <thead class="bg-slate-50">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UID</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">用户信息</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">等级</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">推荐人数</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">累计佣金</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">成为代理时间</th>
-              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">UID</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">用户信息</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">等级</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">状态</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">推荐人数</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">累计佣金</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">成为代理时间</th>
+              <th class="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">操作</th>
             </tr>
           </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
+          <tbody class="bg-white divide-y divide-slate-200">
             <tr v-for="agent in agentList" :key="agent.id" class="hover:bg-gray-50">
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                 {{ agent.uid }}
@@ -391,13 +397,13 @@ const formatDate = (dateString) => {
       </div>
 
       <!-- 分页 -->
-      <div v-if="pagination.total > 0" class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
-        <div class="text-sm text-gray-700">
+      <div v-if="pagination.total > 0" class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+        <div class="text-sm text-slate-700">
           共 <span class="font-medium">{{ pagination.total }}</span> 条记录，
           每页显示
           <select 
             v-model="pagination.pageSize" 
-            class="mx-1 border border-gray-300 rounded px-1 py-0.5 text-sm"
+            class="ant-select !w-16 !h-7 !py-0 !px-1 text-xs"
             @change="handleSearch"
           >
             <option :value="10">10</option>
@@ -411,7 +417,7 @@ const formatDate = (dateString) => {
           <button
             @click="pagination.currentPage--"
             :disabled="pagination.currentPage === 1 || loading"
-            class="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            class="ant-btn !h-8 !px-3 !text-xs disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             上一页
           </button>
@@ -422,23 +428,23 @@ const formatDate = (dateString) => {
                 v-if="page === 1 || page === totalPages || (page >= pagination.currentPage - 1 && page <= pagination.currentPage + 1)"
                 @click="pagination.currentPage = page"
                 :class="[
-                  'px-3 py-1 border rounded-md text-sm font-medium transition-colors',
+                  'ant-btn !h-8 !w-8 !p-0 !text-xs transition-colors',
                   pagination.currentPage === page 
-                    ? 'bg-blue-600 border-blue-600 text-white' 
-                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                    ? 'ant-btn-primary' 
+                    : ''
                 ]"
               >
                 {{ page }}
               </button>
-              <span v-else-if="page === 2 && pagination.currentPage > 3" class="text-gray-400">...</span>
-              <span v-else-if="page === totalPages - 1 && pagination.currentPage < totalPages - 2" class="text-gray-400">...</span>
+              <span v-else-if="page === 2 && pagination.currentPage > 3" class="text-slate-400 text-xs px-1">...</span>
+              <span v-else-if="page === totalPages - 1 && pagination.currentPage < totalPages - 2" class="text-slate-400 text-xs px-1">...</span>
             </template>
           </div>
 
           <button
             @click="pagination.currentPage++"
             :disabled="pagination.currentPage === totalPages || loading"
-            class="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            class="ant-btn !h-8 !px-3 !text-xs disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             下一页
           </button>
@@ -447,26 +453,26 @@ const formatDate = (dateString) => {
     </div>
 
     <!-- 升级为代理弹窗 -->
-    <div v-if="showUpgradeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-        <h3 class="text-lg font-semibold mb-4">升级用户为代理</h3>
+    <div v-if="showUpgradeModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
+        <h3 class="text-lg font-semibold text-slate-900 mb-5">升级用户为代理</h3>
         
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">用户 UID</label>
+            <label class="block text-sm font-medium text-slate-700 mb-2">用户 UID</label>
             <input
               v-model="upgradeForm.uid"
               type="text"
               placeholder="请输入用户 UID"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class="ant-input"
             />
           </div>
           
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">代理等级</label>
+            <label class="block text-sm font-medium text-slate-700 mb-2">代理等级</label>
             <select
               v-model="upgradeForm.level"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class="ant-select"
             >
               <option v-for="level in AGENT_LEVEL_OPTIONS" :key="level.value" :value="level.value">
                 {{ level.label }} (佣金比例: {{ (level.commissionRate * 100).toFixed(0) }}%)
@@ -475,16 +481,16 @@ const formatDate = (dateString) => {
           </div>
         </div>
         
-        <div class="mt-6 flex justify-end space-x-3">
+        <div class="mt-8 flex justify-end space-x-3">
           <button
             @click="showUpgradeModal = false"
-            class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+            class="ant-btn"
           >
             取消
           </button>
           <button
             @click="handleUpgrade"
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            class="ant-btn ant-btn-primary"
           >
             确认升级
           </button>
@@ -493,68 +499,81 @@ const formatDate = (dateString) => {
     </div>
 
     <!-- 详情弹窗 -->
-    <div v-if="showDetailModal && selectedAgent" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
-        <div class="flex justify-between items-start mb-4">
-          <h3 class="text-lg font-semibold">代理详情</h3>
-          <button @click="showDetailModal = false" class="text-gray-400 hover:text-gray-600">
+    <div v-if="showDetailModal && selectedAgent" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-start mb-6 border-b border-slate-100 pb-4">
+          <h3 class="text-lg font-semibold text-slate-900">代理详情</h3>
+          <button @click="showDetailModal = false" class="text-slate-400 hover:text-slate-600 transition-colors">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
         
-        <div class="space-y-4">
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <span class="text-sm text-gray-500">UID:</span>
-              <p class="font-medium">{{ selectedAgent.uid }}</p>
-            </div>
-            <div>
-              <span class="text-sm text-gray-500">用户名:</span>
-              <p class="font-medium">{{ selectedAgent.username }}</p>
-            </div>
-            <div>
-              <span class="text-sm text-gray-500">邮箱:</span>
-              <p class="font-medium">{{ selectedAgent.email }}</p>
-            </div>
-            <div>
-              <span class="text-sm text-gray-500">手机:</span>
-              <p class="font-medium">{{ selectedAgent.phone }}</p>
-            </div>
-            <div>
-              <span class="text-sm text-gray-500">代理等级:</span>
-              <p class="font-medium">{{ getLevelConfig(selectedAgent.level) }}</p>
-            </div>
-            <div>
-              <span class="text-sm text-gray-500">状态:</span>
-              <p class="font-medium">{{ getStatusConfig(selectedAgent.status).text }}</p>
-            </div>
-            <div>
-              <span class="text-sm text-gray-500">总推荐人数:</span>
-              <p class="font-medium">{{ selectedAgent.totalReferrals }}</p>
-            </div>
-            <div>
-              <span class="text-sm text-gray-500">直推人数:</span>
-              <p class="font-medium">{{ selectedAgent.directReferrals }}</p>
-            </div>
-            <div>
-              <span class="text-sm text-gray-500">累计佣金:</span>
-              <p class="font-medium text-green-600">${{ selectedAgent.totalCommission.toLocaleString() }}</p>
-            </div>
-            <div>
-              <span class="text-sm text-gray-500">本月佣金:</span>
-              <p class="font-medium text-green-600">${{ selectedAgent.monthCommission.toLocaleString() }}</p>
-            </div>
-            <div>
-              <span class="text-sm text-gray-500">成为代理时间:</span>
-              <p class="font-medium">{{ formatDate(selectedAgent.createdAt) }}</p>
-            </div>
-            <div>
-              <span class="text-sm text-gray-500">最后活跃:</span>
-              <p class="font-medium">{{ formatDate(selectedAgent.lastActiveAt) }}</p>
-            </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-8">
+          <div class="flex flex-col">
+            <span class="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wider">UID</span>
+            <p class="font-mono text-slate-900 font-semibold">{{ selectedAgent.uid }}</p>
           </div>
+          <div class="flex flex-col">
+            <span class="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wider">用户名</span>
+            <p class="text-slate-900 font-semibold">{{ selectedAgent.username }}</p>
+          </div>
+          <div class="flex flex-col">
+            <span class="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wider">邮箱</span>
+            <p class="text-slate-900 font-semibold">{{ selectedAgent.email }}</p>
+          </div>
+          <div class="flex flex-col">
+            <span class="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wider">手机</span>
+            <p class="text-slate-900 font-semibold">{{ selectedAgent.phone }}</p>
+          </div>
+          <div class="flex flex-col">
+            <span class="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wider">代理等级</span>
+            <span class="inline-flex w-fit px-2.5 py-1 text-xs font-bold rounded-lg bg-purple-50 text-purple-700 border border-purple-100">
+              {{ getLevelConfig(selectedAgent.level) }}
+            </span>
+          </div>
+          <div class="flex flex-col">
+            <span class="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wider">状态</span>
+            <span 
+              :class="`inline-flex w-fit px-2.5 py-1 text-xs font-bold rounded-lg bg-${getStatusConfig(selectedAgent.status).color}-50 text-${getStatusConfig(selectedAgent.status).color}-700 border border-${getStatusConfig(selectedAgent.status).color}-100`"
+            >
+              {{ getStatusConfig(selectedAgent.status).text }}
+            </span>
+          </div>
+          <div class="flex flex-col">
+            <span class="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wider">总推荐人数</span>
+            <p class="text-slate-900 font-bold text-lg">{{ selectedAgent.totalReferrals }}</p>
+          </div>
+          <div class="flex flex-col">
+            <span class="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wider">直推人数</span>
+            <p class="text-slate-900 font-bold text-lg">{{ selectedAgent.directReferrals }}</p>
+          </div>
+          <div class="flex flex-col">
+            <span class="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wider">累计佣金</span>
+            <p class="text-emerald-600 font-bold text-lg">${{ selectedAgent.totalCommission.toLocaleString() }}</p>
+          </div>
+          <div class="flex flex-col">
+            <span class="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wider">本月佣金</span>
+            <p class="text-emerald-600 font-bold text-lg">${{ selectedAgent.monthCommission.toLocaleString() }}</p>
+          </div>
+          <div class="flex flex-col">
+            <span class="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wider">成为代理时间</span>
+            <p class="text-slate-900 font-medium text-sm">{{ formatDate(selectedAgent.createdAt) }}</p>
+          </div>
+          <div class="flex flex-col">
+            <span class="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wider">最后活跃</span>
+            <p class="text-slate-900 font-medium text-sm">{{ formatDate(selectedAgent.lastActiveAt) }}</p>
+          </div>
+        </div>
+
+        <div class="mt-10 pt-6 border-t border-slate-100">
+          <button 
+            @click="showDetailModal = false"
+            class="ant-btn w-full !h-10"
+          >
+            关闭详情
+          </button>
         </div>
       </div>
     </div>

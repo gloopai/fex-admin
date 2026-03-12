@@ -206,18 +206,9 @@ const showToast = (message) => {
     <!-- 页面标题 -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">认证日志</h1>
-        <p class="mt-1 text-sm text-gray-600">查看所有认证相关的操作记录</p>
+        <h1 class="text-2xl font-bold text-slate-900">认证日志</h1>
+        <p class="mt-1 text-sm text-slate-500">查看所有认证相关的操作记录</p>
       </div>
-      <button 
-        @click="exportLogs"
-        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-      >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-        </svg>
-        <span>导出日志</span>
-      </button>
     </div>
 
     <!-- 统计卡片 -->
@@ -225,101 +216,114 @@ const showToast = (message) => {
       <div 
         v-for="stat in statistics" 
         :key="stat.label"
-        class="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
+        class="bg-white rounded-xl shadow-sm border border-slate-200 p-6"
       >
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-gray-600">{{ stat.label }}</p>
+            <p class="text-sm text-slate-600">{{ stat.label }}</p>
             <p :class="`text-2xl font-bold text-${stat.color}-600 mt-2`">{{ stat.value }}</p>
-            <p class="text-xs text-gray-500 mt-1">{{ stat.trend }}</p>
+            <p class="text-xs text-slate-500 mt-1">{{ stat.trend }}</p>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 搜索和筛选 -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <!-- 搜索 -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1.5">搜索</label>
-          <input 
-            v-model="searchKeyword"
-            type="text" 
-            placeholder="用户名、操作人..."
-            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-        </div>
-        
-        <!-- 操作类型 -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1.5">操作类型</label>
-          <select 
-            v-model="filterActionType"
-            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="all">全部类型</option>
-            <option 
-              v-for="option in LOG_ACTION_TYPE_OPTIONS" 
-              :key="option.value" 
-              :value="option.value"
+    <!-- 日志列表卡片 -->
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden relative min-h-[400px] shadow-sm">
+      <div class="flex items-center justify-between border-b border-slate-200 p-4 bg-white">
+        <h3 class="text-base font-semibold text-slate-900">操作日志</h3>
+        <button
+          @click="exportLogs"
+          class="ant-btn inline-flex items-center gap-2"
+        >
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          导出日志
+        </button>
+      </div>
+
+      <!-- 筛选栏 -->
+      <div class="p-4 border-b border-slate-100 bg-slate-50/30">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- 搜索 -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1.5">搜索</label>
+            <input 
+              v-model="searchKeyword"
+              type="text" 
+              placeholder="用户名、操作人..."
+              class="ant-input !py-1.5"
             >
-              {{ option.label }}
-            </option>
-          </select>
-        </div>
-        
-        <!-- 时间范围 -->
-        <div class="flex items-end gap-2">
-          <div class="flex-1">
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">时间范围</label>
+          </div>
+          
+          <!-- 操作类型 -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1.5">操作类型</label>
             <select 
-              v-model="filterDateRange"
-              class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              v-model="filterActionType"
+              class="ant-select !py-1.5"
             >
-              <option value="all">全部时间</option>
-              <option value="today">今天</option>
-              <option value="week">最近一周</option>
-              <option value="month">最近一月</option>
+              <option value="all">全部类型</option>
+              <option 
+                v-for="option in LOG_ACTION_TYPE_OPTIONS" 
+                :key="option.value" 
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
             </select>
           </div>
-          <button
-            @click="resetFilters"
-            title="重置筛选"
-            class="p-2 text-gray-500 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-          >
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-          </button>
+          
+          <!-- 时间范围 -->
+          <div class="flex items-end gap-2 lg:col-span-2">
+            <div class="flex-1">
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">时间范围</label>
+              <select 
+                v-model="filterDateRange"
+                class="ant-select !py-1.5"
+              >
+                <option value="all">全部时间</option>
+                <option value="today">今天</option>
+                <option value="week">最近一周</option>
+                <option value="month">最近一月</option>
+              </select>
+            </div>
+            <button
+              @click="resetFilters"
+              title="重置筛选"
+              class="p-2 text-slate-500 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+            >
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- 日志列表 -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden relative min-h-[400px]">
       <!-- 加载遮罩 -->
       <div v-if="loading" class="absolute inset-0 bg-white/60 z-10 flex items-center justify-center">
         <div class="flex flex-col items-center">
           <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
-          <p class="mt-2 text-sm text-gray-500 font-medium">加载中...</p>
+          <p class="mt-2 text-sm text-slate-500 font-medium">加载中...</p>
         </div>
       </div>
 
       <div class="overflow-x-auto">
         <table class="w-full">
-          <thead class="bg-gray-50 border-b border-gray-200">
+          <thead class="bg-slate-50">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">时间</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作类型</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">用户</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">等级变更</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作人</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">描述</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">时间</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">操作类型</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">用户</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">等级变更</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">操作人</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">描述</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">操作</th>
             </tr>
           </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
+          <tbody class="bg-white divide-y divide-slate-200">
             <tr v-for="log in logList" :key="log.id" class="hover:bg-gray-50">
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 {{ formatDate(log.actionTime) }}
