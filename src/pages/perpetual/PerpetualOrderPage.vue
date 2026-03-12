@@ -5,85 +5,95 @@
         <h1 class="text-3xl font-semibold text-slate-900">永续合约订单</h1>
         <p class="mt-1 text-sm text-slate-500">监控用户永续合约仓位、盈亏与风险状态</p>
       </div>
-      <button type="button" class="rounded-md border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2" @click="exportOrders">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-        </svg>
-        <span>导出订单</span>
-      </button>
     </header>
 
-    <article class="rounded-xl border border-slate-200 bg-white">
-      <!-- 筛选区域 -->
-      <div class="flex flex-wrap items-center gap-3 border-b border-slate-200 p-4">
-        <!-- 基础筛选 -->
-        <select v-model="filters.status" class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500">
-          <option value="">全部状态</option>
-          <option :value="PERPETUAL_ORDER_STATUS.HOLDING">持仓中</option>
-          <option :value="PERPETUAL_ORDER_STATUS.CLOSED">已平仓</option>
-          <option :value="PERPETUAL_ORDER_STATUS.LIQUIDATED">已爆仓</option>
-        </select>
-        
-        <select v-model="filters.symbol" class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500">
-          <option value="">全部交易对</option>
-          <option value="BTC/USDT">BTC/USDT</option>
-          <option value="ETH/USDT">ETH/USDT</option>
-          <option value="BNB/USDT">BNB/USDT</option>
-          <option value="SOL/USDT">SOL/USDT</option>
-        </select>
-        
-        <select v-model="filters.side" class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500">
-          <option value="">全部方向</option>
-          <option :value="PERPETUAL_ORDER_SIDE.LONG">多</option>
-          <option :value="PERPETUAL_ORDER_SIDE.SHORT">空</option>
-        </select>
-        
-        <input v-model="filters.userId" type="text" placeholder="搜索用户 ID..." class="w-full max-w-xs rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500" />
-        
-        <!-- 高级筛选展开按钮 -->
-        <button type="button" class="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-1" @click="showAdvancedFilters = !showAdvancedFilters">
-          <span>{{ showAdvancedFilters ? '收起' : '高级筛选' }}</span>
-          <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': showAdvancedFilters }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+    <article class="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm relative min-h-[400px]">
+      <div class="flex items-center justify-between border-b border-slate-200 p-4 bg-white">
+        <h3 class="text-base font-semibold text-slate-900">订单列表</h3>
+        <button
+          type="button"
+          class="ant-btn inline-flex items-center gap-2"
+          @click="exportOrders"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
           </svg>
+          <span>导出订单</span>
         </button>
-        
-        <button type="button" class="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50" @click="resetFilters">重置</button>
+      </div>
+
+      <!-- 筛选区域 -->
+      <div class="p-4 border-b border-slate-100 bg-slate-50/30">
+        <div class="flex flex-wrap items-center gap-3">
+          <!-- 基础筛选 -->
+          <select v-model="filters.status" class="ant-select !w-32 !py-1.5">
+            <option value="">全部状态</option>
+            <option :value="PERPETUAL_ORDER_STATUS.HOLDING">持仓中</option>
+            <option :value="PERPETUAL_ORDER_STATUS.CLOSED">已平仓</option>
+            <option :value="PERPETUAL_ORDER_STATUS.LIQUIDATED">已爆仓</option>
+          </select>
+          
+          <select v-model="filters.symbol" class="ant-select !w-40 !py-1.5">
+            <option value="">全部交易对</option>
+            <option value="BTC/USDT">BTC/USDT</option>
+            <option value="ETH/USDT">ETH/USDT</option>
+            <option value="BNB/USDT">BNB/USDT</option>
+            <option value="SOL/USDT">SOL/USDT</option>
+          </select>
+          
+          <select v-model="filters.side" class="ant-select !w-32 !py-1.5">
+            <option value="">全部方向</option>
+            <option :value="PERPETUAL_ORDER_SIDE.LONG">多</option>
+            <option :value="PERPETUAL_ORDER_SIDE.SHORT">空</option>
+          </select>
+          
+          <input v-model="filters.userId" type="text" placeholder="搜索用户 ID..." class="ant-input !w-64 !py-1.5" />
+          
+          <!-- 高级筛选展开按钮 -->
+          <button type="button" class="ant-btn flex items-center gap-1 !py-1.5" @click="showAdvancedFilters = !showAdvancedFilters">
+            <span>{{ showAdvancedFilters ? '收起' : '高级筛选' }}</span>
+            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': showAdvancedFilters }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          
+          <button type="button" class="ant-btn !py-1.5" @click="resetFilters">重置</button>
+        </div>
       </div>
       
       <!-- 高级筛选 -->
-      <div v-show="showAdvancedFilters" class="border-b border-slate-200 bg-slate-50 px-4 py-3">
+      <div v-show="showAdvancedFilters" class="border-b border-slate-200 bg-slate-50/50 px-4 py-3">
         <div class="grid gap-3 md:grid-cols-4">
           <div>
             <label class="block text-xs font-medium text-slate-600 mb-1">杠杆倍数范围</label>
             <div class="flex items-center gap-2">
-              <input v-model="filters.minLeverage" type="number" placeholder="最小" class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm" />
+              <input v-model="filters.minLeverage" type="number" placeholder="最小" class="ant-input !py-1.5" />
               <span class="text-slate-500">-</span>
-              <input v-model="filters.maxLeverage" type="number" placeholder="最大" class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm" />
+              <input v-model="filters.maxLeverage" type="number" placeholder="最大" class="ant-input !py-1.5" />
             </div>
           </div>
           
           <div>
             <label class="block text-xs font-medium text-slate-600 mb-1">仓位价值范围 (USDT)</label>
             <div class="flex items-center gap-2">
-              <input v-model="filters.minPositionValue" type="number" placeholder="最小" class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm" />
+              <input v-model="filters.minPositionValue" type="number" placeholder="最小" class="ant-input !py-1.5" />
               <span class="text-slate-500">-</span>
-              <input v-model="filters.maxPositionValue" type="number" placeholder="最大" class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm" />
+              <input v-model="filters.maxPositionValue" type="number" placeholder="最大" class="ant-input !py-1.5" />
             </div>
           </div>
           
           <div>
             <label class="block text-xs font-medium text-slate-600 mb-1">盈亏范围 (USDT)</label>
             <div class="flex items-center gap-2">
-              <input v-model="filters.minPnl" type="number" placeholder="最小" class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm" />
+              <input v-model="filters.minPnl" type="number" placeholder="最小" class="ant-input !py-1.5" />
               <span class="text-slate-500">-</span>
-              <input v-model="filters.maxPnl" type="number" placeholder="最大" class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm" />
+              <input v-model="filters.maxPnl" type="number" placeholder="最大" class="ant-input !py-1.5" />
             </div>
           </div>
           
           <div>
             <label class="block text-xs font-medium text-slate-600 mb-1">开仓时间范围</label>
-            <input v-model="filters.dateRange" type="date" class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm" />
+            <input v-model="filters.dateRange" type="date" class="ant-input !py-1.5" />
           </div>
         </div>
       </div>
@@ -175,7 +185,7 @@
                 </span>
               </td>
               <td class="px-4 py-3">
-                <button type="button" class="rounded border border-slate-200 px-3 py-1 text-xs text-slate-700 hover:bg-slate-50 font-medium transition-colors" @click="viewOrder(order)">
+                <button type="button" class="ant-btn !h-8 !px-3 !text-xs" @click="viewOrder(order)">
                   详情
                 </button>
               </td>
@@ -190,10 +200,10 @@
           共 {{ filteredOrders.length }} 条订单 · 第 {{ currentPage }} / {{ totalPages }} 页
         </div>
         <div class="flex items-center gap-3">
-          <button type="button" :disabled="currentPage === 1" class="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" @click="prevPage">
+          <button type="button" :disabled="currentPage === 1" class="ant-btn !h-9 !px-4 !text-sm disabled:opacity-50 disabled:cursor-not-allowed" @click="prevPage">
             上一页
           </button>
-          <button type="button" :disabled="currentPage === totalPages" class="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" @click="nextPage">
+          <button type="button" :disabled="currentPage === totalPages" class="ant-btn !h-9 !px-4 !text-sm disabled:opacity-50 disabled:cursor-not-allowed" @click="nextPage">
             下一页
           </button>
         </div>
@@ -578,7 +588,7 @@
         <!-- 底部按钮 -->
         <footer class="border-t border-slate-200 bg-slate-50 px-6 py-4">
           <div class="flex items-center justify-end">
-            <button type="button" class="rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50" @click="closeDetailModal">
+            <button type="button" class="ant-btn !px-6 !py-2.5 !h-auto" @click="closeDetailModal">
               关闭
             </button>
           </div>

@@ -149,14 +149,6 @@ const submitTemplate = () => {
         <h1 class="text-3xl font-semibold text-slate-900">杠杆模板管理</h1>
         <p class="mt-1 text-sm text-slate-500">管理永续合约可用的杠杆倍数档位模板</p>
       </div>
-      <button
-        type="button"
-        class="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        @click="openCreateTemplate"
-      >
-        <span class="text-base">+</span>
-        <span>新增模板</span>
-      </button>
     </header>
 
     <article class="rounded-xl border border-slate-200 bg-white">
@@ -196,6 +188,13 @@ const submitTemplate = () => {
               <path d="M13.6 13.6L16.4 16.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
             </svg>
           </div>
+          <button
+            type="button"
+            class="ant-btn ant-btn-primary"
+            @click="openCreateTemplate"
+          >
+            <span>+ 新增模板</span>
+          </button>
         </div>
       </div>
 
@@ -210,7 +209,7 @@ const submitTemplate = () => {
               </div>
               <p class="mt-3 text-sm text-slate-600">杠杆范围: <span class="font-medium text-slate-900">{{ tpl.leverageRange }}</span></p>
             </div>
-            <button type="button" class="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700" @click="openEditTemplate(tpl)">编辑</button>
+            <button type="button" class="ant-btn !h-8 !px-3 !text-xs" @click="openEditTemplate(tpl)">编辑模板</button>
           </div>
 
           <div class="mt-4">
@@ -243,7 +242,7 @@ const submitTemplate = () => {
           <div class="flex items-center gap-2">
             <button
               type="button"
-              class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              class="ant-btn !h-8 !px-3 !text-xs disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               :disabled="pagination.currentPage === 1"
               @click="pagination.currentPage--"
             >
@@ -251,7 +250,7 @@ const submitTemplate = () => {
             </button>
             <button
               type="button"
-              class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              class="ant-btn !h-8 !px-3 !text-xs disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               :disabled="pagination.currentPage === totalPages"
               @click="pagination.currentPage++"
             >
@@ -278,7 +277,7 @@ const submitTemplate = () => {
           <input
             v-model="newTemplateName"
             type="text"
-            class="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500"
+            class="ant-input"
             placeholder="请输入模板名称"
           />
         </label>
@@ -294,8 +293,8 @@ const submitTemplate = () => {
               v-for="lv in leverageLevels"
               :key="lv"
               type="button"
-              class="rounded-lg border px-3 py-2 text-sm"
-              :class="selectedLeverages.includes(lv) ? 'border-blue-300 bg-blue-50 font-medium text-blue-600' : 'border-slate-200 bg-slate-50 text-slate-700'
+              class="rounded-lg border px-3 py-2 text-sm transition-all"
+              :class="selectedLeverages.includes(lv) ? 'border-blue-300 bg-blue-50 font-medium text-blue-600 shadow-sm' : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 hover:bg-slate-100'
               "
               @click="toggleLeverage(lv)"
             >
@@ -304,12 +303,11 @@ const submitTemplate = () => {
           </div>
 
           <div class="flex flex-wrap gap-2">
-            <button type="button" class="rounded-md border border-slate-200 px-3 py-1 text-sm" @click="pickLeveragePack('all')">全选</button>
-            <button type="button" class="rounded-md border border-slate-200 px-3 py-1 text-sm" @click="pickLeveragePack('clear')">清空</button>
-            <button type="button" class="rounded-md border border-slate-200 px-3 py-1 text-sm" @click="pickLeveragePack('low')">低杠杆 (1-10x)</button>
-            <button type="button" class="rounded-md border border-slate-200 px-3 py-1 text-sm" @click="pickLeveragePack('low')">低杠杆 (1-10x)</button>
-            <button type="button" class="rounded-md border border-slate-200 px-3 py-1 text-sm" @click="pickLeveragePack('mid')">中等杠杆 (10-50x)</button>
-            <button type="button" class="rounded-md border border-slate-200 px-3 py-1 text-sm" @click="pickLeveragePack('high')">高杠杆 (50-125x)</button>
+            <button type="button" class="ant-btn !h-8 !px-3 !text-xs" @click="pickLeveragePack('all')">全选</button>
+            <button type="button" class="ant-btn !h-8 !px-3 !text-xs" @click="pickLeveragePack('clear')">清空</button>
+            <button type="button" class="ant-btn !h-8 !px-3 !text-xs" @click="pickLeveragePack('low')">低杠杆 (1-10x)</button>
+            <button type="button" class="ant-btn !h-8 !px-3 !text-xs" @click="pickLeveragePack('mid')">中等杠杆 (10-50x)</button>
+            <button type="button" class="ant-btn !h-8 !px-3 !text-xs" @click="pickLeveragePack('high')">高杠杆 (50-125x)</button>
           </div>
 
           <div class="rounded-lg border border-blue-200 bg-blue-50 p-4">
@@ -331,15 +329,14 @@ const submitTemplate = () => {
       </div>
 
       <footer class="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
-        <button type="button" class="rounded-lg border border-slate-200 px-4 py-2" @click="showTemplateModal = false">取消</button>
+        <button type="button" class="ant-btn" @click="showTemplateModal = false">取消</button>
         <button
           type="button"
-          class="rounded-lg px-4 py-2 font-medium text-white"
-          :class="newTemplateName.trim() && selectedLeverages.length ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-300'"
+          class="ant-btn ant-btn-primary"
           :disabled="!newTemplateName.trim() || !selectedLeverages.length"
           @click="submitTemplate"
         >
-          {{ editingTemplateId ? '保存' : '创建' }}
+          {{ editingTemplateId ? '保存模板' : '创建模板' }}
         </button>
       </footer>
     </section>

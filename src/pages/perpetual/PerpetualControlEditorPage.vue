@@ -465,9 +465,9 @@ const handleMfaVerify = async (code) => {
     </header>
 
     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <article v-for="card in summary" :key="card.label" class="rounded-xl border border-slate-200 bg-white p-4">
-        <p class="text-sm text-slate-500">{{ card.label }}</p>
-        <p class="mt-2 text-2xl font-semibold text-slate-900">{{ card.value }}</p>
+      <article v-for="card in summary" :key="card.label" class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:shadow-md">
+        <p class="text-sm text-slate-500 font-medium">{{ card.label }}</p>
+        <p class="mt-2 text-2xl font-bold text-slate-900">{{ card.value }}</p>
       </article>
     </div>
 
@@ -475,93 +475,114 @@ const handleMfaVerify = async (code) => {
       <input
         v-model="keyword"
         type="text"
-        placeholder="搜索合约..."
-        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+        placeholder="搜索合约 (代码或名称)..."
+        class="ant-input !py-2"
       />
     </div>
 
     <article
       v-for="contract in paginatedContracts"
       :key="contract.id"
-      class="rounded-xl border border-blue-200 bg-slate-50/40 p-5"
+      class="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm"
     >
-      <div class="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div class="flex items-center gap-2">
-            <h3 class="text-2xl font-semibold text-slate-900">{{ contract.symbol }}</h3>
-            <span class="rounded-md px-2 py-0.5 text-xs font-medium" :class="contract.status === PERP_CONTROL_CONTRACT_STATUS.RUNNING ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/30 px-5 py-4">
+        <div class="flex items-center gap-3">
+          <h3 class="text-2xl font-bold text-slate-900">{{ contract.symbol }}</h3>
+          <p class="text-sm text-slate-500 font-medium">{{ contract.alias }}</p>
+          <div class="flex items-center gap-2 ml-2">
+            <span class="rounded-md px-2 py-0.5 text-xs font-bold border" :class="contract.status === PERP_CONTROL_CONTRACT_STATUS.RUNNING ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-amber-50 text-amber-700 border-amber-100'">
               {{ contract.status === PERP_CONTROL_CONTRACT_STATUS.RUNNING ? '线控中' : '暂停' }}
             </span>
             <span
-              class="rounded-md px-2 py-0.5 text-xs font-medium"
-              :class="contract.config.autoTriggerEnabled ? 'bg-violet-100 text-violet-700' : 'bg-slate-200 text-slate-600'"
+              class="rounded-md px-2 py-0.5 text-xs font-bold border"
+              :class="contract.config.autoTriggerEnabled ? 'bg-violet-50 text-violet-700 border-violet-100' : 'bg-slate-100 text-slate-600 border-slate-200'"
             >
               {{ contract.config.autoTriggerEnabled ? '自动触发开' : '自动触发关' }}
             </span>
           </div>
-          <p class="mt-1 text-slate-500">{{ contract.alias }}</p>
         </div>
 
-        <div class="flex items-center gap-3 text-sm">
-          <button type="button" class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-700 hover:bg-slate-50" @click="toggleContractStatus(contract.id)">
+        <div class="flex items-center gap-2">
+          <button type="button" class="ant-btn !h-9 !px-4" @click="toggleContractStatus(contract.id)">
             {{ contract.status === PERP_CONTROL_CONTRACT_STATUS.RUNNING ? '暂停线控' : '启动线控' }}
           </button>
-          <button type="button" class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-700 hover:bg-slate-50" @click="openConfig(contract.id)">线控配置</button>
+          <button type="button" class="ant-btn ant-btn-primary !h-9 !px-4" @click="openConfig(contract.id)">线控配置</button>
         </div>
       </div>
 
-      <div class="mt-4 grid gap-2 md:grid-cols-4 xl:grid-cols-8">
-        <div v-for="metric in contract.metrics" :key="metric.label" class="rounded-lg border border-slate-200 bg-white p-2.5">
-          <p class="text-xs text-slate-500">{{ metric.label }}</p>
-          <p class="mt-1 text-sm font-semibold" :class="toneClass[metric.tone]">{{ metric.value }}</p>
-        </div>
-      </div>
-
-      <div class="mt-4 rounded-lg border border-slate-200 bg-white p-3">
-        <p class="text-sm text-slate-500">当前线控参数</p>
-        <div class="mt-2 flex flex-wrap gap-2">
-          <span v-for="param in formatParams(contract.config)" :key="param" class="rounded-md bg-slate-100 px-2 py-1 text-xs text-slate-700">{{ param }}</span>
-        </div>
-      </div>
-
-      <div class="mt-4 rounded-lg border border-violet-200 bg-violet-50/40 p-3">
-        <div class="flex items-center justify-between">
-          <p class="text-sm font-medium text-violet-700">自动线控规则</p>
-          <button type="button" class="text-sm font-medium text-violet-600" @click="openAddRule(contract.id)">+ 添加规则</button>
+      <div class="p-5 space-y-5">
+        <div class="grid gap-2 md:grid-cols-4 xl:grid-cols-8">
+          <div v-for="metric in contract.metrics" :key="metric.label" class="rounded-lg border border-slate-100 bg-slate-50/50 p-2.5 transition-colors hover:bg-slate-50">
+            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{{ metric.label }}</p>
+            <p class="mt-1 text-sm font-bold" :class="toneClass[metric.tone]">{{ metric.value }}</p>
+          </div>
         </div>
 
-        <div class="mt-2 space-y-2">
-          <article v-for="rule in contract.rules" :key="rule.id" class="rounded-lg border border-violet-100 bg-white p-3">
-            <div class="flex items-start justify-between gap-3">
-              <div class="flex items-start gap-3">
-                <button
-                  type="button"
-                  class="relative mt-1 h-5 w-10 rounded-full transition"
-                  :class="rule.enabled ? 'bg-blue-600' : 'bg-slate-300'"
-                  @click="toggleRule(contract.id, rule.id)"
-                >
-                  <span class="absolute top-0.5 h-4 w-4 rounded-full bg-white transition" :class="rule.enabled ? 'left-5' : 'left-0.5'"></span>
-                </button>
-                <div>
-                  <p class="font-medium text-slate-900">{{ rule.name }}</p>
-                  <p class="mt-1 text-sm text-slate-500">{{ ruleTriggers[rule.triggerType]?.label || ruleTriggers[PERP_CONTROL_RULE_TRIGGER_TYPE.NET_POSITION].label }} | {{ ruleConditionText(rule) }}</p>
-                  <p class="text-sm text-slate-500">{{ ruleActionText(rule) }}</p>
-                  <div class="mt-1 flex items-start gap-1 text-xs text-slate-600">
-                    <svg class="h-3.5 w-3.5 text-violet-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span><span class="font-medium text-slate-700">影响参数:</span> {{ ruleAffectsText(rule) }}</span>
+        <div class="rounded-lg border border-slate-100 bg-white p-4">
+          <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">当前线控参数</p>
+          <div class="flex flex-wrap gap-2">
+            <span v-for="param in formatParams(contract.config)" :key="param" class="rounded-md bg-slate-100 px-2 py-1 text-xs text-slate-600 font-medium border border-slate-200/50">{{ param }}</span>
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-violet-100 bg-violet-50/20 p-4">
+          <div class="flex items-center justify-between mb-3">
+            <p class="text-sm font-bold text-violet-700 flex items-center gap-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              自动线控规则
+            </p>
+            <button type="button" class="text-xs font-bold text-violet-600 hover:text-violet-700 flex items-center gap-1" @click="openAddRule(contract.id)">
+              <span class="text-base">+</span> 添加规则
+            </button>
+          </div>
+
+          <div class="space-y-3">
+            <article v-for="rule in contract.rules" :key="rule.id" class="rounded-lg border border-violet-100/50 bg-white p-4 shadow-sm transition-all hover:shadow-md">
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex items-start gap-4">
+                  <button
+                    type="button"
+                    class="relative mt-1 h-5 w-9 rounded-full transition-colors duration-200 focus:outline-none"
+                    :class="rule.enabled ? 'bg-blue-600' : 'bg-slate-300'"
+                    @click="toggleRule(contract.id, rule.id)"
+                  >
+                    <span class="absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200" :class="rule.enabled ? 'translate-x-4.5 left-0' : 'translate-x-0.5 left-0'"></span>
+                  </button>
+                  <div>
+                    <p class="font-bold text-slate-900">{{ rule.name }}</p>
+                    <div class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium text-slate-500">
+                      <span class="bg-slate-100 px-1.5 py-0.5 rounded">{{ ruleTriggers[rule.triggerType]?.label }}</span>
+                      <span class="text-slate-400">|</span>
+                      <span>{{ ruleConditionText(rule) }}</span>
+                      <span class="text-slate-400">|</span>
+                      <span class="text-blue-600">{{ ruleActionText(rule) }}</span>
+                    </div>
+                    <div class="mt-2 flex items-center gap-4">
+                      <div class="flex items-center gap-1 text-[10px] text-slate-400 font-bold">
+                        <svg class="h-3 w-3 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>影响: {{ ruleAffectsText(rule) }}</span>
+                      </div>
+                      <div class="flex items-center gap-1 text-[10px] text-slate-400 font-bold">
+                        <svg class="h-3 w-3 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4" />
+                        </svg>
+                        <span>已触发 {{ rule.hitCount }} 次</span>
+                      </div>
+                    </div>
                   </div>
-                  <p class="mt-1 text-sm text-slate-500">已触发 {{ rule.hitCount }} 次 | 最近: {{ rule.lastHitAt }}</p>
+                </div>
+
+                <div class="flex items-center gap-3">
+                  <button type="button" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors" @click="openEditRule(contract.id, rule)">编辑</button>
+                  <button type="button" class="text-xs font-bold text-rose-400 hover:text-rose-600 transition-colors" @click="deleteRule(contract.id, rule.id)">删除</button>
                 </div>
               </div>
-
-              <div class="flex items-center gap-2 text-sm">
-                <button type="button" class="text-slate-600" @click="openEditRule(contract.id, rule)">编辑</button>
-                <button type="button" class="text-rose-500" @click="deleteRule(contract.id, rule.id)">删除</button>
-              </div>
-            </div>
-          </article>
+            </article>
+          </div>
         </div>
       </div>
     </article>
@@ -574,7 +595,7 @@ const handleMfaVerify = async (code) => {
       <div class="flex items-center gap-2">
         <button
           type="button"
-          class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          class="ant-btn !h-9 !px-4 !text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           :disabled="pagination.currentPage === 1"
           @click="pagination.currentPage--"
         >
@@ -582,7 +603,7 @@ const handleMfaVerify = async (code) => {
         </button>
         <button
           type="button"
-          class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          class="ant-btn !h-9 !px-4 !text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           :disabled="pagination.currentPage === totalPages"
           @click="pagination.currentPage++"
         >
@@ -632,7 +653,7 @@ const handleMfaVerify = async (code) => {
                 <input
                   v-model="ruleForm.name"
                   type="text"
-                  class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  class="ant-input"
                   placeholder="如：多头过重自动调整"
                 />
               </label>
@@ -642,22 +663,21 @@ const handleMfaVerify = async (code) => {
                   <svg class="h-4 w-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <span class="text-sm text-slate-700">保存后立即启用</span>
+                  <span class="text-sm text-slate-700 font-medium">保存后立即启用</span>
                 </div>
                 <label class="relative inline-flex cursor-pointer items-center">
                   <input v-model="ruleForm.enabled" type="checkbox" class="peer sr-only" />
-                  <div class="peer h-6 w-11 rounded-full bg-slate-300 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-violet-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:ring-2 peer-focus:ring-violet-300"></div>
+                  <div class="peer h-6 w-11 rounded-full bg-slate-300 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-violet-600 peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
                 </label>
               </div>
 
-              <div class="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3">
+              <div class="rounded-lg border border-blue-100 bg-blue-50/50 px-4 py-3">
                 <div class="flex items-start gap-2">
                   <svg class="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
                   </svg>
-                  <div class="text-sm">
-                    <span class="text-blue-700">作用合约：</span>
-                    <span class="font-semibold text-blue-900">{{ currentContract?.symbol || '-' }}</span>
+                  <div class="text-sm font-medium text-blue-700">
+                    作用合约：<span class="font-bold text-blue-900">{{ currentContract?.symbol || '-' }}</span>
                   </div>
                 </div>
               </div>
@@ -678,7 +698,7 @@ const handleMfaVerify = async (code) => {
             <div class="space-y-3.5">
               <label class="block space-y-2">
                 <span class="text-sm font-medium text-slate-700">触发类型</span>
-                <select v-model="ruleForm.triggerType" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+                <select v-model="ruleForm.triggerType" class="ant-select">
                   <option v-for="opt in triggerOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
                 </select>
               </label>
@@ -690,12 +710,12 @@ const handleMfaVerify = async (code) => {
                     v-model.number="ruleForm.thresholdValue"
                     type="number"
                     min="0"
-                    class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    class="ant-input"
                   />
                 </label>
                 <label class="block space-y-2">
                   <span class="text-sm font-medium text-slate-700">触发方向</span>
-                  <select v-model="ruleForm.triggerDirection" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+                  <select v-model="ruleForm.triggerDirection" class="ant-select">
                     <option v-for="d in triggerMeta.directionOptions" :key="d.value" :value="d.value">{{ d.label }}</option>
                   </select>
                 </label>
@@ -714,7 +734,7 @@ const handleMfaVerify = async (code) => {
                       min="50"
                       max="100"
                       step="1"
-                      class="w-20 rounded-md border border-blue-300 px-2 py-1 text-right text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      class="ant-input !w-20 !h-8 !px-2 !text-right"
                     />
                   </div>
                   <input v-model.number="ruleForm.positionRatio" type="range" min="50" max="100" step="1" class="w-full accent-blue-600" />
@@ -722,7 +742,7 @@ const handleMfaVerify = async (code) => {
                     <svg class="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span class="text-xs text-blue-700">
+                    <span class="text-xs text-blue-700 font-medium">
                       定义"过重"：当{{ ruleForm.triggerDirection === PERP_CONTROL_RULE_DIRECTION.LONG_HEAVY ? '多头' : '空头' }}持仓占总持仓的比例达到此阈值时触发
                     </span>
                   </div>
@@ -733,14 +753,14 @@ const handleMfaVerify = async (code) => {
               <div v-if="needsTimeWindow" class="rounded-lg border border-blue-200 bg-white p-4">
                 <label class="block space-y-2">
                   <span class="text-sm font-medium text-slate-700">统计时间区间</span>
-                  <select v-model="ruleForm.timeWindow" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+                  <select v-model="ruleForm.timeWindow" class="ant-select">
                     <option v-for="tw in availableTimeWindows" :key="tw.value" :value="tw.value">{{ tw.label }}</option>
                   </select>
                   <div class="flex items-start gap-1.5 rounded-md bg-blue-50 px-3 py-2">
                     <svg class="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span class="text-xs text-blue-700">指定在哪个时间范围内统计数据来判断是否触发</span>
+                    <span class="text-xs text-blue-700 font-medium">指定在哪个时间范围内统计数据来判断是否触发</span>
                   </div>
                 </label>
               </div>
@@ -770,7 +790,7 @@ const handleMfaVerify = async (code) => {
                       min="0"
                       max="50"
                       step="1"
-                      class="w-20 rounded-md border border-violet-300 px-2 py-1 text-right text-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                      class="ant-input !w-20 !h-8 !px-2 !text-right"
                     />
                   </div>
                   <input v-model.number="ruleForm.priceOffset" type="range" min="0" max="50" step="1" class="w-full accent-violet-600" />
@@ -778,7 +798,7 @@ const handleMfaVerify = async (code) => {
                     <svg class="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span class="text-xs text-violet-700">影响用户看到的买卖价格</span>
+                    <span class="text-xs text-violet-700 font-medium">影响用户看到的买卖价格</span>
                   </div>
                 </label>
               </div>
@@ -787,7 +807,7 @@ const handleMfaVerify = async (code) => {
               <div class="grid gap-4 sm:grid-cols-2">
                 <label class="block space-y-2">
                   <span class="text-sm font-medium text-slate-700">偏移方向</span>
-                  <select v-model="ruleForm.offsetDirection" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100">
+                  <select v-model="ruleForm.offsetDirection" class="ant-select">
                     <option v-for="d in offsetDirections" :key="d.value" :value="d.value">{{ d.label }}</option>
                   </select>
                 </label>
@@ -798,7 +818,7 @@ const handleMfaVerify = async (code) => {
                     v-model.number="ruleForm.durationSec"
                     type="number"
                     min="0"
-                    class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                    class="ant-input"
                     placeholder="0 为持续生效"
                   />
                 </label>
@@ -815,7 +835,7 @@ const handleMfaVerify = async (code) => {
                       min="0"
                       max="2"
                       step="0.01"
-                      class="w-20 rounded-md border border-violet-300 px-2 py-1 text-right text-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                      class="ant-input !w-20 !h-8 !px-2 !text-right"
                     />
                   </div>
                   <input v-model.number="ruleForm.slippagePct" type="range" min="0" max="2" step="0.01" class="w-full accent-violet-600" />
@@ -823,7 +843,7 @@ const handleMfaVerify = async (code) => {
                     <svg class="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span class="text-xs text-violet-700">影响成交时的价格差异</span>
+                    <span class="text-xs text-violet-700 font-medium">影响成交时的价格差异</span>
                   </div>
                 </label>
               </div>
@@ -832,11 +852,10 @@ const handleMfaVerify = async (code) => {
         </div>
 
         <footer class="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
-          <button type="button" class="rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-white hover:shadow-sm" @click="showRuleModal = false">取消</button>
+          <button type="button" class="ant-btn !h-10 !px-6" @click="showRuleModal = false">取消</button>
           <button
             type="button"
-            class="rounded-lg px-5 py-2.5 text-sm font-medium text-white transition shadow-sm"
-            :class="ruleForm.name.trim() && Number(ruleForm.thresholdValue) > 0 ? 'bg-violet-600 hover:bg-violet-700 hover:shadow-md' : 'bg-violet-300 cursor-not-allowed'"
+            class="ant-btn ant-btn-primary !h-10 !px-8"
             :disabled="!ruleForm.name.trim() || Number(ruleForm.thresholdValue) <= 0"
             @click="saveRule"
           >

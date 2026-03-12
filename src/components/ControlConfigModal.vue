@@ -354,16 +354,16 @@ const save = () => {
                     type="number"
                     min="0"
                     max="50"
-                    class="w-20 rounded-md border border-slate-300 px-2 py-1 text-right text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    class="ant-input !w-20 !h-8 !px-2 !text-right"
                   />
                 </div>
                 <input v-model.number="form.priceOffset" type="range" min="0" max="50" step="1" class="w-full accent-blue-600" />
-                <p class="text-xs text-slate-500">范围 0-50，建议先从 3-10 点测试</p>
+                <p class="text-xs text-slate-500 font-medium">范围 0-50，建议先从 3-10 点测试</p>
               </label>
 
               <label class="block space-y-2">
                 <span class="text-sm font-medium text-slate-700">偏移方向</span>
-                <select v-model="form.offsetDirection" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                <select v-model="form.offsetDirection" class="ant-select">
                   <option value="random">随机偏移</option>
                   <option value="against">逆势偏移</option>
                   <option value="up">向上偏移</option>
@@ -397,7 +397,7 @@ const save = () => {
                     min="0"
                     max="2"
                     step="0.01"
-                    class="w-20 rounded-md border border-slate-300 px-2 py-1 text-right text-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                    class="ant-input !w-20 !h-8 !px-2 !text-right"
                   />
                 </div>
                 <input v-model.number="form.slippagePct" type="range" min="0" max="2" step="0.01" class="w-full accent-violet-600" />
@@ -412,7 +412,7 @@ const save = () => {
                     min="0"
                     max="5000"
                     step="10"
-                    class="w-20 rounded-md border border-slate-300 px-2 py-1 text-right text-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                    class="ant-input !w-20 !h-8 !px-2 !text-right"
                   />
                 </div>
                 <input v-model.number="form.latencyMs" type="range" min="0" max="5000" step="10" class="w-full accent-violet-600" />
@@ -444,11 +444,11 @@ const save = () => {
                     min="1"
                     max="125"
                     step="1"
-                    class="w-20 rounded-md border border-slate-300 px-2 py-1 text-right text-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                    class="ant-input !w-20 !h-8 !px-2 !text-right"
                   />
                 </div>
                 <input v-model.number="form.maxLeverage" type="range" min="1" max="125" step="1" class="w-full accent-amber-600" />
-                <p class="text-xs text-slate-500">范围 1-125x，保存后对新开仓位生效</p>
+                <p class="text-xs text-slate-500 font-medium">范围 1-125x，保存后对新开仓位生效</p>
               </label>
             </div>
           </section>
@@ -469,15 +469,15 @@ const save = () => {
               </div>
               <label class="relative inline-flex cursor-pointer items-center">
                 <input v-model="form.autoTriggerEnabled" type="checkbox" class="peer sr-only" />
-                <div class="peer h-6 w-11 rounded-full bg-slate-300 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300"></div>
+                <div class="peer h-6 w-11 rounded-full bg-slate-300 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
               </label>
             </div>
           </section>
         </div>
 
-        <footer class="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
-          <button type="button" class="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50" @click="emit('close')">取消</button>
-          <button type="button" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" @click="save">保存</button>
+        <footer class="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
+          <button type="button" class="ant-btn !h-10 !px-6" @click="emit('close')">取消</button>
+          <button type="button" class="ant-btn ant-btn-primary !h-10 !px-8" @click="save">保存配置</button>
         </footer>
       </div>
       <!-- 右侧数据计算预览 -->
