@@ -415,33 +415,43 @@ const goNext = () => {
                   <option :value="3">贵金属</option>
                 </select>
               </div>
+            </div>
 
-              <div class="space-y-1.5">
-                <label class="text-sm text-black/85 font-medium">基础币ID <span class="text-rose-500">*</span></label>
-                <input v-model.number="form.base_coin_id" type="number" class="ant-input" placeholder="如：1" />
-              </div>
-              <div class="space-y-1.5">
-                <label class="text-sm text-black/85 font-medium">基础币名称 <span class="text-rose-500">*</span></label>
-                <input v-model="form.base_coin_name" type="text" class="ant-input uppercase" placeholder="如：BTC" />
-              </div>
-              <div class="space-y-1.5">
-                <label class="text-sm text-black/85 font-medium">基础币精度</label>
-                <input v-model.number="form.base_coin_prec" type="number" class="ant-input" placeholder="如：8" />
-              </div>
-
-              <div class="space-y-1.5">
-                <label class="text-sm text-black/85 font-medium">计价币ID <span class="text-rose-500">*</span></label>
-                <input v-model.number="form.quote_coin_id" type="number" class="ant-input" placeholder="如：2" />
-              </div>
-              <div class="space-y-1.5">
-                <label class="text-sm text-black/85 font-medium">计价币名称 <span class="text-rose-500">*</span></label>
-                <input v-model="form.quote_coin_name" type="text" class="ant-input uppercase" placeholder="如：USDT" />
-              </div>
-              <div class="space-y-1.5">
-                <label class="text-sm text-black/85 font-medium">计价币精度</label>
-                <input v-model.number="form.quote_coin_prec" type="number" class="ant-input" placeholder="如：2" />
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div class="space-y-3 rounded-md border border-black/[0.06] bg-[#fafafa] p-4">
+                <div class="text-xs font-medium text-black/65">基础币</div>
+                <div class="space-y-1.5">
+                  <label class="text-sm text-black/85 font-medium">基础币ID <span class="text-rose-500">*</span></label>
+                  <input v-model.number="form.base_coin_id" type="number" class="ant-input" placeholder="如：1" />
+                </div>
+                <div class="space-y-1.5">
+                  <label class="text-sm text-black/85 font-medium">基础币名称 <span class="text-rose-500">*</span></label>
+                  <input v-model="form.base_coin_name" type="text" class="ant-input uppercase" placeholder="如：BTC" />
+                </div>
+                <div class="space-y-1.5">
+                  <label class="text-sm text-black/85 font-medium">基础币精度</label>
+                  <input v-model.number="form.base_coin_prec" type="number" class="ant-input" placeholder="如：8" />
+                </div>
               </div>
 
+              <div class="space-y-3 rounded-md border border-black/[0.06] bg-[#fafafa] p-4">
+                <div class="text-xs font-medium text-black/65">计价币</div>
+                <div class="space-y-1.5">
+                  <label class="text-sm text-black/85 font-medium">计价币ID <span class="text-rose-500">*</span></label>
+                  <input v-model.number="form.quote_coin_id" type="number" class="ant-input" placeholder="如：2" />
+                </div>
+                <div class="space-y-1.5">
+                  <label class="text-sm text-black/85 font-medium">计价币名称 <span class="text-rose-500">*</span></label>
+                  <input v-model="form.quote_coin_name" type="text" class="ant-input uppercase" placeholder="如：USDT" />
+                </div>
+                <div class="space-y-1.5">
+                  <label class="text-sm text-black/85 font-medium">计价币精度</label>
+                  <input v-model.number="form.quote_coin_prec" type="number" class="ant-input" placeholder="如：2" />
+                </div>
+              </div>
+            </div>
+
+            <div class="grid gap-4 sm:grid-cols-2">
               <div class="space-y-1.5">
                 <label class="text-sm text-black/85 font-medium">是否建表</label>
                 <select v-model.number="form.is_table_create" class="ant-select">

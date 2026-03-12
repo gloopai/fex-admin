@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch, onMounted } from 'vue'
 import ControlConfigModal from '../../components/ControlConfigModal.vue'
 import {
   PERPETUAL_COMMON_FILTER_ALL,
@@ -14,6 +14,7 @@ import {
   perpetualLeverageLevels,
   perpetualProductStatusMeta
 } from '../../mock/perpetual'
+import { symbolApi } from '../../mock/spot'
 
 const statusTab = ref(PERPETUAL_COMMON_FILTER_ALL)
 const search = ref('')
@@ -152,6 +153,7 @@ const contractForm = reactive({
   productCode: '',
   baseCurrency: 'BTC',
   quoteCurrency: 'USDT',
+  spotSymbol: '',
   status: PERPETUAL_STATUS.ENABLED,
   templateId: 'all-levels',
   minBuy: '10',
@@ -166,6 +168,7 @@ const resetContractForm = () => {
   contractForm.productCode = ''
   contractForm.baseCurrency = 'BTC'
   contractForm.quoteCurrency = 'USDT'
+  contractForm.spotSymbol = ''
   contractForm.status = PERPETUAL_STATUS.ENABLED
   contractForm.templateId = templates.value[0]?.id || 'all-levels'
   contractForm.minBuy = '10'
@@ -207,6 +210,7 @@ const openEditContract = (item) => {
   contractForm.productCode = item.code
   contractForm.baseCurrency = baseCurrency
   contractForm.quoteCurrency = quoteCurrency
+  contractForm.spotSymbol = `${baseCurrency}/${quoteCurrency}`
   contractForm.status = item.status
   contractForm.templateId = item.templateId || templates.value.find((tpl) => tpl.name === item.templateName)?.id || templates.value[0]?.id || ''
   contractForm.minBuy = parseNumeric(item.minBuy)
@@ -260,6 +264,52 @@ const submitContract = () => {
 const stepText = computed(() => {
   if (!selectedTemplate.value) return []
   return selectedTemplate.value.levels
+})
+
+const pairOptions = ref([])
+
+const syncPairToCurrencies = (pair) => {
+  const { baseCurrency, quoteCurrency } = parsePair(pair || '')
+  if (baseCurrency) contractForm.baseCurrency = baseCurrency
+  if (quoteCurrency) contractForm.quoteCurrency = quoteCurrency
+}
+
+const loadSpotSymbols = async () => {
+  try {
+    const result = await symbolApi.getSymbolList({
+      page: 1,
+      pageSize: 1000,
+      is_open: '1',
+      includeDeleted: false
+    })
+    if (result?.success) {
+      const list = Array.isArray(result.data?.list) ? result.data.list : []
+      const pairs = Array.from(
+        new Set(
+          list
+            .map((it) => String(it.symbol_name || '').trim())
+            .filter(Boolean)
+        )
+      )
+      pairOptions.value = pairs
+      if (!contractForm.spotSymbol || !pairOptions.value.includes(contractForm.spotSymbol)) {
+        contractForm.spotSymbol = pairOptions.value[0] || ''
+      }
+      syncPairToCurrencies(contractForm.spotSymbol)
+    }
+  } catch (e) {
+  }
+}
+
+watch(
+  () => contractForm.spotSymbol,
+  (val) => {
+    syncPairToCurrencies(val)
+  }
+)
+
+onMounted(() => {
+  loadSpotSymbols()
 })
 </script>
 
@@ -457,20 +507,10 @@ const stepText = computed(() => {
             <span class="text-sm font-medium">产品代码 <span class="text-rose-500">*</span></span>
             <input v-model="contractForm.productCode" type="text" class="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500" />
           </label>
-          <label class="space-y-2">
-            <span class="text-sm font-medium">基础币种 <span class="text-rose-500">*</span></span>
-            <select v-model="contractForm.baseCurrency" class="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500">
-              <option>BTC</option>
-              <option>ETH</option>
-              <option>SOL</option>
-              <option>XRP</option>
-            </select>
-          </label>
-          <label class="space-y-2">
-            <span class="text-sm font-medium">计价币种 <span class="text-rose-500">*</span></span>
-            <select v-model="contractForm.quoteCurrency" class="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500">
-              <option>USDT</option>
-              <option>USDC</option>
+          <label class="space-y-2 md:col-span-2">
+            <span class="text-sm font-medium">选择交易对 <span class="text-rose-500">*</span></span>
+            <select v-model="contractForm.spotSymbol" class="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500">
+              <option v-for="opt in pairOptions" :key="`pair-${opt}`" :value="opt">{{ opt }}</option>
             </select>
           </label>
           <div class="space-y-2 md:col-span-2">
