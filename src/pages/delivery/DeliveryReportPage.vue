@@ -17,10 +17,6 @@ import {
   deliveryExpiryDistribution,
   deliveryPnlDistribution,
   deliveryWhalesList,
-  deliveryHistoryStats,
-  deliveryPositionTrendData,
-  deliveryPnlTrendData,
-  deliveryVolumeTrendData,
   deliveryAutoRuleStats,
   deliveryAutoRuleEffectComparison
 } from '../../mock/deliveryReport'
@@ -116,7 +112,7 @@ const tabs = [
   { id: 'position', name: '持仓分析', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
   { id: 'pnl', name: '盈亏分析', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
   { id: 'risk', name: '风险监控', icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' },
-  { id: 'auto-rules', name: '自动化规则效果', icon: 'M13 10V3L4 14h7v7l9-11h-7z' }
+  { id: 'auto-rules', name: '自动化效果', icon: 'M13 10V3L4 14h7v7l9-11h-7z' }
 ]
 
 // 刷新数据
@@ -136,690 +132,338 @@ const exportReport = () => {
 </script>
 
 <template>
-  <section class="space-y-6">
-    <!-- 页面标题 -->
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-bold text-slate-900">场控操作决策报表</h1>
-        <p class="text-sm text-slate-500 mt-1">提供交割合约场控数据分析，辅助交割前后的调控决策</p>
+  <div class="-m-4 md:-m-8">
+    <!-- Page Header -->
+    <header class="bg-white px-4 py-4 mb-6 border-b border-black/[0.06] md:px-8">
+      <div class="mb-2 flex items-center gap-2 text-sm text-black/45">
+        <span>首页</span>
+        <span class="text-black/15">/</span>
+        <span>交割控制</span>
+        <span class="text-black/15">/</span>
+        <span class="text-black/85">场控决策报表</span>
       </div>
-      <div class="flex items-center gap-3">
-        <button
-          @click="refreshData"
-          class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors inline-flex items-center gap-2"
-        >
-          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          刷新
-        </button>
-        <button
-          @click="exportReport"
-          class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
-        >
-          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          导出报表
-        </button>
-      </div>
-    </div>
-
-    <!-- 筛选条件 -->
-    <div class="bg-white rounded-xl border border-slate-200 p-4">
-      <div class="flex items-center gap-6 flex-wrap">
-        <!-- 合约选择 -->
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 class="text-xl font-semibold text-black/85">场控操作决策报表</h1>
+          <p class="mt-2 text-sm text-black/45">提供交割合约场控数据分析，辅助交割前后的调控决策。</p>
+        </div>
         <div class="flex items-center gap-3">
-          <span class="text-sm font-medium text-slate-700">合约：</span>
-          <select
-            v-model="selectedContract"
-            class="px-4 py-2 text-sm font-medium border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-700"
-          >
-            <option v-for="option in contractOptions" :key="option.value" :value="option.value">
-              {{ option.label }}
-            </option>
-          </select>
-        </div>
-        
-        <!-- 时间范围 -->
-        <div class="flex items-center gap-3">
-          <span class="text-sm font-medium text-slate-700">时间：</span>
-          <div class="flex items-center gap-2">
-            <button
-              v-for="option in DELIVERY_REPORT_TIME_RANGE_OPTIONS"
-              :key="option.value"
-              @click="timeRange = option.value"
-              :class="[
-                'px-4 py-2 text-sm font-medium rounded-lg transition-colors',
-                timeRange === option.value
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              ]"
-            >
-              {{ option.label }}
-            </button>
-          </div>
-        </div>
-        
-        <!-- 自定义日期范围 -->
-        <div v-if="timeRange === DELIVERY_REPORT_TIME_RANGE.CUSTOM" class="flex items-center gap-2">
-          <input
-            v-model="customDateRange.start"
-            type="date"
-            class="px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <span class="text-slate-500">至</span>
-          <input
-            v-model="customDateRange.end"
-            type="date"
-            class="px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-      </div>
-    </div>
-
-    <!-- 标签导航 -->
-    <div class="bg-white rounded-xl border border-slate-200">
-      <div class="border-b border-slate-200">
-        <div class="flex overflow-x-auto">
-          <button
-            v-for="tab in tabs"
-            :key="tab.id"
-            @click="activeTab = tab.id"
-            :class="[
-              'flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap',
-              activeTab === tab.id
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
-            ]"
-          >
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="tab.icon" />
-            </svg>
-            {{ tab.name }}
+          <button type="button" class="ant-btn flex items-center gap-2" @click="refreshData">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+            刷新
+          </button>
+          <button type="button" class="ant-btn ant-btn-primary flex items-center gap-2" @click="exportReport">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+            导出报表
           </button>
         </div>
       </div>
+    </header>
 
-      <!-- 标签内容 -->
-      <div class="p-6">
-        <!-- 市场概览 -->
-        <div v-show="activeTab === 'overview'" class="space-y-6">
-          <!-- 关键指标卡片 -->
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-5">
-              <div class="flex items-center justify-between mb-3">
-                <h3 class="text-sm font-semibold text-slate-900">24h 交易量</h3>
-                <svg class="h-7 w-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
-              </div>
-              <p class="text-2xl font-bold text-slate-900 mb-1">${{ formatAmount(filteredOverview.totalVolume24h) }}</p>
-              <p class="text-xs text-slate-600">USDT</p>
-            </div>
-
-            <div class="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-200 p-5">
-              <div class="flex items-center justify-between mb-3">
-                <h3 class="text-sm font-semibold text-slate-900">平台盈亏</h3>
-                <svg class="h-7 w-7 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <p class="text-2xl font-bold text-emerald-600 mb-1">{{ formatCurrency(filteredOverview.platformPnl24h) }}</p>
-              <p class="text-xs text-slate-600">24小时</p>
-            </div>
-
-            <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-200 p-5">
-              <div class="flex items-center justify-between mb-3">
-                <h3 class="text-sm font-semibold text-slate-900">临近交割</h3>
-                <svg class="h-7 w-7 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <p class="text-2xl font-bold text-slate-900 mb-1">{{ filteredOverview.nearExpiryContracts }}</p>
-              <p class="text-xs text-slate-600">3天内交割合约</p>
-            </div>
-
-            <div 
-              :class="[
-                'rounded-xl p-5 bg-gradient-to-br',
-                DELIVERY_RISK_LEVEL_CONFIG[filteredOverview.riskLevel].color === 'emerald' 
-                  ? 'from-emerald-50 to-teal-50 border border-emerald-200' 
-                  : DELIVERY_RISK_LEVEL_CONFIG[filteredOverview.riskLevel].color === 'amber'
-                  ? 'from-amber-50 to-yellow-50 border border-amber-200'
-                  : DELIVERY_RISK_LEVEL_CONFIG[filteredOverview.riskLevel].color === 'orange'
-                  ? 'from-orange-50 to-amber-50 border border-orange-200'
-                  : 'from-rose-50 to-red-50 border border-rose-200'
-              ]"
-            >
-              <div class="flex items-center justify-between mb-3">
-                <h3 class="text-sm font-semibold text-slate-900">风险等级</h3>
-                <svg 
-                  :class="[
-                    'h-7 w-7',
-                    DELIVERY_RISK_LEVEL_CONFIG[filteredOverview.riskLevel].color === 'emerald'
-                      ? 'text-emerald-600'
-                      : DELIVERY_RISK_LEVEL_CONFIG[filteredOverview.riskLevel].color === 'amber'
-                      ? 'text-amber-600'
-                      : DELIVERY_RISK_LEVEL_CONFIG[filteredOverview.riskLevel].color === 'orange'
-                      ? 'text-orange-600'
-                      : 'text-rose-600'
-                  ]"
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              </div>
-              <span
-                :class="DELIVERY_RISK_LEVEL_CONFIG[filteredOverview.riskLevel].class"
-                class="inline-flex items-center px-3 py-1 rounded-lg text-base font-bold border-2"
-              >
-                {{ DELIVERY_RISK_LEVEL_CONFIG[filteredOverview.riskLevel].text }}
-              </span>
-            </div>
+    <div class="px-4 pb-8 md:px-8 space-y-6">
+      <!-- 筛选区域 -->
+      <article class="pro-card p-4 flex flex-wrap items-center gap-6">
+        <div class="flex items-center gap-3">
+          <span class="text-sm font-medium text-black/85">选择合约:</span>
+          <select v-model="selectedContract" class="ant-select !w-40">
+            <option v-for="option in contractOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+          </select>
+        </div>
+        
+        <div class="flex items-center gap-3">
+          <span class="text-sm font-medium text-black/85">统计周期:</span>
+          <div class="inline-flex rounded-lg border border-black/[0.06] bg-black/[0.02] p-1">
+            <button v-for="option in DELIVERY_REPORT_TIME_RANGE_OPTIONS" :key="option.value" @click="timeRange = option.value" :class="timeRange === option.value ? 'bg-white text-antd-primary shadow-sm' : 'text-black/45 hover:text-black/85'" class="rounded-md px-4 py-1.5 text-xs font-medium transition-all">{{ option.label }}</button>
           </div>
+        </div>
 
-          <!-- 次要指标 -->
-          <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <div class="bg-white border border-slate-200 rounded-lg p-4">
-              <p class="text-sm text-slate-600 mb-1">总持仓</p>
-              <p class="text-xl font-bold text-slate-900">${{ formatAmount(filteredOverview.totalPosition) }}</p>
-            </div>
-            <div class="bg-white border border-slate-200 rounded-lg p-4">
-              <p class="text-sm text-slate-600 mb-1">活跃用户</p>
-              <p class="text-xl font-bold text-slate-900">{{ filteredOverview.activeUsers24h.toLocaleString() }}</p>
-            </div>
-            <div class="bg-white border border-slate-200 rounded-lg p-4">
-              <p class="text-sm text-slate-600 mb-1">多空比</p>
-              <p class="text-xl font-bold text-slate-900">{{ filteredOverview.longShortRatio.toFixed(2) }}</p>
-            </div>
+        <div v-if="timeRange === DELIVERY_REPORT_TIME_RANGE.CUSTOM" class="flex items-center gap-2">
+          <input v-model="customDateRange.start" type="date" class="ant-input !py-1 !text-xs" />
+          <span class="text-black/25">-</span>
+          <input v-model="customDateRange.end" type="date" class="ant-input !py-1 !text-xs" />
+        </div>
+      </article>
+
+      <!-- 核心内容区 -->
+      <article class="pro-card overflow-hidden">
+        <!-- Tab 导航 -->
+        <div class="border-b border-black/[0.06] bg-white px-6">
+          <div class="flex gap-8">
+            <button v-for="tab in tabs" :key="tab.id" type="button" @click="activeTab = tab.id" class="px-1 py-4 text-sm transition-all relative" :class="activeTab === tab.id ? 'text-antd-primary font-medium after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-antd-primary' : 'text-black/45 hover:text-black/85'">
+              <div class="flex items-center gap-2">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="tab.icon" /></svg>
+                <span>{{ tab.name }}</span>
+              </div>
+            </button>
           </div>
+        </div>
 
-          <!-- 各合约数据 -->
-          <div>
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="text-lg font-semibold text-slate-900">交割合约数据</h3>
+        <div class="p-6 bg-[#f0f2f5]">
+          <!-- 市场概览 -->
+          <div v-show="activeTab === 'overview'" class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div class="bg-white p-5 rounded-lg border border-black/[0.06] shadow-sm">
+                <div class="flex items-center justify-between mb-3 text-black/45"><h3 class="text-xs font-medium uppercase tracking-wider">24h 交易量</h3><svg class="h-5 w-5 text-antd-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg></div>
+                <p class="text-2xl font-bold text-black/85 font-mono">${{ formatAmount(filteredOverview.totalVolume24h) }}</p>
+                <p class="mt-2 text-[11px] text-black/25">当前结算币种: USDT</p>
+              </div>
+
+              <div class="bg-white p-5 rounded-lg border border-black/[0.06] shadow-sm">
+                <div class="flex items-center justify-between mb-3 text-black/45"><h3 class="text-xs font-medium uppercase tracking-wider">平台总盈亏</h3><svg class="h-5 w-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
+                <p class="text-2xl font-bold font-mono" :class="filteredOverview.platformPnl24h >= 0 ? 'text-emerald-500' : 'text-rose-500'">{{ formatCurrency(filteredOverview.platformPnl24h) }}</p>
+                <p class="mt-2 text-[11px] text-black/25">统计周期: 24小时</p>
+              </div>
+
+              <div class="bg-white p-5 rounded-lg border border-black/[0.06] shadow-sm">
+                <div class="flex items-center justify-between mb-3 text-black/45"><h3 class="text-xs font-medium uppercase tracking-wider">临近交割</h3><svg class="h-5 w-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
+                <p class="text-2xl font-bold text-black/85 font-mono">{{ filteredOverview.nearExpiryContracts }}</p>
+                <p class="mt-2 text-[11px] text-black/25">3天内到期的活跃合约</p>
+              </div>
+
+              <div class="bg-white p-5 rounded-lg border border-black/[0.06] shadow-sm">
+                <div class="flex items-center justify-between mb-3 text-black/45"><h3 class="text-xs font-medium uppercase tracking-wider">系统风险等级</h3><svg class="h-5 w-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg></div>
+                <div class="flex items-center gap-2">
+                  <span class="text-base font-bold" :class="DELIVERY_RISK_LEVEL_CONFIG[filteredOverview.riskLevel].class.replace('bg-', 'text-').replace('text-', 'text-')">{{ DELIVERY_RISK_LEVEL_CONFIG[filteredOverview.riskLevel].text }}</span>
+                </div>
+                <p class="mt-2 text-[11px] text-black/25">基于全平台持仓分布计算</p>
+              </div>
             </div>
-            <div class="bg-white border border-slate-200 rounded-lg overflow-hidden">
-              <div class="max-h-96 overflow-y-auto">
-                <table class="w-full">
-                  <thead class="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
+
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div class="bg-white p-4 rounded border border-black/[0.06]"><p class="text-[11px] text-black/45 mb-1 uppercase">当前总持仓</p><p class="text-lg font-bold text-black/85 font-mono">${{ formatAmount(filteredOverview.totalPosition) }}</p></div>
+              <div class="bg-white p-4 rounded border border-black/[0.06]"><p class="text-[11px] text-black/45 mb-1 uppercase">24h 活跃用户</p><p class="text-lg font-bold text-black/85 font-mono">{{ filteredOverview.activeUsers24h.toLocaleString() }}</p></div>
+              <div class="bg-white p-4 rounded border border-black/[0.06]"><p class="text-[11px] text-black/45 mb-1 uppercase">全场多空比</p><p class="text-lg font-bold text-black/85 font-mono">{{ filteredOverview.longShortRatio.toFixed(2) }}</p></div>
+            </div>
+
+            <section class="bg-white rounded-lg border border-black/[0.06] shadow-sm">
+              <header class="px-6 py-4 border-b border-black/[0.06] flex items-center justify-between"><h3 class="text-sm font-semibold text-black/85">交割合约明细</h3><button class="ant-btn ant-btn-link !text-xs">查看全部</button></header>
+              <div class="overflow-x-auto">
+                <table class="ant-table">
+                  <thead>
                     <tr>
-                      <th class="px-6 py-3 text-left text-xs font-semibold text-slate-900 uppercase">合约</th>
-                      <th class="px-6 py-3 text-center text-xs font-semibold text-slate-900 uppercase">交割时间</th>
-                      <th class="px-6 py-3 text-center text-xs font-semibold text-slate-900 uppercase">状态</th>
-                      <th class="px-6 py-3 text-right text-xs font-semibold text-slate-900 uppercase">持仓</th>
-                      <th class="px-6 py-3 text-right text-xs font-semibold text-slate-900 uppercase">多空比</th>
-                      <th class="px-6 py-3 text-right text-xs font-semibold text-slate-900 uppercase">平台盈亏</th>
-                      <th class="px-6 py-3 text-center text-xs font-semibold text-slate-900 uppercase">风险</th>
+                      <th>合约名称</th>
+                      <th class="text-center">交割时间</th>
+                      <th class="text-center">状态</th>
+                      <th class="text-right">总持仓</th>
+                      <th class="text-right">多空比</th>
+                      <th class="text-right">平台盈亏</th>
+                      <th class="text-center">风险</th>
                     </tr>
                   </thead>
-                  <tbody class="divide-y divide-slate-200">
-                    <tr v-for="contract in filteredContracts" :key="contract.symbol" class="hover:bg-slate-50">
+                  <tbody>
+                    <tr v-for="contract in filteredContracts" :key="contract.symbol" class="group transition-all hover:bg-black/[0.01]">
                       <td class="px-6 py-4">
-                        <div>
-                          <p class="text-sm font-medium text-slate-900">{{ contract.name }}</p>
-                          <span
-                            :class="DELIVERY_CYCLE_TYPE_CONFIG[contract.cycleType].class"
-                            class="inline-flex items-center px-2 py-0.5 mt-1 rounded text-xs font-medium"
-                          >
-                            {{ DELIVERY_CYCLE_TYPE_CONFIG[contract.cycleType].text }}
-                          </span>
-                        </div>
+                        <div class="text-sm font-medium text-black/85">{{ contract.name }}</div>
+                        <span :class="DELIVERY_CYCLE_TYPE_CONFIG[contract.cycleType].class" class="inline-flex items-center px-1.5 py-0.5 mt-1 rounded text-[10px] font-medium">{{ DELIVERY_CYCLE_TYPE_CONFIG[contract.cycleType].text }}</span>
                       </td>
-                      <td class="px-6 py-4 text-center">
-                        <p class="text-sm text-slate-900">{{ contract.expiryDate.split(' ')[0] }}</p>
-                        <p class="text-xs text-slate-500">{{ contract.daysToExpiry }}天后</p>
+                      <td class="text-center">
+                        <div class="text-sm text-black/85 font-mono">{{ contract.expiryDate.split(' ')[0] }}</div>
+                        <div class="text-[11px] text-black/25">{{ contract.daysToExpiry }}天后</div>
                       </td>
-                      <td class="px-6 py-4 text-center">
-                        <span
-                          :class="DELIVERY_CONTRACT_STATUS_CONFIG[contract.status].class"
-                          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                        >
-                          {{ DELIVERY_CONTRACT_STATUS_CONFIG[contract.status].text }}
-                        </span>
+                      <td class="text-center">
+                        <span :class="DELIVERY_CONTRACT_STATUS_CONFIG[contract.status].class" class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium">{{ DELIVERY_CONTRACT_STATUS_CONFIG[contract.status].text }}</span>
                       </td>
-                      <td class="px-6 py-4 text-right">
-                        <p class="text-sm font-medium text-slate-900">${{ formatAmount(contract.position) }}</p>
-                        <p class="text-xs text-slate-500">
-                          多: ${{ formatAmount(contract.longPosition) }} / 
-                          空: ${{ formatAmount(contract.shortPosition) }}
-                        </p>
+                      <td class="text-right">
+                        <div class="text-sm font-medium text-black/85 font-mono">${{ formatAmount(contract.position) }}</div>
+                        <div class="text-[11px] text-black/45 font-mono">L: ${{ formatAmount(contract.longPosition) }} / S: ${{ formatAmount(contract.shortPosition) }}</div>
                       </td>
-                      <td class="px-6 py-4 text-right">
-                        <p class="text-sm font-medium text-slate-900">{{ contract.longShortRatio.toFixed(2) }}</p>
-                      </td>
-                      <td class="px-6 py-4 text-right">
-                        <p :class="contract.platformPnl24h >= 0 ? 'text-emerald-600' : 'text-rose-600'" class="text-sm font-medium">
-                          {{ formatCurrency(contract.platformPnl24h) }}
-                        </p>
-                      </td>
-                      <td class="px-6 py-4 text-center">
-                        <span
-                          :class="DELIVERY_RISK_LEVEL_CONFIG[contract.riskLevel].class"
-                          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border"
-                        >
-                          {{ DELIVERY_RISK_LEVEL_CONFIG[contract.riskLevel].text }}
-                        </span>
-                      </td>
+                      <td class="text-right font-mono text-sm">{{ contract.longShortRatio.toFixed(2) }}</td>
+                      <td class="text-right font-mono text-sm" :class="contract.platformPnl24h >= 0 ? 'text-emerald-500' : 'text-rose-500'">{{ formatCurrency(contract.platformPnl24h) }}</td>
+                      <td class="text-center"><span :class="DELIVERY_RISK_LEVEL_CONFIG[contract.riskLevel].class" class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border">{{ DELIVERY_RISK_LEVEL_CONFIG[contract.riskLevel].text }}</span></td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-            </div>
+            </section>
           </div>
-        </div>
 
-        <!-- 持仓分析 -->
-        <div v-show="activeTab === 'position'" class="space-y-6">
-          <div class="bg-white border border-slate-200 rounded-lg p-6">
-            <h3 class="text-lg font-semibold text-slate-900 mb-4">持仓分布（按到期时间）</h3>
-            <div class="overflow-x-auto">
-              <table class="w-full">
-                <thead class="bg-slate-50">
-                  <tr>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-900">到期时间</th>
-                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-900">多头人数</th>
-                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-900">空头人数</th>
-                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-900">多头持仓</th>
-                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-900">空头持仓</th>
-                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-900">净持仓</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-200">
-                  <tr v-for="item in deliveryExpiryDistribution" :key="item.range" class="hover:bg-slate-50">
-                    <td class="px-4 py-3 text-sm font-medium text-slate-900">{{ item.range }}</td>
-                    <td class="px-4 py-3 text-right text-sm text-slate-700">{{ item.longCount }}</td>
-                    <td class="px-4 py-3 text-right text-sm text-slate-700">{{ item.shortCount }}</td>
-                    <td class="px-4 py-3 text-right text-sm text-emerald-600 font-medium">${{ formatAmount(item.longVolume) }}</td>
-                    <td class="px-4 py-3 text-right text-sm text-rose-600 font-medium">${{ formatAmount(item.shortVolume) }}</td>
-                    <td class="px-4 py-3 text-right text-sm font-medium" 
-                        :class="(item.longVolume - item.shortVolume) >= 0 ? 'text-emerald-600' : 'text-rose-600'">
-                      {{ formatCurrency(item.longVolume - item.shortVolume) }}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- 盈亏分析 -->
-        <div v-show="activeTab === 'pnl'" class="space-y-6">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="bg-white border border-slate-200 rounded-lg p-6">
-              <h3 class="text-lg font-semibold text-slate-900 mb-4">用户盈亏分布</h3>
-              <div class="space-y-3">
-                <div v-for="item in deliveryPnlDistribution" :key="item.range" class="flex items-center justify-between">
-                  <div class="flex-1">
-                    <div class="flex items-center justify-between mb-1">
-                      <span class="text-sm text-slate-700">{{ item.range }}</span>
-                      <span class="text-sm font-medium text-slate-900">{{ item.count }} 人 ({{ item.percentage.toFixed(1) }}%)</span>
-                    </div>
-                    <div class="w-full bg-slate-200 rounded-full h-2">
-                      <div
-                        :class="item.totalPnl >= 0 ? 'bg-emerald-500' : 'bg-rose-500'"
-                        class="h-2 rounded-full transition-all"
-                        :style="{ width: `${item.percentage * 2}%` }"
-                      ></div>
-                    </div>
-                  </div>
-                  <span
-                    :class="item.totalPnl >= 0 ? 'text-emerald-600' : 'text-rose-600'"
-                    class="ml-4 text-sm font-medium min-w-[80px] text-right"
-                  >
-                    {{ formatCurrency(item.totalPnl) }}
-                  </span>
-                </div>
+          <!-- 持仓分析 -->
+          <div v-show="activeTab === 'position'" class="space-y-6">
+            <section class="bg-white rounded-lg border border-black/[0.06] shadow-sm">
+              <header class="px-6 py-4 border-b border-black/[0.06]"><h3 class="text-sm font-semibold text-black/85">持仓到期分布</h3></header>
+              <div class="overflow-x-auto">
+                <table class="ant-table">
+                  <thead>
+                    <tr>
+                      <th>到期范围</th>
+                      <th class="text-right">多头人数</th>
+                      <th class="text-right">空头人数</th>
+                      <th class="text-right">多头持仓</th>
+                      <th class="text-right">空头持仓</th>
+                      <th class="text-right">净持仓 (Delta)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="item in deliveryExpiryDistribution" :key="item.range" class="hover:bg-black/[0.01]">
+                      <td class="text-sm font-medium text-black/85">{{ item.range }}</td>
+                      <td class="text-right font-mono text-black/45">{{ item.longCount }}</td>
+                      <td class="text-right font-mono text-black/45">{{ item.shortCount }}</td>
+                      <td class="text-right font-mono text-emerald-500">${{ formatAmount(item.longVolume) }}</td>
+                      <td class="text-right font-mono text-rose-500">${{ formatAmount(item.shortVolume) }}</td>
+                      <td class="text-right font-mono font-medium" :class="(item.longVolume - item.shortVolume) >= 0 ? 'text-emerald-500' : 'text-rose-500'">{{ formatCurrency(item.longVolume - item.shortVolume) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
-            </div>
-
-            <div class="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-6">
-              <h3 class="text-lg font-semibold text-slate-900 mb-4">平台盈亏统计</h3>
-              <div class="space-y-4">
-                <div class="flex items-center justify-between p-4 bg-white rounded-lg">
-                  <span class="text-sm text-slate-700">平台盈亏</span>
-                  <span class="text-xl font-bold text-emerald-600">{{ formatCurrency(filteredOverview.platformPnl24h) }}</span>
-                </div>
-                <div class="flex items-center justify-between p-4 bg-white rounded-lg">
-                  <span class="text-sm text-slate-700">用户盈亏</span>
-                  <span class="text-xl font-bold text-rose-600">{{ formatCurrency(filteredOverview.userPnl24h) }}</span>
-                </div>
-                <div class="flex items-center justify-between p-4 bg-white rounded-lg">
-                  <span class="text-sm text-slate-700">盈利用户占比</span>
-                  <span class="text-xl font-bold text-slate-900">
-                    {{ ((deliveryPnlDistribution.filter(d => d.range.includes('盈利')).reduce((sum, d) => sum + d.count, 0) / deliveryPnlDistribution.reduce((sum, d) => sum + d.count, 0)) * 100).toFixed(1) }}%
-                  </span>
-                </div>
-              </div>
-            </div>
+            </section>
           </div>
-        </div>
 
-        <!-- 风险监控 -->
-        <div v-show="activeTab === 'risk'" class="space-y-6">
-          <div class="bg-white border border-slate-200 rounded-lg p-6">
-            <h3 class="text-lg font-semibold text-slate-900 mb-4">大户监控</h3>
-            <div class="overflow-x-auto">
-              <table class="w-full">
-                <thead class="bg-slate-50">
-                  <tr>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-900">用户</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-900">类型</th>
-                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-900">总持仓</th>
-                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-900">24h盈亏</th>
-                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-900">临期持仓</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-900">合约</th>
-                    <th class="px-4 py-3 text-center text-xs font-semibold text-slate-900">风险</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-200">
-                  <tr v-for="whale in paginatedWhalesList" :key="whale.userId" class="hover:bg-slate-50">
-                    <td class="px-4 py-3">
-                      <div>
-                        <p class="text-sm font-medium text-slate-900">{{ whale.username }}</p>
-                        <p class="text-xs text-slate-500">{{ whale.userId }}</p>
+          <!-- 盈亏分析 -->
+          <div v-show="activeTab === 'pnl'" class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <section class="bg-white rounded-lg border border-black/[0.06] shadow-sm p-6">
+                <h3 class="text-sm font-semibold text-black/85 mb-6">用户盈亏分布图</h3>
+                <div class="space-y-4">
+                  <div v-for="item in deliveryPnlDistribution" :key="item.range" class="space-y-1.5">
+                    <div class="flex items-center justify-between text-[11px]"><span class="text-black/85">{{ item.range }}</span><span class="text-black/45">{{ item.count }} 人 ({{ item.percentage.toFixed(1) }}%)</span></div>
+                    <div class="flex items-center gap-4">
+                      <div class="flex-1 h-1.5 bg-black/[0.04] rounded-full overflow-hidden">
+                        <div :class="item.totalPnl >= 0 ? 'bg-emerald-500' : 'bg-rose-500'" class="h-full rounded-full transition-all" :style="{ width: `${item.percentage * 2}%` }"></div>
                       </div>
-                    </td>
-                    <td class="px-4 py-3">
-                      <span
-                        :class="DELIVERY_USER_TYPE_CONFIG[whale.type].class"
-                        class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
-                      >
-                        {{ DELIVERY_USER_TYPE_CONFIG[whale.type].icon }} {{ DELIVERY_USER_TYPE_CONFIG[whale.type].text }}
-                      </span>
-                    </td>
-                    <td class="px-4 py-3 text-right">
-                      <p class="text-sm font-medium text-slate-900">${{ formatAmount(whale.totalPosition) }}</p>
-                      <p class="text-xs text-slate-500">
-                        多: ${{ formatAmount(whale.longPosition) }} / 
-                        空: ${{ formatAmount(whale.shortPosition) }}
-                      </p>
-                    </td>
-                    <td class="px-4 py-3 text-right">
-                      <p :class="whale.pnl24h >= 0 ? 'text-emerald-600' : 'text-rose-600'" class="text-sm font-medium">
-                        {{ formatCurrency(whale.pnl24h) }}
-                      </p>
-                      <p :class="whale.pnlRate >= 0 ? 'text-emerald-600' : 'text-rose-600'" class="text-xs">
-                        {{ whale.pnlRate >= 0 ? '+' : '' }}{{ whale.pnlRate.toFixed(1) }}%
-                      </p>
-                    </td>
-                    <td class="px-4 py-3 text-right">
-                      <span class="text-sm font-medium text-slate-900">${{ formatAmount(whale.nearExpiryPositions) }}</span>
-                    </td>
-                    <td class="px-4 py-3">
-                      <div class="flex flex-wrap gap-1">
-                        <span
-                          v-for="contract in whale.contracts.slice(0, 2)"
-                          :key="contract"
-                          class="text-xs text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded"
-                        >
-                          {{ contract }}
-                        </span>
-                        <span v-if="whale.contracts.length > 2" class="text-xs text-slate-500">
-                          +{{ whale.contracts.length - 2 }}
-                        </span>
-                      </div>
-                    </td>
-                    <td class="px-4 py-3 text-center">
-                      <span
-                        :class="DELIVERY_RISK_LEVEL_CONFIG[whale.riskLevel].class"
-                        class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border"
-                      >
-                        {{ DELIVERY_RISK_LEVEL_CONFIG[whale.riskLevel].text }}
-                      </span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <div v-if="whalesTotalPages > 1" class="mt-4 flex items-center justify-center gap-2">
-              <button
-                @click="whalesCurrentPage = Math.max(1, whalesCurrentPage - 1)"
-                :disabled="whalesCurrentPage === 1"
-                class="px-3 py-1 text-sm border border-slate-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
-              >
-                上一页
-              </button>
-              <span class="text-sm text-slate-600">
-                第 {{ whalesCurrentPage }} / {{ whalesTotalPages }} 页
-              </span>
-              <button
-                @click="whalesCurrentPage = Math.min(whalesTotalPages, whalesCurrentPage + 1)"
-                :disabled="whalesCurrentPage === whalesTotalPages"
-                class="px-3 py-1 text-sm border border-slate-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
-              >
-                下一页
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 自动化规则效果 -->
-        <div v-show="activeTab === 'auto-rules'" class="space-y-6">
-          <!-- 关键指标 -->
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div class="bg-gradient-to-br from-violet-50 to-purple-50 rounded-xl border border-violet-200 p-5">
-              <div class="flex items-center justify-between mb-3">
-                <h3 class="text-sm font-semibold text-slate-900">24h触发次数</h3>
-                <svg class="h-7 w-7 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <p class="text-2xl font-bold text-slate-900 mb-1">{{ deliveryAutoRuleStats.totalTriggers24h }}</p>
-              <p class="text-xs text-slate-600">成功: {{ deliveryAutoRuleStats.successTriggers }} / 失败: {{ deliveryAutoRuleStats.failedTriggers }}</p>
-            </div>
-
-            <div class="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-200 p-5">
-              <div class="flex items-center justify-between mb-3">
-                <h3 class="text-sm font-semibold text-slate-900">24h总影响</h3>
-                <svg class="h-7 w-7 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <p class="text-2xl font-bold text-emerald-600 mb-1">{{ formatCurrency(deliveryAutoRuleStats.totalImpact24h) }}</p>
-              <p class="text-xs text-slate-600">平台盈利增加</p>
-            </div>
-
-            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-5">
-              <div class="flex items-center justify-between mb-3">
-                <h3 class="text-sm font-semibold text-slate-900">规则总数</h3>
-                <svg class="h-7 w-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <p class="text-2xl font-bold text-slate-900 mb-1">{{ deliveryAutoRuleStats.totalRules }}</p>
-              <p class="text-xs text-slate-600">启用中: {{ deliveryAutoRuleStats.activeRules }}</p>
-            </div>
-
-            <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-200 p-5">
-              <div class="flex items-center justify-between mb-3">
-                <h3 class="text-sm font-semibold text-slate-900">成功率</h3>
-                <svg class="h-7 w-7 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                </svg>
-              </div>
-              <p class="text-2xl font-bold text-slate-900 mb-1">{{ ((deliveryAutoRuleStats.successTriggers / deliveryAutoRuleStats.totalTriggers24h) * 100).toFixed(1) }}%</p>
-              <p class="text-xs text-slate-600">规则执行成功率</p>
-            </div>
-          </div>
-
-          <!-- 规则性能排行 -->
-          <div class="bg-white border border-slate-200 rounded-lg p-6">
-            <h3 class="text-lg font-semibold text-slate-900 mb-4">规则性能排行</h3>
-            <div class="overflow-x-auto">
-              <table class="w-full">
-                <thead class="bg-slate-50">
-                  <tr>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-900">规则名称</th>
-                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-900">触发次数</th>
-                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-900">成功率</th>
-                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-900">总影响</th>
-                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-900">平均影响</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-900">最近触发</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-200">
-                  <tr v-for="rule in deliveryAutoRuleStats.rulePerformance" :key="rule.ruleId" class="hover:bg-slate-50">
-                    <td class="px-4 py-3">
-                      <div>
-                        <p class="text-sm font-medium text-slate-900">{{ rule.ruleName }}</p>
-                        <p class="text-xs text-slate-500">{{ rule.ruleId }}</p>
-                      </div>
-                    </td>
-                    <td class="px-4 py-3 text-right">
-                      <span class="text-sm font-medium text-slate-900">{{ rule.triggers }}</span>
-                    </td>
-                    <td class="px-4 py-3 text-right">
-                      <span :class="rule.successRate >= 95 ? 'text-emerald-600' : rule.successRate >= 90 ? 'text-amber-600' : 'text-rose-600'" class="text-sm font-medium">
-                        {{ rule.successRate.toFixed(1) }}%
-                      </span>
-                    </td>
-                    <td class="px-4 py-3 text-right">
-                      <span class="text-sm font-medium text-emerald-600">{{ formatCurrency(rule.totalImpact) }}</span>
-                    </td>
-                    <td class="px-4 py-3 text-right">
-                      <span class="text-sm text-slate-700">{{ formatCurrency(rule.avgImpact) }}</span>
-                    </td>
-                    <td class="px-4 py-3">
-                      <span class="text-xs text-slate-600">{{ rule.lastTrigger }}</span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- 操作类型统计 -->
-          <div class="bg-white border border-slate-200 rounded-lg p-6">
-            <h3 class="text-lg font-semibold text-slate-900 mb-4">操作类型统计</h3>
-            <div class="overflow-x-auto">
-              <table class="w-full">
-                <thead class="bg-slate-50">
-                  <tr>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-900">操作类型</th>
-                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-900">执行次数</th>
-                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-900">影响金额</th>
-                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-900">平均影响</th>
-                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-900">平均响应时间</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-200">
-                  <tr v-for="item in deliveryAutoRuleStats.actionsByType" :key="item.action" class="hover:bg-slate-50">
-                    <td class="px-4 py-3">
-                      <span
-                        :class="DELIVERY_RULE_ACTION_CONFIG[item.action]?.class || 'bg-slate-100 text-slate-600'"
-                        class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
-                      >
-                        {{ DELIVERY_RULE_ACTION_CONFIG[item.action]?.text || item.action }}
-                      </span>
-                    </td>
-                    <td class="px-4 py-3 text-right text-sm font-medium text-slate-900">{{ item.count }}</td>
-                    <td class="px-4 py-3 text-right text-sm font-medium"
-                        :class="item.impact >= 0 ? 'text-emerald-600' : 'text-rose-600'">
-                      {{ formatCurrency(item.impact) }}
-                    </td>
-                    <td class="px-4 py-3 text-right text-sm text-slate-700">
-                      {{ formatCurrency(item.impact / item.count) }}
-                    </td>
-                    <td class="px-4 py-3 text-right text-sm text-slate-700">
-                      {{ item.avgResponseTime }}s
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- 规则效果对比 -->
-          <div class="bg-white border border-slate-200 rounded-lg p-6">
-            <h3 class="text-lg font-semibold text-slate-900 mb-4">规则效果对比</h3>
-            <div class="space-y-4">
-              <div v-for="item in deliveryAutoRuleEffectComparison" :key="item.contract" class="p-4 border border-slate-200 rounded-lg">
-                <div class="flex items-center justify-between mb-3">
-                  <h4 class="font-semibold text-slate-900">{{ item.contract }}</h4>
-                  <div class="flex items-center gap-2">
-                    <span class="text-sm px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 font-medium">
-                      改善 {{ formatCurrency(item.improvement) }}
-                    </span>
-                    <div class="flex gap-1">
-                      <span v-for="ruleId in item.rulesApplied" :key="ruleId" class="text-xs px-2 py-0.5 rounded bg-violet-100 text-violet-700 font-medium">
-                        {{ ruleId }}
-                      </span>
+                      <span :class="item.totalPnl >= 0 ? 'text-emerald-500' : 'text-rose-500'" class="text-xs font-mono font-medium min-w-[70px] text-right">{{ formatCurrency(item.totalPnl) }}</span>
                     </div>
                   </div>
                 </div>
-                <div class="grid grid-cols-2 gap-4">
-                  <div>
-                    <p class="text-xs text-slate-500 mb-2">规则启用前</p>
-                    <div class="space-y-1 text-sm">
-                      <div class="flex justify-between">
-                        <span class="text-slate-600">平台盈亏:</span>
-                        <span :class="item.beforeRules.platformPnl >= 0 ? 'text-emerald-600' : 'text-rose-600'" class="font-medium">
-                          {{ formatCurrency(item.beforeRules.platformPnl) }}
-                        </span>
-                      </div>
-                      <div class="flex justify-between">
-                        <span class="text-slate-600">多空比:</span>
-                        <span class="font-medium text-slate-900">{{ item.beforeRules.longShortRatio.toFixed(2) }}</span>
-                      </div>
-                      <div class="flex justify-between">
-                        <span class="text-slate-600">平均盈亏:</span>
-                        <span :class="item.beforeRules.avgProfitPerTrade >= 0 ? 'text-emerald-600' : 'text-rose-600'" class="font-medium">
-                          {{ item.beforeRules.avgProfitPerTrade >= 0 ? '+' : '' }}{{ item.beforeRules.avgProfitPerTrade.toFixed(2) }} USDT
-                        </span>
-                      </div>
-                      <div class="flex justify-between">
-                        <span class="text-slate-600">风险等级:</span>
-                        <span
-                          :class="DELIVERY_RISK_LEVEL_CONFIG[item.beforeRules.riskLevel].class"
-                          class="text-xs px-2 py-0.5 rounded"
-                        >
-                          {{ DELIVERY_RISK_LEVEL_CONFIG[item.beforeRules.riskLevel].text }}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <p class="text-xs text-slate-500 mb-2">规则启用后</p>
-                    <div class="space-y-1 text-sm">
-                      <div class="flex justify-between">
-                        <span class="text-slate-600">平台盈亏:</span>
-                        <span :class="item.afterRules.platformPnl >= 0 ? 'text-emerald-600' : 'text-rose-600'" class="font-medium">
-                          {{ formatCurrency(item.afterRules.platformPnl) }}
-                        </span>
-                      </div>
-                      <div class="flex justify-between">
-                        <span class="text-slate-600">多空比:</span>
-                        <span class="font-medium text-slate-900">{{ item.afterRules.longShortRatio.toFixed(2) }}</span>
-                      </div>
-                      <div class="flex justify-between">
-                        <span class="text-slate-600">平均盈亏:</span>
-                        <span :class="item.afterRules.avgProfitPerTrade >= 0 ? 'text-emerald-600' : 'text-rose-600'" class="font-medium">
-                          {{ item.afterRules.avgProfitPerTrade >= 0 ? '+' : '' }}{{ item.afterRules.avgProfitPerTrade.toFixed(2) }} USDT
-                        </span>
-                      </div>
-                      <div class="flex justify-between">
-                        <span class="text-slate-600">风险等级:</span>
-                        <span
-                          :class="DELIVERY_RISK_LEVEL_CONFIG[item.afterRules.riskLevel].class"
-                          class="text-xs px-2 py-0.5 rounded"
-                        >
-                          {{ DELIVERY_RISK_LEVEL_CONFIG[item.afterRules.riskLevel].text }}
-                        </span>
-                      </div>
+              </section>
+
+              <section class="bg-white rounded-lg border border-black/[0.06] shadow-sm p-6 flex flex-col justify-center gap-6">
+                <div class="p-4 bg-black/[0.01] rounded-lg border border-black/[0.03] flex items-center justify-between">
+                  <div class="flex items-center gap-3"><div class="w-2 h-2 rounded-full bg-emerald-500"></div><span class="text-sm text-black/45">平台盈利 (结算)</span></div>
+                  <span class="text-xl font-bold text-emerald-500 font-mono">{{ formatCurrency(filteredOverview.platformPnl24h) }}</span>
+                </div>
+                <div class="p-4 bg-black/[0.01] rounded-lg border border-black/[0.03] flex items-center justify-between">
+                  <div class="flex items-center gap-3"><div class="w-2 h-2 rounded-full bg-rose-500"></div><span class="text-sm text-black/45">用户亏损 (返还)</span></div>
+                  <span class="text-xl font-bold text-rose-500 font-mono">{{ formatCurrency(filteredOverview.userPnl24h) }}</span>
+                </div>
+                <div class="p-4 bg-black/[0.01] rounded-lg border border-black/[0.03] flex items-center justify-between">
+                  <div class="flex items-center gap-3"><div class="w-2 h-2 rounded-full bg-antd-primary"></div><span class="text-sm text-black/45">盈利用户占比</span></div>
+                  <span class="text-xl font-bold text-black/85 font-mono">{{ ((deliveryPnlDistribution.filter(d => d.range.includes('盈利')).reduce((sum, d) => sum + d.count, 0) / deliveryPnlDistribution.reduce((sum, d) => sum + d.count, 0)) * 100).toFixed(1) }}%</span>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <!-- 风险监控 -->
+          <div v-show="activeTab === 'risk'" class="space-y-6">
+            <section class="bg-white rounded-lg border border-black/[0.06] shadow-sm">
+              <header class="px-6 py-4 border-b border-black/[0.06]"><h3 class="text-sm font-semibold text-black/85">大户异常监控</h3></header>
+              <div class="overflow-x-auto">
+                <table class="ant-table">
+                  <thead>
+                    <tr>
+                      <th>用户信息</th>
+                      <th class="text-center">账号类型</th>
+                      <th class="text-right">总持仓</th>
+                      <th class="text-right">24h 盈亏</th>
+                      <th class="text-right">临期敞口</th>
+                      <th>主要合约</th>
+                      <th class="text-center">风险等级</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="whale in paginatedWhalesList" :key="whale.userId" class="hover:bg-black/[0.01]">
+                      <td><div class="text-sm font-medium text-black/85">{{ whale.username }}</div><div class="text-[11px] text-black/45 font-mono">{{ whale.userId }}</div></td>
+                      <td class="text-center"><span :class="DELIVERY_USER_TYPE_CONFIG[whale.type].class" class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium">{{ DELIVERY_USER_TYPE_CONFIG[whale.type].icon }} {{ DELIVERY_USER_TYPE_CONFIG[whale.type].text }}</span></td>
+                      <td class="text-right"><div class="text-sm font-medium text-black/85 font-mono">${{ formatAmount(whale.totalPosition) }}</div><div class="text-[11px] text-black/45 font-mono">L: ${{ formatAmount(whale.longPosition) }} / S: ${{ formatAmount(whale.shortPosition) }}</div></td>
+                      <td class="text-right"><div :class="whale.pnl24h >= 0 ? 'text-emerald-500' : 'text-rose-500'" class="text-sm font-medium font-mono">{{ formatCurrency(whale.pnl24h) }}</div><div :class="whale.pnlRate >= 0 ? 'text-emerald-500' : 'text-rose-500'" class="text-[11px] font-mono">{{ whale.pnlRate >= 0 ? '+' : '' }}{{ whale.pnlRate.toFixed(1) }}%</div></td>
+                      <td class="text-right font-mono text-sm font-medium">${{ formatAmount(whale.nearExpiryPositions) }}</td>
+                      <td><div class="flex flex-wrap gap-1"><span v-for="contract in whale.contracts.slice(0, 2)" :key="contract" class="text-[10px] text-black/45 bg-black/[0.02] px-1.5 py-0.5 rounded border border-black/[0.05]">{{ contract }}</span><span v-if="whale.contracts.length > 2" class="text-[10px] text-black/25">+{{ whale.contracts.length - 2 }}</span></div></td>
+                      <td class="text-center"><span :class="DELIVERY_RISK_LEVEL_CONFIG[whale.riskLevel].class" class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border">{{ DELIVERY_RISK_LEVEL_CONFIG[whale.riskLevel].text }}</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <footer v-if="whalesTotalPages > 1" class="px-6 py-4 border-t border-black/[0.06] flex items-center justify-center gap-4">
+                <button @click="whalesCurrentPage = Math.max(1, whalesCurrentPage - 1)" :disabled="whalesCurrentPage === 1" class="ant-btn !py-1 !px-3 disabled:opacity-30">上一页</button>
+                <span class="text-xs text-black/45">第 {{ whalesCurrentPage }} / {{ whalesTotalPages }} 页</span>
+                <button @click="whalesCurrentPage = Math.min(whalesTotalPages, whalesCurrentPage + 1)" :disabled="whalesCurrentPage === whalesTotalPages" class="ant-btn !py-1 !px-3 disabled:opacity-30">下一页</button>
+              </footer>
+            </section>
+          </div>
+
+          <!-- 自动化规则效果 -->
+          <div v-show="activeTab === 'auto-rules'" class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div class="bg-white p-5 rounded-lg border border-black/[0.06] shadow-sm"><div class="flex items-center justify-between mb-3 text-black/45"><h3 class="text-xs font-medium uppercase tracking-wider">24h 触发次数</h3><svg class="h-5 w-5 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div><p class="text-2xl font-bold text-black/85 font-mono">{{ deliveryAutoRuleStats.totalTriggers24h }}</p><p class="mt-2 text-[11px] text-black/25">成功: {{ deliveryAutoRuleStats.successTriggers }} / 失败: {{ deliveryAutoRuleStats.failedTriggers }}</p></div>
+              <div class="bg-white p-5 rounded-lg border border-black/[0.06] shadow-sm"><div class="flex items-center justify-between mb-3 text-black/45"><h3 class="text-xs font-medium uppercase tracking-wider">规则总影响</h3><svg class="h-5 w-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div><p class="text-2xl font-bold text-emerald-500 font-mono">{{ formatCurrency(deliveryAutoRuleStats.totalImpact24h) }}</p><p class="mt-2 text-[11px] text-black/25">平台盈利净增额 (24h)</p></div>
+              <div class="bg-white p-5 rounded-lg border border-black/[0.06] shadow-sm"><div class="flex items-center justify-between mb-3 text-black/45"><h3 class="text-xs font-medium uppercase tracking-wider">启用规则数</h3><svg class="h-5 w-5 text-antd-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg></div><p class="text-2xl font-bold text-black/85 font-mono">{{ deliveryAutoRuleStats.activeRules }}</p><p class="mt-2 text-[11px] text-black/25">总规则数: {{ deliveryAutoRuleStats.totalRules }}</p></div>
+              <div class="bg-white p-5 rounded-lg border border-black/[0.06] shadow-sm"><div class="flex items-center justify-between mb-3 text-black/45"><h3 class="text-xs font-medium uppercase tracking-wider">执行成功率</h3><svg class="h-5 w-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div><p class="text-2xl font-bold text-black/85 font-mono">{{ ((deliveryAutoRuleStats.successTriggers / deliveryAutoRuleStats.totalTriggers24h) * 100).toFixed(1) }}%</p><p class="mt-2 text-[11px] text-black/25">24小时规则运行健康度</p></div>
+            </div>
+
+            <section class="bg-white rounded-lg border border-black/[0.06] shadow-sm">
+              <header class="px-6 py-4 border-b border-black/[0.06]"><h3 class="text-sm font-semibold text-black/85">规则性能排行榜</h3></header>
+              <div class="overflow-x-auto">
+                <table class="ant-table">
+                  <thead>
+                    <tr>
+                      <th>规则名称</th>
+                      <th class="text-right">触发次数</th>
+                      <th class="text-right">成功率</th>
+                      <th class="text-right">总影响</th>
+                      <th class="text-right">平均影响</th>
+                      <th>最近触发</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="rule in deliveryAutoRuleStats.rulePerformance" :key="rule.ruleId" class="hover:bg-black/[0.01]">
+                      <td><div class="text-sm font-medium text-black/85">{{ rule.ruleName }}</div><div class="text-[11px] text-black/45 font-mono">{{ rule.ruleId }}</div></td>
+                      <td class="text-right font-mono text-sm">{{ rule.triggers }}</td>
+                      <td class="text-right font-mono text-sm" :class="rule.successRate >= 95 ? 'text-emerald-500' : 'text-amber-500'">{{ rule.successRate.toFixed(1) }}%</td>
+                      <td class="text-right font-mono text-sm text-emerald-500 font-medium">{{ formatCurrency(rule.totalImpact) }}</td>
+                      <td class="text-right font-mono text-sm text-black/45">{{ formatCurrency(rule.avgImpact) }}</td>
+                      <td class="text-xs text-black/45">{{ rule.lastTrigger }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <section class="bg-white rounded-lg border border-black/[0.06] shadow-sm">
+                <header class="px-6 py-4 border-b border-black/[0.06]"><h3 class="text-sm font-semibold text-black/85">操作类型分布</h3></header>
+                <div class="overflow-x-auto">
+                  <table class="ant-table">
+                    <thead>
+                      <tr>
+                        <th>类型</th>
+                        <th class="text-right">次数</th>
+                        <th class="text-right">影响</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="item in deliveryAutoRuleStats.actionsByType" :key="item.action">
+                        <td><span :class="DELIVERY_RULE_ACTION_CONFIG[item.action]?.class || 'bg-black/5 text-black/45'" class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium">{{ DELIVERY_RULE_ACTION_CONFIG[item.action]?.text || item.action }}</span></td>
+                        <td class="text-right font-mono text-sm">{{ item.count }}</td>
+                        <td class="text-right font-mono text-sm" :class="item.impact >= 0 ? 'text-emerald-500' : 'text-rose-500'">{{ formatCurrency(item.impact) }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+
+              <section class="bg-white rounded-lg border border-black/[0.06] shadow-sm p-6">
+                <h3 class="text-sm font-semibold text-black/85 mb-4">规则应用效果对比</h3>
+                <div class="space-y-4">
+                  <div v-for="item in deliveryAutoRuleEffectComparison" :key="item.contract" class="p-4 border border-black/[0.06] rounded-lg bg-black/[0.01]">
+                    <div class="flex items-center justify-between mb-3"><h4 class="text-sm font-bold text-black/85">{{ item.contract }}</h4><span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-bold">改善 {{ formatCurrency(item.improvement) }}</span></div>
+                    <div class="grid grid-cols-2 gap-4 text-[11px]">
+                      <div class="space-y-1"><p class="text-black/25 mb-1">规则启用前</p><div class="flex justify-between"><span>平台盈亏:</span><span :class="item.beforeRules.platformPnl >= 0 ? 'text-emerald-500' : 'text-rose-500'">{{ formatCurrency(item.beforeRules.platformPnl) }}</span></div><div class="flex justify-between"><span>风险等级:</span><span :class="DELIVERY_RISK_LEVEL_CONFIG[item.beforeRules.riskLevel].class" class="px-1.5 py-0.5 rounded">{{ DELIVERY_RISK_LEVEL_CONFIG[item.beforeRules.riskLevel].text }}</span></div></div>
+                      <div class="space-y-1"><p class="text-black/25 mb-1">规则启用后</p><div class="flex justify-between"><span>平台盈亏:</span><span :class="item.afterRules.platformPnl >= 0 ? 'text-emerald-500' : 'text-rose-500'">{{ formatCurrency(item.afterRules.platformPnl) }}</span></div><div class="flex justify-between"><span>风险等级:</span><span :class="DELIVERY_RISK_LEVEL_CONFIG[item.afterRules.riskLevel].class" class="px-1.5 py-0.5 rounded">{{ DELIVERY_RISK_LEVEL_CONFIG[item.afterRules.riskLevel].text }}</span></div></div>
                     </div>
                   </div>
                 </div>
-              </div>
+              </section>
             </div>
           </div>
         </div>
-
-
-      </div>
+      </article>
     </div>
-  </section>
+  </div>
 </template>
+
+<style scoped>
+.pro-card {
+  @apply bg-white rounded-lg;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+}
+</style>

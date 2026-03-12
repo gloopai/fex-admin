@@ -29,7 +29,7 @@ watch(
 
     <div class="flex min-w-0 flex-1 flex-col">
       <AppHeader @toggle-menu="mobileMenuOpen = !mobileMenuOpen" />
-      <main class="min-h-0 flex-1 overflow-auto bg-white px-4 py-4 md:px-8 md:py-6">
+      <main class="min-h-0 flex-1 overflow-auto bg-[#f0f2f5] px-4 py-4 md:px-8 md:py-6">
         <RouterView />
       </main>
     </div>

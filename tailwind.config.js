@@ -4,6 +4,17 @@ export default {
   theme: {
     extend: {
       colors: {
+        antd: {
+          primary: '#1677ff',
+          'primary-hover': '#4096ff',
+          'primary-active': '#0958d9',
+          'bg-layout': '#f5f5f5',
+          'bg-container': '#ffffff',
+          'sidebar-dark': '#001529',
+          'sidebar-dark-item': '#001529',
+          'sidebar-dark-item-active': '#1677ff',
+          'sidebar-light': '#ffffff'
+        },
         brand: {
           50: '#eef7ff',
           100: '#daeefe',
