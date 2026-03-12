@@ -69,7 +69,6 @@ export const navTree = [
     icon: 'exchange',
     children: [
       { title: '产品管理', path: '/spot/products' },
-      { title: '交易对管理', path: '/spot/symbols' },
       { title: '订单管理', path: '/spot/orders' }
     ]
   },
@@ -117,6 +116,15 @@ export const navTree = [
       { title: '收益调整', path: '/ai-quant/yield-adjustment' },
       { title: '调控管理', path: '/ai-quant/control' },
       { title: '规则说明', path: '/ai-quant/rules' }
+    ]
+  },
+
+  {
+    title: '系统设置',
+    icon: 'spark',
+    children: [
+      { title: '交易对管理', path: '/spot/symbols' },
+      { title: '错误码管理', path: '/system/error-codes' }
     ]
   },
  

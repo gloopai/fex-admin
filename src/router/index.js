@@ -382,6 +382,13 @@ const routes = [
         name: 'agent-referral-statistics',
         component: () => import('../pages/agent/ReferralStatisticsPage.vue')
       },
+
+      {
+        path: 'system/error-codes',
+        name: 'system-error-codes',
+        component: () => import('../pages/system/ErrorCodePage.vue')
+      },
+
       // 兼容旧路由
       {
         path: 'referral',
