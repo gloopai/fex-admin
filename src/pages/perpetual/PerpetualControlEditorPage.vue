@@ -22,6 +22,19 @@ const contracts = ref(createPerpetualControlContractsMock())
 
 const keyword = ref('')
 
+const summary = computed(() => {
+  const total = contracts.value.length
+  const running = contracts.value.filter((item) => item.status === PERP_CONTROL_CONTRACT_STATUS.RUNNING).length
+  const autoTriggerOn = contracts.value.filter((item) => item.config?.autoTriggerEnabled).length
+  const enabledRules = contracts.value.reduce((sum, item) => sum + (item.rules || []).filter((r) => r.enabled).length, 0)
+  return [
+    { label: '合约数', value: total },
+    { label: '线控中', value: running },
+    { label: '自动触发开', value: autoTriggerOn },
+    { label: '启用规则', value: enabledRules }
+  ]
+})
+
 const pagination = reactive({
   currentPage: 1,
   pageSize: 5

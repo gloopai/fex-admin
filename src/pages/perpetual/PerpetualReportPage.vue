@@ -16,11 +16,12 @@ import {
   positionTrendData,
   pnlTrendData,
   volumeTrendData,
-  controlTriggerStats,
   riskAlerts,
-  controlEffectComparison,
   actionSuggestions
 } from '../../mock/perpetualReport'
+import {
+  createPerpetualControlContractsMock,
+} from '../../mock/perpetualControl'
 
 // 时间范围
 const timeRange = ref(REPORT_TIME_RANGE.TODAY)
@@ -28,17 +29,40 @@ const customDateRange = ref({ start: '', end: '' })
 
 // 合约选择
 const selectedContract = ref('ALL') // ALL 或具体合约symbol
-const contractOptions = computed(() => [
-  { value: 'ALL', label: '全部合约' },
-  ...contractsData.map(c => ({ value: c.symbol, label: c.name }))
-])
 
 // 当前激活的标签
-const activeTab = ref('overview') // overview, position, pnl, risk, control
+const activeTab = ref('overview') // overview, position, pnl, risk
 
 // 市场概览数据
 const overview = ref(marketOverviewData)
 const contracts = ref(contractsData)
+const controlContracts = ref(createPerpetualControlContractsMock())
+
+const contractOptions = computed(() => {
+  const options = [{ value: 'ALL', label: '全部合约' }]
+  const seen = new Set()
+
+  for (const c of contractsData) {
+    seen.add(c.symbol)
+    options.push({ value: c.symbol, label: c.name })
+  }
+
+  for (const c of controlContracts.value) {
+    if (seen.has(c.symbol)) continue
+    seen.add(c.symbol)
+    options.push({ value: c.symbol, label: c.alias || c.symbol })
+  }
+
+  return options
+})
+
+const controlContractBySymbol = computed(() => {
+  const map = new Map()
+  for (const contract of controlContracts.value) {
+    map.set(contract.symbol, contract)
+  }
+  return map
+})
 
 // 根据选择的合约筛选数据
 const filteredContracts = computed(() => {
@@ -46,6 +70,24 @@ const filteredContracts = computed(() => {
     return contracts.value
   }
   return contracts.value.filter(c => c.symbol === selectedContract.value)
+})
+
+const filteredContractsWithControl = computed(() => {
+  return filteredContracts.value.map((contract) => {
+    const controlContract = controlContractBySymbol.value.get(contract.symbol) || null
+    const enabledRules = controlContract ? (controlContract.rules || []).filter((r) => r.enabled).length : 0
+    const ruleCount = controlContract ? (controlContract.rules || []).length : 0
+    return {
+      ...contract,
+      controlContract,
+      controlConfigured: Boolean(controlContract),
+      controlRunning: controlContract?.status === 'running',
+      controlPaused: controlContract?.status === 'paused',
+      controlAutoTriggerEnabled: Boolean(controlContract?.config?.autoTriggerEnabled),
+      controlEnabledRules: enabledRules,
+      controlRuleCount: ruleCount
+    }
+  })
 })
 
 // 筛选后的汇总数据
@@ -84,14 +126,6 @@ const filteredRiskAlerts = computed(() => {
     return riskAlerts
   }
   return riskAlerts.filter(a => a.contract === selectedContract.value)
-})
-
-// 筛选后的线控触发统计
-const filteredControlTriggerStats = computed(() => {
-  if (selectedContract.value === 'ALL') {
-    return controlTriggerStats
-  }
-  return controlTriggerStats.filter(s => s.contractSymbol === selectedContract.value)
 })
 
 // 筛选后的大户列表
@@ -198,9 +232,52 @@ const tabs = [
   { id: 'overview', name: '市场概览', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
   { id: 'position', name: '持仓分析', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
   { id: 'pnl', name: '盈亏分析', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-  { id: 'risk', name: '风险监控', icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' },
-  { id: 'control', name: '线控效果', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' }
+  { id: 'risk', name: '风险监控', icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' }
 ]
+
+const reportModuleKeyPoints = {
+  filter: [
+    '先选合约：ALL 用来看“哪个合约更该先管”，单个合约用来调参数',
+    '再选时间：看的是短时波动还是持续问题，也要和规则时间窗对齐'
+  ],
+  overviewKeyMetrics: [
+    '交易量：合约有多活跃，能承受多大“摩擦”（偏移/滑点/延迟）',
+    '平台盈亏：线控有没有起作用，亏损扩大就该加码，盈利稳定可放松',
+    '风险等级：把多项指标合成一个档位，方便快速决定线控力度'
+  ],
+  overviewSecondary: [
+    '总持仓：盘子越大，调同样幅度对盈亏影响越大，也更敏感',
+    '活跃用户：看线控是否把用户“劝退”了，摩擦太大可能会掉活跃',
+    '多空比：看是否一边倒，决定价格应该往哪边偏移更合适',
+    '平均杠杆：杠杆越高越容易连环爆仓，需要更保守的策略'
+  ],
+  overviewContractsTable: [
+    '先排优先级：优先处理亏损大、单边明显、杠杆集中的合约',
+    '再控副作用：交易量/活跃高的合约别下手太重，避免影响主力盘',
+    '看是否真在执行：线控状态/规则数能确认不是“只看报表没落地”',
+    '同一合约对比多空与持仓变化：用来判断偏移方向和力度要不要改'
+  ],
+  positionLeverageDistribution: [
+    '先看风险集中在哪档杠杆：高杠杆那一档通常最该先控',
+    '净持仓是关键指标：用来校准“净持仓触发”类规则的阈值',
+    '高杠杆 + 单边时先上硬措施：降最大杠杆、加延迟、加滑点'
+  ],
+  pnlUserDistribution: [
+    '先看赚钱是不是集中在少数人/少数区间：集中越明显越像被“针对”',
+    '如果盈利很集中：更适合用盈亏比触发，在短时间内加点摩擦止损',
+    '如果大家都亏/都赚：多半是结构性问题，要结合净持仓/波动率一起看'
+  ],
+  pnlPlatformStats: [
+    '平台盈亏和用户盈亏通常是对着的：用来检验线控是否把风险拉回来了',
+    '平台持续亏：优先加码（逆势偏移、加滑点、降杠杆、缩短触发窗）',
+    '平台赚钱但活跃掉了：可以逐步减摩擦，把交易量拉回来'
+  ],
+  riskWhales: [
+    '看大户持仓与方向：谁可能把净敞口带偏，谁就是重点关注对象',
+    '看大户杠杆：高杠杆更容易引发连环爆仓，优先考虑降杠杆/加延迟',
+    '看大户盈亏与盈亏率：找出持续高盈利/高频特征，方便把阈值设得更贴近实际'
+  ]
+}
 
 // 刷新数据
 const refreshData = () => {
@@ -255,6 +332,12 @@ const openRiskHelpModal = () => {
     </div>
 
     <!-- 筛选条件 -->
+    <!--
+      用途：把“线控调控”从全局决策切换到“按合约/按时间窗口”的精细化决策。
+      - 合约=ALL：用于挑出需要重点干预的合约池（优先处理亏损/单边/高杠杆集中的合约）。
+      - 合约=单一：用于落到具体参数（价格偏移/滑点/延迟/最大杠杆）和规则阈值的微调。
+      - 时间范围：对应线控规则的时间窗（如 1/5/15min），用于判断触发是否“短时异常”还是“持续结构性风险”。
+    -->
     <div class="bg-white rounded-xl border border-slate-200 p-4">
       <div class="flex items-center gap-6 flex-wrap">
         <!-- 合约选择 -->
@@ -306,6 +389,19 @@ const openRiskHelpModal = () => {
         </div>
       </div>
     </div>
+    <!-- <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+      <div class="flex items-start gap-3">
+        <svg class="h-5 w-5 text-slate-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+        </svg>
+        <div class="flex-1">
+          <p class="font-semibold text-slate-900 mb-1">要点</p>
+          <ul class="list-disc list-inside space-y-1">
+            <li v-for="(item, idx) in reportModuleKeyPoints.filter" :key="idx">{{ item }}</li>
+          </ul>
+        </div>
+      </div>
+    </div> -->
 
     <!-- 标签导航 -->
     <div class="bg-white rounded-xl border border-slate-200">
@@ -335,7 +431,13 @@ const openRiskHelpModal = () => {
         <!-- 市场概览 -->
         <div v-show="activeTab === 'overview'" class="space-y-6">
           <!-- 关键指标卡片 -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!--
+            这组指标用于“是否需要启用/加码线控”的快速判定：
+            - 24h 交易量：衡量流动性与可承受的交易摩擦；低流动性时，过高的滑点/偏移更容易造成用户流失与异常成交。
+            - 平台盈亏：线控目标函数的直接反馈；平台亏损扩大时，通常需要提高逆势偏移/滑点或降低最大杠杆来止损。
+            - 风险等级：把多维指标压缩成档位，便于选择“温和/中等/强力/紧急”的线控强度（详见风险评估标准弹窗）。
+          -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-6">
               <div class="flex items-center justify-between mb-4">
                 <h3 class="text-sm font-semibold text-slate-900">24h 交易量</h3>
@@ -359,9 +461,9 @@ const openRiskHelpModal = () => {
             </div>
 
             <!-- 风险等级 - 已隐藏，让运营人员根据数据自行判断 -->
-            <div 
+            <!-- <div 
               :class="[
-                'rounded-xl p-6 bg-gradient-to-br',
+                'rounded-xl p-6 bg-gradient-to-br hidden',
                 RISK_LEVEL_CONFIG[filteredOverview.riskLevel].color === 'emerald' 
                   ? 'from-emerald-50 to-teal-50 border border-emerald-200' 
                   : RISK_LEVEL_CONFIG[filteredOverview.riskLevel].color === 'amber'
@@ -371,7 +473,7 @@ const openRiskHelpModal = () => {
                   : 'from-rose-50 to-red-50 border border-rose-200'
               ]"
             >
-              <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center justify-between mb-4 hi">
                 <div class="flex items-center gap-2">
                   <h3 class="text-sm font-semibold text-slate-900">风险等级</h3>
                   <button
@@ -419,10 +521,23 @@ const openRiskHelpModal = () => {
                   {{ RISK_LEVEL_CONFIG[filteredOverview.riskLevel].text }}
                 </span>
               </div>
-            </div>
+            </div> -->
           </div>
+          <!-- <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+            <p class="font-semibold text-slate-900 mb-1">要点</p>
+            <ul class="list-disc list-inside space-y-1">
+              <li v-for="(item, idx) in reportModuleKeyPoints.overviewKeyMetrics" :key="idx">{{ item }}</li>
+            </ul>
+          </div> -->
 
           <!-- 次要指标 -->
+          <!--
+            次要指标用于“解释原因 + 校准参数”的辅助判断：
+            - 总持仓：决定风险敞口规模；持仓越大，偏移/滑点同等幅度带来的盈亏影响越大。
+            - 活跃用户：衡量线控对交易活跃度的影响；活跃度下滑可能意味着摩擦过强或行情低迷。
+            - 多空比：判断单边风险；多头过重/空头过重时，优先使用“逆势偏移”引导对手盘、降低净敞口。
+            - 平均杠杆：判断爆仓链式风险与平台穿仓风险；杠杆偏高时可下调最大杠杆、增加延迟/滑点抑制冲动交易。
+          -->
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div class="bg-white border border-slate-200 rounded-lg p-4">
               <p class="text-sm text-slate-600 mb-1">总持仓</p>
@@ -441,6 +556,12 @@ const openRiskHelpModal = () => {
               <p class="text-xl font-bold text-slate-900">{{ filteredOverview.avgLeverage.toFixed(1) }}x</p>
             </div>
           </div>
+          <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+            <p class="font-semibold text-slate-900 mb-1">要点</p>
+            <ul class="list-disc list-inside space-y-1">
+              <li v-for="(item, idx) in reportModuleKeyPoints.overviewSecondary" :key="idx">{{ item }}</li>
+            </ul>
+          </div>
 
           <!-- 各合约数据 -->
           <div>
@@ -453,6 +574,13 @@ const openRiskHelpModal = () => {
                 当前仅显示 {{ contractOptions.find(c => c.value === selectedContract)?.label }} 的数据
               </span>
             </div>
+            <!--
+              这张表用于“找出需要优先调控的合约 + 复核线控是否已覆盖”：
+              - 24h交易量/活跃用户：判断该合约的业务重要性与可接受摩擦上限。
+              - 持仓(多/空)/多空比：决定偏移方向（逆势）与净敞口止损优先级。
+              - 平台盈亏：决定线控强度；持续亏损合约优先加大滑点/偏移或降低最大杠杆。
+              - 线控状态/自动触发/规则数：确认“可执行性”，避免只看风控侧指标却未落地到线控配置。
+            -->
             <div class="bg-white border border-slate-200 rounded-lg overflow-hidden">
               <div class="max-h-96 overflow-y-auto">
                 <table class="w-full">
@@ -469,7 +597,7 @@ const openRiskHelpModal = () => {
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200">
-                  <tr v-for="contract in filteredContracts" :key="contract.symbol" class="hover:bg-slate-50">
+                  <tr v-for="contract in filteredContractsWithControl" :key="contract.symbol" class="hover:bg-slate-50">
                     <td class="px-6 py-4">
                       <div>
                         <p class="text-sm font-medium text-slate-900">{{ contract.name }}</p>
@@ -498,12 +626,34 @@ const openRiskHelpModal = () => {
                       <p class="text-sm font-medium text-slate-900">{{ contract.activeUsers }}</p>
                     </td>
                     <td class="px-6 py-4 text-center">
-                      <span
-                        :class="contract.controlActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'"
-                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                      >
-                        {{ contract.controlActive ? '开启' : '关闭' }}
-                      </span>
+                      <div class="flex flex-col items-center gap-1">
+                        <span
+                          v-if="!contract.controlConfigured"
+                          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600"
+                        >
+                          未配置
+                        </span>
+                        <span
+                          v-else
+                          :class="contract.controlRunning ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'"
+                          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                        >
+                          {{ contract.controlRunning ? '线控中' : '暂停' }}
+                        </span>
+                        <span
+                          v-if="contract.controlConfigured"
+                          :class="contract.controlAutoTriggerEnabled ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-slate-600'"
+                          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                        >
+                          {{ contract.controlAutoTriggerEnabled ? '自动触发开' : '自动触发关' }}
+                        </span>
+                        <span
+                          v-if="contract.controlConfigured"
+                          class="text-[11px] text-slate-500"
+                        >
+                          规则 {{ contract.controlEnabledRules }}/{{ contract.controlRuleCount }}
+                        </span>
+                      </div>
                     </td>
                     <!-- 风险等级已隐藏 -->
                     <!-- <td class="px-6 py-4 text-center">
@@ -519,13 +669,24 @@ const openRiskHelpModal = () => {
               </table>
               </div>
             </div>
-            <div v-if="selectedContract === 'ALL' && filteredContracts.length > 5" class="mt-2 text-center">
+            <div v-if="selectedContract === 'ALL' && filteredContractsWithControl.length > 5" class="mt-2 text-center">
               <p class="text-xs text-slate-500">💡 表格内容较多，可向下滚动查看更多合约数据</p>
+            </div>
+            <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+              <p class="font-semibold text-slate-900 mb-1">要点</p>
+              <ul class="list-disc list-inside space-y-1">
+                <li v-for="(item, idx) in reportModuleKeyPoints.overviewContractsTable" :key="idx">{{ item }}</li>
+              </ul>
             </div>
           </div>
 
           <!-- 操作建议 - 已隐藏，让运营人员根据数据自行决策 -->
           <div v-if="false">
+            <!--
+              用途（当前隐藏）：把报表信号直接翻译成“可执行的线控动作清单”，用于降低决策门槛与缩短响应时间。
+              - reason/expectedEffect：解释为什么要调控，以及调控后平台盈亏/风险的预期变化。
+              - affects：对应要调整的线控参数（偏移/滑点/延迟/杠杆限制等），便于一键落地到线控配置页。
+            -->
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-lg font-semibold text-slate-900">
                 <span v-if="selectedContract === 'ALL'">操作建议（全部合约）</span>
@@ -613,6 +774,15 @@ const openRiskHelpModal = () => {
         <div v-show="activeTab === 'position'" class="space-y-6">
           <div class="bg-white border border-slate-200 rounded-lg p-6">
             <h3 class="text-lg font-semibold text-slate-900 mb-4">持仓分布（按杠杆倍数）</h3>
+            <!--
+              用途：把“风险来自哪里”拆到不同杠杆层级，帮助做两类线控动作：
+              1) 结构性调控：当高杠杆层净持仓单边时，优先降低最大杠杆/增加延迟/提高滑点，避免爆仓链式反应。
+              2) 触发阈值校准：净持仓/占比阈值应参考主力杠杆区间的持仓量与人数分布，避免阈值过紧导致频繁触发。
+              字段含义：
+              - 多头/空头人数：反映参与者结构（大户/散户）与情绪偏向。
+              - 多头/空头持仓：反映真实资金敞口（线控偏移需要跟敞口规模匹配）。
+              - 净持仓：是“净敞口”核心指标，常用于净持仓触发类规则。
+            -->
             <div class="overflow-x-auto">
               <table class="w-full">
                 <thead class="bg-slate-50">
@@ -648,11 +818,9 @@ const openRiskHelpModal = () => {
                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
               </svg>
               <div class="text-sm text-blue-800">
-                <p class="font-semibold mb-1">持仓分析要点：</p>
+                <p class="font-semibold mb-1">要点</p>
                 <ul class="list-disc list-inside space-y-1">
-                  <li>高杠杆区间（50x+）净持仓偏多，建议重点监控</li>
-                  <li>10-20x区间持仓量最大，占总持仓的 37.8%</li>
-                  <li>低杠杆区间（1-10x）相对平衡，风险较低</li>
+                  <li v-for="(item, idx) in reportModuleKeyPoints.positionLeverageDistribution" :key="idx">{{ item }}</li>
                 </ul>
               </div>
             </div>
@@ -664,6 +832,14 @@ const openRiskHelpModal = () => {
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="bg-white border border-slate-200 rounded-lg p-6">
               <h3 class="text-lg font-semibold text-slate-900 mb-4">用户盈亏分布</h3>
+              <!--
+                用途：识别“平台亏损来自少数用户还是整体结构”，对应两种线控思路：
+                - 盈利集中（少数区间/少数用户拿走大部分利润）：倾向启用“盈亏比触发”规则，在短时间窗内对高盈利行为增加摩擦。
+                - 普遍亏损/普遍盈利：更多是行情结构问题，优先用净持仓/波动率/成交异常类规则做整体保护。
+                字段含义：
+                - range/count/percentage：定位人群分布与集中度。
+                - totalPnl：衡量该区间对平台整体盈亏压力（与平台盈亏方向相反）。
+              -->
               <div class="space-y-3">
                 <div v-for="item in pnlDistribution" :key="item.range" class="flex items-center justify-between">
                   <div class="flex-1">
@@ -687,10 +863,21 @@ const openRiskHelpModal = () => {
                   </span>
                 </div>
               </div>
+              <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                <p class="font-semibold text-slate-900 mb-1">要点</p>
+                <ul class="list-disc list-inside space-y-1">
+                  <li v-for="(item, idx) in reportModuleKeyPoints.pnlUserDistribution" :key="idx">{{ item }}</li>
+                </ul>
+              </div>
             </div>
 
             <div class="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-6">
               <h3 class="text-lg font-semibold text-slate-900 mb-4">平台盈亏统计</h3>
+              <!--
+                用途：平台与用户盈亏是镜像关系，用来验证线控是否“把风险/收益拉回平台可控区间”。
+                - 平台盈亏为负：通常需要提升逆势偏移/滑点、缩短自动触发时间窗、下调最大杠杆等止损措施。
+                - 平台盈亏为正但活跃度下滑：可能线控过严，可逐步回撤摩擦参数以换取交易量。
+              -->
               <div class="space-y-4">
                 <div class="flex items-center justify-between p-4 bg-white rounded-lg">
                   <span class="text-sm text-slate-700">平台盈亏</span>
@@ -709,6 +896,12 @@ const openRiskHelpModal = () => {
                   <span class="text-xl font-bold text-slate-900">32.4%</span>
                 </div>
               </div>
+              <div class="mt-4 rounded-lg border border-emerald-200 bg-white/70 p-4 text-sm text-slate-700">
+                <p class="font-semibold text-slate-900 mb-1">要点</p>
+                <ul class="list-disc list-inside space-y-1">
+                  <li v-for="(item, idx) in reportModuleKeyPoints.pnlPlatformStats" :key="idx">{{ item }}</li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
@@ -717,6 +910,12 @@ const openRiskHelpModal = () => {
         <div v-show="activeTab === 'risk'" class="space-y-6">
           <!-- 风险预警 - 已隐藏 -->
           <div v-if="false">
+            <!--
+              用途（当前隐藏）：把关键风险信号（单边、多空失衡、异常波动、成交异常等）做成“事件流”，用于触发人工/自动联动。
+              - message/type/time：用于快速定位发生了什么、何时发生、属于哪类风险。
+              - suggestion：对应建议采取的线控动作（加大偏移/提高滑点/增加延迟/降杠杆/暂停高风险交易等）。
+              这类数据通常与自动规则触发记录联动，用于复盘阈值是否合理。
+            -->
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-lg font-semibold text-slate-900">
                 <span v-if="selectedContract === 'ALL'">风险预警（全部合约）</span>
@@ -789,13 +988,20 @@ const openRiskHelpModal = () => {
                 共 {{ filteredWhalesList.length }} 个大户
               </span>
             </div>
+            <!--
+              用途：把“风险/收益”落到用户维度，支撑精细化线控（特别是高频/大户/高盈利账户）：
+              - 总持仓 + 多/空：识别能左右净敞口的关键账户；当单边集中时可提高该合约摩擦或调整偏移方向。
+              - 杠杆：识别潜在连环爆仓源头；高杠杆大户需要优先考虑下调最大杠杆、增加延迟。
+              - 24h盈亏 + 盈亏率：识别“持续高盈利/高回撤”账户特征，可配合盈亏比触发类规则设置更贴近真实分布的阈值。
+            -->
             <div v-if="filteredWhalesList.length === 0" class="bg-slate-50 border border-slate-200 rounded-lg p-8 text-center">
               <svg class="h-12 w-12 text-slate-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
               <p class="text-slate-600">该合约暂无大户交易</p>
             </div>
-            <div v-else class="bg-white border border-slate-200 rounded-lg overflow-hidden">
+            <div v-else>
+              <div class="bg-white border border-slate-200 rounded-lg overflow-hidden">
               <table class="w-full">
                 <thead class="bg-slate-50 border-b border-slate-200">
                   <tr>
@@ -909,151 +1115,17 @@ const openRiskHelpModal = () => {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        <!-- 线控效果 -->
-        <div v-show="activeTab === 'control'" class="space-y-6">
-          <!-- 线控效果对比 -->
-          <div>
-            <h3 class="text-lg font-semibold text-slate-900 mb-4">线控效果对比</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div class="bg-slate-50 border border-slate-200 rounded-lg p-6">
-                <h4 class="text-sm font-semibold text-slate-900 mb-4">{{ controlEffectComparison.beforeControl.period }}</h4>
-                <div class="space-y-3">
-                  <div class="flex items-center justify-between">
-                    <span class="text-sm text-slate-600">平台盈亏</span>
-                    <span class="text-lg font-bold text-slate-900">{{ formatCurrency(controlEffectComparison.beforeControl.platformPnl) }}</span>
-                  </div>
-                  <div class="flex items-center justify-between">
-                    <span class="text-sm text-slate-600">平均多空比</span>
-                    <span class="text-lg font-bold text-slate-900">{{ controlEffectComparison.beforeControl.avgLongShortRatio.toFixed(2) }}</span>
-                  </div>
-                  <div class="flex items-center justify-between">
-                    <span class="text-sm text-slate-600">最大回撤</span>
-                    <span class="text-lg font-bold text-rose-600">{{ formatCurrency(controlEffectComparison.beforeControl.maxDrawdown) }}</span>
-                  </div>
-                  <div class="flex items-center justify-between">
-                    <span class="text-sm text-slate-600">波动率</span>
-                    <span class="text-lg font-bold text-slate-900">{{ formatPercent(controlEffectComparison.beforeControl.volatility * 100) }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-6">
-                <h4 class="text-sm font-semibold text-slate-900 mb-4">{{ controlEffectComparison.afterControl.period }}</h4>
-                <div class="space-y-3">
-                  <div class="flex items-center justify-between">
-                    <span class="text-sm text-slate-600">平台盈亏</span>
-                    <div class="text-right">
-                      <span class="text-lg font-bold text-emerald-600">{{ formatCurrency(controlEffectComparison.afterControl.platformPnl) }}</span>
-                      <span class="ml-2 text-xs text-emerald-600">↑ {{ formatPercent(controlEffectComparison.improvement.pnlIncrease) }}</span>
-                    </div>
-                  </div>
-                  <div class="flex items-center justify-between">
-                    <span class="text-sm text-slate-600">平均多空比</span>
-                    <div class="text-right">
-                      <span class="text-lg font-bold text-slate-900">{{ controlEffectComparison.afterControl.avgLongShortRatio.toFixed(2) }}</span>
-                      <span class="ml-2 text-xs text-emerald-600">↓ {{ formatPercent(controlEffectComparison.improvement.ratioImprove) }}</span>
-                    </div>
-                  </div>
-                  <div class="flex items-center justify-between">
-                    <span class="text-sm text-slate-600">最大回撤</span>
-                    <div class="text-right">
-                      <span class="text-lg font-bold text-emerald-600">{{ formatCurrency(controlEffectComparison.afterControl.maxDrawdown) }}</span>
-                      <span class="ml-2 text-xs text-emerald-600">↓ {{ formatPercent(controlEffectComparison.improvement.drawdownReduce) }}</span>
-                    </div>
-                  </div>
-                  <div class="flex items-center justify-between">
-                    <span class="text-sm text-slate-600">波动率</span>
-                    <div class="text-right">
-                      <span class="text-lg font-bold text-slate-900">{{ formatPercent(controlEffectComparison.afterControl.volatility * 100) }}</span>
-                      <span class="ml-2 text-xs text-emerald-600">↓ {{ formatPercent(controlEffectComparison.improvement.volatilityReduce) }}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 线控触发统计 -->
-          <div>
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="text-lg font-semibold text-slate-900">
-                <span v-if="selectedContract === 'ALL'">线控触发统计（全部合约）</span>
-                <span v-else>线控触发统计（{{ contractOptions.find(c => c.value === selectedContract)?.label }}）</span>
-              </h3>
-              <span v-if="filteredControlTriggerStats.length > 0" class="text-sm text-slate-500">
-                共 {{ filteredControlTriggerStats.length }} 条记录
-              </span>
-            </div>
-            <div v-if="filteredControlTriggerStats.length === 0" class="bg-slate-50 border border-slate-200 rounded-lg p-8 text-center">
-              <svg class="h-12 w-12 text-slate-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-              </svg>
-              <p class="text-slate-600">该合约暂无线控触发记录</p>
-            </div>
-            <div v-else class="bg-white border border-slate-200 rounded-lg overflow-hidden">
-              <div class="max-h-96 overflow-y-auto">
-                <table class="w-full">
-                  <thead class="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
-                    <tr>
-                      <th v-if="selectedContract === 'ALL'" class="px-6 py-3 text-left text-xs font-semibold text-slate-900 uppercase">合约</th>
-                      <th class="px-6 py-3 text-left text-xs font-semibold text-slate-900 uppercase">规则名称</th>
-                      <th class="px-6 py-3 text-right text-xs font-semibold text-slate-900 uppercase">触发次数</th>
-                      <th class="px-6 py-3 text-left text-xs font-semibold text-slate-900 uppercase">最后触发</th>
-                      <th class="px-6 py-3 text-right text-xs font-semibold text-slate-900 uppercase">平均时长</th>
-                      <th class="px-6 py-3 text-right text-xs font-semibold text-slate-900 uppercase">盈亏改善</th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-slate-200">
-                  <tr v-for="stat in filteredControlTriggerStats" :key="stat.contractSymbol + stat.ruleName" class="hover:bg-slate-50">
-                    <td v-if="selectedContract === 'ALL'" class="px-6 py-4">
-                      <p class="text-sm font-medium text-slate-900">{{ stat.contractName }}</p>
-                    </td>
-                    <td class="px-6 py-4">
-                      <p class="text-sm text-slate-900">{{ stat.ruleName }}</p>
-                    </td>
-                    <td class="px-6 py-4 text-right">
-                      <p class="text-sm font-medium text-slate-900">{{ stat.triggerCount }}</p>
-                    </td>
-                    <td class="px-6 py-4">
-                      <p class="text-sm text-slate-700">{{ stat.lastTriggerTime }}</p>
-                    </td>
-                    <td class="px-6 py-4 text-right">
-                      <p class="text-sm text-slate-700">{{ Math.floor(stat.avgDuration / 60) }}m {{ stat.avgDuration % 60 }}s</p>
-                    </td>
-                    <td class="px-6 py-4 text-right">
-                      <p class="text-sm font-medium text-emerald-600">{{ formatCurrency(stat.pnlImprovement) }}</p>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-              </div>
-              <div v-if="filteredControlTriggerStats.length > 5" class="px-4 py-2 bg-slate-50 border-t border-slate-200 text-xs text-slate-500 text-center">
-                💡 表格内容较多，可向下滚动查看更多线控触发记录
-              </div>
-            </div>
-          </div>
-
-          <!-- 线控效果总结 - 已隐藏 -->
-          <div v-if="false" class="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-            <div class="flex items-start gap-3">
-              <svg class="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-              </svg>
-              <div class="text-sm text-emerald-800">
-                <p class="font-semibold mb-1">线控效果总结：</p>
+              <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                <p class="font-semibold text-slate-900 mb-1">要点</p>
                 <ul class="list-disc list-inside space-y-1">
-                  <li>平台盈亏提升 58.6%，效果显著</li>
-                  <li>多空比从 1.58 优化到 1.32，持仓更加平衡</li>
-                  <li>最大回撤减少 37.8%，风险控制有效</li>
-                  <li>建议继续保持现有线控策略并优化触发条件</li>
+                  <li v-for="(item, idx) in reportModuleKeyPoints.riskWhales" :key="idx">{{ item }}</li>
                 </ul>
               </div>
             </div>
           </div>
         </div>
+
+        <!-- 线控效果标签页已移除 -->
       </div>
     </div>
 
@@ -1071,6 +1143,11 @@ const openRiskHelpModal = () => {
         class="fixed inset-0 bg-slate-900 bg-opacity-50 z-50 flex items-center justify-center p-4"
         @click.self="showRiskHelpModal = false"
       >
+        <!--
+          用途：把“风险等级”背后的判定口径透明化，并把每个档位的线控动作标准化：
+          - 判定标准：告诉运营/风控应该重点看哪些指标（盈亏、多空比、集中度、高杠杆占比等）。
+          - 建议操作：把报表信号映射到可执行的线控动作（偏移/滑点/延迟/杠杆限制/账户级限制等）。
+        -->
         <div class="bg-white rounded-xl shadow-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto">
           <!-- 模态框头部 -->
           <div class="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between z-10">

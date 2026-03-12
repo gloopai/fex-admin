@@ -10,7 +10,7 @@ export const REPORT_TIME_RANGE = {
 
 // 报表时间范围选项
 export const REPORT_TIME_RANGE_OPTIONS = [
-  { value: REPORT_TIME_RANGE.REALTIME, label: '实时' },
+  // { value: REPORT_TIME_RANGE.REALTIME, label: '实时' },
   { value: REPORT_TIME_RANGE.TODAY, label: '今日' },
   { value: REPORT_TIME_RANGE.YESTERDAY, label: '昨日' },
   { value: REPORT_TIME_RANGE.LAST_7_DAYS, label: '近7天' },
