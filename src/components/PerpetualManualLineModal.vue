@@ -60,7 +60,7 @@ const emit = defineEmits(['close', 'save', 'remove'])
 const form = reactive({
   priceOffset: 5,
   offsetDirection: PERP_CONTROL_OFFSET_DIRECTION.AGAINST,
-  slippagePct: 0.2,
+  slippagePct: 0.,
   latencyMs: 80,
   durationSec: 1800
 })
@@ -249,6 +249,9 @@ const platformPnlPositive = computed(() => parseCompactUsd(props.metrics?.platfo
                   <option :value="PERP_CONTROL_OFFSET_DIRECTION.UP">向上</option>
                   <option :value="PERP_CONTROL_OFFSET_DIRECTION.DOWN">向下</option>
                 </select>
+                <div class="text-xs text-slate-500">
+                  备注：逆势=买价上调/卖价下调；顺势=买价下调/卖价上调；向上/向下=买卖同向偏移；随机=系统随机选择方向
+                </div>
               </label>
             </div>
           </section>
@@ -269,7 +272,7 @@ const platformPnlPositive = computed(() => parseCompactUsd(props.metrics?.platfo
             <div class="space-y-4 rounded-lg bg-white p-4">
               <label class="block space-y-2">
                 <div class="flex items-center justify-between text-sm">
-                  <span class="font-medium text-slate-700">滑点率 (%)</span>
+                  <span class="font-medium text-slate-700">滑点 (%)</span>
                   <input v-model.number="form.slippagePct" type="number" min="0" max="2" step="0.01" class="ant-input !w-20 !h-8 !px-2 !text-right" />
                 </div>
                 <input v-model.number="form.slippagePct" type="range" min="0" max="2" step="0.01" class="w-full accent-violet-600" />
@@ -388,12 +391,11 @@ const platformPnlPositive = computed(() => parseCompactUsd(props.metrics?.platfo
                 <p class="mt-1 text-base font-bold text-slate-900">{{ metrics.users }}</p>
               </div>
               <div class="rounded-lg bg-slate-50 p-3">
-                <p class="text-xs font-semibold text-slate-500">持仓(多/空/净)</p>
-                <p class="mt-1 text-sm font-bold text-slate-900">
-                  {{ metrics.long }} /
-                  {{ metrics.short }} /
-                  <span :class="netPositive ? 'text-emerald-600' : 'text-rose-600'">
-                    {{ metrics.net }}
+             
+                <p class="text-xs font-semibold text-slate-500">平台盈亏</p>
+                <p class="mt-1 text-sm font-bold">
+                  <span :class="platformPnlPositive ? 'text-emerald-600' : 'text-rose-600'">
+                    {{ metrics.platformPnl }}
                   </span>
                 </p>
               </div>
@@ -402,10 +404,12 @@ const platformPnlPositive = computed(() => parseCompactUsd(props.metrics?.platfo
                 <p class="mt-1 text-base font-bold text-slate-900">{{ metrics.ratio }}</p>
               </div>
               <div class="rounded-lg bg-slate-50 p-3 sm:col-span-2">
-                <p class="text-xs font-semibold text-slate-500">平台盈亏</p>
-                <p class="mt-1 text-sm font-bold">
-                  <span :class="platformPnlPositive ? 'text-emerald-600' : 'text-rose-600'">
-                    {{ metrics.platformPnl }}
+                   <p class="text-xs font-semibold text-slate-500">持仓(做多/做空/净持仓)</p>
+                <p class="mt-1 text-sm font-bold text-slate-900">
+                  {{ metrics.long }} /
+                  {{ metrics.short }} /
+                  <span :class="netPositive ? 'text-emerald-600' : 'text-rose-600'">
+                    {{ metrics.net }}
                   </span>
                 </p>
               </div>
@@ -458,4 +462,3 @@ const platformPnlPositive = computed(() => parseCompactUsd(props.metrics?.platfo
     </section>
   </div>
 </template>
-
