@@ -6,8 +6,9 @@ export const ASSET_STATUS = {
 }
 
 export const ASSET_CURRENCY_TYPE = {
-  ONCHAIN: 'onchain',
-  OFFCHAIN: 'offchain'
+  VIRTUAL: 'virtual',
+  METAL: 'metal',
+  FIAT: 'fiat'
 }
 
 export const ASSET_MODAL_TAB = {

@@ -22,8 +22,25 @@ const mfaLoading = ref(false)
 
 const coins = ref(createAssetsCoinsMock())
 
+const normalizeCurrencyType = (value) => {
+  if (value === ASSET_CURRENCY_TYPE.VIRTUAL || value === ASSET_CURRENCY_TYPE.METAL || value === ASSET_CURRENCY_TYPE.FIAT) return value
+  if (value === 'onchain') return ASSET_CURRENCY_TYPE.VIRTUAL
+  if (value === 'offchain') return ASSET_CURRENCY_TYPE.FIAT
+  return ASSET_CURRENCY_TYPE.VIRTUAL
+}
+
+const isNonVirtualType = (value) => normalizeCurrencyType(value) !== ASSET_CURRENCY_TYPE.VIRTUAL
+
+const currencyTypeLabel = (value) => {
+  const type = normalizeCurrencyType(value)
+  if (type === ASSET_CURRENCY_TYPE.VIRTUAL) return '虚拟币'
+  if (type === ASSET_CURRENCY_TYPE.METAL) return '贵金属'
+  if (type === ASSET_CURRENCY_TYPE.FIAT) return '法币'
+  return String(type || '')
+}
+
 const form = reactive({
-  type: ASSET_CURRENCY_TYPE.ONCHAIN,
+  type: ASSET_CURRENCY_TYPE.VIRTUAL,
   name: '',
   symbol: '',
   precision: 6,
@@ -33,7 +50,7 @@ const form = reactive({
   networks: []
 })
 
-const isOffchain = computed(() => form.type === ASSET_CURRENCY_TYPE.OFFCHAIN)
+const isOffchain = computed(() => isNonVirtualType(form.type))
 
 const typeCardClass = (type) =>
   form.type === type
@@ -43,7 +60,7 @@ const typeCardClass = (type) =>
 watch(
   () => form.type,
   (nextType) => {
-    if (nextType === ASSET_CURRENCY_TYPE.OFFCHAIN) {
+    if (isNonVirtualType(nextType)) {
       form.autoCollect = false
       form.intervalMin = 0
       form.networks = []
@@ -92,14 +109,14 @@ const handleFilterChange = () => {
 const enabledCount = computed(() => coins.value.filter((c) => c.status === ASSET_STATUS.ENABLED).length)
 
 const cloneCoinToForm = (coin) => {
-  form.type = coin.type || ASSET_CURRENCY_TYPE.ONCHAIN
+  form.type = normalizeCurrencyType(coin.type)
   form.name = coin.name
   form.symbol = coin.symbol
   form.precision = coin.precision
   form.status = coin.status
   form.autoCollect = coin.autoCollect
   form.intervalMin = coin.intervalMin
-  form.networks = coin.networks.map((n) => ({ ...n }))
+  form.networks = Array.isArray(coin.networks) ? coin.networks.map((n) => ({ ...n })) : []
 }
 
 const openEdit = (coin) => {
@@ -112,7 +129,7 @@ const openEdit = (coin) => {
 
 const openCreate = () => {
   editingCoinId.value = ''
-  form.type = ASSET_CURRENCY_TYPE.ONCHAIN
+  form.type = ASSET_CURRENCY_TYPE.VIRTUAL
   form.name = ''
   form.symbol = ''
   form.precision = 6
@@ -144,8 +161,9 @@ const toggleNetworkPanel = (id) => {
 }
 
 const saveCoin = () => {
-  const type = form.type || ASSET_CURRENCY_TYPE.ONCHAIN
-  const offchain = type === ASSET_CURRENCY_TYPE.OFFCHAIN
+  const type = normalizeCurrencyType(form.type)
+  const offchain = isNonVirtualType(type)
+  if (![ASSET_CURRENCY_TYPE.VIRTUAL, ASSET_CURRENCY_TYPE.METAL, ASSET_CURRENCY_TYPE.FIAT].includes(type)) return alert('请选择有效的币种类型')
   const payload = {
     type,
     name: form.name.trim(),
@@ -232,19 +250,19 @@ const badgeClass = (status) => (status === ASSET_STATUS.ENABLED ? 'bg-emerald-10
                 <h3 class="text-2xl font-semibold leading-none text-slate-900">{{ coin.symbol }}</h3>
                 <span class="text-base text-slate-500">{{ coin.name }}</span>
                 <span class="rounded-md px-2 py-0.5 text-xs font-medium" :class="badgeClass(coin.status)">{{ coin.status === ASSET_STATUS.ENABLED ? '已启用' : '已禁用' }}</span>
-                <span class="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{{ coin.type === ASSET_CURRENCY_TYPE.OFFCHAIN ? '非链上' : '链上' }}</span>
+                <span class="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{{ currencyTypeLabel(coin.type) }}</span>
               </div>
               <p class="mt-1.5 text-xs text-slate-600">
                 精度: {{ coin.precision }} 位
                 <span class="mx-2 text-slate-300">|</span>
                 自动归集: <span class="font-medium" :class="coin.autoCollect ? 'text-blue-600' : 'text-slate-500'">{{ coin.autoCollect ? `开启 (${coin.intervalMin} 分钟)` : '关闭' }}</span>
               </p>
-              <p class="mt-1 text-xs text-slate-500">支持网络 ({{ coin.type === ASSET_CURRENCY_TYPE.OFFCHAIN ? '-' : coin.networks.length }})</p>
+              <p class="mt-1 text-xs text-slate-500">支持网络 ({{ isNonVirtualType(coin.type) ? '-' : coin.networks.length }})</p>
             </div>
             <button type="button" class="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50" @click="openEdit(coin)">编辑</button>
           </div>
 
-          <div v-if="coin.type !== ASSET_CURRENCY_TYPE.OFFCHAIN && coin.networks.length" class="mt-2.5 grid gap-2 xl:grid-cols-3">
+          <div v-if="!isNonVirtualType(coin.type) && coin.networks.length" class="mt-2.5 grid gap-2 xl:grid-cols-3">
             <article v-for="network in coin.networks" :key="network.id" class="rounded-lg border border-slate-200 bg-slate-50 p-3">
               <div class="flex items-center justify-between">
                 <p class="text-xl font-semibold text-slate-900">{{ network.name }}</p>
@@ -332,21 +350,21 @@ const badgeClass = (status) => (status === ASSET_STATUS.ENABLED ? 'bg-emerald-10
           <div class="mt-3 grid gap-3 md:grid-cols-2">
             <div class="space-y-1 md:col-span-2">
               <span class="text-sm">币种类型</span>
-              <div class="mt-1 grid gap-2 sm:grid-cols-2">
+              <div class="mt-1 grid gap-2 sm:grid-cols-3">
                 <button
                   type="button"
                   class="rounded-lg border p-3 text-left transition-colors"
-                  :class="typeCardClass(ASSET_CURRENCY_TYPE.ONCHAIN)"
-                  :aria-pressed="form.type === ASSET_CURRENCY_TYPE.ONCHAIN"
-                  @click="form.type = ASSET_CURRENCY_TYPE.ONCHAIN"
+                  :class="typeCardClass(ASSET_CURRENCY_TYPE.VIRTUAL)"
+                  :aria-pressed="form.type === ASSET_CURRENCY_TYPE.VIRTUAL"
+                  @click="form.type = ASSET_CURRENCY_TYPE.VIRTUAL"
                 >
                   <div class="flex items-start gap-3">
                     <span class="mt-1 inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 bg-white">
-                      <span v-if="form.type === ASSET_CURRENCY_TYPE.ONCHAIN" class="h-2 w-2 rounded-full bg-blue-600"></span>
+                      <span v-if="form.type === ASSET_CURRENCY_TYPE.VIRTUAL" class="h-2 w-2 rounded-full bg-blue-600"></span>
                     </span>
                     <div class="min-w-0">
-                      <p class="text-sm font-medium text-slate-900">链上资产</p>
-                      <p class="mt-0.5 text-xs text-slate-500">需要配置网络，支持充值/提现/归集</p>
+                      <p class="text-sm font-medium text-slate-900">虚拟币</p>
+                      <p class="mt-0.5 text-xs text-slate-500">可配置网络，支持充值/提现/归集</p>
                     </div>
                   </div>
                 </button>
@@ -354,22 +372,40 @@ const badgeClass = (status) => (status === ASSET_STATUS.ENABLED ? 'bg-emerald-10
                 <button
                   type="button"
                   class="rounded-lg border p-3 text-left transition-colors"
-                  :class="typeCardClass(ASSET_CURRENCY_TYPE.OFFCHAIN)"
-                  :aria-pressed="form.type === ASSET_CURRENCY_TYPE.OFFCHAIN"
-                  @click="form.type = ASSET_CURRENCY_TYPE.OFFCHAIN"
+                  :class="typeCardClass(ASSET_CURRENCY_TYPE.METAL)"
+                  :aria-pressed="form.type === ASSET_CURRENCY_TYPE.METAL"
+                  @click="form.type = ASSET_CURRENCY_TYPE.METAL"
                 >
                   <div class="flex items-start gap-3">
                     <span class="mt-1 inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 bg-white">
-                      <span v-if="form.type === ASSET_CURRENCY_TYPE.OFFCHAIN" class="h-2 w-2 rounded-full bg-blue-600"></span>
+                      <span v-if="form.type === ASSET_CURRENCY_TYPE.METAL" class="h-2 w-2 rounded-full bg-blue-600"></span>
                     </span>
                     <div class="min-w-0">
-                      <p class="text-sm font-medium text-slate-900">非链上资产</p>
+                      <p class="text-sm font-medium text-slate-900">贵金属</p>
                       <p class="mt-0.5 text-xs text-slate-500">无区块链网络，仅用于报价/资产记账（如 XAU）</p>
                     </div>
                   </div>
                 </button>
+
+                <button
+                  type="button"
+                  class="rounded-lg border p-3 text-left transition-colors"
+                  :class="typeCardClass(ASSET_CURRENCY_TYPE.FIAT)"
+                  :aria-pressed="form.type === ASSET_CURRENCY_TYPE.FIAT"
+                  @click="form.type = ASSET_CURRENCY_TYPE.FIAT"
+                >
+                  <div class="flex items-start gap-3">
+                    <span class="mt-1 inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 bg-white">
+                      <span v-if="form.type === ASSET_CURRENCY_TYPE.FIAT" class="h-2 w-2 rounded-full bg-blue-600"></span>
+                    </span>
+                    <div class="min-w-0">
+                      <p class="text-sm font-medium text-slate-900">法币</p>
+                      <p class="mt-0.5 text-xs text-slate-500">无区块链网络，常用于汇率报价与法币记账</p>
+                    </div>
+                  </div>
+                </button>
               </div>
-              <p v-if="isOffchain" class="mt-2 text-xs text-amber-600">已选择非链上资产：将不显示归集配置与网络配置，保存时自动清空网络。</p>
+              <p v-if="isOffchain" class="mt-2 text-xs text-amber-600">已选择非虚拟币：将不显示归集配置与网络配置，保存时自动清空网络。</p>
             </div>
             <label class="space-y-1">
               <span class="text-sm">币种名称</span>

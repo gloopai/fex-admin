@@ -250,12 +250,13 @@
                     </select>
                   </div>
                   <div class="space-y-1.5">
-                    <label class="text-sm text-black/85 font-medium">交易对</label>
-                    <p class="text-sm text-black/45">基础币种 / 计价币种。</p>
-                    <div class="grid grid-cols-2 gap-3">
-                      <input v-model="formData.baseCurrency" type="text" class="ant-input uppercase" placeholder="基础币种" />
-                      <input v-model="formData.quoteCurrency" type="text" class="ant-input uppercase" placeholder="计价币种" />
-                    </div>
+                    <label class="text-sm text-black/85 font-medium">交易对 <span class="text-rose-500">*</span></label>
+                    <p class="text-sm text-black/45">选择交易对</p>
+                    <select v-model="formData.spotSymbol" class="ant-select" :disabled="spotSymbolLoading">
+                      <option value="" disabled>{{ spotSymbolLoading ? '加载中...' : '请选择交易对' }}</option>
+                      <option v-for="opt in spotSymbolOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                    </select>
+                    
                   </div>
                 </div>
               </div>
@@ -412,13 +413,16 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { mockSpotProducts } from '../../mock/spot'
+import { mockSpotProducts, symbolApi } from '../../mock/spot'
 
 const products = ref([])
 const showModal = ref(false)
 const isEditing = ref(false)
 const editingProductId = ref(null)
 const searchKeyword = ref('')
+const spotSymbolLoading = ref(false)
+const spotSymbols = ref([])
+const lastSyncedSpotSymbol = ref('')
 
 const filters = ref({
   status: ''
@@ -432,6 +436,7 @@ const pagination = ref({
 
 const formData = ref({
   productName: '',
+  spotSymbol: '',
   baseCurrency: '',
   quoteCurrency: '',
   pricePrecision: 2,
@@ -450,12 +455,97 @@ const formData = ref({
 
 onMounted(() => {
   products.value = mockSpotProducts
+  loadSpotSymbols()
 })
 
 // 监听筛选和搜索变化，重置分页
 watch([filters, searchKeyword], () => {
   pagination.value.currentPage = 1
 }, { deep: true })
+
+const spotSymbolOptions = computed(() => {
+  const baseOptions = spotSymbols.value
+    .map((row) => {
+      const symbolName = String(row.symbol_name || '').trim()
+      if (!symbolName) return null
+      const id = row.symbol_id !== undefined && row.symbol_id !== null ? String(row.symbol_id) : ''
+      const label = id ? `${symbolName} (${id})` : symbolName
+      return { value: symbolName, label }
+    })
+    .filter(Boolean)
+
+  const current = String(formData.value.spotSymbol || '').trim()
+  if (current && !baseOptions.some((it) => it.value === current)) {
+    baseOptions.unshift({ value: current, label: `${current} (未匹配)` })
+  }
+
+  return baseOptions
+})
+
+const syncSpotSymbolToForm = (val) => {
+  const symbolName = String(val || '').trim()
+  if (!symbolName) return
+
+  const prev = lastSyncedSpotSymbol.value
+  const row = spotSymbols.value.find((it) => String(it.symbol_name || '').trim() === symbolName)
+  if (row) {
+    formData.value.baseCurrency = String(row.base_coin_name || '').trim().toUpperCase()
+    formData.value.quoteCurrency = String(row.quote_coin_name || '').trim().toUpperCase()
+    formData.value.quantityPrecision = Number(row.base_coin_prec) || 0
+    formData.value.pricePrecision = Number(row.quote_coin_prec) || 0
+
+    const currentName = String(formData.value.productName || '').trim()
+    if (!currentName || currentName === prev) {
+      formData.value.productName = symbolName
+    }
+    lastSyncedSpotSymbol.value = symbolName
+    return
+  }
+
+  const parts = symbolName.split('/')
+  const base = String(parts[0] || '').trim()
+  const quote = String(parts[1] || '').trim()
+  if (base) formData.value.baseCurrency = base.toUpperCase()
+  if (quote) formData.value.quoteCurrency = quote.toUpperCase()
+  const currentName = String(formData.value.productName || '').trim()
+  if (!currentName || currentName === prev) formData.value.productName = symbolName
+  lastSyncedSpotSymbol.value = symbolName
+}
+
+const ensureDefaultSpotSymbol = () => {
+  if (formData.value.spotSymbol) return
+  const first = spotSymbolOptions.value[0]?.value || ''
+  if (first) formData.value.spotSymbol = first
+}
+
+const loadSpotSymbols = async () => {
+  spotSymbolLoading.value = true
+  try {
+    const result = await symbolApi.getSymbolList({
+      page: 1,
+      pageSize: 1000,
+      includeDeleted: false
+    })
+    if (result?.success) {
+      spotSymbols.value = Array.isArray(result.data?.list) ? result.data.list : []
+      ensureDefaultSpotSymbol()
+      syncSpotSymbolToForm(formData.value.spotSymbol)
+    } else {
+      spotSymbols.value = []
+    }
+  } catch {
+    spotSymbols.value = []
+  } finally {
+    spotSymbolLoading.value = false
+  }
+}
+
+watch(
+  () => formData.value.spotSymbol,
+  (val) => {
+    syncSpotSymbolToForm(val)
+  }
+)
 
 const pageButtons = computed(() => {
   const total = totalPages.value
@@ -587,6 +677,7 @@ const resetFilters = () => {
 const resetFormData = () => {
   formData.value = {
     productName: '',
+    spotSymbol: '',
     baseCurrency: '',
     quoteCurrency: '',
     pricePrecision: 2,
@@ -608,14 +699,17 @@ const showAddProduct = () => {
   isEditing.value = false
   editingProductId.value = null
   resetFormData()
+  ensureDefaultSpotSymbol()
   showModal.value = true
 }
 
 const editProduct = (product) => {
   isEditing.value = true
   editingProductId.value = product.productId
+  const spotSymbol = `${String(product.baseCurrency || '').toUpperCase()}/${String(product.quoteCurrency || '').toUpperCase()}`
   formData.value = {
     productName: product.productName,
+    spotSymbol,
     baseCurrency: product.baseCurrency,
     quoteCurrency: product.quoteCurrency,
     pricePrecision: product.pricePrecision,
@@ -644,8 +738,12 @@ const saveProduct = () => {
     alert('请输入产品名称')
     return
   }
+  if (!formData.value.spotSymbol) {
+    alert('请选择交易对')
+    return
+  }
   if (!formData.value.baseCurrency || !formData.value.quoteCurrency) {
-    alert('请选择基础币种和计价币种')
+    alert('交易对信息不完整，请重新选择')
     return
   }
   const pricePrecision = Number(formData.value.pricePrecision)
@@ -683,13 +781,15 @@ const saveProduct = () => {
     return
   }
 
+  const { spotSymbol: _spotSymbol, ...payload } = formData.value
+
   if (isEditing.value) {
     // 编辑产品
     const index = products.value.findIndex(p => p.productId === editingProductId.value)
     if (index !== -1) {
       products.value[index] = {
         ...products.value[index],
-        ...formData.value
+        ...payload
       }
       alert('产品修改成功')
     }
@@ -697,7 +797,7 @@ const saveProduct = () => {
     // 新增产品
     const newProduct = {
       productId: `SPOT${String(products.value.length + 1).padStart(3, '0')}`,
-      ...formData.value,
+      ...payload,
       volume24h: Math.random() * 10000000,
       priceChange24h: (Math.random() - 0.5) * 20,
       bidDepth: Math.random() * 1000000,

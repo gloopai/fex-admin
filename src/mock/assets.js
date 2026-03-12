@@ -20,7 +20,7 @@ const assetsCoins = [
     symbol: 'USDT',
     precision: 6,
     status: ASSET_STATUS.ENABLED,
-    type: ASSET_CURRENCY_TYPE.ONCHAIN,
+    type: ASSET_CURRENCY_TYPE.VIRTUAL,
     autoCollect: true,
     intervalMin: 60,
     networks: [
@@ -59,7 +59,7 @@ const assetsCoins = [
     symbol: 'BTC',
     precision: 8,
     status: ASSET_STATUS.ENABLED,
-    type: ASSET_CURRENCY_TYPE.ONCHAIN,
+    type: ASSET_CURRENCY_TYPE.VIRTUAL,
     autoCollect: true,
     intervalMin: 120,
     networks: [
@@ -80,7 +80,7 @@ const assetsCoins = [
     symbol: 'ETH',
     precision: 8,
     status: ASSET_STATUS.DISABLED,
-    type: ASSET_CURRENCY_TYPE.ONCHAIN,
+    type: ASSET_CURRENCY_TYPE.VIRTUAL,
     autoCollect: false,
     intervalMin: 120,
     networks: [
@@ -101,7 +101,7 @@ const assetsCoins = [
     symbol: 'LTC',
     precision: 8,
     status: ASSET_STATUS.ENABLED,
-    type: ASSET_CURRENCY_TYPE.ONCHAIN,
+    type: ASSET_CURRENCY_TYPE.VIRTUAL,
     autoCollect: true,
     intervalMin: 180,
     networks: [
@@ -122,7 +122,7 @@ const assetsCoins = [
     symbol: 'SOL',
     precision: 9,
     status: ASSET_STATUS.ENABLED,
-    type: ASSET_CURRENCY_TYPE.ONCHAIN,
+    type: ASSET_CURRENCY_TYPE.VIRTUAL,
     autoCollect: true,
     intervalMin: 60,
     networks: [
@@ -143,7 +143,7 @@ const assetsCoins = [
     symbol: 'DOGE',
     precision: 8,
     status: ASSET_STATUS.ENABLED,
-    type: ASSET_CURRENCY_TYPE.ONCHAIN,
+    type: ASSET_CURRENCY_TYPE.VIRTUAL,
     autoCollect: true,
     intervalMin: 120,
     networks: [
@@ -164,7 +164,7 @@ const assetsCoins = [
     symbol: 'XAU',
     precision: 3,
     status: ASSET_STATUS.ENABLED,
-    type: ASSET_CURRENCY_TYPE.OFFCHAIN,
+    type: ASSET_CURRENCY_TYPE.METAL,
     autoCollect: false,
     intervalMin: 0,
     networks: []
@@ -175,7 +175,7 @@ const assetsCoins = [
     symbol: 'XAG',
     precision: 3,
     status: ASSET_STATUS.ENABLED,
-    type: ASSET_CURRENCY_TYPE.OFFCHAIN,
+    type: ASSET_CURRENCY_TYPE.METAL,
     autoCollect: false,
     intervalMin: 0,
     networks: []
@@ -186,7 +186,7 @@ const assetsCoins = [
     symbol: 'XPT',
     precision: 3,
     status: ASSET_STATUS.ENABLED,
-    type: ASSET_CURRENCY_TYPE.OFFCHAIN,
+    type: ASSET_CURRENCY_TYPE.METAL,
     autoCollect: false,
     intervalMin: 0,
     networks: []
@@ -197,7 +197,7 @@ const assetsCoins = [
     symbol: 'XPD',
     precision: 3,
     status: ASSET_STATUS.ENABLED,
-    type: ASSET_CURRENCY_TYPE.OFFCHAIN,
+    type: ASSET_CURRENCY_TYPE.METAL,
     autoCollect: false,
     intervalMin: 0,
     networks: []
