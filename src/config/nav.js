@@ -4,6 +4,7 @@ export const navTree = [
     icon: 'dashboard',
     path: '/'
   },
+  { title: '合约场控面板', icon: 'contract', path: '/contracts/panel' },
   {
     title: '用户管理',
     icon: 'users',

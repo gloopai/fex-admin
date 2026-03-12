@@ -3,6 +3,7 @@ import { computed, reactive, ref, watch, onBeforeUnmount, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import MfaVerificationModal from '../../components/MfaVerificationModal.vue'
 import ControlConfigModal from '../../components/ControlConfigModal.vue'
+import PerpetualManualLineModal from '../../components/PerpetualManualLineModal.vue'
 import {
   PERP_CONTROL_CONTRACT_STATUS,
   PERP_CONTROL_OFFSET_DIRECTION,
@@ -45,6 +46,13 @@ const summary = computed(() => {
 const boardRefreshIntervalMs = ref(2000)
 const boardTopN = ref(20)
 const boardLastRefreshAt = ref('')
+const boardNow = ref(Date.now())
+
+const boardPagination = reactive({
+  currentPage: 1,
+  pageSize: 20
+})
+const boardPageSizeOptions = [10, 20, 30, 50]
 
 const metricLabel = {
   LONG: '多头持仓',
@@ -275,6 +283,7 @@ const refreshBoard = () => {
     return next
   })
   marketPrices.value = nextMarketPrices
+  boardNow.value = now
   boardLastRefreshAt.value = new Date(now).toISOString().replace('T', ' ').split('.')[0]
 }
 
@@ -309,26 +318,81 @@ onBeforeUnmount(() => {
   manualTimers.clear()
 })
 
-const boardContracts = computed(() => {
+const filteredContracts = computed(() => {
+  const kw = keyword.value.trim().toLowerCase()
+  if (!kw) return contracts.value
+  return contracts.value.filter((item) => `${item.symbol} ${item.alias}`.toLowerCase().includes(kw))
+})
+
+const boardSortedContracts = computed(() => {
   const list = filteredContracts.value.slice()
   list.sort((a, b) => {
     const av = parseCompactUsd(getMetric(a, metricLabel.VOLUME)?.value)
     const bv = parseCompactUsd(getMetric(b, metricLabel.VOLUME)?.value)
     return bv - av
   })
-  const n = Math.max(1, Math.min(list.length, Number(boardTopN.value) || 20))
-  return list.slice(0, n)
+  return list
 })
+
+const boardTotalPages = computed(() => {
+  const total = boardSortedContracts.value.length
+  return Math.max(1, Math.ceil(total / Number(boardPagination.pageSize || 20)))
+})
+
+const boardPageContracts = computed(() => {
+  const start = (boardPagination.currentPage - 1) * boardPagination.pageSize
+  const end = start + boardPagination.pageSize
+  return boardSortedContracts.value.slice(start, end)
+})
+
+watch([() => boardSortedContracts.value.length, () => boardPagination.pageSize], () => {
+  if (boardPagination.currentPage > boardTotalPages.value) boardPagination.currentPage = boardTotalPages.value
+  if (boardPagination.currentPage < 1) boardPagination.currentPage = 1
+})
+
+const marketPriceText = (contract) => {
+  const id = contract?.id
+  const symbol = contract?.symbol || id
+  const price = Number((id && marketPrices.value[id]) || baseMarketPrice(symbol))
+  if (!Number.isFinite(price) || price <= 0) return '-'
+  const decimals = price >= 1000 ? 2 : price >= 1 ? 4 : 6
+  return `$${price.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: decimals })}`
+}
+
+const offsetDirectionLabel = (value) => {
+  const map = {
+    [PERP_CONTROL_OFFSET_DIRECTION.AGAINST]: '逆势',
+    [PERP_CONTROL_OFFSET_DIRECTION.FOLLOW]: '顺势',
+    [PERP_CONTROL_OFFSET_DIRECTION.RANDOM]: '随机',
+    [PERP_CONTROL_OFFSET_DIRECTION.UP]: '向上',
+    [PERP_CONTROL_OFFSET_DIRECTION.DOWN]: '向下'
+  }
+  return map[value] || '随机'
+}
+
+const manualOverrideSummary = (contractId) => {
+  const entry = manualOverrides.value[contractId]
+  if (!entry) return '-'
+  const cfg = entry.overrideConfig || {}
+  const durationSec = Number(entry.durationSec || 0)
+  let remain = '持续'
+  if (durationSec > 0) {
+    const startedAt = Number(entry.startedAt || boardNow.value)
+    const elapsed = Math.max(0, (boardNow.value - startedAt) / 1000)
+    remain = `${Math.max(0, Math.ceil(durationSec - elapsed))}s`
+  }
+  return [
+    `偏移 ${Number(cfg.priceOffset || 0)} 点`,
+    offsetDirectionLabel(cfg.offsetDirection),
+    `滑点 ${Number(cfg.slippagePct || 0).toFixed(2)}%`,
+    `延迟 ${Number(cfg.latencyMs || 0)}ms`,
+    remain
+  ].join(' / ')
+}
 
 const pagination = reactive({
   currentPage: 1,
   pageSize: 5
-})
-
-const filteredContracts = computed(() => {
-  const kw = keyword.value.trim().toLowerCase()
-  if (!kw) return contracts.value
-  return contracts.value.filter((item) => `${item.symbol} ${item.alias}`.toLowerCase().includes(kw))
 })
 
 const paginatedContracts = computed(() => {
@@ -341,6 +405,7 @@ const totalPages = computed(() => Math.ceil(filteredContracts.value.length / pag
 
 watch([keyword], () => {
   pagination.currentPage = 1
+  boardPagination.currentPage = 1
 })
 
 const formatParams = (config) => {
@@ -386,27 +451,8 @@ const saveConfig = (next) => {
 
 const showManualModal = ref(false)
 const manualContractId = ref('')
-const manualForm = reactive({
-  priceOffset: 5,
-  offsetDirection: PERP_CONTROL_OFFSET_DIRECTION.AGAINST,
-  slippagePct: 0.2,
-  latencyMs: 80,
-  durationSec: 1800
-})
-
-const quickManualInputs = {
-  priceOffset: [0, 2, 5, 10, 15],
-  slippagePct: [0, 0.1, 0.2, 0.3, 0.5],
-  latencyMs: [0, 50, 100, 200, 500],
-  durationSec: [0, 300, 900, 1800, 3600, 7200]
-}
-
-const applyQuickManual = (key, value) => {
-  if (key === 'priceOffset') manualForm.priceOffset = Number(value)
-  if (key === 'slippagePct') manualForm.slippagePct = Number(value)
-  if (key === 'latencyMs') manualForm.latencyMs = Number(value)
-  if (key === 'durationSec') manualForm.durationSec = Number(value)
-}
+const manualInitialConfig = ref({})
+const manualInitialDurationSec = ref(1800)
 
 const manualContract = computed(() => contracts.value.find((c) => c.id === manualContractId.value) || null)
 const manualContractMetrics = computed(() => {
@@ -422,17 +468,6 @@ const manualContractMetrics = computed(() => {
   }
 })
 
-const manualOffsetDirectionLabel = computed(() => {
-  const map = {
-    [PERP_CONTROL_OFFSET_DIRECTION.AGAINST]: '逆势',
-    [PERP_CONTROL_OFFSET_DIRECTION.FOLLOW]: '顺势',
-    [PERP_CONTROL_OFFSET_DIRECTION.RANDOM]: '随机',
-    [PERP_CONTROL_OFFSET_DIRECTION.UP]: '向上',
-    [PERP_CONTROL_OFFSET_DIRECTION.DOWN]: '向下'
-  }
-  return map[manualForm.offsetDirection] || '随机'
-})
-
 const manualBasePrice = computed(() => {
   const id = manualContractId.value
   if (id && marketPrices.value[id]) return Number(marketPrices.value[id])
@@ -440,75 +475,29 @@ const manualBasePrice = computed(() => {
   return baseMarketPrice(symbol)
 })
 
-const manualPreview = computed(() => {
-  const basePrice = manualBasePrice.value
-  const offset = Number(manualForm.priceOffset || 0)
-  const slippage = Number(manualForm.slippagePct || 0) / 100
-  const orderAmount = 10000
-  const baseAmount = basePrice > 0 ? orderAmount / basePrice : 0
-
-  let buyBase = basePrice
-  let sellBase = basePrice
-
-  if (manualForm.offsetDirection === PERP_CONTROL_OFFSET_DIRECTION.AGAINST) {
-    buyBase = basePrice + offset
-    sellBase = basePrice - offset
-  } else if (manualForm.offsetDirection === PERP_CONTROL_OFFSET_DIRECTION.FOLLOW) {
-    buyBase = basePrice - offset
-    sellBase = basePrice + offset
-  } else if (manualForm.offsetDirection === PERP_CONTROL_OFFSET_DIRECTION.UP) {
-    buyBase = basePrice + offset
-    sellBase = basePrice + offset
-  } else if (manualForm.offsetDirection === PERP_CONTROL_OFFSET_DIRECTION.DOWN) {
-    buyBase = basePrice - offset
-    sellBase = basePrice - offset
-  } else {
-    buyBase = basePrice
-    sellBase = basePrice
-  }
-
-  const buySlippage = buyBase * slippage
-  const sellSlippage = sellBase * slippage
-  const buyPrice = buyBase + buySlippage
-  const sellPrice = sellBase - sellSlippage
-
-  const priceOffsetCost = Math.abs((buyBase - basePrice) + (basePrice - sellBase)) * baseAmount / 2
-  const slippageCost = (buySlippage + sellSlippage) * baseAmount / 2
-  const totalExtraCost = priceOffsetCost + slippageCost
-  const totalExtraCostPct = orderAmount > 0 ? (totalExtraCost / orderAmount) * 100 : 0
-
-  return {
-    basePrice,
-    buyPrice,
-    sellPrice,
-    priceOffsetCost,
-    slippageCost,
-    totalExtraCost,
-    totalExtraCostPct
-  }
-})
-
 const openManualLine = (contractId) => {
   const contract = contracts.value.find((c) => c.id === contractId)
   manualContractId.value = contractId
-  manualForm.priceOffset = Number(contract?.config?.priceOffset ?? 5)
-  manualForm.offsetDirection = contract?.config?.offsetDirection ?? PERP_CONTROL_OFFSET_DIRECTION.AGAINST
-  manualForm.slippagePct = Number(contract?.config?.slippagePct ?? 0.2)
-  manualForm.latencyMs = Number(contract?.config?.latencyMs ?? 80)
-  manualForm.durationSec = 1800
+  manualInitialConfig.value = {
+    priceOffset: Number(contract?.config?.priceOffset ?? 5),
+    offsetDirection: contract?.config?.offsetDirection ?? PERP_CONTROL_OFFSET_DIRECTION.AGAINST,
+    slippagePct: Number(contract?.config?.slippagePct ?? 0.2),
+    latencyMs: Number(contract?.config?.latencyMs ?? 80)
+  }
+  manualInitialDurationSec.value = 1800
   showManualModal.value = true
 }
 
-const requestSaveManualLine = () => {
-  const contract = contracts.value.find((c) => c.id === manualContractId.value)
+const requestSaveManualLine = ({ contractId, payload }) => {
+  const contract = contracts.value.find((c) => c.id === contractId)
   if (!contract) return
   const baseConfig = isManualActive(contract.id) ? clone(manualOverrides.value[contract.id].baseConfig) : clone(contract.config)
   const baseStatus = isManualActive(contract.id) ? manualOverrides.value[contract.id].baseStatus : contract.status
   const overrideConfig = {
-    priceOffset: Math.max(0, Math.min(50, Number(manualForm.priceOffset || 0))),
-    offsetDirection: manualForm.offsetDirection,
-    slippagePct: Math.max(0, Math.min(2, Number(manualForm.slippagePct || 0))),
-    latencyMs: Math.max(0, Math.min(5000, Number(manualForm.latencyMs || 0))),
+    priceOffset: Math.max(0, Math.min(50, Number(payload?.priceOffset || 0))),
+    offsetDirection: payload?.offsetDirection ?? PERP_CONTROL_OFFSET_DIRECTION.AGAINST,
+    slippagePct: Math.max(0, Math.min(2, Number(payload?.slippagePct || 0))),
+    latencyMs: Math.max(0, Math.min(5000, Number(payload?.latencyMs || 0))),
     maxLeverage: Math.max(1, Math.min(125, Number(baseConfig?.maxLeverage ?? contract?.config?.maxLeverage ?? 100))),
     autoTriggerEnabled: false
   }
@@ -518,7 +507,7 @@ const requestSaveManualLine = () => {
     baseConfig,
     baseStatus,
     overrideConfig,
-    durationSec: Number(manualForm.durationSec || 0)
+    durationSec: Number(payload?.durationSec || 0)
   }
   currentSaveAction.value = 'manual'
   showManualModal.value = false
@@ -967,62 +956,105 @@ const handleMfaVerify = async (code) => {
           <span class="text-xs text-slate-500">最后刷新：{{ boardLastRefreshAt || '-' }}</span>
         </div>
       </div>
-      <div class="max-h-[420px] overflow-auto">
-        <table class="w-full">
-          <thead class="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
-            <tr>
-              <th class="px-5 py-3 text-left text-xs font-semibold text-slate-900 uppercase">排名</th>
-              <th class="px-5 py-3 text-left text-xs font-semibold text-slate-900 uppercase">合约</th>
-              <th class="px-5 py-3 text-right text-xs font-semibold text-slate-900 uppercase">24h交易量</th>
-              <th class="px-5 py-3 text-right text-xs font-semibold text-slate-900 uppercase">持仓(多/空/净)</th>
-              <th class="px-5 py-3 text-right text-xs font-semibold text-slate-900 uppercase">多空比</th>
-              <th class="px-5 py-3 text-right text-xs font-semibold text-slate-900 uppercase">活跃用户</th>
-              <th class="px-5 py-3 text-right text-xs font-semibold text-slate-900 uppercase">平台盈亏</th>
-              <th class="px-5 py-3 text-right text-xs font-semibold text-slate-900 uppercase">操作</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-200">
-            <tr v-for="(contract, idx) in boardContracts" :key="`board-${contract.id}`" class="hover:bg-slate-50">
-              <td class="px-5 py-4 text-sm font-semibold text-slate-900">{{ idx + 1 }}</td>
-              <td class="px-5 py-4">
-                <div>
-                  <p class="text-sm font-bold text-slate-900">{{ contract.symbol }}</p>
-                  <p class="text-xs text-slate-500">{{ contract.alias }}</p>
-                </div>
-              </td>
-              <td class="px-5 py-4 text-right text-sm font-semibold text-slate-900">
-                {{ getMetric(contract, metricLabel.VOLUME)?.value || '-' }}
-              </td>
-              <td class="px-5 py-4 text-right text-xs">
-                <p class="font-semibold text-slate-900">
-                  {{ getMetric(contract, metricLabel.LONG)?.value || '-' }} /
-                  {{ getMetric(contract, metricLabel.SHORT)?.value || '-' }} /
-                  <span :class="parseCompactUsd(getMetric(contract, metricLabel.NET)?.value) >= 0 ? 'text-emerald-600' : 'text-rose-600'">
-                    {{ getMetric(contract, metricLabel.NET)?.value || '-' }}
+      <div class="overflow-x-auto">
+        <div class="max-h-[640px] overflow-auto">
+          <table class="w-full">
+            <thead class="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
+              <tr>
+                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-900 uppercase">排名</th>
+                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-900 uppercase">合约</th>
+                <th class="px-5 py-3 text-right text-xs font-semibold text-slate-900 uppercase">市场价</th>
+                <th class="px-5 py-3 text-right text-xs font-semibold text-slate-900 uppercase">24h交易量</th>
+                <th class="px-5 py-3 text-right text-xs font-semibold text-slate-900 uppercase">持仓(多/空/净)</th>
+                <th class="px-5 py-3 text-right text-xs font-semibold text-slate-900 uppercase">多空比</th>
+                <th class="px-5 py-3 text-right text-xs font-semibold text-slate-900 uppercase">活跃用户</th>
+                <th class="px-5 py-3 text-right text-xs font-semibold text-slate-900 uppercase">平台盈亏</th>
+                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-900 uppercase">手动配置</th>
+                <th class="px-5 py-3 text-right text-xs font-semibold text-slate-900 uppercase">操作</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+              <tr v-for="(contract, idx) in boardPageContracts" :key="`board-${contract.id}`" class="hover:bg-slate-50">
+                <td class="px-5 py-4 text-sm font-semibold text-slate-900">
+                  {{ idx + 1 + (boardPagination.currentPage - 1) * boardPagination.pageSize }}
+                </td>
+                <td class="px-5 py-4">
+                  <div>
+                    <p class="text-sm font-bold text-slate-900">{{ contract.symbol }}</p>
+                    <p class="text-xs text-slate-500">{{ contract.alias }}</p>
+                  </div>
+                </td>
+                <td class="px-5 py-4 text-right text-sm font-semibold text-slate-900">{{ marketPriceText(contract) }}</td>
+                <td class="px-5 py-4 text-right text-sm font-semibold text-slate-900">
+                  {{ getMetric(contract, metricLabel.VOLUME)?.value || '-' }}
+                </td>
+                <td class="px-5 py-4 text-right text-xs">
+                  <p class="font-semibold text-slate-900">
+                    {{ getMetric(contract, metricLabel.LONG)?.value || '-' }} /
+                    {{ getMetric(contract, metricLabel.SHORT)?.value || '-' }} /
+                    <span :class="parseCompactUsd(getMetric(contract, metricLabel.NET)?.value) >= 0 ? 'text-emerald-600' : 'text-rose-600'">
+                      {{ getMetric(contract, metricLabel.NET)?.value || '-' }}
+                    </span>
+                  </p>
+                </td>
+                <td class="px-5 py-4 text-right text-sm font-semibold text-slate-900">
+                  {{ getMetric(contract, metricLabel.RATIO)?.value || '-' }}
+                </td>
+                <td class="px-5 py-4 text-right text-sm font-semibold text-slate-900">
+                  {{ getMetric(contract, metricLabel.USERS)?.value || '-' }}
+                </td>
+                <td class="px-5 py-4 text-right text-sm font-semibold">
+                  <span :class="parseCompactUsd(getMetric(contract, metricLabel.PLATFORM_PNL)?.value) >= 0 ? 'text-emerald-600' : 'text-rose-600'">
+                    {{ getMetric(contract, metricLabel.PLATFORM_PNL)?.value || '-' }}
                   </span>
-                </p>
-              </td>
-              <td class="px-5 py-4 text-right text-sm font-semibold text-slate-900">
-                {{ getMetric(contract, metricLabel.RATIO)?.value || '-' }}
-              </td>
-              <td class="px-5 py-4 text-right text-sm font-semibold text-slate-900">
-                {{ getMetric(contract, metricLabel.USERS)?.value || '-' }}
-              </td>
-              <td class="px-5 py-4 text-right text-sm font-semibold">
-                <span :class="parseCompactUsd(getMetric(contract, metricLabel.PLATFORM_PNL)?.value) >= 0 ? 'text-emerald-600' : 'text-rose-600'">
-                  {{ getMetric(contract, metricLabel.PLATFORM_PNL)?.value || '-' }}
-                </span>
-              </td>
-              <td class="px-5 py-4 text-right">
-                <div class="flex items-center justify-end gap-2">
-                  <button type="button" class="ant-btn !h-9 !px-4" @click="openManualLine(contract.id)">手动插线</button>
-                  <button v-if="isManualActive(contract.id)" type="button" class="ant-btn !h-9 !px-4" @click="requestRemoveManualLine(contract.id)">解除</button>
-                  <button type="button" class="ant-btn ant-btn-primary !h-9 !px-4" @click="openConfig(contract.id)">配置</button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                </td>
+                <td class="px-5 py-4 text-xs font-semibold text-slate-700">
+                  <span class="block max-w-[360px] truncate" :title="manualOverrideSummary(contract.id)">
+                    {{ manualOverrideSummary(contract.id) }}
+                  </span>
+                </td>
+                <td class="px-5 py-4 text-right">
+                  <div class="flex items-center justify-end gap-2">
+                    <button type="button" class="ant-btn !h-9 !px-4" @click="openManualLine(contract.id)">手动插线</button>
+                    <button v-if="isManualActive(contract.id)" type="button" class="ant-btn !h-9 !px-4" @click="requestRemoveManualLine(contract.id)">解除</button>
+                    <button type="button" class="ant-btn ant-btn-primary !h-9 !px-4" @click="openConfig(contract.id)">配置</button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-white px-5 py-3">
+          <div class="text-sm text-slate-600">
+            共 <span class="font-medium">{{ boardSortedContracts.length }}</span> 条，第
+            <span class="font-medium">{{ boardPagination.currentPage }}</span> /
+            <span class="font-medium">{{ boardTotalPages }}</span> 页
+          </div>
+          <div class="flex items-center gap-2">
+            <select
+              v-model.number="boardPagination.pageSize"
+              class="rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-700"
+            >
+              <option v-for="size in boardPageSizeOptions" :key="`ps-${size}`" :value="size">{{ size }}/页</option>
+            </select>
+            <button
+              type="button"
+              class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              :disabled="boardPagination.currentPage === 1"
+              @click="boardPagination.currentPage--"
+            >
+              上一页
+            </button>
+            <button
+              type="button"
+              class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              :disabled="boardPagination.currentPage === boardTotalPages"
+              @click="boardPagination.currentPage++"
+            >
+              下一页
+            </button>
+          </div>
+        </div>
       </div>
     </article>
 
@@ -1180,267 +1212,18 @@ const handleMfaVerify = async (code) => {
     @save="saveConfig"
   />
 
-  <div v-if="showManualModal" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4">
-    <section class="flex h-[88vh] w-full max-w-5xl overflow-hidden rounded-xl bg-white shadow-2xl">
-      <div class="flex w-3/5 flex-col border-r border-slate-200">
-        <header class="flex items-center justify-between border-b border-slate-200 bg-gradient-to-r from-rose-50 to-amber-50 px-6 py-4">
-          <div>
-            <h2 class="text-xl font-semibold text-slate-900">手动插线</h2>
-            <p class="mt-0.5 text-xs text-slate-500">对 {{ manualContractId }} 快速应用线控参数，可设置到期自动恢复</p>
-          </div>
-          <button type="button" class="text-2xl text-slate-400 hover:text-slate-600 transition-colors" @click="showManualModal = false">×</button>
-        </header>
-
-        <div class="flex-1 space-y-5 overflow-y-auto px-6 py-5">
-          <section class="space-y-4 rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 to-cyan-50 p-5 shadow-sm">
-            <div class="flex items-center gap-2">
-              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500">
-                <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div class="flex-1">
-                <h3 class="text-base font-semibold text-slate-900">价格控制</h3>
-                <p class="text-xs text-slate-600">影响用户看到的价格</p>
-              </div>
-            </div>
-
-            <div class="space-y-4 rounded-lg bg-white p-4">
-              <label class="block space-y-2">
-                <div class="flex items-center justify-between text-sm">
-                  <span class="font-medium text-slate-700">价格偏移 (点)</span>
-                  <input v-model.number="manualForm.priceOffset" type="number" min="0" max="50" class="ant-input !w-20 !h-8 !px-2 !text-right" />
-                </div>
-                <input v-model.number="manualForm.priceOffset" type="range" min="0" max="50" step="1" class="w-full accent-blue-600" />
-                <div class="flex flex-wrap gap-2">
-                  <button
-                    v-for="v in quickManualInputs.priceOffset"
-                    :key="`q-offset-${v}`"
-                    type="button"
-                    class="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                    @click="applyQuickManual('priceOffset', v)"
-                  >
-                    {{ v }}
-                  </button>
-                </div>
-              </label>
-
-              <label class="block space-y-2">
-                <span class="text-sm font-medium text-slate-700">偏移方向</span>
-                <select v-model="manualForm.offsetDirection" class="ant-select">
-                  <option :value="PERP_CONTROL_OFFSET_DIRECTION.AGAINST">逆势</option>
-                  <option :value="PERP_CONTROL_OFFSET_DIRECTION.FOLLOW">顺势</option>
-                  <option :value="PERP_CONTROL_OFFSET_DIRECTION.RANDOM">随机</option>
-                  <option :value="PERP_CONTROL_OFFSET_DIRECTION.UP">向上</option>
-                  <option :value="PERP_CONTROL_OFFSET_DIRECTION.DOWN">向下</option>
-                </select>
-              </label>
-            </div>
-          </section>
-
-          <section class="space-y-4 rounded-xl border border-violet-100 bg-gradient-to-br from-violet-50 to-purple-50 p-5 shadow-sm">
-            <div class="flex items-center gap-2">
-              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-600">
-                <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div class="flex-1">
-                <h3 class="text-base font-semibold text-slate-900">成交控制</h3>
-                <p class="text-xs text-slate-600">影响订单成交质量和速度</p>
-              </div>
-            </div>
-
-            <div class="space-y-4 rounded-lg bg-white p-4">
-              <label class="block space-y-2">
-                <div class="flex items-center justify-between text-sm">
-                  <span class="font-medium text-slate-700">滑点率 (%)</span>
-                  <input v-model.number="manualForm.slippagePct" type="number" min="0" max="2" step="0.01" class="ant-input !w-20 !h-8 !px-2 !text-right" />
-                </div>
-                <input v-model.number="manualForm.slippagePct" type="range" min="0" max="2" step="0.01" class="w-full accent-violet-600" />
-                <div class="flex flex-wrap gap-2">
-                  <button
-                    v-for="v in quickManualInputs.slippagePct"
-                    :key="`q-slip-${v}`"
-                    type="button"
-                    class="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                    @click="applyQuickManual('slippagePct', v)"
-                  >
-                    {{ v }}%
-                  </button>
-                </div>
-              </label>
-
-              <label class="block space-y-2">
-                <div class="flex items-center justify-between text-sm">
-                  <span class="font-medium text-slate-700">成交延迟 (ms)</span>
-                  <input v-model.number="manualForm.latencyMs" type="number" min="0" max="5000" step="10" class="ant-input !w-20 !h-8 !px-2 !text-right" />
-                </div>
-                <input v-model.number="manualForm.latencyMs" type="range" min="0" max="5000" step="10" class="w-full accent-violet-600" />
-                <div class="flex flex-wrap gap-2">
-                  <button
-                    v-for="v in quickManualInputs.latencyMs"
-                    :key="`q-lat-${v}`"
-                    type="button"
-                    class="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                    @click="applyQuickManual('latencyMs', v)"
-                  >
-                    {{ v }}ms
-                  </button>
-                </div>
-              </label>
-            </div>
-          </section>
-
-          <section class="space-y-4 rounded-xl border border-amber-100 bg-gradient-to-br from-amber-50 to-orange-50 p-5 shadow-sm">
-            <div class="flex items-center gap-2">
-              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500">
-                <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div class="flex-1">
-                <h3 class="text-base font-semibold text-slate-900">持续时间</h3>
-                <p class="text-xs text-slate-600">到期自动恢复（0=持续生效）</p>
-              </div>
-            </div>
-
-            <div class="space-y-4 rounded-lg bg-white p-4">
-              <label class="block space-y-2">
-                <div class="flex items-center justify-between text-sm">
-                  <span class="font-medium text-slate-700">持续时间 (秒)</span>
-                  <input v-model.number="manualForm.durationSec" type="number" min="0" step="1" class="ant-input !w-24 !h-8 !px-2 !text-right" />
-                </div>
-                <input v-model.number="manualForm.durationSec" type="range" min="0" max="7200" step="60" class="w-full accent-amber-600" />
-                <div class="flex flex-wrap gap-2">
-                  <button
-                    v-for="v in quickManualInputs.durationSec"
-                    :key="`q-dur-${v}`"
-                    type="button"
-                    class="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                    @click="applyQuickManual('durationSec', v)"
-                  >
-                    {{ v === 0 ? '持续' : `${v}s` }}
-                  </button>
-                </div>
-              </label>
-            </div>
-          </section>
-        </div>
-
-        <footer class="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
-          <button type="button" class="ant-btn !h-10 !px-6" @click="showManualModal = false">取消</button>
-          <button type="button" class="ant-btn ant-btn-primary !h-10 !px-8" @click="requestSaveManualLine">保存并生效</button>
-        </footer>
-      </div>
-
-      <div class="flex w-2/5 flex-col bg-gradient-to-br from-slate-50 to-slate-100">
-        <header class="border-b border-slate-200 px-5 py-4">
-          <h3 class="text-lg font-semibold text-slate-900">实时预览</h3>
-          <p class="mt-0.5 text-xs text-slate-500">参数变化即时反映到价格与成本估算</p>
-        </header>
-
-        <div class="flex-1 space-y-4 overflow-y-auto px-5 py-4">
-          <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <div class="flex items-center justify-between">
-              <h4 class="text-sm font-semibold text-slate-900">配置概览</h4>
-              <span class="rounded-md px-2 py-1 text-xs font-medium bg-rose-100 text-rose-700">手动插线</span>
-            </div>
-            <div class="mt-3 flex flex-wrap gap-2">
-              <span class="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">偏移 {{ Number(manualForm.priceOffset || 0) }} 点</span>
-              <span class="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">方向 {{ manualOffsetDirectionLabel }}</span>
-              <span class="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">滑点 {{ Number(manualForm.slippagePct || 0).toFixed(2) }}%</span>
-              <span class="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">延迟 {{ Number(manualForm.latencyMs || 0) }}ms</span>
-              <span class="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
-                {{ Number(manualForm.durationSec || 0) === 0 ? '持续生效' : `持续 ${Number(manualForm.durationSec || 0)}s` }}
-              </span>
-            </div>
-          </div>
-
-          <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <div class="flex items-center justify-between">
-              <h4 class="text-sm font-semibold text-slate-900">实时数据</h4>
-              <span class="text-xs text-slate-500">更新：{{ boardLastRefreshAt || '-' }}</span>
-            </div>
-            <div class="mt-3 grid gap-3 sm:grid-cols-2">
-              <div class="rounded-lg bg-slate-50 p-3">
-                <p class="text-xs font-semibold text-slate-500">24h交易量</p>
-                <p class="mt-1 text-base font-bold text-slate-900">{{ manualContractMetrics.volume }}</p>
-              </div>
-              <div class="rounded-lg bg-slate-50 p-3">
-                <p class="text-xs font-semibold text-slate-500">活跃用户</p>
-                <p class="mt-1 text-base font-bold text-slate-900">{{ manualContractMetrics.users }}</p>
-              </div>
-              <div class="rounded-lg bg-slate-50 p-3">
-                <p class="text-xs font-semibold text-slate-500">持仓(多/空/净)</p>
-                <p class="mt-1 text-sm font-bold text-slate-900">
-                  {{ manualContractMetrics.long }} /
-                  {{ manualContractMetrics.short }} /
-                  <span :class="parseCompactUsd(manualContractMetrics.net) >= 0 ? 'text-emerald-600' : 'text-rose-600'">
-                    {{ manualContractMetrics.net }}
-                  </span>
-                </p>
-              </div>
-              <div class="rounded-lg bg-slate-50 p-3">
-                <p class="text-xs font-semibold text-slate-500">多空比</p>
-                <p class="mt-1 text-base font-bold text-slate-900">{{ manualContractMetrics.ratio }}</p>
-              </div>
-              <div class="rounded-lg bg-slate-50 p-3 sm:col-span-2">
-                <p class="text-xs font-semibold text-slate-500">平台盈亏</p>
-                <p class="mt-1 text-sm font-bold">
-                  <span :class="parseCompactUsd(manualContractMetrics.platformPnl) >= 0 ? 'text-emerald-600' : 'text-rose-600'">
-                    {{ manualContractMetrics.platformPnl }}
-                  </span>
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <h4 class="text-sm font-semibold text-slate-900">价格预览</h4>
-            <div class="mt-3 grid gap-3 sm:grid-cols-2">
-              <div class="rounded-lg bg-slate-50 p-3">
-                <p class="text-xs font-semibold text-slate-500">市场价</p>
-                <p class="mt-1 text-lg font-bold text-slate-900">${{ manualPreview.basePrice.toLocaleString() }}</p>
-              </div>
-              <div class="rounded-lg bg-slate-50 p-3">
-                <p class="text-xs font-semibold text-slate-500">买入价 (含滑点)</p>
-                <p class="mt-1 text-lg font-bold text-slate-900">${{ manualPreview.buyPrice.toFixed(2) }}</p>
-              </div>
-              <div class="rounded-lg bg-slate-50 p-3">
-                <p class="text-xs font-semibold text-slate-500">卖出价 (含滑点)</p>
-                <p class="mt-1 text-lg font-bold text-slate-900">${{ manualPreview.sellPrice.toFixed(2) }}</p>
-              </div>
-              <div class="rounded-lg bg-slate-50 p-3">
-                <p class="text-xs font-semibold text-slate-500">成交延迟</p>
-                <p class="mt-1 text-lg font-bold text-slate-900">{{ Number(manualForm.latencyMs || 0) }} ms</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <h4 class="text-sm font-semibold text-slate-900">成本估算</h4>
-            <p class="mt-1 text-xs text-slate-500">按 10,000 USDT 订单金额估算</p>
-            <div class="mt-3 space-y-2">
-              <div class="flex items-center justify-between text-sm">
-                <span class="text-slate-600">偏移成本</span>
-                <span class="font-semibold text-slate-900">${{ manualPreview.priceOffsetCost.toFixed(2) }}</span>
-              </div>
-              <div class="flex items-center justify-between text-sm">
-                <span class="text-slate-600">滑点成本</span>
-                <span class="font-semibold text-slate-900">${{ manualPreview.slippageCost.toFixed(2) }}</span>
-              </div>
-              <div class="h-px bg-slate-200" />
-              <div class="flex items-center justify-between text-sm">
-                <span class="text-slate-700 font-semibold">合计</span>
-                <span class="font-bold text-slate-900">${{ manualPreview.totalExtraCost.toFixed(2) }}（{{ manualPreview.totalExtraCostPct.toFixed(2) }}%）</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  </div>
+  <PerpetualManualLineModal
+    :open="showManualModal"
+    :contract-id="manualContractId"
+    :contract-label="manualContract?.alias || ''"
+    :base-price="manualBasePrice"
+    :last-refresh-at="boardLastRefreshAt"
+    :metrics="manualContractMetrics"
+    :initial-config="manualInitialConfig"
+    :initial-duration-sec="manualInitialDurationSec"
+    @close="showManualModal = false"
+    @save="requestSaveManualLine"
+  />
 
   <div v-if="showRuleModal" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4">
     <section class="flex h-[88vh] w-full max-w-5xl overflow-hidden rounded-xl bg-white shadow-2xl">

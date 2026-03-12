@@ -28,6 +28,11 @@ const routes = [
         component: () => import('../pages/user/UserListPage.vue')
       },
       {
+        path: 'contracts/panel',
+        name: 'contracts-panel',
+        component: () => import('../pages/contracts/ContractsPanelPage.vue')
+      },
+      {
         path: 'perpetual/overview',
         name: 'perpetual-overview',
         component: () => import('../pages/perpetual/PerpetualManagementPage.vue')
