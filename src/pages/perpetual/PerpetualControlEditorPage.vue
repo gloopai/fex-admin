@@ -513,7 +513,7 @@ const handleMfaVerify = async (code) => {
       <div class="p-5 space-y-5">
         <div class="grid gap-2 md:grid-cols-4 xl:grid-cols-8">
           <div v-for="metric in contract.metrics" :key="metric.label" class="rounded-lg border border-slate-100 bg-slate-50/50 p-2.5 transition-colors hover:bg-slate-50">
-            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{{ metric.label }}</p>
+            <p class="text-[12px] text-slate-400  uppercase tracking-wider">{{ metric.label }}</p>
             <p class="mt-1 text-sm font-bold" :class="toneClass[metric.tone]">{{ metric.value }}</p>
           </div>
         </div>

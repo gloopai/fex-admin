@@ -244,10 +244,10 @@ const statusClass = (status) =>
             <div class="flex items-center gap-2">
               <button
                 type="button"
-                class="ant-btn ant-btn-link text-xs"
+                class="ant-btn "
                 @click="openEditContract(item)"
               >
-                编辑配置
+                编辑
               </button>
             </div>
           </div>

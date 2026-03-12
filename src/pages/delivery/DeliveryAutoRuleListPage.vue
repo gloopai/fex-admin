@@ -376,15 +376,15 @@ const saveRule = (ruleData) => {
                   <!-- 统计信息 -->
                   <div class="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-slate-100">
                     <div>
-                      <p class="text-[10px] text-slate-400 uppercase font-bold">累计触发</p>
+                      <p class="text-[12px] text-slate-400 uppercase ">累计触发</p>
                       <p class="mt-1 text-sm font-bold text-slate-900 font-mono">{{ rule.hitCount }} 次</p>
                     </div>
                     <div>
-                      <p class="text-[10px] text-slate-400 uppercase font-bold">影响用户</p>
+                      <p class="text-[12px] text-slate-400 uppercase">影响用户</p>
                       <p class="mt-1 text-sm font-bold text-slate-900 font-mono">{{ rule.totalAffectedUsers }} 人</p>
                     </div>
                     <div class="sm:col-span-2">
-                      <p class="text-[10px] text-slate-400 uppercase font-bold">最后触发</p>
+                      <p class="text-[12px] text-slate-400 uppercase">最后触发</p>
                       <p class="mt-1 text-sm font-medium text-slate-600">{{ rule.lastHitAt }}</p>
                     </div>
                   </div>
@@ -394,7 +394,7 @@ const saveRule = (ruleData) => {
                 <div class="flex items-center gap-2">
                   <button
                     type="button"
-                    class="ant-btn !h-8 !px-3 !text-xs"
+                    class="ant-btn !h-8 !px-3 "
                     title="编辑"
                     @click="openEditModal(rule)"
                   >
@@ -402,7 +402,7 @@ const saveRule = (ruleData) => {
                   </button>
                   <button
                     type="button"
-                    class="ant-btn !h-8 !px-3 !text-xs"
+                    class="ant-btn !h-8 !px-3 "
                     title="复制"
                     @click="openDuplicateModal(rule)"
                   >
@@ -410,7 +410,7 @@ const saveRule = (ruleData) => {
                   </button>
                   <button
                     type="button"
-                    class="ant-btn !h-8 !px-3 !text-xs !text-rose-600 !border-rose-300 hover:!text-rose-700 hover:!border-rose-500"
+                    class="ant-btn !h-8 !px-3  !text-rose-600 !border-rose-300 hover:!text-rose-700 hover:!border-rose-500"
                     title="删除"
                     @click="deleteRule(rule.id)"
                   >

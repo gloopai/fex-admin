@@ -185,7 +185,7 @@
                 </span>
               </td>
               <td class="px-4 py-3">
-                <button type="button" class="ant-btn !h-8 !px-3 !text-xs" @click="viewOrder(order)">
+                <button type="button" class="ant-btn !h-8 !px-3 " @click="viewOrder(order)">
                   详情
                 </button>
               </td>

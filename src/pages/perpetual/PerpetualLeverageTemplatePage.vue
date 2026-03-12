@@ -209,7 +209,7 @@ const submitTemplate = () => {
               </div>
               <p class="mt-3 text-sm text-slate-600">杠杆范围: <span class="font-medium text-slate-900">{{ tpl.leverageRange }}</span></p>
             </div>
-            <button type="button" class="ant-btn !h-8 !px-3 !text-xs" @click="openEditTemplate(tpl)">编辑模板</button>
+            <button type="button" class="ant-btn !h-8 !px-3 " @click="openEditTemplate(tpl)">编辑模板</button>
           </div>
 
           <div class="mt-4">

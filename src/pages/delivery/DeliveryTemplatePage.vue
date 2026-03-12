@@ -213,10 +213,10 @@ const statusClass = (status) =>
               <div class="w-px h-3 bg-slate-200 mx-1"></div>
               <button
                 type="button"
-                class="ant-btn ant-btn-link text-xs"
+                class="ant-btn"
                 @click="openEditTemplate(tpl)"
               >
-                编辑配置
+                编辑
               </button>
             </div>
           </div>
