@@ -5,6 +5,11 @@ export const ASSET_STATUS = {
   DISABLED: 'disabled'
 }
 
+export const ASSET_CURRENCY_TYPE = {
+  ONCHAIN: 'onchain',
+  OFFCHAIN: 'offchain'
+}
+
 export const ASSET_MODAL_TAB = {
   BASIC: 'basic',
   COLLECT: 'collect',

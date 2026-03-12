@@ -3,6 +3,7 @@ import {
   ASSET_ADDRESS_LOG_TYPE,
   ASSET_COLLECT_MODE,
   ASSET_COLLECT_RECORD_STATUS,
+  ASSET_CURRENCY_TYPE,
   ASSET_STATUS,
   ASSET_WALLET_STATUS,
   EXCHANGE_RATE_SOURCE,
@@ -19,6 +20,7 @@ const assetsCoins = [
     symbol: 'USDT',
     precision: 6,
     status: ASSET_STATUS.ENABLED,
+    type: ASSET_CURRENCY_TYPE.ONCHAIN,
     autoCollect: true,
     intervalMin: 60,
     networks: [
@@ -57,6 +59,7 @@ const assetsCoins = [
     symbol: 'BTC',
     precision: 8,
     status: ASSET_STATUS.ENABLED,
+    type: ASSET_CURRENCY_TYPE.ONCHAIN,
     autoCollect: true,
     intervalMin: 120,
     networks: [
@@ -77,6 +80,7 @@ const assetsCoins = [
     symbol: 'ETH',
     precision: 8,
     status: ASSET_STATUS.DISABLED,
+    type: ASSET_CURRENCY_TYPE.ONCHAIN,
     autoCollect: false,
     intervalMin: 120,
     networks: [
@@ -97,6 +101,7 @@ const assetsCoins = [
     symbol: 'LTC',
     precision: 8,
     status: ASSET_STATUS.ENABLED,
+    type: ASSET_CURRENCY_TYPE.ONCHAIN,
     autoCollect: true,
     intervalMin: 180,
     networks: [
@@ -117,6 +122,7 @@ const assetsCoins = [
     symbol: 'SOL',
     precision: 9,
     status: ASSET_STATUS.ENABLED,
+    type: ASSET_CURRENCY_TYPE.ONCHAIN,
     autoCollect: true,
     intervalMin: 60,
     networks: [
@@ -137,6 +143,7 @@ const assetsCoins = [
     symbol: 'DOGE',
     precision: 8,
     status: ASSET_STATUS.ENABLED,
+    type: ASSET_CURRENCY_TYPE.ONCHAIN,
     autoCollect: true,
     intervalMin: 120,
     networks: [
@@ -150,6 +157,50 @@ const assetsCoins = [
         status: ASSET_STATUS.ENABLED
       }
     ]
+  },
+  {
+    id: 'xau',
+    name: 'Gold',
+    symbol: 'XAU',
+    precision: 3,
+    status: ASSET_STATUS.ENABLED,
+    type: ASSET_CURRENCY_TYPE.OFFCHAIN,
+    autoCollect: false,
+    intervalMin: 0,
+    networks: []
+  },
+  {
+    id: 'xag',
+    name: 'Silver',
+    symbol: 'XAG',
+    precision: 3,
+    status: ASSET_STATUS.ENABLED,
+    type: ASSET_CURRENCY_TYPE.OFFCHAIN,
+    autoCollect: false,
+    intervalMin: 0,
+    networks: []
+  },
+  {
+    id: 'xpt',
+    name: 'Platinum',
+    symbol: 'XPT',
+    precision: 3,
+    status: ASSET_STATUS.ENABLED,
+    type: ASSET_CURRENCY_TYPE.OFFCHAIN,
+    autoCollect: false,
+    intervalMin: 0,
+    networks: []
+  },
+  {
+    id: 'xpd',
+    name: 'Palladium',
+    symbol: 'XPD',
+    precision: 3,
+    status: ASSET_STATUS.ENABLED,
+    type: ASSET_CURRENCY_TYPE.OFFCHAIN,
+    autoCollect: false,
+    intervalMin: 0,
+    networks: []
   }
 ]
 
