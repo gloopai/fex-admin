@@ -206,6 +206,47 @@ const resetWhalesPage = () => {
   whalesCurrentPage.value = 1
 }
 
+const contractsCurrentPage = ref(1)
+const contractsPageSize = ref(10)
+const contractsTotalPages = computed(() => {
+  const total = Math.ceil(filteredContractsWithControl.value.length / contractsPageSize.value)
+  return total > 0 ? total : 1
+})
+const paginatedContractsWithControl = computed(() => {
+  const start = (contractsCurrentPage.value - 1) * contractsPageSize.value
+  const end = start + contractsPageSize.value
+  return filteredContractsWithControl.value.slice(start, end)
+})
+const contractsPageNumbers = computed(() => {
+  const total = contractsTotalPages.value
+  const current = contractsCurrentPage.value
+  const pages = []
+
+  if (total <= 7) {
+    for (let i = 1; i <= total; i++) {
+      pages.push(i)
+    }
+  } else {
+    pages.push(1)
+
+    if (current > 3) {
+      pages.push('...')
+    }
+
+    for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i++) {
+      pages.push(i)
+    }
+
+    if (current < total - 2) {
+      pages.push('...')
+    }
+
+    pages.push(total)
+  }
+
+  return pages
+})
+
 // 格式化金额
 const formatAmount = (value) => {
   if (Math.abs(value) >= 1000000) {
@@ -273,6 +314,7 @@ const reportModuleKeyPoints = {
     '平台赚钱但活跃掉了：可以逐步减摩擦，把交易量拉回来'
   ],
   riskWhales: [
+    '大户口径（可按业务调整）：总持仓 ≥ 10万 USDT，或单边持仓 ≥ 8万 USDT 且杠杆 ≥ 20x',
     '看大户持仓与方向：谁可能把净敞口带偏，谁就是重点关注对象',
     '看大户杠杆：高杠杆更容易引发连环爆仓，优先考虑降杠杆/加延迟',
     '看大户盈亏与盈亏率：找出持续高盈利/高频特征，方便把阈值设得更贴近实际'
@@ -287,6 +329,7 @@ const refreshData = () => {
 // 监听合约切换，重置页码
 watch(selectedContract, () => {
   whalesCurrentPage.value = 1
+  contractsCurrentPage.value = 1
 })
 
 // 导出报表
@@ -597,7 +640,7 @@ const openRiskHelpModal = () => {
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200">
-                  <tr v-for="contract in filteredContractsWithControl" :key="contract.symbol" class="hover:bg-slate-50">
+                  <tr v-for="contract in paginatedContractsWithControl" :key="contract.symbol" class="hover:bg-slate-50">
                     <td class="px-6 py-4">
                       <div>
                         <p class="text-sm font-medium text-slate-900">{{ contract.name }}</p>
@@ -669,8 +712,53 @@ const openRiskHelpModal = () => {
               </table>
               </div>
             </div>
-            <div v-if="selectedContract === 'ALL' && filteredContractsWithControl.length > 5" class="mt-2 text-center">
-              <p class="text-xs text-slate-500">💡 表格内容较多，可向下滚动查看更多合约数据</p>
+            <div v-if="selectedContract === 'ALL'" class="mt-2 flex items-center justify-between text-xs text-slate-500">
+              <span>共 {{ filteredContractsWithControl.length }} 个合约</span>
+              <span>第 {{ contractsCurrentPage }} / {{ contractsTotalPages }} 页</span>
+            </div>
+
+            <div v-if="selectedContract === 'ALL'" class="mt-3 flex items-center justify-end gap-2">
+              <button
+                @click="contractsCurrentPage = Math.max(1, contractsCurrentPage - 1)"
+                :disabled="contractsCurrentPage === 1"
+                :class="[
+                  'px-3 py-1.5 text-sm font-medium rounded-lg transition-colors',
+                  contractsCurrentPage === 1
+                    ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                    : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
+                ]"
+              >
+                上一页
+              </button>
+              <div class="flex items-center gap-1">
+                <template v-for="(page, index) in contractsPageNumbers" :key="index">
+                  <button
+                    v-if="page !== '...'"
+                    @click="contractsCurrentPage = page"
+                    :class="[
+                      'px-3 py-1.5 text-sm font-medium rounded-lg transition-colors',
+                      contractsCurrentPage === page
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
+                    ]"
+                  >
+                    {{ page }}
+                  </button>
+                  <span v-else class="px-2 text-slate-400">...</span>
+                </template>
+              </div>
+              <button
+                @click="contractsCurrentPage = Math.min(contractsTotalPages, contractsCurrentPage + 1)"
+                :disabled="contractsCurrentPage === contractsTotalPages"
+                :class="[
+                  'px-3 py-1.5 text-sm font-medium rounded-lg transition-colors',
+                  contractsCurrentPage === contractsTotalPages
+                    ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                    : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
+                ]"
+              >
+                下一页
+              </button>
             </div>
             <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
               <p class="font-semibold text-slate-900 mb-1">要点</p>
@@ -1006,7 +1094,7 @@ const openRiskHelpModal = () => {
                 <thead class="bg-slate-50 border-b border-slate-200">
                   <tr>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-slate-900 uppercase">用户</th>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-slate-900 uppercase">类型</th>
+                    <!-- <th class="px-6 py-3 text-left text-xs font-semibold text-slate-900 uppercase">类型</th> -->
                     <th v-if="selectedContract === 'ALL'" class="px-6 py-3 text-left text-xs font-semibold text-slate-900 uppercase">交易合约</th>
                     <th class="px-6 py-3 text-right text-xs font-semibold text-slate-900 uppercase">总持仓</th>
                     <th class="px-6 py-3 text-right text-xs font-semibold text-slate-900 uppercase">多头/空头</th>
@@ -1021,11 +1109,11 @@ const openRiskHelpModal = () => {
                       <p class="text-sm font-medium text-slate-900">{{ whale.username }}</p>
                       <p class="text-xs text-slate-500">{{ whale.userId }}</p>
                     </td>
-                    <td class="px-6 py-4">
+                    <!-- <td class="px-6 py-4">
                       <span :class="USER_TYPE_CONFIG[whale.type].class" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">
                         {{ USER_TYPE_CONFIG[whale.type].icon }} {{ USER_TYPE_CONFIG[whale.type].text }}
                       </span>
-                    </td>
+                    </td> -->
                     <td v-if="selectedContract === 'ALL'" class="px-6 py-4">
                       <div class="flex flex-wrap gap-1">
                         <span 
