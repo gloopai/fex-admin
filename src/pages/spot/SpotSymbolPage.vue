@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { symbolApi } from '../../mock/spot'
+import { createAssetsCoinsMock } from '../../mock/assets'
 
 const loading = ref(false)
 const symbols = ref([])
@@ -28,10 +29,8 @@ const editingId = ref(null)
 const form = reactive({
   symbol_name: '',
   symbol_id: 0,
-  base_coin_id: 0,
   base_coin_name: '',
   base_coin_prec: 0,
-  quote_coin_id: 0,
   quote_coin_name: '',
   quote_coin_prec: 0,
   is_table_create: 0,
@@ -115,10 +114,8 @@ const openCreate = () => {
   editingId.value = null
   form.symbol_name = ''
   form.symbol_id = 0
-  form.base_coin_id = 0
   form.base_coin_name = ''
   form.base_coin_prec = 0
-  form.quote_coin_id = 0
   form.quote_coin_name = ''
   form.quote_coin_prec = 0
   form.is_table_create = 0
@@ -132,10 +129,8 @@ const openEdit = (row) => {
   editingId.value = row.id
   form.symbol_name = row.symbol_name
   form.symbol_id = Number(row.symbol_id)
-  form.base_coin_id = Number(row.base_coin_id)
   form.base_coin_name = row.base_coin_name
   form.base_coin_prec = Number(row.base_coin_prec)
-  form.quote_coin_id = Number(row.quote_coin_id)
   form.quote_coin_name = row.quote_coin_name
   form.quote_coin_prec = Number(row.quote_coin_prec)
   form.is_table_create = Number(row.is_table_create)
@@ -148,14 +143,15 @@ const closeModal = () => {
   showEditModal.value = false
 }
 
+const assetCoins = ref(createAssetsCoinsMock())
+const coinOptions = computed(() => assetCoins.value.map(c => ({ value: c.symbol, label: `${c.symbol} - ${c.name}` })))
+
 const saveSymbol = async () => {
   const payload = {
     symbol_name: String(form.symbol_name || '').trim(),
     symbol_id: Number(form.symbol_id),
-    base_coin_id: Number(form.base_coin_id),
     base_coin_name: String(form.base_coin_name || '').trim().toUpperCase(),
     base_coin_prec: Number(form.base_coin_prec),
-    quote_coin_id: Number(form.quote_coin_id),
     quote_coin_name: String(form.quote_coin_name || '').trim().toUpperCase(),
     quote_coin_prec: Number(form.quote_coin_prec),
     is_table_create: Number(form.is_table_create) ? 1 : 0,
@@ -166,8 +162,6 @@ const saveSymbol = async () => {
   if (!payload.symbol_name) return alert('请输入交易对名称')
   if (!Number.isFinite(payload.symbol_id) || payload.symbol_id <= 0) return alert('请输入有效的交易对ID')
   if (!payload.base_coin_name || !payload.quote_coin_name) return alert('请输入基础币/计价币名称')
-  if (!Number.isFinite(payload.base_coin_id) || payload.base_coin_id <= 0) return alert('请输入有效的基础币ID')
-  if (!Number.isFinite(payload.quote_coin_id) || payload.quote_coin_id <= 0) return alert('请输入有效的计价币ID')
   if (!Number.isFinite(payload.base_coin_prec) || payload.base_coin_prec < 0 || payload.base_coin_prec > 18) return alert('基础币精度需在 0-18')
   if (!Number.isFinite(payload.quote_coin_prec) || payload.quote_coin_prec < 0 || payload.quote_coin_prec > 18) return alert('计价币精度需在 0-18')
   if (![1, 2, 3].includes(payload.pair_type)) return alert('请选择有效的交易对类型')
@@ -421,12 +415,10 @@ const goNext = () => {
               <div class="space-y-3 rounded-md border border-black/[0.06] bg-[#fafafa] p-4">
                 <div class="text-xs font-medium text-black/65">基础币</div>
                 <div class="space-y-1.5">
-                  <label class="text-sm text-black/85 font-medium">基础币ID <span class="text-rose-500">*</span></label>
-                  <input v-model.number="form.base_coin_id" type="number" class="ant-input" placeholder="如：1" />
-                </div>
-                <div class="space-y-1.5">
                   <label class="text-sm text-black/85 font-medium">基础币名称 <span class="text-rose-500">*</span></label>
-                  <input v-model="form.base_coin_name" type="text" class="ant-input uppercase" placeholder="如：BTC" />
+                  <select v-model="form.base_coin_name" class="ant-select">
+                    <option v-for="opt in coinOptions" :key="`base-${opt.value}`" :value="opt.value">{{ opt.label }}</option>
+                  </select>
                 </div>
                 <div class="space-y-1.5">
                   <label class="text-sm text-black/85 font-medium">基础币精度</label>
@@ -437,12 +429,10 @@ const goNext = () => {
               <div class="space-y-3 rounded-md border border-black/[0.06] bg-[#fafafa] p-4">
                 <div class="text-xs font-medium text-black/65">计价币</div>
                 <div class="space-y-1.5">
-                  <label class="text-sm text-black/85 font-medium">计价币ID <span class="text-rose-500">*</span></label>
-                  <input v-model.number="form.quote_coin_id" type="number" class="ant-input" placeholder="如：2" />
-                </div>
-                <div class="space-y-1.5">
                   <label class="text-sm text-black/85 font-medium">计价币名称 <span class="text-rose-500">*</span></label>
-                  <input v-model="form.quote_coin_name" type="text" class="ant-input uppercase" placeholder="如：USDT" />
+                  <select v-model="form.quote_coin_name" class="ant-select">
+                    <option v-for="opt in coinOptions" :key="`quote-${opt.value}`" :value="opt.value">{{ opt.label }}</option>
+                  </select>
                 </div>
                 <div class="space-y-1.5">
                   <label class="text-sm text-black/85 font-medium">计价币精度</label>

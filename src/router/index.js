@@ -125,8 +125,7 @@ const routes = [
       },
       {
         path: 'assets/currencies',
-        name: 'assets-currencies',
-        component: () => import('../pages/assets/AssetsCurrencyPage.vue')
+        redirect: '/system/currencies'
       },
       {
         path: 'assets/exchange-rate',
@@ -160,6 +159,15 @@ const routes = [
       {
         path: 'assets/transfer',
         redirect: '/assets/manual-collect'
+      },
+      {
+        path: 'system/currencies',
+        name: 'system-currencies',
+        component: () => import('../pages/assets/AssetsCurrencyPage.vue'),
+        meta: {
+          title: '系统设置 / 币种管理',
+          desc: '统一维护平台支持的币种、精度与网络配置'
+        }
       },
       {
         path: 'liquidity/versus/params',

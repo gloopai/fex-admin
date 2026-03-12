@@ -1,7 +1,8 @@
 <script setup>
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch, onMounted } from 'vue'
 import { COMMON_FILTER_ALL, DELIVERY_CONTRACT_TAB, DELIVERY_STATUS } from '../../constants/delivery'
 import { createDeliveryProductsMock, createDeliveryTemplatesMock } from '../../mock/delivery'
+import { symbolApi } from '../../mock/spot'
 
 const statusTab = ref(COMMON_FILTER_ALL)
 const search = ref('')
@@ -56,6 +57,7 @@ const contractForm = reactive({
   code: '',
   baseCurrency: 'BTC',
   quoteCurrency: 'USDT',
+  spotSymbol: '',
   status: DELIVERY_STATUS.ENABLED,
   templateId: 'tpl-standard',
   minBuy: '10',
@@ -75,6 +77,7 @@ const openCreateContract = () => {
   contractForm.code = ''
   contractForm.baseCurrency = 'BTC'
   contractForm.quoteCurrency = 'USDT'
+  contractForm.spotSymbol = ''
   contractForm.status = DELIVERY_STATUS.ENABLED
   contractForm.templateId = templates.value[0]?.id || ''
   contractForm.minBuy = '10'
@@ -93,6 +96,7 @@ const openEditContract = (item) => {
   const [baseCurrency, quoteCurrency] = item.pair.split('/')
   contractForm.baseCurrency = baseCurrency
   contractForm.quoteCurrency = quoteCurrency
+  contractForm.spotSymbol = `${baseCurrency}/${quoteCurrency}`
   contractForm.status = item.status
   contractForm.templateId = item.templateId
   contractForm.minBuy = item.minBuy
@@ -133,6 +137,54 @@ const statusClass = (status) =>
   status === DELIVERY_STATUS.ENABLED
     ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
     : 'bg-rose-50 text-rose-600 border-rose-100'
+
+const pairOptions = ref([])
+
+const syncPairToCurrencies = (pair) => {
+  const parts = String(pair || '').split('/')
+  const base = parts[0] || ''
+  const quote = parts[1] || ''
+  if (base) contractForm.baseCurrency = base
+  if (quote) contractForm.quoteCurrency = quote
+}
+
+const loadSpotSymbols = async () => {
+  try {
+    const result = await symbolApi.getSymbolList({
+      page: 1,
+      pageSize: 1000,
+      is_open: '1',
+      includeDeleted: false
+    })
+    if (result?.success) {
+      const list = Array.isArray(result.data?.list) ? result.data.list : []
+      const pairs = Array.from(
+        new Set(
+          list
+            .map((it) => String(it.symbol_name || '').trim())
+            .filter(Boolean)
+        )
+      )
+      pairOptions.value = pairs
+      if (!contractForm.spotSymbol || !pairOptions.value.includes(contractForm.spotSymbol)) {
+        contractForm.spotSymbol = pairOptions.value[0] || ''
+      }
+      syncPairToCurrencies(contractForm.spotSymbol)
+    }
+  } catch (e) {
+  }
+}
+
+watch(
+  () => contractForm.spotSymbol,
+  (val) => {
+    syncPairToCurrencies(val)
+  }
+)
+
+onMounted(() => {
+  loadSpotSymbols()
+})
 </script>
 
 <template>
@@ -393,25 +445,13 @@ const statusClass = (status) =>
                     placeholder="如：BTC_DELIVERY"
                   />
                 </div>
-                <div class="space-y-1.5">
-                  <label class="text-sm text-slate-900">基础币种</label>
+                <div class="space-y-1.5 md:col-span-2">
+                  <label class="text-sm text-slate-900">选择交易对 <span class="text-rose-500">*</span></label>
                   <select
-                    v-model="contractForm.baseCurrency"
-                    class="ant-select"
+                    v-model="contractForm.spotSymbol"
+                    class="ant-select w-full"
                   >
-                    <option>BTC</option>
-                    <option>ETH</option>
-                    <option>SOL</option>
-                  </select>
-                </div>
-                <div class="space-y-1.5">
-                  <label class="text-sm text-slate-900">计价币种</label>
-                  <select
-                    v-model="contractForm.quoteCurrency"
-                    class="ant-select"
-                  >
-                    <option>USDT</option>
-                    <option>USDC</option>
+                    <option v-for="opt in pairOptions" :key="`pair-${opt}`" :value="opt">{{ opt }}</option>
                   </select>
                 </div>
                 <div class="space-y-1.5 md:col-span-2">
