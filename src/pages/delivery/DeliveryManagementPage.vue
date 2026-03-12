@@ -143,41 +143,33 @@ const statusClass = (status) =>
         <h1 class="text-3xl font-semibold text-slate-900">交割合约管理</h1>
         <p class="mt-1 text-sm text-slate-500">管理平台交割合约产品的核心配置，包括周期模板、交易限额及手续费率</p>
       </div>
-      <button
-        type="button"
-        class="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-        @click="openCreateContract()"
-      >
-        <span class="text-base">+</span>
-        <span>新增合约</span>
-      </button>
     </header>
 
     <article class="rounded-xl border border-slate-200 bg-white">
       <!-- 筛选栏 -->
       <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 p-4">
-        <div class="flex flex-wrap items-center gap-4">
-          <div class="inline-flex items-center gap-2 text-sm">
+        <div class="flex flex-wrap items-center gap-6">
+          <div class="inline-flex items-center gap-6 text-sm">
             <button
               type="button"
-              class="font-medium"
-              :class="statusTab === COMMON_FILTER_ALL ? 'text-blue-600' : 'text-slate-500'"
+              class="relative py-2 font-medium transition-colors"
+              :class="statusTab === COMMON_FILTER_ALL ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600' : 'text-slate-500 hover:text-slate-700'"
               @click="statusTab = COMMON_FILTER_ALL"
             >
               全部
             </button>
             <button
               type="button"
-              class="font-medium"
-              :class="statusTab === DELIVERY_STATUS.ENABLED ? 'text-blue-600' : 'text-slate-500'"
+              class="relative py-2 font-medium transition-colors"
+              :class="statusTab === DELIVERY_STATUS.ENABLED ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600' : 'text-slate-500 hover:text-slate-700'"
               @click="statusTab = DELIVERY_STATUS.ENABLED"
             >
               已启用
             </button>
             <button
               type="button"
-              class="font-medium"
-              :class="statusTab === DELIVERY_STATUS.DISABLED ? 'text-blue-600' : 'text-slate-500'"
+              class="relative py-2 font-medium transition-colors"
+              :class="statusTab === DELIVERY_STATUS.DISABLED ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600' : 'text-slate-500 hover:text-slate-700'"
               @click="statusTab = DELIVERY_STATUS.DISABLED"
             >
               已禁用
@@ -185,12 +177,12 @@ const statusClass = (status) =>
           </div>
         </div>
 
-        <div class="flex w-full max-w-2xl flex-wrap items-center justify-end gap-2">
-          <div class="relative w-full max-w-sm">
+        <div class="flex flex-wrap items-center gap-3">
+          <div class="relative w-64">
             <input
               v-model="search"
               type="text"
-              class="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm outline-none focus:border-blue-500"
+              class="ant-input w-full pl-9"
               placeholder="搜索产品名称或代码..."
             />
             <svg viewBox="0 0 20 20" class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" fill="none">
@@ -198,6 +190,14 @@ const statusClass = (status) =>
               <path d="M13.6 13.6L16.4 16.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
             </svg>
           </div>
+          <button
+            type="button"
+            class="ant-btn ant-btn-primary inline-flex items-center gap-1.5"
+            @click="openCreateContract()"
+          >
+            <span class="text-lg leading-none">+</span>
+            <span>新增合约</span>
+          </button>
         </div>
       </div>
 
@@ -206,20 +206,20 @@ const statusClass = (status) =>
         <article
           v-for="item in filteredProducts"
           :key="item.id"
-          class="rounded-xl border border-slate-200 bg-white transition-all hover:border-blue-500/30 hover:shadow-sm"
+          class="rounded-lg border border-slate-200 bg-white transition-all hover:border-blue-500/30 hover:shadow-md"
         >
           <div class="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 p-4">
             <div class="flex-1">
               <div class="flex items-center gap-3 flex-wrap">
-                <h3 class="text-lg font-semibold text-slate-900">{{ item.name }}</h3>
+                <h3 class="text-base font-semibold text-slate-900">{{ item.name }}</h3>
                 <span class="text-sm font-mono text-slate-500">{{ item.code }}</span>
                 <span
-                  class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-md"
+                  class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded border"
                   :class="statusClass(item.status)"
                 >
                   {{ item.status === DELIVERY_STATUS.ENABLED ? '已启用' : '已禁用' }}
                 </span>
-                <span class="px-2 py-0.5 text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-md">
+                <span class="px-2 py-0.5 text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded">
                   {{ item.templateName }}
                 </span>
               </div>
@@ -235,7 +235,7 @@ const statusClass = (status) =>
                 <span
                   v-for="cycle in productCycles(item)"
                   :key="cycle.id"
-                  class="px-2 py-0.5 text-[10px] font-medium text-blue-600 bg-blue-50 border border-blue-100 rounded-md"
+                  class="px-2 py-0.5 text-[10px] font-medium text-blue-600 bg-blue-50 border border-blue-100 rounded"
                 >
                   {{ durationLabel(cycle.durationSec) }} ({{ cycle.payoutPct.toFixed(1) }}%)
                 </span>
@@ -244,7 +244,7 @@ const statusClass = (status) =>
             <div class="flex items-center gap-2">
               <button
                 type="button"
-                class="text-blue-600 hover:text-blue-700 text-xs font-medium"
+                class="ant-btn ant-btn-link text-xs"
                 @click="openEditContract(item)"
               >
                 编辑配置
@@ -252,7 +252,7 @@ const statusClass = (status) =>
             </div>
           </div>
 
-          <div class="grid gap-0 md:grid-cols-2 bg-slate-50/50">
+          <div class="grid gap-0 md:grid-cols-2 bg-slate-50/30">
             <div class="border-b border-slate-100 p-4 md:border-b-0 md:border-r">
               <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">交易限制</p>
               <ul class="mt-3 grid grid-cols-3 gap-4 text-sm">
@@ -290,21 +290,32 @@ const statusClass = (status) =>
       <!-- 分页组件 -->
       <div v-if="totalPages > 1" class="flex items-center justify-between border-t border-slate-100 p-4">
         <div class="text-sm text-slate-500">
-          共 <span class="font-medium text-slate-900">{{ allFilteredProducts.length }}</span> 条记录，第
-          <span class="font-medium text-slate-900">{{ pagination.currentPage }}</span> / {{ totalPages }} 页
+          共 <span class="font-medium text-slate-900">{{ allFilteredProducts.length }}</span> 条记录
         </div>
         <div class="flex items-center gap-2">
           <button
             type="button"
-            class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="ant-btn ant-btn-sm"
             :disabled="pagination.currentPage === 1"
             @click="pagination.currentPage--"
           >
             上一页
           </button>
+          <div class="flex items-center gap-1">
+            <button
+              v-for="p in totalPages"
+              :key="p"
+              type="button"
+              class="ant-btn ant-btn-sm w-8 p-0"
+              :class="pagination.currentPage === p ? 'ant-btn-primary' : ''"
+              @click="pagination.currentPage = p"
+            >
+              {{ p }}
+            </button>
+          </div>
           <button
             type="button"
-            class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="ant-btn ant-btn-sm"
             :disabled="pagination.currentPage === totalPages"
             @click="pagination.currentPage++"
           >
@@ -318,16 +329,15 @@ const statusClass = (status) =>
     <Transition name="modal">
       <div
         v-if="showContractModal"
-        class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
+        class="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm"
         @click.self="showContractModal = false"
       >
         <section
-          class="flex flex-col w-full max-w-4xl h-[90vh] overflow-hidden rounded-xl bg-white shadow-2xl border border-slate-200"
+          class="flex flex-col w-full max-w-3xl h-[30rem] overflow-hidden rounded-lg bg-white shadow-xl"
         >
-          <header class="flex items-center justify-between border-b border-slate-200 bg-slate-50/50 px-6 py-4">
+          <header class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
             <div>
-              <h2 class="text-xl font-semibold text-slate-900">{{ editingContractId ? '编辑交割合约' : '新增交割合约' }}</h2>
-              <p class="mt-0.5 text-xs text-slate-500">配置交割合约的基本参数、周期模板与交易限额</p>
+              <h2 class="text-lg font-semibold text-slate-900">{{ editingContractId ? '编辑交割合约' : '新增交割合约' }}</h2>
             </div>
             <button
               type="button"
@@ -338,110 +348,81 @@ const statusClass = (status) =>
             </button>
           </header>
 
-          <div class="px-6 py-3 border-b border-slate-200 bg-white">
-            <div class="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
+          <div class="px-6 border-b border-slate-100 bg-white">
+            <div class="flex gap-8">
               <button
+                v-for="(label, key) in {
+                  [DELIVERY_CONTRACT_TAB.BASIC]: '基本信息',
+                  [DELIVERY_CONTRACT_TAB.CYCLE]: '周期设置',
+                  [DELIVERY_CONTRACT_TAB.LIMIT]: '交易限制',
+                  [DELIVERY_CONTRACT_TAB.FEE]: '费率设置'
+                }"
+                :key="key"
                 type="button"
-                class="rounded-md px-4 py-1.5 text-sm transition-all"
+                class="relative py-3 text-sm transition-all"
                 :class="
-                  contractTab === DELIVERY_CONTRACT_TAB.BASIC
-                    ? 'bg-white text-blue-600 shadow-sm font-medium'
+                  contractTab === key
+                    ? 'text-blue-600 font-medium after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
                     : 'text-slate-500 hover:text-slate-700'
                 "
-                @click="contractTab = DELIVERY_CONTRACT_TAB.BASIC"
+                @click="contractTab = key"
               >
-                基本信息
-              </button>
-              <button
-                type="button"
-                class="rounded-md px-4 py-1.5 text-sm transition-all"
-                :class="
-                  contractTab === DELIVERY_CONTRACT_TAB.CYCLE
-                    ? 'bg-white text-blue-600 shadow-sm font-medium'
-                    : 'text-slate-500 hover:text-slate-700'
-                "
-                @click="contractTab = DELIVERY_CONTRACT_TAB.CYCLE"
-              >
-                周期设置
-              </button>
-              <button
-                type="button"
-                class="rounded-md px-4 py-1.5 text-sm transition-all"
-                :class="
-                  contractTab === DELIVERY_CONTRACT_TAB.LIMIT
-                    ? 'bg-white text-blue-600 shadow-sm font-medium'
-                    : 'text-slate-500 hover:text-slate-700'
-                "
-                @click="contractTab = DELIVERY_CONTRACT_TAB.LIMIT"
-              >
-                交易限制
-              </button>
-              <button
-                type="button"
-                class="rounded-md px-4 py-1.5 text-sm transition-all"
-                :class="
-                  contractTab === DELIVERY_CONTRACT_TAB.FEE
-                    ? 'bg-white text-blue-600 shadow-sm font-medium'
-                    : 'text-slate-500 hover:text-slate-700'
-                "
-                @click="contractTab = DELIVERY_CONTRACT_TAB.FEE"
-              >
-                费率设置
+                {{ label }}
               </button>
             </div>
           </div>
 
-          <div class="flex-1 overflow-y-auto bg-slate-50/30 p-6 space-y-6">
-            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <div class="flex-1 overflow-y-auto bg-white p-6 space-y-6">
+            <div class="space-y-6">
               <div v-if="contractTab === DELIVERY_CONTRACT_TAB.BASIC" class="grid gap-6 md:grid-cols-2">
-                <div class="space-y-2">
-                  <label class="text-sm font-medium text-slate-900">合约名称 <span class="text-rose-500">*</span></label>
+                <div class="space-y-1.5">
+                  <label class="text-sm text-slate-900">合约名称 <span class="text-rose-500">*</span></label>
                   <input
                     v-model="contractForm.name"
                     type="text"
-                    class="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500 text-sm"
+                    class="ant-input"
                     placeholder="如：BTC 周期合约"
                   />
                 </div>
-                <div class="space-y-2">
-                  <label class="text-sm font-medium text-slate-900">合约代码 <span class="text-rose-500">*</span></label>
+                <div class="space-y-1.5">
+                  <label class="text-sm text-slate-900">合约代码 <span class="text-rose-500">*</span></label>
                   <input
                     v-model="contractForm.code"
                     type="text"
-                    class="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500 text-sm"
+                    class="ant-input uppercase"
                     placeholder="如：BTC_DELIVERY"
                   />
                 </div>
-                <div class="space-y-2">
-                  <label class="text-sm font-medium text-slate-900">基础币种</label>
+                <div class="space-y-1.5">
+                  <label class="text-sm text-slate-900">基础币种</label>
                   <select
                     v-model="contractForm.baseCurrency"
-                    class="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500 text-sm"
+                    class="ant-select"
                   >
                     <option>BTC</option>
                     <option>ETH</option>
                     <option>SOL</option>
                   </select>
                 </div>
-                <div class="space-y-2">
-                  <label class="text-sm font-medium text-slate-900">计价币种</label>
+                <div class="space-y-1.5">
+                  <label class="text-sm text-slate-900">计价币种</label>
                   <select
                     v-model="contractForm.quoteCurrency"
-                    class="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500 text-sm"
+                    class="ant-select"
                   >
                     <option>USDT</option>
                     <option>USDC</option>
                   </select>
                 </div>
-                <div class="space-y-2 md:col-span-2">
-                  <span class="text-sm font-medium text-slate-900">产品状态</span>
-                  <div class="flex rounded-lg border border-slate-200 bg-slate-50 p-1 w-fit mt-1">
+                <div class="space-y-1.5 md:col-span-2">
+                  <label class="block text-sm text-slate-900">产品状态</label>
+                  <div class="inline-flex rounded border border-slate-200 p-0.5 bg-slate-50 mt-1">
                     <button
                       type="button"
-                      class="rounded-md px-4 py-1.5 text-sm transition-all"
+                      class="px-4 py-1 text-xs rounded transition-all"
                       :class="
                         contractForm.status === DELIVERY_STATUS.ENABLED
-                          ? 'bg-white shadow-sm font-medium text-blue-600'
+                          ? 'bg-white shadow-sm text-blue-600 font-medium'
                           : 'text-slate-500 hover:text-slate-700'
                       "
                       @click="contractForm.status = DELIVERY_STATUS.ENABLED"
@@ -450,10 +431,10 @@ const statusClass = (status) =>
                     </button>
                     <button
                       type="button"
-                      class="rounded-md px-4 py-1.5 text-sm transition-all"
+                      class="px-4 py-1 text-xs rounded transition-all"
                       :class="
                         contractForm.status === DELIVERY_STATUS.DISABLED
-                          ? 'bg-white shadow-sm font-medium text-blue-600'
+                          ? 'bg-white shadow-sm text-blue-600 font-medium'
                           : 'text-slate-500 hover:text-slate-700'
                       "
                       @click="contractForm.status = DELIVERY_STATUS.DISABLED"
@@ -465,25 +446,25 @@ const statusClass = (status) =>
               </div>
 
               <div v-if="contractTab === DELIVERY_CONTRACT_TAB.CYCLE" class="space-y-6">
-                <div class="space-y-2">
-                  <label class="text-sm font-medium text-slate-900">选择周期模板 <span class="text-rose-500">*</span></label>
+                <div class="space-y-1.5">
+                  <label class="text-sm text-slate-900">选择周期模板 <span class="text-rose-500">*</span></label>
                   <select
                     v-model="contractForm.templateId"
-                    class="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500 text-sm"
+                    class="ant-select"
                   >
                     <option v-for="tpl in templates" :key="tpl.id" :value="tpl.id">{{ tpl.name }}</option>
                   </select>
                 </div>
-                <article v-if="selectedTemplate" class="rounded-xl border border-blue-100 bg-blue-50/30 p-4 space-y-4">
+                <article v-if="selectedTemplate" class="rounded border border-blue-100 bg-blue-50/30 p-4 space-y-4">
                   <div class="flex items-center justify-between">
-                    <h4 class="font-semibold text-slate-900">模板详情: {{ selectedTemplate.name }}</h4>
-                    <span class="text-xs text-blue-600 font-medium">{{ selectedTemplateCycles.length }} 个预设周期</span>
+                    <h4 class="text-sm font-semibold text-slate-900">模板详情: {{ selectedTemplate.name }}</h4>
+                    <span class="text-xs text-blue-600">{{ selectedTemplateCycles.length }} 个预设周期</span>
                   </div>
                   <div class="flex flex-wrap gap-2">
                     <div
                       v-for="cycle in selectedTemplateCycles"
                       :key="cycle.id"
-                      class="px-3 py-1.5 rounded-lg bg-white border border-blue-100 text-xs flex items-center gap-2"
+                      class="px-3 py-1.5 rounded bg-white border border-blue-100 text-xs flex items-center gap-2"
                     >
                       <span class="text-slate-500">时长:</span>
                       <span class="font-bold text-slate-900">{{ durationLabel(cycle.durationSec) }}</span>
@@ -496,72 +477,72 @@ const statusClass = (status) =>
               </div>
 
               <div v-if="contractTab === DELIVERY_CONTRACT_TAB.LIMIT" class="grid gap-6 md:grid-cols-3">
-                <div class="space-y-2">
-                  <label class="text-sm font-medium text-slate-900">最低买入额 (USDT)</label>
+                <div class="space-y-1.5">
+                  <label class="text-sm text-slate-900">最低买入额 (USDT)</label>
                   <input
                     v-model="contractForm.minBuy"
                     type="number"
-                    class="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500 text-sm font-mono"
+                    class="ant-input font-mono"
                   />
                 </div>
-                <div class="space-y-2">
-                  <label class="text-sm font-medium text-slate-900">最高买入额 (USDT)</label>
+                <div class="space-y-1.5">
+                  <label class="text-sm text-slate-900">最高买入额 (USDT)</label>
                   <input
                     v-model="contractForm.maxBuy"
                     type="number"
-                    class="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500 text-sm font-mono"
+                    class="ant-input font-mono"
                   />
                 </div>
-                <div class="space-y-2">
-                  <label class="text-sm font-medium text-slate-900">最大持仓额 (USDT)</label>
+                <div class="space-y-1.5">
+                  <label class="text-sm text-slate-900">最大持仓额 (USDT)</label>
                   <input
                     v-model="contractForm.maxHold"
                     type="number"
-                    class="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500 text-sm font-mono"
+                    class="ant-input font-mono"
                   />
                 </div>
               </div>
 
               <div v-if="contractTab === DELIVERY_CONTRACT_TAB.FEE" class="grid gap-6 md:grid-cols-2">
-                <div class="space-y-2">
-                  <label class="text-sm font-medium text-slate-900">买入费率 (%)</label>
+                <div class="space-y-1.5">
+                  <label class="text-sm text-slate-900">买入费率 (%)</label>
                   <div class="relative">
                     <input
                       v-model="contractForm.buyFee"
                       type="number"
                       step="0.01"
-                      class="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500 text-sm font-mono pr-8"
+                      class="ant-input font-mono pr-8"
                     />
-                    <span class="absolute right-3 top-2 text-slate-400 text-sm">%</span>
+                    <span class="absolute right-3 top-1.5 text-slate-400 text-sm">%</span>
                   </div>
                 </div>
-                <div class="space-y-2">
-                  <label class="text-sm font-medium text-slate-900">卖出费率 (%)</label>
+                <div class="space-y-1.5">
+                  <label class="text-sm text-slate-900">卖出费率 (%)</label>
                   <div class="relative">
                     <input
                       v-model="contractForm.sellFee"
                       type="number"
                       step="0.01"
-                      class="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500 text-sm font-mono pr-8"
+                      class="ant-input font-mono pr-8"
                     />
-                    <span class="absolute right-3 top-2 text-slate-400 text-sm">%</span>
+                    <span class="absolute right-3 top-1.5 text-slate-400 text-sm">%</span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <footer class="flex justify-end gap-3 border-t border-slate-200 bg-white px-6 py-4">
+          <footer class="flex justify-end gap-2 border-t border-slate-100 px-6 py-4">
             <button
               type="button"
-              class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+              class="ant-btn"
               @click="showContractModal = false"
             >
               取消
             </button>
             <button
               type="button"
-              class="rounded-md bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 shadow-sm transition-colors"
+              class="ant-btn ant-btn-primary"
               @click="saveContract"
             >
               保存合约
