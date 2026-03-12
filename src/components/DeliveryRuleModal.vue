@@ -489,7 +489,7 @@ watch(() => props.open, (isOpen) => {
                     </div>
                     <div class="space-y-1.5">
                       <label class="text-sm text-black/65">预期盈亏值 (EV)</label>
-                      <p class="text-sm text-black/45">根据当前参数实时计算的期望值。</p>
+                      <p class="text-sm text-black/45">根据当前参数计算的用户盈利预估值。</p>
                       <div class="text-sm font-mono font-medium" :class="calculatedExpectedValue >= 0 ? 'text-emerald-500' : 'text-rose-500'">{{ calculatedExpectedValue.toFixed(2) }}%</div>
                     </div>
                     <div class="space-y-1.5">
@@ -601,6 +601,17 @@ watch(() => props.open, (isOpen) => {
                 <p class="text-sm font-bold text-blue-600 mb-1">期望值公式</p>
                 <p class="text-xs text-blue-500 font-mono">EV = (Win% * WinProb) + (Loss% * (1 - WinProb))</p>
               </div>
+            
+            </div>
+
+            <div class="space-y-3">
+              <h4 class="text-sm font-semibold text-black/85"> 价格修正策略:</h4>
+              <p class="text-sm text-black/65 leading-relaxed">
+                 <b>无策略：</b>不考虑价格修正，直接按照计算出来的结果执行用户的盈亏
+                  <br />
+                  <b>时间窗口：</b>在交易时间内根据盈利概率的结果，获取区间内最低价格，来对概率价格进行修正，开仓是以修正后的价格为准。
+              </p>
+              
             </div>
 
             <div class="space-y-4">
