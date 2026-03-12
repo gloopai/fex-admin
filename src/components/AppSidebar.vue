@@ -20,11 +20,11 @@ const sidebarClass = computed(() => {
 
 <template>
   <aside
-    class="fixed inset-y-0 left-0 z-40 w-[256px] shrink-0 bg-antd-sidebar-dark text-white/65 transition-transform duration-200 lg:static lg:z-auto"
+    class="fixed inset-y-0 left-0 z-40 w-[256px] shrink-0 border-r border-slate-200 bg-white text-slate-700 transition-transform duration-200 lg:static lg:z-auto"
     :class="sidebarClass"
   >
     <div class="flex h-full flex-col">
-      <div class="flex items-center justify-between gap-3 px-5 py-4">
+      <div class="flex items-center justify-between gap-3 border-b border-slate-200/70 px-5 py-4">
         <div class="flex items-center gap-3">
           <div class="grid h-8 w-8 place-items-center rounded-lg bg-antd-primary text-white">
             <svg viewBox="0 0 20 20" class="h-4 w-4" fill="none">
@@ -32,13 +32,13 @@ const sidebarClass = computed(() => {
             </svg>
           </div>
           <div>
-            <p class="text-lg leading-none font-bold text-white">CryptoX Pro</p>
+            <p class="text-lg leading-none font-bold text-slate-900">CryptoX Pro</p>
           </div>
         </div>
 
         <button
           type="button"
-          class="rounded-md p-1 text-white/45 transition hover:bg-white/10 hover:text-white lg:hidden"
+          class="rounded-md p-1 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 lg:hidden"
           aria-label="close menu"
           @click="emit('close')"
         >

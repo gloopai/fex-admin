@@ -52,8 +52,9 @@ const paddingLeft = computed(() => `${props.level * 18 + 12}px`)
 const showIcon = computed(() => props.level === 0 && Boolean(props.item.icon))
 
 const rowClass = computed(() => {
-  if (isActive.value) return 'bg-antd-primary text-white font-medium'
-  return 'text-white/65 hover:text-white transition-colors'
+  if (isActive.value) return 'bg-antd-primary/10 text-antd-primary font-medium'
+  if (hasActiveDescendant.value) return 'bg-slate-100/70 text-slate-900'
+  return 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors'
 })
 
 const toggle = () => {
