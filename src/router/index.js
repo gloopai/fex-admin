@@ -291,6 +291,11 @@ const routes = [
         component: () => import('../pages/spot/SpotProductPage.vue')
       },
       {
+        path: 'spot/symbols',
+        name: 'spot-symbols',
+        component: () => import('../pages/spot/SpotSymbolPage.vue')
+      },
+      {
         path: 'spot/orders',
         name: 'spot-orders',
         component: () => import('../pages/spot/SpotOrderPage.vue')

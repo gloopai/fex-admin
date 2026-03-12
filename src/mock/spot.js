@@ -392,3 +392,203 @@ export const mockSpotOrders = [
     trades: []
   }
 ]
+
+const unixNowSec = () => Math.floor(Date.now() / 1000)
+
+const createSymbolMocks = () => {
+  const now = unixNowSec()
+  const base = [
+    { base_coin_id: 1, base_coin_name: 'BTC', base_coin_prec: 8, quote_coin_id: 2, quote_coin_name: 'USDT', quote_coin_prec: 2, pair_type: 1 },
+    { base_coin_id: 3, base_coin_name: 'ETH', base_coin_prec: 8, quote_coin_id: 2, quote_coin_name: 'USDT', quote_coin_prec: 2, pair_type: 1 },
+    { base_coin_id: 4, base_coin_name: 'BNB', base_coin_prec: 8, quote_coin_id: 2, quote_coin_name: 'USDT', quote_coin_prec: 2, pair_type: 1 },
+    { base_coin_id: 5, base_coin_name: 'SOL', base_coin_prec: 8, quote_coin_id: 2, quote_coin_name: 'USDT', quote_coin_prec: 2, pair_type: 1 },
+    { base_coin_id: 6, base_coin_name: 'XRP', base_coin_prec: 6, quote_coin_id: 2, quote_coin_name: 'USDT', quote_coin_prec: 2, pair_type: 1 },
+    { base_coin_id: 7, base_coin_name: 'EUR', base_coin_prec: 2, quote_coin_id: 8, quote_coin_name: 'USD', quote_coin_prec: 2, pair_type: 2 },
+    { base_coin_id: 9, base_coin_name: 'XAU', base_coin_prec: 3, quote_coin_id: 8, quote_coin_name: 'USD', quote_coin_prec: 2, pair_type: 3 }
+  ]
+
+  const items = []
+  for (let i = 0; i < 18; i++) {
+    const t = base[i % base.length]
+    const baseName = t.base_coin_name
+    const quoteName = t.quote_coin_name
+    items.push({
+      id: i + 1,
+      symbol_name: `${baseName}/${quoteName}`,
+      symbol_id: 1000 + i + 1,
+      base_coin_id: t.base_coin_id,
+      base_coin_name: t.base_coin_name,
+      base_coin_prec: t.base_coin_prec,
+      quote_coin_id: t.quote_coin_id,
+      quote_coin_name: t.quote_coin_name,
+      quote_coin_prec: t.quote_coin_prec,
+      created_at: now - (i + 1) * 86400,
+      updated_at: now - (i + 1) * 3600,
+      deleted_at: 0,
+      is_table_create: i % 4 === 0 ? 0 : 1,
+      is_open: i % 6 === 0 ? 0 : 1,
+      pair_type: t.pair_type
+    })
+  }
+  return items
+}
+
+let symbolStore = createSymbolMocks()
+let symbolAutoId = symbolStore.reduce((m, it) => Math.max(m, Number(it.id) || 0), 0)
+
+const normalizeFilterFlag = (v) => (v === 'all' || v === undefined || v === null || v === '' ? null : Number(v))
+
+export const symbolApi = {
+  getSymbolList: (params = {}) => {
+    const {
+      page = 1,
+      pageSize = 10,
+      keyword = '',
+      is_open = 'all',
+      pair_type = 'all',
+      is_table_create = 'all',
+      includeDeleted = false
+    } = params
+
+    const kw = String(keyword || '').trim().toLowerCase()
+    const openFilter = normalizeFilterFlag(is_open)
+    const typeFilter = normalizeFilterFlag(pair_type)
+    const tableFilter = normalizeFilterFlag(is_table_create)
+
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        let list = [...symbolStore]
+
+        if (!includeDeleted) {
+          list = list.filter((s) => !Number(s.deleted_at))
+        }
+
+        if (kw) {
+          list = list.filter((s) => {
+            const blob = `${s.symbol_name} ${s.symbol_id} ${s.base_coin_name} ${s.quote_coin_name}`.toLowerCase()
+            return blob.includes(kw)
+          })
+        }
+
+        if (openFilter !== null) list = list.filter((s) => Number(s.is_open) === openFilter)
+        if (typeFilter !== null) list = list.filter((s) => Number(s.pair_type) === typeFilter)
+        if (tableFilter !== null) list = list.filter((s) => Number(s.is_table_create) === tableFilter)
+
+        list.sort((a, b) => (Number(b.updated_at) || 0) - (Number(a.updated_at) || 0))
+
+        const total = list.length
+        const start = (Number(page) - 1) * Number(pageSize)
+        const end = start + Number(pageSize)
+
+        resolve({
+          success: true,
+          data: {
+            list: list.slice(start, end),
+            total,
+            page: Number(page),
+            pageSize: Number(pageSize)
+          }
+        })
+      }, 250)
+    })
+  },
+
+  createSymbol: (payload) => {
+    const input = { ...(payload || {}) }
+    const symbol_name = String(input.symbol_name || '').trim()
+    const symbol_id = Number(input.symbol_id)
+
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        if (!symbol_name) return resolve({ success: false, message: 'symbol_name 不能为空' })
+        if (!Number.isFinite(symbol_id) || symbol_id <= 0) return resolve({ success: false, message: 'symbol_id 不合法' })
+
+        if (symbolStore.some((s) => !Number(s.deleted_at) && s.symbol_name === symbol_name)) {
+          return resolve({ success: false, message: '交易对名称已存在' })
+        }
+        if (symbolStore.some((s) => !Number(s.deleted_at) && Number(s.symbol_id) === symbol_id)) {
+          return resolve({ success: false, message: '交易对ID已存在' })
+        }
+
+        symbolAutoId += 1
+        const now = unixNowSec()
+        const row = {
+          id: symbolAutoId,
+          symbol_name,
+          symbol_id,
+          base_coin_id: Number(input.base_coin_id) || 0,
+          base_coin_name: String(input.base_coin_name || '').trim(),
+          base_coin_prec: Number(input.base_coin_prec) || 0,
+          quote_coin_id: Number(input.quote_coin_id) || 0,
+          quote_coin_name: String(input.quote_coin_name || '').trim(),
+          quote_coin_prec: Number(input.quote_coin_prec) || 0,
+          created_at: now,
+          updated_at: now,
+          deleted_at: 0,
+          is_table_create: Number(input.is_table_create) ? 1 : 0,
+          is_open: Number(input.is_open) ? 1 : 0,
+          pair_type: Number(input.pair_type) || 1
+        }
+
+        symbolStore.unshift(row)
+        resolve({ success: true, data: row })
+      }, 250)
+    })
+  },
+
+  updateSymbol: (payload) => {
+    const input = { ...(payload || {}) }
+    const id = Number(input.id)
+    if (!Number.isFinite(id) || id <= 0) return Promise.resolve({ success: false, message: 'id 不合法' })
+
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const idx = symbolStore.findIndex((s) => Number(s.id) === id)
+        if (idx === -1) return resolve({ success: false, message: '记录不存在' })
+
+        const next = { ...symbolStore[idx] }
+
+        if (input.symbol_name !== undefined) next.symbol_name = String(input.symbol_name || '').trim()
+        if (input.symbol_id !== undefined) next.symbol_id = Number(input.symbol_id)
+        if (input.base_coin_id !== undefined) next.base_coin_id = Number(input.base_coin_id)
+        if (input.base_coin_name !== undefined) next.base_coin_name = String(input.base_coin_name || '').trim()
+        if (input.base_coin_prec !== undefined) next.base_coin_prec = Number(input.base_coin_prec)
+        if (input.quote_coin_id !== undefined) next.quote_coin_id = Number(input.quote_coin_id)
+        if (input.quote_coin_name !== undefined) next.quote_coin_name = String(input.quote_coin_name || '').trim()
+        if (input.quote_coin_prec !== undefined) next.quote_coin_prec = Number(input.quote_coin_prec)
+        if (input.is_table_create !== undefined) next.is_table_create = Number(input.is_table_create) ? 1 : 0
+        if (input.is_open !== undefined) next.is_open = Number(input.is_open) ? 1 : 0
+        if (input.pair_type !== undefined) next.pair_type = Number(input.pair_type)
+
+        if (!next.symbol_name) return resolve({ success: false, message: 'symbol_name 不能为空' })
+        if (!Number.isFinite(next.symbol_id) || next.symbol_id <= 0) return resolve({ success: false, message: 'symbol_id 不合法' })
+
+        if (symbolStore.some((s) => Number(s.id) !== id && !Number(s.deleted_at) && s.symbol_name === next.symbol_name)) {
+          return resolve({ success: false, message: '交易对名称已存在' })
+        }
+        if (symbolStore.some((s) => Number(s.id) !== id && !Number(s.deleted_at) && Number(s.symbol_id) === Number(next.symbol_id))) {
+          return resolve({ success: false, message: '交易对ID已存在' })
+        }
+
+        next.updated_at = unixNowSec()
+        symbolStore[idx] = next
+        resolve({ success: true, data: next })
+      }, 250)
+    })
+  },
+
+  deleteSymbol: ({ id }) => {
+    const sid = Number(id)
+    if (!Number.isFinite(sid) || sid <= 0) return Promise.resolve({ success: false, message: 'id 不合法' })
+
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const idx = symbolStore.findIndex((s) => Number(s.id) === sid)
+        if (idx === -1) return resolve({ success: false, message: '记录不存在' })
+        if (Number(symbolStore[idx].deleted_at)) return resolve({ success: true })
+        symbolStore[idx] = { ...symbolStore[idx], deleted_at: unixNowSec(), updated_at: unixNowSec(), is_open: 0 }
+        resolve({ success: true })
+      }, 250)
+    })
+  }
+}

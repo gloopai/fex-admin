@@ -69,6 +69,7 @@ export const navTree = [
     icon: 'exchange',
     children: [
       { title: '产品管理', path: '/spot/products' },
+      { title: '交易对管理', path: '/spot/symbols' },
       { title: '订单管理', path: '/spot/orders' }
     ]
   },
