@@ -546,7 +546,7 @@ const handleMfaVerify = async (code) => {
                 <th class="px-5 py-3 text-right text-xs font-semibold text-slate-900 uppercase">多空比</th>
                 <th class="px-5 py-3 text-right text-xs font-semibold text-slate-900 uppercase">活跃用户</th>
                 <th class="px-5 py-3 text-right text-xs font-semibold text-slate-900 uppercase">平台盈亏</th>
-                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-900 uppercase">手动配置</th>
+                <!-- <th class="px-5 py-3 text-left text-xs font-semibold text-slate-900 uppercase">手动配置</th> -->
                 <th class="px-5 py-3 text-right text-xs font-semibold text-slate-900 uppercase">操作</th>
               </tr>
             </thead>
@@ -579,11 +579,11 @@ const handleMfaVerify = async (code) => {
                     {{ getMetric(contract, metricLabel.PLATFORM_PNL)?.value || '-' }}
                   </span>
                 </td>
-                <td class="px-5 py-4 text-xs font-semibold text-slate-700">
+                <!-- <td class="px-5 py-4 text-xs font-semibold text-slate-700">
                   <span class="block max-w-[360px] truncate" :title="manualOverrideSummary(contract.id)">
                     {{ manualOverrideSummary(contract.id) }}
                   </span>
-                </td>
+                </td> -->
                 <td class="px-5 py-4 text-right">
                   <div class="flex items-center justify-end gap-2">
                     <button type="button" class="ant-btn !h-9 !px-4" @click="openManualLine(contract.id)">手动插线</button>
