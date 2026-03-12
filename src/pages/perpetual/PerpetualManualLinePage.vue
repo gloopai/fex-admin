@@ -588,7 +588,7 @@ const handleMfaVerify = async (code) => {
                   <div class="flex items-center justify-end gap-2">
                     <button type="button" class="ant-btn !h-9 !px-4" @click="openManualLine(contract.id)">手动插线</button>
                     <button v-if="isManualActive(contract.id)" type="button" class="ant-btn !h-9 !px-4" @click="requestRemoveManualLine(contract.id)">解除</button>
-                    <button type="button" class="ant-btn ant-btn-primary !h-9 !px-4" @click="openConfig(contract.id)">配置</button>
+                    <!-- <button type="button" class="ant-btn ant-btn-primary !h-9 !px-4" @click="openConfig(contract.id)">配置</button> -->
                   </div>
                 </td>
               </tr>
