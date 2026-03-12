@@ -99,6 +99,46 @@ const perpetualControlContracts = [
         lastHitAt: '2026-03-05 11:20:00'
       }
     ]
+  },
+  {
+    id: 'SOLUSDT',
+    symbol: 'SOLUSDT',
+    alias: 'SOL/USDT 永续',
+    status: PERP_CONTROL_CONTRACT_STATUS.RUNNING,
+    config: createDefaultPerpetualControlConfig(),
+    rules: []
+  },
+  {
+    id: 'XRPUSDT',
+    symbol: 'XRPUSDT',
+    alias: 'XRP/USDT 永续',
+    status: PERP_CONTROL_CONTRACT_STATUS.PAUSED,
+    config: createDefaultPerpetualControlConfig(),
+    rules: []
+  },
+  {
+    id: 'ADAUSDT',
+    symbol: 'ADAUSDT',
+    alias: 'ADA/USDT 永续',
+    status: PERP_CONTROL_CONTRACT_STATUS.RUNNING,
+    config: createDefaultPerpetualControlConfig(),
+    rules: []
+  },
+  {
+    id: 'DOTUSDT',
+    symbol: 'DOTUSDT',
+    alias: 'DOT/USDT 永续',
+    status: PERP_CONTROL_CONTRACT_STATUS.RUNNING,
+    config: createDefaultPerpetualControlConfig(),
+    rules: []
+  },
+  {
+    id: 'DOGEUSDT',
+    symbol: 'DOGEUSDT',
+    alias: 'DOGE/USDT 永续',
+    status: PERP_CONTROL_CONTRACT_STATUS.RUNNING,
+    config: createDefaultPerpetualControlConfig(),
+    rules: []
   }
 ]
 

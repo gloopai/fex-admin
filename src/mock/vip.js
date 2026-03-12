@@ -242,3 +242,83 @@ export const vipUpgradeLogs = [
     createdAt: '2026-03-01T08:00:00Z'
   }
 ]
+
+// 生成更多模拟日志
+for (let i = 11; i <= 50; i++) {
+  const fromLevel = Math.floor(Math.random() * 5)
+  const toLevel = fromLevel + 1
+  const reasons = ['credit_score', 'recharge', 'manual']
+  const reason = reasons[Math.floor(Math.random() * reasons.length)]
+  
+  vipUpgradeLogs.push({
+    id: `vip_upgrade_${String(i).padStart(3, '0')}`,
+    userId: `user_${String(100 + i).padStart(3, '0')}`,
+    username: `user_${i}_trader`,
+    fromVipLevel: fromLevel,
+    fromVipName: fromLevel === 0 ? '普通用户' : `VIP${fromLevel}`,
+    toVipLevel: toLevel,
+    toVipName: `VIP${toLevel}`,
+    upgradeReason: reason,
+    creditScore: 60 + Math.floor(Math.random() * 40),
+    rechargeAmount: reason === 'recharge' ? (Math.floor(Math.random() * 10) + 1) * 100000 : null,
+    remarks: reason === 'recharge' ? '大额充值自动升级' : '系统自动检测升级',
+    createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString()
+  })
+}
+
+export const getVipUpgradeLogs = ({ 
+  page, 
+  pageSize, 
+  searchKeyword, 
+  upgradeReason, 
+  fromVipLevel, 
+  toVipLevel,
+  dateRange 
+}) => {
+  let filteredLogs = [...vipUpgradeLogs]
+
+  if (searchKeyword && searchKeyword.trim()) {
+    const keyword = searchKeyword.toLowerCase()
+    filteredLogs = filteredLogs.filter(
+      (log) =>
+        log.username.toLowerCase().includes(keyword) ||
+        log.userId.toLowerCase().includes(keyword) ||
+        (log.remarks && log.remarks.toLowerCase().includes(keyword))
+    )
+  }
+
+  if (upgradeReason && upgradeReason !== 'all') {
+    filteredLogs = filteredLogs.filter(log => log.upgradeReason === upgradeReason)
+  }
+
+  if (fromVipLevel !== undefined && fromVipLevel !== 'all') {
+    filteredLogs = filteredLogs.filter(log => log.fromVipLevel === Number(fromVipLevel))
+  }
+
+  if (toVipLevel !== undefined && toVipLevel !== 'all') {
+    filteredLogs = filteredLogs.filter(log => log.toVipLevel === Number(toVipLevel))
+  }
+
+  if (dateRange && dateRange.start && dateRange.end) {
+    const start = new Date(dateRange.start).getTime()
+    const end = new Date(dateRange.end).getTime()
+    filteredLogs = filteredLogs.filter(log => {
+      const time = new Date(log.createdAt).getTime()
+      return time >= start && time <= end
+    })
+  }
+
+  // 按时间倒序
+  filteredLogs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+
+  const total = filteredLogs.length
+  const start = (page - 1) * pageSize
+  const end = start + pageSize
+  const list = filteredLogs.slice(start, end)
+
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({ list, total })
+    }, 300)
+  })
+}

@@ -1,33 +1,59 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, reactive, watch } from 'vue'
 import UserCard from '../../components/UserCard.vue'
-import { usersList } from '../../mock/user'
+import { getUsers, usersList } from '../../mock/user'
 import { USER_STATUS, USER_ROLE, USER_KYC_STATUS } from '../../constants/user'
 
 // 搜索关键词
 const searchKeyword = ref('')
 
+// 用户数据
+const users = ref([])
+const loading = ref(false)
+
+// 分页
+const pagination = reactive({
+  currentPage: 1,
+  pageSize: 10,
+  total: 0
+})
+
+const totalPages = computed(() => Math.ceil(pagination.total / pagination.pageSize))
+
+// 获取用户数据
+const fetchUsers = async () => {
+  loading.value = true
+  try {
+    const { list, total } = await getUsers({
+      page: pagination.currentPage,
+      pageSize: pagination.pageSize,
+      searchKeyword: searchKeyword.value
+    })
+    users.value = list
+    pagination.total = total
+  } catch (error) {
+    console.error('获取用户列表失败:', error)
+    // 在这里可以添加错误提示，例如使用一个通知组件
+  } finally {
+    loading.value = false
+  }
+}
+
+// 监听搜索和分页变化
+watch([searchKeyword, () => pagination.currentPage], () => {
+  if (searchKeyword.value && pagination.currentPage !== 1) {
+    pagination.currentPage = 1
+  } else {
+    fetchUsers()
+  }
+}, { deep: true })
+
+// 组件加载时获取数据
+onMounted(fetchUsers)
+
 // 模态弹窗状态
 const showModal = ref(false)
 const selectedUser = ref(null)
-
-// 获取过滤后的用户列表
-const filteredUsers = computed(() => {
-  let users = [...usersList]
-  
-  // 搜索关键词筛选
-  if (searchKeyword.value.trim()) {
-    const keyword = searchKeyword.value.toLowerCase()
-    users = users.filter(user => 
-      user.username.toLowerCase().includes(keyword) ||
-      user.email.toLowerCase().includes(keyword) ||
-      user.phone.includes(keyword) ||
-      user.id.toLowerCase().includes(keyword)
-    )
-  }
-  
-  return users
-})
 
 // 统计信息
 const statistics = computed(() => {
@@ -155,8 +181,14 @@ const closeModal = () => {
       </div>
     </div>
 
+    <!-- 加载状态 -->
+    <div v-if="loading" class="rounded-xl border border-slate-200 bg-white p-12 text-center">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+      <p class="mt-4 text-sm text-slate-500">正在加载用户数据...</p>
+    </div>
+
     <!-- 用户表格 -->
-    <div v-if="filteredUsers.length > 0" class="rounded-xl border border-slate-200 bg-white overflow-hidden">
+    <div v-else-if="!loading && users.length > 0" class="rounded-xl border border-slate-200 bg-white overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full">
           <thead class="bg-slate-50 border-b border-slate-200">
@@ -175,7 +207,7 @@ const closeModal = () => {
           </thead>
           <tbody class="divide-y divide-slate-200">
             <tr 
-              v-for="user in filteredUsers" 
+              v-for="user in users" 
               :key="user.id"
               class="hover:bg-slate-50 transition-colors cursor-pointer"
               @click="openUserDetail(user)"
@@ -268,10 +300,32 @@ const closeModal = () => {
           </tbody>
         </table>
       </div>
+      <!-- 分页 -->
+      <div v-if="totalPages > 1" class="p-4 border-t border-slate-200 flex items-center justify-between">
+        <p class="text-sm text-slate-600">
+          第 <span class="font-medium">{{ pagination.currentPage }}</span> / <span class="font-medium">{{ totalPages }}</span> 页，共 <span class="font-medium">{{ pagination.total }}</span> 条记录
+        </p>
+        <div class="flex items-center gap-2">
+          <button
+            @click="pagination.currentPage--"
+            :disabled="pagination.currentPage <= 1"
+            class="px-3 py-1.5 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            上一页
+          </button>
+          <button
+            @click="pagination.currentPage++"
+            :disabled="pagination.currentPage >= totalPages"
+            class="px-3 py-1.5 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            下一页
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- 空状态 -->
-    <div v-else class="rounded-xl border border-slate-200 bg-white p-12 text-center">
+    <div v-else-if="!loading && users.length === 0" class="rounded-xl border border-slate-200 bg-white p-12 text-center">
       <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
       </svg>

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import {
   PERPETUAL_COMMON_FILTER_ALL,
   PERPETUAL_STATUS
@@ -12,6 +12,11 @@ import {
 
 const statusTab = ref(PERPETUAL_COMMON_FILTER_ALL)
 const search = ref('')
+
+const pagination = reactive({
+  currentPage: 1,
+  pageSize: 5
+})
 
 const leverageLevels = perpetualLeverageLevels
 
@@ -60,6 +65,18 @@ const filteredTemplates = computed(() => {
     const matchesKeyword = !keyword || item.name.toLowerCase().includes(keyword)
     return matchesStatus && matchesKeyword
   })
+})
+
+const paginatedTemplates = computed(() => {
+  const start = (pagination.currentPage - 1) * pagination.pageSize
+  const end = start + pagination.pageSize
+  return filteredTemplates.value.slice(start, end)
+})
+
+const totalPages = computed(() => Math.ceil(filteredTemplates.value.length / pagination.pageSize))
+
+watch([search, statusTab], () => {
+  pagination.currentPage = 1
 })
 
 const showTemplateModal = ref(false)
@@ -183,7 +200,7 @@ const submitTemplate = () => {
       </div>
 
       <div class="space-y-4 p-4">
-        <article v-for="tpl in filteredTemplates" :key="tpl.id" class="rounded-xl border border-slate-200 p-4">
+        <article v-for="tpl in paginatedTemplates" :key="tpl.id" class="rounded-xl border border-slate-200 p-4">
           <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
               <div class="flex flex-wrap items-center gap-2">
@@ -217,6 +234,31 @@ const submitTemplate = () => {
             </div>
           </div>
         </article>
+
+        <!-- 分页 -->
+        <div v-if="totalPages > 1" class="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
+          <div class="text-sm text-slate-500">
+            共 <span class="font-medium">{{ filteredTemplates.length }}</span> 个模板，第 <span class="font-medium">{{ pagination.currentPage }}</span> / <span class="font-medium">{{ totalPages }}</span> 页
+          </div>
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              :disabled="pagination.currentPage === 1"
+              @click="pagination.currentPage--"
+            >
+              上一页
+            </button>
+            <button
+              type="button"
+              class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              :disabled="pagination.currentPage === totalPages"
+              @click="pagination.currentPage++"
+            >
+              下一页
+            </button>
+          </div>
+        </div>
 
         <p v-if="filteredTemplates.length === 0" class="rounded-lg border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">没有匹配的杠杆模板</p>
       </div>

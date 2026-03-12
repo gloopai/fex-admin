@@ -1,6 +1,6 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { creditScoreChanges } from '../../mock/creditScore'
+import { ref, computed, onMounted, watch, reactive } from 'vue'
+import { getCreditScoreChanges, creditScoreChanges } from '../../mock/creditScore'
 import { CREDIT_SCORE_CHANGE_TYPE, CREDIT_SCORE_CHANGE_TYPE_OPTIONS } from '../../constants/creditScore'
 
 // 搜索和筛选
@@ -8,9 +8,53 @@ const searchKeyword = ref('')
 const selectedChangeType = ref('all')
 const dateRange = ref({ start: '', end: '' })
 
-// 分页
-const currentPage = ref(1)
-const pageSize = ref(20)
+// 数据和分页
+const changes = ref([])
+const loading = ref(false)
+const pagination = reactive({
+  currentPage: 1,
+  pageSize: 10,
+  total: 0
+})
+
+const totalPages = computed(() => Math.ceil(pagination.total / pagination.pageSize))
+
+// 获取数据
+const fetchChanges = async () => {
+  loading.value = true
+  try {
+    const { list, total } = await getCreditScoreChanges({
+      page: pagination.currentPage,
+      pageSize: pagination.pageSize,
+      searchKeyword: searchKeyword.value,
+      changeType: selectedChangeType.value,
+      dateRange: dateRange.value
+    })
+    changes.value = list
+    pagination.total = total
+  } catch (error) {
+    console.error('获取信用分变动日志失败:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+// 监听筛选和分页变化
+watch(
+  [searchKeyword, selectedChangeType, dateRange, () => pagination.currentPage],
+  (newVal, oldVal) => {
+    // 如果是筛选条件变化，重置页码到1
+    const isPaginationChange = newVal[3] !== oldVal[3]
+    if (!isPaginationChange && pagination.currentPage !== 1) {
+      pagination.currentPage = 1
+    } else {
+      fetchChanges()
+    }
+  },
+  { deep: true }
+)
+
+onMounted(fetchChanges)
 
 // 类型配置
 const changeTypeConfig = {
@@ -22,50 +66,6 @@ const changeTypeConfig = {
   [CREDIT_SCORE_CHANGE_TYPE.PENALTY]: { text: '惩罚', class: 'bg-rose-100 text-rose-700' },
   [CREDIT_SCORE_CHANGE_TYPE.REWARD]: { text: '奖励', class: 'bg-teal-100 text-teal-700' }
 }
-
-// 过滤数据
-const filteredChanges = computed(() => {
-  let changes = [...creditScoreChanges]
-
-  // 按类型筛选
-  if (selectedChangeType.value !== 'all') {
-    changes = changes.filter(change => change.changeType === selectedChangeType.value)
-  }
-
-  // 按关键词搜索
-  if (searchKeyword.value.trim()) {
-    const keyword = searchKeyword.value.toLowerCase()
-    changes = changes.filter(change =>
-      change.username.toLowerCase().includes(keyword) ||
-      change.userId.toLowerCase().includes(keyword) ||
-      change.reason.toLowerCase().includes(keyword) ||
-      change.operatorName.toLowerCase().includes(keyword)
-    )
-  }
-
-  // 按日期筛选
-  if (dateRange.value.start) {
-    changes = changes.filter(change => new Date(change.createdAt) >= new Date(dateRange.value.start))
-  }
-  if (dateRange.value.end) {
-    changes = changes.filter(change => new Date(change.createdAt) <= new Date(dateRange.value.end))
-  }
-
-  // 按时间倒序排序
-  return changes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-})
-
-// 分页数据
-const paginatedChanges = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
-  return filteredChanges.value.slice(start, end)
-})
-
-// 总页数
-const totalPages = computed(() => {
-  return Math.ceil(filteredChanges.value.length / pageSize.value)
-})
 
 // 统计信息
 const statistics = computed(() => {
@@ -112,7 +112,7 @@ const resetFilters = () => {
   searchKeyword.value = ''
   selectedChangeType.value = 'all'
   dateRange.value = { start: '', end: '' }
-  currentPage.value = 1
+  pagination.currentPage = 1
 }
 
 // 导出数据
@@ -154,24 +154,24 @@ const exportData = () => {
 
     <!-- 筛选栏 -->
     <div class="bg-white rounded-xl border border-slate-200 p-4">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         <!-- 搜索 -->
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-2">搜索</label>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">搜索</label>
           <input
             v-model="searchKeyword"
             type="text"
-            placeholder="用户名、用户ID、原因..."
-            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="用户名/ID/原因..."
+            class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
         <!-- 变动类型 -->
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-2">变动类型</label>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">变动类型</label>
           <select
             v-model="selectedChangeType"
-            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">全部类型</option>
             <option
@@ -186,38 +186,47 @@ const exportData = () => {
 
         <!-- 开始日期 -->
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-2">开始日期</label>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">开始日期</label>
           <input
             v-model="dateRange.start"
             type="date"
-            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
         <!-- 结束日期 -->
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-2">结束日期</label>
-          <input
-            v-model="dateRange.end"
-            type="date"
-            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+        <div class="flex items-end gap-2">
+          <div class="flex-1">
+            <label class="block text-sm font-medium text-slate-700 mb-1.5">结束日期</label>
+            <input
+              v-model="dateRange.end"
+              type="date"
+              class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <button
+            @click="resetFilters"
+            title="重置筛选"
+            class="p-2 text-slate-500 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+          >
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
         </div>
-      </div>
-
-      <!-- 重置按钮 -->
-      <div class="mt-4 flex justify-end">
-        <button
-          @click="resetFilters"
-          class="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
-        >
-          重置筛选
-        </button>
       </div>
     </div>
 
     <!-- 数据表格 -->
-    <div class="rounded-xl border border-slate-200 bg-white overflow-hidden">
+    <div class="rounded-xl border border-slate-200 bg-white overflow-hidden relative min-h-[400px]">
+      <!-- 加载遮罩 -->
+      <div v-if="loading" class="absolute inset-0 bg-white/60 z-10 flex items-center justify-center">
+        <div class="flex flex-col items-center">
+          <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+          <p class="mt-2 text-sm text-slate-500 font-medium">加载中...</p>
+        </div>
+      </div>
+
       <div class="overflow-x-auto">
         <table class="w-full">
           <thead class="bg-slate-50 border-b border-slate-200">
@@ -235,7 +244,7 @@ const exportData = () => {
           </thead>
           <tbody class="divide-y divide-slate-200">
             <tr
-              v-for="change in paginatedChanges"
+              v-for="change in changes"
               :key="change.id"
               class="hover:bg-slate-50 transition-colors"
             >
@@ -250,6 +259,7 @@ const exportData = () => {
               <!-- 变动类型 -->
               <td class="px-4 py-3">
                 <span
+                  v-if="changeTypeConfig[change.changeType]"
                   :class="changeTypeConfig[change.changeType].class"
                   class="inline-flex px-2 py-1 text-xs font-medium rounded-full"
                 >
@@ -302,7 +312,7 @@ const exportData = () => {
             </tr>
 
             <!-- 空状态 -->
-            <tr v-if="paginatedChanges.length === 0">
+            <tr v-if="!loading && changes.length === 0">
               <td colspan="9" class="px-4 py-12 text-center">
                 <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -317,20 +327,20 @@ const exportData = () => {
       <!-- 分页 -->
       <div v-if="totalPages > 1" class="border-t border-slate-200 px-4 py-3 flex items-center justify-between">
         <div class="text-sm text-slate-600">
-          共 {{ filteredChanges.length }} 条记录，第 {{ currentPage }} / {{ totalPages }} 页
+          共 <span class="font-medium">{{ pagination.total }}</span> 条记录，第 <span class="font-medium">{{ pagination.currentPage }}</span> / <span class="font-medium">{{ totalPages }}</span> 页
         </div>
         <div class="flex items-center gap-2">
           <button
-            @click="currentPage--"
-            :disabled="currentPage === 1"
-            class="px-3 py-1 text-sm text-slate-700 bg-white border border-slate-300 rounded hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            @click="pagination.currentPage--"
+            :disabled="pagination.currentPage === 1 || loading"
+            class="px-3 py-1.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             上一页
           </button>
           <button
-            @click="currentPage++"
-            :disabled="currentPage === totalPages"
-            class="px-3 py-1 text-sm text-slate-700 bg-white border border-slate-300 rounded hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            @click="pagination.currentPage++"
+            :disabled="pagination.currentPage === totalPages || loading"
+            class="px-3 py-1.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             下一页
           </button>

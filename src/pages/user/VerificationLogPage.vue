@@ -1,70 +1,77 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { verificationLogList } from '../../mock/verification'
+import { ref, computed, onMounted, watch, reactive } from 'vue'
+import { getVerificationLogs, verificationLogList } from '../../mock/verification'
 import { 
   LOG_ACTION_TYPE_OPTIONS,
   VERIFICATION_LEVEL_OPTIONS 
 } from '../../constants/verification'
 
 // 日志列表数据
-const logList = ref([...verificationLogList])
+const logList = ref([])
+const loading = ref(false)
 
 // 搜索和筛选
 const searchKeyword = ref('')
 const filterActionType = ref('all')
 const filterDateRange = ref('all')
 
-// 过滤后的列表
-const filteredLogList = computed(() => {
-  let list = [...logList.value]
-  
-  // 搜索关键词
-  if (searchKeyword.value.trim()) {
-    const keyword = searchKeyword.value.toLowerCase()
-    list = list.filter(log => 
-      log.username.toLowerCase().includes(keyword) ||
-      log.userId.toLowerCase().includes(keyword) ||
-      log.operator.toLowerCase().includes(keyword) ||
-      log.description.includes(keyword)
-    )
-  }
-  
-  // 筛选操作类型
-  if (filterActionType.value !== 'all') {
-    list = list.filter(log => log.actionType === filterActionType.value)
-  }
-  
-  // 筛选日期范围
-  if (filterDateRange.value !== 'all') {
-    const now = Date.now()
-    const ranges = {
-      'today': 24 * 60 * 60 * 1000,
-      'week': 7 * 24 * 60 * 60 * 1000,
-      'month': 30 * 24 * 60 * 60 * 1000
-    }
-    const range = ranges[filterDateRange.value]
-    if (range) {
-      list = list.filter(log => {
-        const logTime = new Date(log.actionTime).getTime()
-        return now - logTime <= range
-      })
-    }
-  }
-  
-  return list
+// 分页
+const pagination = reactive({
+  currentPage: 1,
+  pageSize: 10,
+  total: 0
 })
+
+const totalPages = computed(() => Math.ceil(pagination.total / pagination.pageSize))
+
+// 获取数据
+const fetchLogs = async () => {
+  loading.value = true
+  try {
+    const { list, total } = await getVerificationLogs({
+      page: pagination.currentPage,
+      pageSize: pagination.pageSize,
+      searchKeyword: searchKeyword.value,
+      actionType: filterActionType.value,
+      dateRange: filterDateRange.value
+    })
+    logList.value = list
+    pagination.total = total
+  } catch (error) {
+    console.error('获取认证日志失败:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+// 监听筛选和分页变化
+watch(
+  [searchKeyword, filterActionType, filterDateRange, () => pagination.currentPage],
+  (newVal, oldVal) => {
+    // 如果是筛选条件变化，重置页码到1
+    const isPaginationChange = newVal[3] !== oldVal[3]
+    if (!isPaginationChange && pagination.currentPage !== 1) {
+      pagination.currentPage = 1
+    } else {
+      fetchLogs()
+    }
+  },
+  { deep: true }
+)
+
+onMounted(fetchLogs)
 
 // 统计信息
 const statistics = computed(() => {
-  const total = logList.value.length
-  const today = logList.value.filter(log => {
+  const total = verificationLogList.length
+  const today = verificationLogList.filter(log => {
     const logDate = new Date(log.actionTime).toDateString()
     const nowDate = new Date().toDateString()
     return logDate === nowDate
   }).length
   
-  const configUpdates = logList.value.filter(log => log.actionType === 'config_update').length
-  const auditActions = logList.value.filter(log => 
+  const configUpdates = verificationLogList.filter(log => log.actionType === 'config_update').length
+  const auditActions = verificationLogList.filter(log => 
     log.actionType === 'audit_approved' || 
     log.actionType === 'audit_rejected' || 
     log.actionType === 'audit_resubmit'
@@ -176,6 +183,14 @@ const exportLogs = () => {
   showToast('导出功能开发中...')
 }
 
+// 重置筛选
+const resetFilters = () => {
+  searchKeyword.value = ''
+  filterActionType.value = 'all'
+  filterDateRange.value = 'all'
+  pagination.currentPage = 1
+}
+
 // 显示Toast提示
 const showToast = (message) => {
   toast.value.message = message
@@ -223,23 +238,25 @@ const showToast = (message) => {
     </div>
 
     <!-- 搜索和筛选 -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- 搜索 -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">搜索</label>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">搜索</label>
           <input 
             v-model="searchKeyword"
             type="text" 
             placeholder="用户名、操作人..."
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
         </div>
         
+        <!-- 操作类型 -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">操作类型</label>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">操作类型</label>
           <select 
             v-model="filterActionType"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="all">全部类型</option>
             <option 
@@ -252,23 +269,43 @@ const showToast = (message) => {
           </select>
         </div>
         
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">时间范围</label>
-          <select 
-            v-model="filterDateRange"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        <!-- 时间范围 -->
+        <div class="flex items-end gap-2">
+          <div class="flex-1">
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">时间范围</label>
+            <select 
+              v-model="filterDateRange"
+              class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="all">全部时间</option>
+              <option value="today">今天</option>
+              <option value="week">最近一周</option>
+              <option value="month">最近一月</option>
+            </select>
+          </div>
+          <button
+            @click="resetFilters"
+            title="重置筛选"
+            class="p-2 text-gray-500 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
           >
-            <option value="all">全部时间</option>
-            <option value="today">今天</option>
-            <option value="week">最近一周</option>
-            <option value="month">最近一月</option>
-          </select>
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
         </div>
       </div>
     </div>
 
     <!-- 日志列表 -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden relative min-h-[400px]">
+      <!-- 加载遮罩 -->
+      <div v-if="loading" class="absolute inset-0 bg-white/60 z-10 flex items-center justify-center">
+        <div class="flex flex-col items-center">
+          <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+          <p class="mt-2 text-sm text-gray-500 font-medium">加载中...</p>
+        </div>
+      </div>
+
       <div class="overflow-x-auto">
         <table class="w-full">
           <thead class="bg-gray-50 border-b border-gray-200">
@@ -283,7 +320,7 @@ const showToast = (message) => {
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="log in filteredLogList" :key="log.id" class="hover:bg-gray-50">
+            <tr v-for="log in logList" :key="log.id" class="hover:bg-gray-50">
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 {{ formatDate(log.actionTime) }}
               </td>
@@ -330,8 +367,31 @@ const showToast = (message) => {
         </table>
       </div>
 
-      <div v-if="filteredLogList.length === 0" class="text-center py-12">
+      <div v-if="!loading && logList.length === 0" class="text-center py-12">
         <p class="text-gray-500">暂无日志记录</p>
+      </div>
+
+      <!-- 分页 -->
+      <div v-if="totalPages > 1" class="border-t border-gray-200 px-6 py-3 flex items-center justify-between">
+        <div class="text-sm text-gray-600">
+          共 <span class="font-medium">{{ pagination.total }}</span> 条记录，第 <span class="font-medium">{{ pagination.currentPage }}</span> / <span class="font-medium">{{ totalPages }}</span> 页
+        </div>
+        <div class="flex items-center gap-2">
+          <button
+            @click="pagination.currentPage--"
+            :disabled="pagination.currentPage === 1 || loading"
+            class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            上一页
+          </button>
+          <button
+            @click="pagination.currentPage++"
+            :disabled="pagination.currentPage === totalPages || loading"
+            class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            下一页
+          </button>
+        </div>
       </div>
     </div>
 

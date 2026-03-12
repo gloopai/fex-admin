@@ -228,3 +228,29 @@ export const searchUsers = (keyword) => {
     user.id.toLowerCase().includes(keyword.toLowerCase())
   )
 }
+
+export const getUsers = ({ page, pageSize, searchKeyword }) => {
+  let filteredUsers = [...usersList]
+
+  if (searchKeyword && searchKeyword.trim()) {
+    const keyword = searchKeyword.toLowerCase()
+    filteredUsers = filteredUsers.filter(
+      (user) =>
+        user.username.toLowerCase().includes(keyword) ||
+        user.email.toLowerCase().includes(keyword) ||
+        user.phone.includes(keyword) ||
+        user.id.toLowerCase().includes(keyword)
+    )
+  }
+
+  const total = filteredUsers.length
+  const start = (page - 1) * pageSize
+  const end = start + pageSize
+  const list = filteredUsers.slice(start, end)
+
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({ list, total })
+    }, 300)
+  })
+}

@@ -1,6 +1,6 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { creditScoreAuditList } from '../../mock/creditScore'
+import { ref, computed, onMounted, watch, reactive } from 'vue'
+import { getCreditScoreAudits, creditScoreAuditList } from '../../mock/creditScore'
 import { 
   CREDIT_SCORE_CHANGE_TYPE,
   CREDIT_SCORE_CHANGE_TYPE_OPTIONS,
@@ -9,12 +9,61 @@ import {
 } from '../../constants/creditScore'
 
 // 审核列表数据
-const auditList = ref([...creditScoreAuditList])
+const auditList = ref([])
+const loading = ref(false)
 
 // 搜索和筛选
 const searchKeyword = ref('')
 const filterChangeType = ref('all')
 const filterStatus = ref('all')
+const dateRange = ref({ start: '', end: '' })
+
+// 分页
+const pagination = reactive({
+  currentPage: 1,
+  pageSize: 10,
+  total: 0
+})
+
+const totalPages = computed(() => Math.ceil(pagination.total / pagination.pageSize))
+
+// 获取数据
+const fetchAudits = async () => {
+  loading.value = true
+  try {
+    const { list, total } = await getCreditScoreAudits({
+      page: pagination.currentPage,
+      pageSize: pagination.pageSize,
+      searchKeyword: searchKeyword.value,
+      changeType: filterChangeType.value,
+      auditStatus: filterStatus.value,
+      dateRange: dateRange.value
+    })
+    auditList.value = list
+    pagination.total = total
+  } catch (error) {
+    console.error('获取积分审核列表失败:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+// 监听筛选和分页变化
+watch(
+  [searchKeyword, filterChangeType, filterStatus, dateRange, () => pagination.currentPage],
+  (newVal, oldVal) => {
+    // 如果是筛选条件变化，重置页码到1
+    const isPaginationChange = newVal[4] !== oldVal[4]
+    if (!isPaginationChange && pagination.currentPage !== 1) {
+      pagination.currentPage = 1
+    } else {
+      fetchAudits()
+    }
+  },
+  { deep: true }
+)
+
+onMounted(fetchAudits)
 
 // 模态框
 const showDetailModal = ref(false)
@@ -28,41 +77,12 @@ const toast = ref({
   message: ''
 })
 
-// 过滤后的列表
-const filteredAuditList = computed(() => {
-  let list = [...auditList.value]
-  
-  // 搜索关键词
-  if (searchKeyword.value.trim()) {
-    const keyword = searchKeyword.value.toLowerCase()
-    list = list.filter(audit => 
-      audit.username.toLowerCase().includes(keyword) ||
-      audit.email.toLowerCase().includes(keyword) ||
-      audit.userId.toLowerCase().includes(keyword) ||
-      audit.reason.toLowerCase().includes(keyword) ||
-      audit.applyOperatorName.toLowerCase().includes(keyword)
-    )
-  }
-  
-  // 筛选变动类型
-  if (filterChangeType.value !== 'all') {
-    list = list.filter(audit => audit.changeType === filterChangeType.value)
-  }
-  
-  // 筛选审核状态
-  if (filterStatus.value !== 'all') {
-    list = list.filter(audit => audit.auditStatus === filterStatus.value)
-  }
-  
-  return list.sort((a, b) => new Date(b.applyTime) - new Date(a.applyTime))
-})
-
 // 统计信息
 const statistics = computed(() => {
-  const total = auditList.value.length
-  const pending = auditList.value.filter(a => a.auditStatus === CREDIT_SCORE_AUDIT_STATUS.PENDING).length
-  const approved = auditList.value.filter(a => a.auditStatus === CREDIT_SCORE_AUDIT_STATUS.APPROVED).length
-  const rejected = auditList.value.filter(a => a.auditStatus === CREDIT_SCORE_AUDIT_STATUS.REJECTED).length
+  const total = creditScoreAuditList.length
+  const pending = creditScoreAuditList.filter(a => a.auditStatus === CREDIT_SCORE_AUDIT_STATUS.PENDING).length
+  const approved = creditScoreAuditList.filter(a => a.auditStatus === CREDIT_SCORE_AUDIT_STATUS.APPROVED).length
+  const rejected = creditScoreAuditList.filter(a => a.auditStatus === CREDIT_SCORE_AUDIT_STATUS.REJECTED).length
   
   return [
     {
@@ -148,11 +168,11 @@ const startAuditAction = (action) => {
 const submitAudit = () => {
   if (!selectedAudit.value || !auditAction.value) return
   
-  const auditIndex = auditList.value.findIndex(a => a.id === selectedAudit.value.id)
+  const auditIndex = creditScoreAuditList.findIndex(a => a.id === selectedAudit.value.id)
   if (auditIndex === -1) return
   
   const now = new Date().toISOString()
-  const audit = auditList.value[auditIndex]
+  const audit = creditScoreAuditList[auditIndex]
   
   switch (auditAction.value) {
     case 'approve':
@@ -163,6 +183,7 @@ const submitAudit = () => {
       audit.auditNote = auditNote.value || null
       closeDetail()
       showToast('审核通过，积分变动已生效！')
+      fetchAudits()
       break
     case 'reject':
       audit.auditStatus = CREDIT_SCORE_AUDIT_STATUS.REJECTED
@@ -172,8 +193,18 @@ const submitAudit = () => {
       audit.auditNote = auditNote.value || '审核未通过'
       closeDetail()
       showToast('已拒绝申请，积分变动不生效！')
+      fetchAudits()
       break
   }
+}
+
+// 重置筛选
+const resetFilters = () => {
+  searchKeyword.value = ''
+  filterChangeType.value = 'all'
+  filterStatus.value = 'all'
+  dateRange.value = { start: '', end: '' }
+  pagination.currentPage = 1
 }
 
 // 显示Toast提示
@@ -224,23 +255,25 @@ const exportData = () => {
     </div>
 
     <!-- 筛选和搜索 -->
-    <div class="bg-white rounded-xl border border-slate-200 p-6">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="bg-white rounded-xl border border-slate-200 p-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <!-- 搜索框 -->
-        <div class="md:col-span-2">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">搜索</label>
           <input
             v-model="searchKeyword"
             type="text"
-            placeholder="搜索用户名、邮箱、原因..."
-            class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="用户名/ID/原因..."
+            class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
         
         <!-- 变动类型筛选 -->
         <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">变动类型</label>
           <select
             v-model="filterChangeType"
-            class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">全部类型</option>
             <option
@@ -255,9 +288,10 @@ const exportData = () => {
         
         <!-- 状态筛选 -->
         <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">审核状态</label>
           <select
             v-model="filterStatus"
-            class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">全部状态</option>
             <option
@@ -269,11 +303,50 @@ const exportData = () => {
             </option>
           </select>
         </div>
+
+        <!-- 开始日期 -->
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">开始日期</label>
+          <input
+            v-model="dateRange.start"
+            type="date"
+            class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <!-- 结束日期 -->
+        <div class="flex items-end gap-2">
+          <div class="flex-1">
+            <label class="block text-sm font-medium text-slate-700 mb-1.5">结束日期</label>
+            <input
+              v-model="dateRange.end"
+              type="date"
+              class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <button
+            @click="resetFilters"
+            title="重置筛选"
+            class="p-2 text-slate-500 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+          >
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
 
     <!-- 审核列表 -->
-    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden relative min-h-[400px]">
+      <!-- 加载遮罩 -->
+      <div v-if="loading" class="absolute inset-0 bg-white/60 z-10 flex items-center justify-center">
+        <div class="flex flex-col items-center">
+          <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+          <p class="mt-2 text-sm text-slate-500 font-medium">加载中...</p>
+        </div>
+      </div>
+
       <div class="overflow-x-auto">
         <table class="w-full">
           <thead class="bg-slate-50 border-b border-slate-200">
@@ -289,7 +362,7 @@ const exportData = () => {
           </thead>
           <tbody class="divide-y divide-slate-200">
             <tr
-              v-for="audit in filteredAuditList"
+              v-for="audit in auditList"
               :key="audit.id"
               class="hover:bg-slate-50 transition-colors"
             >
@@ -301,6 +374,7 @@ const exportData = () => {
               </td>
               <td class="px-6 py-4">
                 <span
+                  v-if="changeTypeConfig[audit.changeType]"
                   :class="changeTypeConfig[audit.changeType].class"
                   class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
                 >
@@ -351,7 +425,7 @@ const exportData = () => {
 
       <!-- 空状态 -->
       <div
-        v-if="filteredAuditList.length === 0"
+        v-if="!loading && auditList.length === 0"
         class="text-center py-12"
       >
         <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -359,6 +433,29 @@ const exportData = () => {
         </svg>
         <h3 class="mt-2 text-sm font-medium text-slate-900">没有找到记录</h3>
         <p class="mt-1 text-sm text-slate-500">尝试调整筛选条件</p>
+      </div>
+
+      <!-- 分页 -->
+      <div v-if="totalPages > 1" class="border-t border-slate-200 px-6 py-3 flex items-center justify-between">
+        <div class="text-sm text-slate-600">
+          共 <span class="font-medium">{{ pagination.total }}</span> 条记录，第 <span class="font-medium">{{ pagination.currentPage }}</span> / <span class="font-medium">{{ totalPages }}</span> 页
+        </div>
+        <div class="flex items-center gap-2">
+          <button
+            @click="pagination.currentPage--"
+            :disabled="pagination.currentPage === 1 || loading"
+            class="px-3 py-1.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            上一页
+          </button>
+          <button
+            @click="pagination.currentPage++"
+            :disabled="pagination.currentPage === totalPages || loading"
+            class="px-3 py-1.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            下一页
+          </button>
+        </div>
       </div>
     </div>
 

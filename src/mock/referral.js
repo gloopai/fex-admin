@@ -188,6 +188,33 @@ export const mockReferralTree = (agentUid) => {
   }
 }
 
+// 模拟更多分佣记录数据以便测试分页
+const generateMockCommissionRecords = () => {
+  const records = [...mockCommissionRecords]
+  for (let i = 7; i <= 25; i++) {
+    const amount = Math.floor(Math.random() * 5000) + 100
+    const rate = 0.1
+    records.push({
+      id: `COM2026030${Math.floor(Math.random() * 9) + 1}${i.toString().padStart(3, '0')}`,
+      agentUid: 100000 + (i % 5 + 1),
+      agentUsername: `agent_user_${i % 5 + 1}`,
+      referralUid: 300000 + i,
+      referralUsername: `user_test${i}`,
+      type: Object.values(REFERRAL_TYPE)[Math.floor(Math.random() * Object.values(REFERRAL_TYPE).length)],
+      level: Math.floor(Math.random() * 3) + 1,
+      amount: amount,
+      commissionRate: rate,
+      commission: amount * rate,
+      status: Object.values(COMMISSION_STATUS)[Math.floor(Math.random() * Object.values(COMMISSION_STATUS).length)],
+      createdAt: `2026-03-08 ${Math.floor(Math.random() * 23).toString().padStart(2, '0')}:30:00`,
+      completedAt: null
+    })
+  }
+  return records
+}
+
+const extendedCommissionRecords = generateMockCommissionRecords()
+
 // API 模拟函数
 export const referralApi = {
   // 获取分销配置
@@ -217,15 +244,50 @@ export const referralApi = {
 
   // 获取分佣记录列表
   getCommissionRecords: (params) => {
+    const { page = 1, pageSize = 10, searchKeyword = '', status = 'all', type = 'all', level = 'all' } = params
+    
     return new Promise((resolve) => {
       setTimeout(() => {
+        let list = [...extendedCommissionRecords]
+        
+        // 搜索关键词
+        if (searchKeyword.trim()) {
+          const keyword = searchKeyword.toLowerCase()
+          list = list.filter(record => 
+            record.id.toLowerCase().includes(keyword) ||
+            record.agentUsername.toLowerCase().includes(keyword) ||
+            record.referralUsername.toLowerCase().includes(keyword) ||
+            record.agentUid.toString().includes(keyword)
+          )
+        }
+        
+        // 状态筛选
+        if (status !== 'all') {
+          list = list.filter(record => record.status === status)
+        }
+        
+        // 类型筛选
+        if (type !== 'all') {
+          list = list.filter(record => record.type === type)
+        }
+        
+        // 层级筛选
+        if (level !== 'all') {
+          list = list.filter(record => record.level === parseInt(level))
+        }
+
+        const total = list.length
+        const start = (page - 1) * pageSize
+        const end = start + pageSize
+        const paginatedList = list.slice(start, end)
+
         resolve({
           success: true,
           data: {
-            list: mockCommissionRecords,
-            total: mockCommissionRecords.length,
-            page: params.page || 1,
-            pageSize: params.pageSize || 10
+            list: paginatedList,
+            total: total,
+            page: page,
+            pageSize: pageSize
           }
         })
       }, 300)

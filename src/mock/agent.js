@@ -179,19 +179,96 @@ export const mockAgentDetail = (uid) => {
   }
 }
 
+// 模拟更多代理数据以便测试分页
+const generateMockAgents = () => {
+  const agents = [...mockAgentList]
+  for (let i = 6; i <= 25; i++) {
+    agents.push({
+      id: i,
+      uid: 100000 + i,
+      username: `agent_user_${i}`,
+      email: `user${i}@example.com`,
+      phone: `+86 13${Math.floor(Math.random() * 10)}****${Math.floor(Math.random() * 9000) + 1000}`,
+      level: Object.values(AGENT_LEVEL)[Math.floor(Math.random() * Object.values(AGENT_LEVEL).length)],
+      status: Object.values(AGENT_STATUS)[Math.floor(Math.random() * Object.values(AGENT_STATUS).length)],
+      totalReferrals: Math.floor(Math.random() * 300),
+      directReferrals: Math.floor(Math.random() * 100),
+      totalCommission: Math.floor(Math.random() * 20000),
+      monthCommission: Math.floor(Math.random() * 3000),
+      createdAt: `2025-${Math.floor(Math.random() * 12) + 1}-${Math.floor(Math.random() * 28) + 1} 10:00:00`,
+      lastActiveAt: '2026-03-08 14:20:00'
+    })
+  }
+  return agents
+}
+
+const extendedAgentList = generateMockAgents()
+
+// 模拟更多代理申请数据以便测试分页
+const generateMockApplications = () => {
+  const applications = [...mockAgentApplications]
+  for (let i = 5; i <= 25; i++) {
+    applications.push({
+      id: i,
+      uid: 200000 + i,
+      username: `user_apply_${i}`,
+      email: `apply${i}@example.com`,
+      phone: `+86 188****${Math.floor(Math.random() * 9000) + 1000}`,
+      reason: `这是第 ${i} 个用户的代理申请理由，希望能通过。`,
+      status: Object.values(AGENT_APPLICATION_STATUS)[Math.floor(Math.random() * Object.values(AGENT_APPLICATION_STATUS).length)],
+      appliedAt: `2026-03-${Math.floor(Math.random() * 10) + 1} 10:30:00`,
+      reviewedAt: null,
+      reviewedBy: null,
+      reviewNote: null
+    })
+  }
+  return applications
+}
+
+const extendedApplicationList = generateMockApplications()
+
 // API 模拟函数
 export const agentApi = {
   // 获取代理列表
   getAgentList: (params) => {
+    const { page = 1, pageSize = 10, searchKeyword = '', status = 'all', level = 'all' } = params
+    
     return new Promise((resolve) => {
       setTimeout(() => {
+        let list = [...extendedAgentList]
+        
+        // 搜索关键词
+        if (searchKeyword.trim()) {
+          const keyword = searchKeyword.toLowerCase()
+          list = list.filter(agent => 
+            agent.username.toLowerCase().includes(keyword) ||
+            agent.email.toLowerCase().includes(keyword) ||
+            agent.uid.toString().includes(keyword)
+          )
+        }
+        
+        // 状态筛选
+        if (status !== 'all') {
+          list = list.filter(agent => agent.status === status)
+        }
+        
+        // 等级筛选
+        if (level !== 'all') {
+          list = list.filter(agent => agent.level === level)
+        }
+
+        const total = list.length
+        const start = (page - 1) * pageSize
+        const end = start + pageSize
+        const paginatedList = list.slice(start, end)
+
         resolve({
           success: true,
           data: {
-            list: mockAgentList,
-            total: mockAgentList.length,
-            page: params.page || 1,
-            pageSize: params.pageSize || 10
+            list: paginatedList,
+            total: total,
+            page: page,
+            pageSize: pageSize
           }
         })
       }, 300)
@@ -200,15 +277,39 @@ export const agentApi = {
 
   // 获取代理申请列表
   getApplicationList: (params) => {
+    const { page = 1, pageSize = 10, searchKeyword = '', status = 'all' } = params
+
     return new Promise((resolve) => {
       setTimeout(() => {
+        let list = [...extendedApplicationList]
+
+        // 搜索关键词
+        if (searchKeyword.trim()) {
+          const keyword = searchKeyword.toLowerCase()
+          list = list.filter(app => 
+            app.username.toLowerCase().includes(keyword) ||
+            app.email.toLowerCase().includes(keyword) ||
+            app.uid.toString().includes(keyword)
+          )
+        }
+
+        // 状态筛选
+        if (status !== 'all') {
+          list = list.filter(app => app.status === status)
+        }
+
+        const total = list.length
+        const start = (page - 1) * pageSize
+        const end = start + pageSize
+        const paginatedList = list.slice(start, end)
+
         resolve({
           success: true,
           data: {
-            list: mockAgentApplications,
-            total: mockAgentApplications.length,
-            page: params.page || 1,
-            pageSize: params.pageSize || 10
+            list: paginatedList,
+            total: total,
+            page: page,
+            pageSize: pageSize
           }
         })
       }, 300)

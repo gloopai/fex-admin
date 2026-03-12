@@ -1,6 +1,6 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { mockCommissionRecords, referralApi } from '../../mock/referral'
+import { ref, computed, onMounted, reactive, watch } from 'vue'
+import { referralApi } from '../../mock/referral'
 import { COMMISSION_STATUS, COMMISSION_STATUS_OPTIONS, REFERRAL_TYPE_OPTIONS } from '../../constants/referral'
 
 // 搜索和筛选
@@ -8,62 +8,81 @@ const searchKeyword = ref('')
 const statusFilter = ref('all')
 const typeFilter = ref('all')
 const levelFilter = ref('all')
+const loading = ref(false)
+
+// 分页
+const pagination = reactive({
+  currentPage: 1,
+  pageSize: 10,
+  total: 0
+})
+
+const totalPages = computed(() => Math.ceil(pagination.total / pagination.pageSize))
 
 // 记录列表
-const recordList = ref(mockCommissionRecords)
+const recordList = ref([])
+
+// 加载分佣记录
+const loadCommissionRecords = async () => {
+  loading.value = true
+  try {
+    const result = await referralApi.getCommissionRecords({
+      page: pagination.currentPage,
+      pageSize: pagination.pageSize,
+      searchKeyword: searchKeyword.value,
+      status: statusFilter.value,
+      type: typeFilter.value,
+      level: levelFilter.value
+    })
+    if (result.success) {
+      recordList.value = result.data.list
+      pagination.total = result.data.total
+    }
+  } catch (error) {
+    console.error('Failed to load commission records:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+// 搜索处理
+const handleSearch = () => {
+  pagination.currentPage = 1
+  loadCommissionRecords()
+}
+
+// 重置处理
+const handleReset = () => {
+  searchKeyword.value = ''
+  statusFilter.value = 'all'
+  typeFilter.value = 'all'
+  levelFilter.value = 'all'
+  pagination.currentPage = 1
+  loadCommissionRecords()
+}
+
+// 监听页码变化
+watch(() => pagination.currentPage, () => {
+  loadCommissionRecords()
+})
+
+// 组件加载时获取数据
+onMounted(() => {
+  loadCommissionRecords()
+})
 
 // 选中的记录
 const selectedRecords = ref([])
 
-// 过滤后的列表
-const filteredRecords = computed(() => {
-  let list = [...recordList.value]
-  
-  // 搜索关键词
-  if (searchKeyword.value.trim()) {
-    const keyword = searchKeyword.value.toLowerCase()
-    list = list.filter(record => 
-      record.id.toLowerCase().includes(keyword) ||
-      record.agentUsername.toLowerCase().includes(keyword) ||
-      record.referralUsername.toLowerCase().includes(keyword) ||
-      record.agentUid.toString().includes(keyword)
-    )
-  }
-  
-  // 状态筛选
-  if (statusFilter.value !== 'all') {
-    list = list.filter(record => record.status === statusFilter.value)
-  }
-  
-  // 类型筛选
-  if (typeFilter.value !== 'all') {
-    list = list.filter(record => record.type === typeFilter.value)
-  }
-  
-  // 层级筛选
-  if (levelFilter.value !== 'all') {
-    list = list.filter(record => record.level === parseInt(levelFilter.value))
-  }
-  
-  return list
-})
-
 // 统计数据
 const stats = computed(() => {
-  const total = recordList.value.length
-  const pending = recordList.value.filter(r => r.status === COMMISSION_STATUS.PENDING).length
-  const completed = recordList.value.filter(r => r.status === COMMISSION_STATUS.COMPLETED).length
-  const totalAmount = recordList.value.reduce((sum, r) => sum + r.commission, 0)
-  const completedAmount = recordList.value
-    .filter(r => r.status === COMMISSION_STATUS.COMPLETED)
-    .reduce((sum, r) => sum + r.commission, 0)
-  
+  // 在分页场景下，全量统计应该由后端 API 提供。目前 Mock 环境暂用分页总数演示。
   return [
-    { label: '总记录数', value: total, color: 'blue' },
-    { label: '待发放', value: pending, color: 'yellow' },
-    { label: '已完成', value: completed, color: 'green' },
-    { label: '累计佣金', value: `$${totalAmount.toLocaleString()}`, color: 'purple' },
-    { label: '已发放佣金', value: `$${completedAmount.toLocaleString()}`, color: 'green' }
+    { label: '总记录数', value: pagination.total, color: 'blue' },
+    { label: '待发放', value: '-', color: 'yellow' },
+    { label: '已完成', value: '-', color: 'green' },
+    { label: '累计佣金', value: '-', color: 'purple' },
+    { label: '已发放佣金', value: '-', color: 'green' }
   ]
 })
 
@@ -83,10 +102,10 @@ const getTypeLabel = (type) => {
 
 // 全选/取消全选
 const toggleSelectAll = () => {
-  if (selectedRecords.value.length === filteredRecords.value.length) {
+  if (selectedRecords.value.length === recordList.value.length) {
     selectedRecords.value = []
   } else {
-    selectedRecords.value = filteredRecords.value.map(r => r.id)
+    selectedRecords.value = recordList.value.map(r => r.id)
   }
 }
 
@@ -209,141 +228,225 @@ const formatDate = (dateString) => {
 
     <!-- 搜索和筛选 -->
     <div class="bg-white rounded-lg shadow p-4">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <input
-          v-model="searchKeyword"
-          type="text"
-          placeholder="搜索记录ID、代理或用户..."
-          class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        />
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div class="flex flex-col space-y-1">
+          <label class="text-xs text-gray-500 ml-1">关键词搜索</label>
+          <input
+            v-model="searchKeyword"
+            type="text"
+            placeholder="ID、代理或用户..."
+            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            @keyup.enter="handleSearch"
+          />
+        </div>
         
-        <select
-          v-model="statusFilter"
-          class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        >
-          <option value="all">全部状态</option>
-          <option v-for="status in COMMISSION_STATUS_OPTIONS" :key="status.value" :value="status.value">
-            {{ status.label }}
-          </option>
-        </select>
+        <div class="flex flex-col space-y-1">
+          <label class="text-xs text-gray-500 ml-1">状态筛选</label>
+          <select
+            v-model="statusFilter"
+            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            @change="handleSearch"
+          >
+            <option value="all">全部状态</option>
+            <option v-for="status in COMMISSION_STATUS_OPTIONS" :key="status.value" :value="status.value">
+              {{ status.label }}
+            </option>
+          </select>
+        </div>
         
-        <select
-          v-model="typeFilter"
-          class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        >
-          <option value="all">全部类型</option>
-          <option v-for="type in REFERRAL_TYPE_OPTIONS" :key="type.value" :value="type.value">
-            {{ type.label }}
-          </option>
-        </select>
+        <div class="flex flex-col space-y-1">
+          <label class="text-xs text-gray-500 ml-1">类型筛选</label>
+          <select
+            v-model="typeFilter"
+            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            @change="handleSearch"
+          >
+            <option value="all">全部类型</option>
+            <option v-for="type in REFERRAL_TYPE_OPTIONS" :key="type.value" :value="type.value">
+              {{ type.label }}
+            </option>
+          </select>
+        </div>
         
-        <select
-          v-model="levelFilter"
-          class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        >
-          <option value="all">全部层级</option>
-          <option value="1">一级</option>
-          <option value="2">二级</option>
-          <option value="3">三级</option>
-          <option value="4">四级</option>
-          <option value="5">五级</option>
-        </select>
+        <div class="flex flex-col space-y-1">
+          <label class="text-xs text-gray-500 ml-1">层级筛选</label>
+          <select
+            v-model="levelFilter"
+            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            @change="handleSearch"
+          >
+            <option value="all">全部层级</option>
+            <option value="1">一级</option>
+            <option value="2">二级</option>
+            <option value="3">三级</option>
+            <option value="4">四级</option>
+            <option value="5">五级</option>
+          </select>
+        </div>
+
+        <div class="flex items-end space-x-2">
+          <button
+            @click="handleSearch"
+            class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+          >
+            搜索
+          </button>
+          <button
+            @click="handleReset"
+            class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+          >
+            重置
+          </button>
+        </div>
       </div>
     </div>
 
-    <!-- 记录列表 -->
+    <!-- 记录列表表格 -->
     <div class="bg-white rounded-lg shadow overflow-hidden">
-      <div class="overflow-x-auto">
+      <div class="overflow-x-auto relative">
+        <!-- 加载遮罩 -->
+        <div v-if="loading" class="absolute inset-0 bg-white bg-opacity-60 z-10 flex items-center justify-center">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-4 py-3 text-left">
+              <th class="px-6 py-3 text-left">
                 <input
                   type="checkbox"
-                  :checked="selectedRecords.length === filteredRecords.length && filteredRecords.length > 0"
-                  @change="toggleSelectAll"
                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  :checked="recordList.length > 0 && selectedRecords.length === recordList.length"
+                  @change="toggleSelectAll"
                 />
               </th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">记录ID</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">代理信息</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">被推荐人</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">类型/层级</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">订单金额</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">佣金比例</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">佣金</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">生成时间</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">记录ID</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">代理信息</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">贡献用户</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分佣详情</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">时间</th>
+              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="record in filteredRecords" :key="record.id" class="hover:bg-gray-50">
-              <td class="px-4 py-4">
+            <tr v-for="record in recordList" :key="record.id" class="hover:bg-gray-50">
+              <td class="px-6 py-4">
                 <input
                   type="checkbox"
+                  class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   :checked="isSelected(record.id)"
                   @change="toggleSelect(record.id)"
-                  class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
               </td>
-              <td class="px-4 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                 {{ record.id }}
               </td>
-              <td class="px-4 py-4 whitespace-nowrap">
+              <td class="px-6 py-4 whitespace-nowrap">
                 <div class="text-sm font-medium text-gray-900">{{ record.agentUsername }}</div>
                 <div class="text-xs text-gray-500">UID: {{ record.agentUid }}</div>
               </td>
-              <td class="px-4 py-4 whitespace-nowrap">
+              <td class="px-6 py-4 whitespace-nowrap">
                 <div class="text-sm font-medium text-gray-900">{{ record.referralUsername }}</div>
                 <div class="text-xs text-gray-500">UID: {{ record.referralUid }}</div>
               </td>
-              <td class="px-4 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-900">{{ getTypeLabel(record.type) }}</div>
-                <span class="text-xs px-2 py-0.5 bg-purple-100 text-purple-800 rounded-full">
-                  {{ record.level }}级
-                </span>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">
+                  金额: <span class="font-semibold">${{ record.amount.toLocaleString() }}</span>
+                </div>
+                <div class="text-xs text-gray-500">
+                  {{ getTypeLabel(record.type) }} | {{ record.level }}级 ({{ (record.commissionRate * 100).toFixed(1) }}%)
+                </div>
+                <div class="text-sm text-green-600 font-bold">
+                  佣金: ${{ record.commission.toLocaleString() }}
+                </div>
               </td>
-              <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                ${{ record.amount.toLocaleString() }}
-              </td>
-              <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ (record.commissionRate * 100).toFixed(2) }}%
-              </td>
-              <td class="px-4 py-4 whitespace-nowrap text-sm font-semibold text-green-600">
-                ${{ record.commission.toLocaleString() }}
-              </td>
-              <td class="px-4 py-4 whitespace-nowrap">
+              <td class="px-6 py-4 whitespace-nowrap">
                 <span 
                   :class="`px-2 py-1 text-xs font-semibold rounded-full bg-${getStatusConfig(record.status).color}-100 text-${getStatusConfig(record.status).color}-800`"
                 >
                   {{ getStatusConfig(record.status).text }}
                 </span>
               </td>
-              <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                <div>{{ formatDate(record.createdAt) }}</div>
-                <div v-if="record.completedAt" class="text-xs text-green-600">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <div class="text-xs">创建: {{ formatDate(record.createdAt) }}</div>
+                <div v-if="record.completedAt" class="text-xs text-green-600 mt-1">
                   完成: {{ formatDate(record.completedAt) }}
                 </div>
               </td>
-              <td class="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <button
-                  v-if="record.status === COMMISSION_STATUS.PENDING"
+                  v-if="record.status === COMMISSION_STATUS.PENDING || record.status === COMMISSION_STATUS.FAILED"
                   @click="executeCommission(record.id)"
                   class="text-green-600 hover:text-green-900"
                 >
                   执行
                 </button>
-                <span v-else class="text-gray-400">已处理</span>
+                <span v-else class="text-gray-400">-</span>
+              </td>
+            </tr>
+            <tr v-if="recordList.length === 0 && !loading">
+              <td colspan="8" class="px-6 py-10 text-center text-gray-500">
+                暂无分佣记录
               </td>
             </tr>
           </tbody>
         </table>
       </div>
-      
-      <!-- 空状态 -->
-      <div v-if="filteredRecords.length === 0" class="text-center py-12">
-        <p class="text-gray-500">暂无分佣记录</p>
+
+      <!-- 分页 -->
+      <div v-if="pagination.total > 0" class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+        <div class="text-sm text-gray-700">
+          共 <span class="font-medium">{{ pagination.total }}</span> 条记录，
+          每页显示
+          <select 
+            v-model="pagination.pageSize" 
+            class="mx-1 border border-gray-300 rounded px-1 py-0.5 text-sm"
+            @change="handleSearch"
+          >
+            <option :value="10">10</option>
+            <option :value="20">20</option>
+            <option :value="50">50</option>
+            <option :value="100">100</option>
+          </select>
+          条
+        </div>
+        <div class="flex items-center space-x-2">
+          <button
+            @click="pagination.currentPage--"
+            :disabled="pagination.currentPage === 1 || loading"
+            class="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            上一页
+          </button>
+          
+          <div class="flex items-center space-x-1">
+            <template v-for="page in totalPages" :key="page">
+              <button
+                v-if="page === 1 || page === totalPages || (page >= pagination.currentPage - 1 && page <= pagination.currentPage + 1)"
+                @click="pagination.currentPage = page"
+                :class="[
+                  'px-3 py-1 border rounded-md text-sm font-medium transition-colors',
+                  pagination.currentPage === page 
+                    ? 'bg-blue-600 border-blue-600 text-white' 
+                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                ]"
+              >
+                {{ page }}
+              </button>
+              <span v-else-if="page === 2 && pagination.currentPage > 3" class="text-gray-400">...</span>
+              <span v-else-if="page === totalPages - 1 && pagination.currentPage < totalPages - 2" class="text-gray-400">...</span>
+            </template>
+          </div>
+
+          <button
+            @click="pagination.currentPage++"
+            :disabled="pagination.currentPage === totalPages || loading"
+            class="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            下一页
+          </button>
+        </div>
       </div>
     </div>
   </div>

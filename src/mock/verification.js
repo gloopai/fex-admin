@@ -199,6 +199,86 @@ export const verificationAuditList = [
   })
 ]
 
+// 生成更多模拟数据
+for (let i = 6; i <= 50; i++) {
+  const levels = [VERIFICATION_LEVEL.BASIC, VERIFICATION_LEVEL.ADVANCED]
+  const applyLevel = levels[Math.floor(Math.random() * levels.length)]
+  const statuses = Object.values(VERIFICATION_STATUS)
+  const status = statuses[Math.floor(Math.random() * statuses.length)]
+  const submitTime = new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString()
+  
+  verificationAuditList.push(generateVerificationAudit(i, {
+    username: `user_${1000 + i}`,
+    email: `user${1000 + i}@example.com`,
+    currentLevel: applyLevel === VERIFICATION_LEVEL.ADVANCED ? VERIFICATION_LEVEL.BASIC : VERIFICATION_LEVEL.NONE,
+    applyLevel: applyLevel,
+    status: status,
+    submitTime: submitTime,
+    auditTime: status !== VERIFICATION_STATUS.PENDING ? new Date(new Date(submitTime).getTime() + 86400000).toISOString() : null,
+    auditor: status !== VERIFICATION_STATUS.PENDING ? `admin_0${Math.floor(Math.random() * 3) + 1}` : null,
+    basicInfo: {
+      realName: `用户${i}`,
+      idNumber: `11010119900101${String(i).padStart(4, '0')}`,
+      nationality: '中国',
+      address: '某省某市某区某街道',
+      occupation: '自由职业'
+    }
+  }))
+}
+
+export const getVerificationAudits = ({
+  page,
+  pageSize,
+  searchKeyword,
+  applyLevel,
+  status,
+  dateRange
+}) => {
+  let filteredAudits = [...verificationAuditList]
+
+  if (searchKeyword && searchKeyword.trim()) {
+    const keyword = searchKeyword.toLowerCase()
+    filteredAudits = filteredAudits.filter(
+      (audit) =>
+        audit.username.toLowerCase().includes(keyword) ||
+        audit.email.toLowerCase().includes(keyword) ||
+        audit.basicInfo.realName.toLowerCase().includes(keyword) ||
+        audit.userId.toLowerCase().includes(keyword)
+    )
+  }
+
+  if (applyLevel && applyLevel !== 'all') {
+    filteredAudits = filteredAudits.filter(audit => audit.applyLevel === applyLevel)
+  }
+
+  if (status && status !== 'all') {
+    filteredAudits = filteredAudits.filter(audit => audit.status === status)
+  }
+
+  if (dateRange && dateRange.start && dateRange.end) {
+    const start = new Date(dateRange.start).getTime()
+    const end = new Date(dateRange.end).getTime()
+    filteredAudits = filteredAudits.filter(audit => {
+      const time = new Date(audit.submitTime).getTime()
+      return time >= start && time <= end
+    })
+  }
+
+  // 按提交时间倒序
+  filteredAudits.sort((a, b) => new Date(b.submitTime) - new Date(a.submitTime))
+
+  const total = filteredAudits.length
+  const start = (page - 1) * pageSize
+  const end = start + pageSize
+  const list = filteredAudits.slice(start, end)
+
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({ list, total })
+    }, 300)
+  })
+}
+
 // 认证日志记录
 const generateVerificationLog = (id, overrides = {}) => ({
   id: `log_${id}`,
@@ -322,3 +402,78 @@ export const verificationLogList = [
     }
   })
 ]
+
+// 生成更多日志数据
+for (let i = 9; i <= 60; i++) {
+  const actionTypes = Object.values(LOG_ACTION_TYPE)
+  const actionType = actionTypes[Math.floor(Math.random() * actionTypes.length)]
+  const levels = Object.values(VERIFICATION_LEVEL)
+  const beforeLevel = levels[Math.floor(Math.random() * levels.length)]
+  const afterLevel = actionType === LOG_ACTION_TYPE.LEVEL_UPGRADE ? VERIFICATION_LEVEL.ADVANCED : beforeLevel
+  
+  verificationLogList.push(generateVerificationLog(i, {
+    username: `user_${1000 + i}`,
+    actionType: actionType,
+    actionTime: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+    operator: `admin_0${Math.floor(Math.random() * 3) + 1}`,
+    beforeLevel: beforeLevel,
+    afterLevel: afterLevel,
+    description: `操作描述 ${i}`,
+    details: {}
+  }))
+}
+
+export const getVerificationLogs = ({
+  page,
+  pageSize,
+  searchKeyword,
+  actionType,
+  dateRange
+}) => {
+  let filteredLogs = [...verificationLogList]
+
+  if (searchKeyword && searchKeyword.trim()) {
+    const keyword = searchKeyword.toLowerCase()
+    filteredLogs = filteredLogs.filter(
+      (log) =>
+        log.username.toLowerCase().includes(keyword) ||
+        log.userId.toLowerCase().includes(keyword) ||
+        log.operator.toLowerCase().includes(keyword) ||
+        log.description.toLowerCase().includes(keyword)
+    )
+  }
+
+  if (actionType && actionType !== 'all') {
+    filteredLogs = filteredLogs.filter(log => log.actionType === actionType)
+  }
+
+  if (dateRange && dateRange !== 'all') {
+    const now = Date.now()
+    const ranges = {
+      'today': 24 * 60 * 60 * 1000,
+      'week': 7 * 24 * 60 * 60 * 1000,
+      'month': 30 * 24 * 60 * 60 * 1000
+    }
+    const range = ranges[dateRange]
+    if (range) {
+      filteredLogs = filteredLogs.filter(log => {
+        const logTime = new Date(log.actionTime).getTime()
+        return now - logTime <= range
+      })
+    }
+  }
+
+  // 按时间倒序
+  filteredLogs.sort((a, b) => new Date(b.actionTime) - new Date(a.actionTime))
+
+  const total = filteredLogs.length
+  const start = (page - 1) * pageSize
+  const end = start + pageSize
+  const list = filteredLogs.slice(start, end)
+
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({ list, total })
+    }, 300)
+  })
+}

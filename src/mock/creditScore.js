@@ -301,3 +301,159 @@ export const updateCreditScoreConfig = (key, value) => {
 export const updateCreditScoreConfigs = (configs) => {
   Object.assign(creditScoreConfig, configs)
 }
+
+// 生成更多模拟日志
+for (let i = 11; i <= 60; i++) {
+  const changeTypes = Object.values(CREDIT_SCORE_CHANGE_TYPE)
+  const type = changeTypes[Math.floor(Math.random() * changeTypes.length)]
+  const amount = type === CREDIT_SCORE_CHANGE_TYPE.PENALTY ? -Math.floor(Math.random() * 10) - 1 : Math.floor(Math.random() * 10)
+  const before = 60 + Math.floor(Math.random() * 30)
+  
+  creditScoreChanges.push({
+    id: `cs_change_${String(i).padStart(3, '0')}`,
+    userId: `user_${String(100 + i).padStart(3, '0')}`,
+    username: `user_${i}_trader`,
+    changeType: type,
+    beforeScore: before,
+    afterScore: before + amount,
+    changeAmount: amount,
+    relatedAmount: type === CREDIT_SCORE_CHANGE_TYPE.RECHARGE ? (Math.floor(Math.random() * 10) + 1) * 50000 : null,
+    reason: type === CREDIT_SCORE_CHANGE_TYPE.RECHARGE ? '充值奖励积分' : '系统自动调整',
+    operatorId: 'system',
+    operatorName: '系统',
+    createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString()
+  })
+}
+
+// 生成更多模拟审核数据
+for (let i = 6; i <= 50; i++) {
+  const changeTypes = [CREDIT_SCORE_CHANGE_TYPE.MANUAL_ADJUST, CREDIT_SCORE_CHANGE_TYPE.PENALTY, CREDIT_SCORE_CHANGE_TYPE.REWARD]
+  const type = changeTypes[Math.floor(Math.random() * changeTypes.length)]
+  const statusList = Object.values(CREDIT_SCORE_AUDIT_STATUS)
+  const status = statusList[Math.floor(Math.random() * statusList.length)]
+  const amount = type === CREDIT_SCORE_CHANGE_TYPE.PENALTY ? -Math.floor(Math.random() * 20) - 5 : Math.floor(Math.random() * 20) + 5
+  const before = 60 + Math.floor(Math.random() * 20)
+  const applyTime = new Date(Date.now() - Math.random() * 15 * 24 * 60 * 60 * 1000).toISOString()
+  
+  creditScoreAuditList.push({
+    id: `audit_${String(i).padStart(3, '0')}`,
+    userId: `user_${String(200 + i).padStart(3, '0')}`,
+    username: `user_${i}_audit`,
+    email: `user${i}@example.com`,
+    changeType: type,
+    beforeScore: before,
+    afterScore: before + amount,
+    changeAmount: amount,
+    relatedAmount: null,
+    reason: type === CREDIT_SCORE_CHANGE_TYPE.REWARD ? '活动达标奖励' : '人工风险调整',
+    applyOperatorId: 'admin_001',
+    applyOperatorName: '管理员张三',
+    auditStatus: status,
+    applyTime: applyTime,
+    auditTime: status !== CREDIT_SCORE_AUDIT_STATUS.PENDING ? new Date(new Date(applyTime).getTime() + 3600000).toISOString() : null,
+    auditorId: status !== CREDIT_SCORE_AUDIT_STATUS.PENDING ? 'admin_003' : null,
+    auditorName: status !== CREDIT_SCORE_AUDIT_STATUS.PENDING ? '管理员王五' : null,
+    auditNote: status !== CREDIT_SCORE_AUDIT_STATUS.PENDING ? '审核通过' : null
+  })
+}
+
+export const getCreditScoreAudits = ({
+  page,
+  pageSize,
+  searchKeyword,
+  changeType,
+  auditStatus,
+  dateRange
+}) => {
+  let filteredAudits = [...creditScoreAuditList]
+
+  if (searchKeyword && searchKeyword.trim()) {
+    const keyword = searchKeyword.toLowerCase()
+    filteredAudits = filteredAudits.filter(
+      (audit) =>
+        audit.username.toLowerCase().includes(keyword) ||
+        audit.userId.toLowerCase().includes(keyword) ||
+        audit.email.toLowerCase().includes(keyword) ||
+        (audit.reason && audit.reason.toLowerCase().includes(keyword))
+    )
+  }
+
+  if (changeType && changeType !== 'all') {
+    filteredAudits = filteredAudits.filter(audit => audit.changeType === changeType)
+  }
+
+  if (auditStatus && auditStatus !== 'all') {
+    filteredAudits = filteredAudits.filter(audit => audit.auditStatus === auditStatus)
+  }
+
+  if (dateRange && dateRange.start && dateRange.end) {
+    const start = new Date(dateRange.start).getTime()
+    const end = new Date(dateRange.end).getTime()
+    filteredAudits = filteredAudits.filter(audit => {
+      const time = new Date(audit.applyTime).getTime()
+      return time >= start && time <= end
+    })
+  }
+
+  // 按申请时间倒序
+  filteredAudits.sort((a, b) => new Date(b.applyTime) - new Date(a.applyTime))
+
+  const total = filteredAudits.length
+  const start = (page - 1) * pageSize
+  const end = start + pageSize
+  const list = filteredAudits.slice(start, end)
+
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({ list, total })
+    }, 300)
+  })
+}
+
+export const getCreditScoreChanges = ({
+  page,
+  pageSize,
+  searchKeyword,
+  changeType,
+  dateRange
+}) => {
+  let filteredChanges = [...creditScoreChanges]
+
+  if (searchKeyword && searchKeyword.trim()) {
+    const keyword = searchKeyword.toLowerCase()
+    filteredChanges = filteredChanges.filter(
+      (change) =>
+        change.username.toLowerCase().includes(keyword) ||
+        change.userId.toLowerCase().includes(keyword) ||
+        (change.reason && change.reason.toLowerCase().includes(keyword)) ||
+        (change.operatorName && change.operatorName.toLowerCase().includes(keyword))
+    )
+  }
+
+  if (changeType && changeType !== 'all') {
+    filteredChanges = filteredChanges.filter(change => change.changeType === changeType)
+  }
+
+  if (dateRange && dateRange.start && dateRange.end) {
+    const start = new Date(dateRange.start).getTime()
+    const end = new Date(dateRange.end).getTime()
+    filteredChanges = filteredChanges.filter(change => {
+      const time = new Date(change.createdAt).getTime()
+      return time >= start && time <= end
+    })
+  }
+
+  // 按时间倒序
+  filteredChanges.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+
+  const total = filteredChanges.length
+  const start = (page - 1) * pageSize
+  const end = start + pageSize
+  const list = filteredChanges.slice(start, end)
+
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({ list, total })
+    }, 300)
+  })
+}

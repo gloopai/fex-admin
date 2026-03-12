@@ -1,14 +1,69 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { mockAgentApplications, agentApi } from '../../mock/agent'
+import { ref, computed, onMounted, reactive, watch } from 'vue'
+import { agentApi } from '../../mock/agent'
 import { AGENT_APPLICATION_STATUS, AGENT_APPLICATION_STATUS_OPTIONS, AGENT_LEVEL, AGENT_LEVEL_OPTIONS } from '../../constants/agent'
 
 // 搜索和筛选
 const searchKeyword = ref('')
 const statusFilter = ref('all')
+const loading = ref(false)
+
+// 分页
+const pagination = reactive({
+  currentPage: 1,
+  pageSize: 10,
+  total: 0
+})
+
+const totalPages = computed(() => Math.ceil(pagination.total / pagination.pageSize))
 
 // 申请列表
-const applicationList = ref(mockAgentApplications)
+const applicationList = ref([])
+
+// 加载申请列表
+const loadApplicationList = async () => {
+  loading.value = true
+  try {
+    const result = await agentApi.getApplicationList({
+      page: pagination.currentPage,
+      pageSize: pagination.pageSize,
+      searchKeyword: searchKeyword.value,
+      status: statusFilter.value
+    })
+    if (result.success) {
+      applicationList.value = result.data.list
+      pagination.total = result.data.total
+    }
+  } catch (error) {
+    console.error('Failed to load application list:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+// 搜索处理
+const handleSearch = () => {
+  pagination.currentPage = 1
+  loadApplicationList()
+}
+
+// 重置处理
+const handleReset = () => {
+  searchKeyword.value = ''
+  statusFilter.value = 'all'
+  pagination.currentPage = 1
+  loadApplicationList()
+}
+
+// 监听页码变化
+watch(() => pagination.currentPage, () => {
+  loadApplicationList()
+})
+
+// 组件加载时获取数据
+onMounted(() => {
+  loadApplicationList()
+})
 
 // 审核弹窗
 const showReviewModal = ref(false)
@@ -19,40 +74,15 @@ const reviewForm = ref({
   note: ''
 })
 
-// 过滤后的列表
-const filteredApplications = computed(() => {
-  let list = [...applicationList.value]
-  
-  // 搜索关键词
-  if (searchKeyword.value.trim()) {
-    const keyword = searchKeyword.value.toLowerCase()
-    list = list.filter(app => 
-      app.username.toLowerCase().includes(keyword) ||
-      app.email.toLowerCase().includes(keyword) ||
-      app.uid.toString().includes(keyword)
-    )
-  }
-  
-  // 状态筛选
-  if (statusFilter.value !== 'all') {
-    list = list.filter(app => app.status === statusFilter.value)
-  }
-  
-  return list
-})
-
 // 统计数据
 const stats = computed(() => {
-  const total = applicationList.value.length
-  const pending = applicationList.value.filter(a => a.status === AGENT_APPLICATION_STATUS.PENDING).length
-  const approved = applicationList.value.filter(a => a.status === AGENT_APPLICATION_STATUS.APPROVED).length
-  const rejected = applicationList.value.filter(a => a.status === AGENT_APPLICATION_STATUS.REJECTED).length
-  
+  // 注意：这里的统计如果是基于全量数据的，Mock API 可能需要单独提供统计接口
+  // 目前简单基于当前列表或静态数据，但在真实场景中应该从 API 获取
   return [
-    { label: '全部申请', value: total, color: 'blue' },
-    { label: '待审核', value: pending, color: 'yellow' },
-    { label: '已通过', value: approved, color: 'green' },
-    { label: '已拒绝', value: rejected, color: 'red' }
+    { label: '全部申请', value: pagination.total, color: 'blue' },
+    { label: '待审核', value: '-', color: 'yellow' },
+    { label: '已通过', value: '-', color: 'green' },
+    { label: '已拒绝', value: '-', color: 'red' }
   ]
 })
 
@@ -171,29 +201,57 @@ const formatDate = (dateString) => {
 
     <!-- 搜索和筛选 -->
     <div class="bg-white rounded-lg shadow p-4">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <input
-          v-model="searchKeyword"
-          type="text"
-          placeholder="搜索 UID、用户名或邮箱..."
-          class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        />
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="flex flex-col space-y-1">
+          <label class="text-xs text-gray-500 ml-1">关键词搜索</label>
+          <input
+            v-model="searchKeyword"
+            type="text"
+            placeholder="UID、用户名或邮箱..."
+            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            @keyup.enter="handleSearch"
+          />
+        </div>
         
-        <select
-          v-model="statusFilter"
-          class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        >
-          <option value="all">全部状态</option>
-          <option v-for="status in AGENT_APPLICATION_STATUS_OPTIONS" :key="status.value" :value="status.value">
-            {{ status.label }}
-          </option>
-        </select>
+        <div class="flex flex-col space-y-1">
+          <label class="text-xs text-gray-500 ml-1">状态筛选</label>
+          <select
+            v-model="statusFilter"
+            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            @change="handleSearch"
+          >
+            <option value="all">全部状态</option>
+            <option v-for="status in AGENT_APPLICATION_STATUS_OPTIONS" :key="status.value" :value="status.value">
+              {{ status.label }}
+            </option>
+          </select>
+        </div>
+
+        <div class="flex items-end space-x-2">
+          <button
+            @click="handleSearch"
+            class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+          >
+            搜索
+          </button>
+          <button
+            @click="handleReset"
+            class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+          >
+            重置
+          </button>
+        </div>
       </div>
     </div>
 
     <!-- 申请列表 -->
     <div class="bg-white rounded-lg shadow overflow-hidden">
-      <div class="overflow-x-auto">
+      <div class="overflow-x-auto relative">
+        <!-- 加载遮罩 -->
+        <div v-if="loading" class="absolute inset-0 bg-white bg-opacity-60 z-10 flex items-center justify-center">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
@@ -207,7 +265,7 @@ const formatDate = (dateString) => {
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="app in filteredApplications" :key="app.id" class="hover:bg-gray-50">
+            <tr v-for="app in applicationList" :key="app.id" class="hover:bg-gray-50">
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                 {{ app.uid }}
               </td>
@@ -253,16 +311,77 @@ const formatDate = (dateString) => {
                     拒绝
                   </button>
                 </div>
-                <span v-else class="text-gray-400">已处理</span>
+                <button
+                  v-else
+                  @click="selectedApplication = app; showReviewModal = true; reviewForm.action = app.status === AGENT_APPLICATION_STATUS.APPROVED ? 'approve' : 'reject'; reviewForm.note = app.reviewNote"
+                  class="text-blue-600 hover:text-blue-900"
+                >
+                  查看
+                </button>
+              </td>
+            </tr>
+            <tr v-if="applicationList.length === 0 && !loading">
+              <td colspan="7" class="px-6 py-10 text-center text-gray-500">
+                暂无申请数据
               </td>
             </tr>
           </tbody>
         </table>
       </div>
-      
-      <!-- 空状态 -->
-      <div v-if="filteredApplications.length === 0" class="text-center py-12">
-        <p class="text-gray-500">暂无申请记录</p>
+
+      <!-- 分页 -->
+      <div v-if="pagination.total > 0" class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+        <div class="text-sm text-gray-700">
+          共 <span class="font-medium">{{ pagination.total }}</span> 条记录，
+          每页显示
+          <select 
+            v-model="pagination.pageSize" 
+            class="mx-1 border border-gray-300 rounded px-1 py-0.5 text-sm"
+            @change="handleSearch"
+          >
+            <option :value="10">10</option>
+            <option :value="20">20</option>
+            <option :value="50">50</option>
+            <option :value="100">100</option>
+          </select>
+          条
+        </div>
+        <div class="flex items-center space-x-2">
+          <button
+            @click="pagination.currentPage--"
+            :disabled="pagination.currentPage === 1 || loading"
+            class="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            上一页
+          </button>
+          
+          <div class="flex items-center space-x-1">
+            <template v-for="page in totalPages" :key="page">
+              <button
+                v-if="page === 1 || page === totalPages || (page >= pagination.currentPage - 1 && page <= pagination.currentPage + 1)"
+                @click="pagination.currentPage = page"
+                :class="[
+                  'px-3 py-1 border rounded-md text-sm font-medium transition-colors',
+                  pagination.currentPage === page 
+                    ? 'bg-blue-600 border-blue-600 text-white' 
+                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                ]"
+              >
+                {{ page }}
+              </button>
+              <span v-else-if="page === 2 && pagination.currentPage > 3" class="text-gray-400">...</span>
+              <span v-else-if="page === totalPages - 1 && pagination.currentPage < totalPages - 2" class="text-gray-400">...</span>
+            </template>
+          </div>
+
+          <button
+            @click="pagination.currentPage++"
+            :disabled="pagination.currentPage === totalPages || loading"
+            class="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            下一页
+          </button>
+        </div>
       </div>
     </div>
 

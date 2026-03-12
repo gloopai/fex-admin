@@ -21,23 +21,28 @@ import { createDefaultPerpetualControlConfig } from '../../mock/perpetual'
 const contracts = ref(createPerpetualControlContractsMock())
 
 const keyword = ref('')
+
+const pagination = reactive({
+  currentPage: 1,
+  pageSize: 5
+})
+
 const filteredContracts = computed(() => {
   const kw = keyword.value.trim().toLowerCase()
   if (!kw) return contracts.value
   return contracts.value.filter((item) => `${item.symbol} ${item.alias}`.toLowerCase().includes(kw))
 })
 
-const summary = computed(() => {
-  const total = contracts.value.length
-  const monitoring = contracts.value.filter((item) => item.status === PERP_CONTROL_CONTRACT_STATUS.RUNNING).length
-  const autoOn = contracts.value.filter((item) => item.config.autoTriggerEnabled).length
-  const autoOff = contracts.value.filter((item) => !item.config.autoTriggerEnabled).length
-  return [
-    { label: '合约总数', value: String(total) },
-    { label: '线控中', value: String(monitoring) },
-    { label: '自动触发已开启', value: String(autoOn) },
-    { label: '自动触发已关闭', value: String(autoOff) }
-  ]
+const paginatedContracts = computed(() => {
+  const start = (pagination.currentPage - 1) * pagination.pageSize
+  const end = start + pagination.pageSize
+  return filteredContracts.value.slice(start, end)
+})
+
+const totalPages = computed(() => Math.ceil(filteredContracts.value.length / pagination.pageSize))
+
+watch([keyword], () => {
+  pagination.currentPage = 1
 })
 
 const formatParams = (config) => {
@@ -476,7 +481,7 @@ const handleMfaVerify = async (code) => {
     </div>
 
     <article
-      v-for="contract in filteredContracts"
+      v-for="contract in paginatedContracts"
       :key="contract.id"
       class="rounded-xl border border-blue-200 bg-slate-50/40 p-5"
     >
@@ -498,10 +503,10 @@ const handleMfaVerify = async (code) => {
         </div>
 
         <div class="flex items-center gap-3 text-sm">
-          <button type="button" class="font-medium text-amber-600" @click="toggleContractStatus(contract.id)">
-            {{ contract.status === PERP_CONTROL_CONTRACT_STATUS.RUNNING ? '暂停' : '恢复' }}
+          <button type="button" class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-700 hover:bg-slate-50" @click="toggleContractStatus(contract.id)">
+            {{ contract.status === PERP_CONTROL_CONTRACT_STATUS.RUNNING ? '暂停线控' : '启动线控' }}
           </button>
-          <button type="button" class="font-medium text-slate-700" @click="openConfig(contract.id)">配置</button>
+          <button type="button" class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-700 hover:bg-slate-50" @click="openConfig(contract.id)">线控配置</button>
         </div>
       </div>
 
@@ -561,7 +566,32 @@ const handleMfaVerify = async (code) => {
       </div>
     </article>
 
-    <p v-if="filteredContracts.length === 0" class="rounded-lg border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">没有匹配的线控合约</p>
+    <!-- 分页 -->
+    <div v-if="totalPages > 1" class="mt-6 flex items-center justify-between border-t border-slate-200 pt-6">
+      <div class="text-sm text-slate-500">
+        共 <span class="font-medium">{{ filteredContracts.length }}</span> 个合约，第 <span class="font-medium">{{ pagination.currentPage }}</span> / <span class="font-medium">{{ totalPages }}</span> 页
+      </div>
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          :disabled="pagination.currentPage === 1"
+          @click="pagination.currentPage--"
+        >
+          上一页
+        </button>
+        <button
+          type="button"
+          class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          :disabled="pagination.currentPage === totalPages"
+          @click="pagination.currentPage++"
+        >
+          下一页
+        </button>
+      </div>
+    </div>
+
+    <p v-if="filteredContracts.length === 0" class="py-20 text-center text-slate-400">没有匹配的合约</p>
   </section>
 
   <ControlConfigModal
