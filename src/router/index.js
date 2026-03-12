@@ -50,15 +50,12 @@ const routes = [
       {
         path: 'perpetual/contract-monitor',
         name: 'perpetual-contract-monitor',
-        component: () => import('../pages/perpetual/PerpetualControlEditorPage.vue')
+        component: () => import('../pages/perpetual/PerpetualContractMonitorPage.vue')
       },
       {
         path: 'perpetual/manual-line',
         name: 'perpetual-manual-line',
-        component: () => import('../pages/perpetual/PerpetualControlEditorPage.vue'),
-        meta: {
-          mode: 'manual_line'
-        }
+        component: () => import('../pages/perpetual/PerpetualManualLinePage.vue')
       },
       {
         path: 'perpetual/contract-log',

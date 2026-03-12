@@ -1,9 +1,7 @@
 <script setup>
-import { computed, reactive, ref, watch, onBeforeUnmount, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, reactive, ref, watch } from 'vue'
 import MfaVerificationModal from '../../components/MfaVerificationModal.vue'
 import ControlConfigModal from '../../components/ControlConfigModal.vue'
-import PerpetualManualLineModal from '../../components/PerpetualManualLineModal.vue'
 import {
   PERP_CONTROL_CONTRACT_STATUS,
   PERP_CONTROL_OFFSET_DIRECTION,
@@ -22,12 +20,7 @@ import { createDefaultPerpetualControlConfig } from '../../mock/perpetual'
 
 const clone = (value) => JSON.parse(JSON.stringify(value))
 
-const route = useRoute()
-const pageMode = computed(() => route.meta?.mode || 'full')
-const isManualLineMode = computed(() => pageMode.value === 'manual_line')
-
 const contracts = ref(createPerpetualControlContractsMock())
-
 const keyword = ref('')
 
 const summary = computed(() => {
@@ -42,17 +35,6 @@ const summary = computed(() => {
     { label: '启用规则', value: enabledRules }
   ]
 })
-
-const boardRefreshIntervalMs = ref(2000)
-const boardTopN = ref(20)
-const boardLastRefreshAt = ref('')
-const boardNow = ref(Date.now())
-
-const boardPagination = reactive({
-  currentPage: 1,
-  pageSize: 20
-})
-const boardPageSizeOptions = [10, 20, 30, 50]
 
 const metricLabel = {
   LONG: '多头持仓',
@@ -163,232 +145,38 @@ const ensureMetrics = (contract) => {
     return hit ? { ...fallback, ...hit } : fallback
   }
 
-  return [
+  let out = [
     getOr(metricLabel.LONG, { label: metricLabel.LONG, value: formatCompactUsd(baseLong), tone: 'up' }),
     getOr(metricLabel.SHORT, { label: metricLabel.SHORT, value: formatCompactUsd(baseShort), tone: 'down' }),
     getOr(metricLabel.NET, { label: metricLabel.NET, value: formatCompactUsd(net, { withSign: true }), tone: net >= 0 ? 'up' : 'down' }),
     getOr(metricLabel.RATIO, { label: metricLabel.RATIO, value: ratio.toFixed(2), tone: 'neutral' }),
     getOr(metricLabel.USERS, { label: metricLabel.USERS, value: String(baseUsers), tone: 'neutral' }),
     getOr(metricLabel.VOLUME, { label: metricLabel.VOLUME, value: formatCompactUsd(baseVol), tone: 'neutral' }),
-    getOr(metricLabel.PLATFORM_PNL, { label: metricLabel.PLATFORM_PNL, value: formatCompactUsd(platformPnl, { withSign: true }), tone: platformPnl >= 0 ? 'up' : 'down' }),
+    getOr(metricLabel.PLATFORM_PNL, {
+      label: metricLabel.PLATFORM_PNL,
+      value: formatCompactUsd(platformPnl, { withSign: true }),
+      tone: platformPnl >= 0 ? 'up' : 'down'
+    }),
     getOr(metricLabel.USER_PNL, { label: metricLabel.USER_PNL, value: formatCompactUsd(userPnl, { withSign: true }), tone: userPnl >= 0 ? 'up' : 'down' })
   ]
+
+  out = upsertMetric({ metrics: out }, metricLabel.NET, {
+    value: formatCompactUsd(parseCompactUsd(getMetric({ metrics: out }, metricLabel.LONG)?.value) - parseCompactUsd(getMetric({ metrics: out }, metricLabel.SHORT)?.value), {
+      withSign: true
+    }),
+    tone: parseCompactUsd(getMetric({ metrics: out }, metricLabel.NET)?.value) >= 0 ? 'up' : 'down'
+  })
+
+  return out
 }
 
 contracts.value = contracts.value.map((contract) => ({ ...contract, metrics: ensureMetrics(contract) }))
-
-const jitter = (base, pct) => {
-  const factor = 1 + (Math.random() * 2 - 1) * pct
-  return Math.max(0, base * factor)
-}
-
-const ensureNonZeroSigned = (raw, minAbs) => {
-  const v = Number(raw || 0)
-  const abs = Math.abs(v)
-  if (abs >= minAbs) return v
-  const sign = v === 0 ? (Math.random() > 0.5 ? 1 : -1) : v > 0 ? 1 : -1
-  return sign * minAbs
-}
-
-const marketPrices = ref({})
-
-const baseMarketPrice = (symbol) => {
-  const s = String(symbol || '')
-  if (s.includes('BTC')) return 50000
-  if (s.includes('ETH')) return 3000
-  if (s.includes('SOL')) return 100
-  const seed = s.split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0)
-  return 500 + (seed % 4500)
-}
-
-const marketVolatilityPct = (symbol) => {
-  const s = String(symbol || '')
-  if (s.includes('BTC')) return 0.0015
-  if (s.includes('ETH')) return 0.002
-  if (s.includes('SOL')) return 0.0035
-  return 0.0025
-}
-
-const manualOverrides = ref({})
-const manualTimers = new Map()
-
-const isManualActive = (contractId) => Boolean(manualOverrides.value[contractId])
-
-const clearManualTimer = (contractId) => {
-  const existing = manualTimers.get(contractId)
-  if (existing) clearTimeout(existing)
-  manualTimers.delete(contractId)
-}
-
-const revertManual = (contractId) => {
-  const entry = manualOverrides.value[contractId]
-  if (!entry) return
-  clearManualTimer(contractId)
-  contracts.value = contracts.value.map((c) => {
-    if (c.id !== contractId) return c
-    return { ...c, status: entry.baseStatus ?? c.status, config: clone(entry.baseConfig) }
-  })
-  const next = { ...manualOverrides.value }
-  delete next[contractId]
-  manualOverrides.value = next
-}
-
-const scheduleManualExpiry = (contractId, durationSec) => {
-  clearManualTimer(contractId)
-  if (!Number(durationSec) || Number(durationSec) <= 0) return
-  const handle = setTimeout(() => revertManual(contractId), Number(durationSec) * 1000)
-  manualTimers.set(contractId, handle)
-}
-
-const refreshBoard = () => {
-  const now = Date.now()
-  const nextMarketPrices = { ...marketPrices.value }
-  contracts.value = contracts.value.map((contract) => {
-    const next = { ...contract }
-    const metrics = ensureMetrics(next)
-
-    const contractId = next.id
-    const symbol = next.symbol || next.id
-    const prevPrice = Number(nextMarketPrices[contractId] ?? baseMarketPrice(symbol))
-    const vol = marketVolatilityPct(symbol)
-    const nextPrice = Math.max(0.0001, prevPrice * (1 + (Math.random() * 2 - 1) * vol))
-    nextMarketPrices[contractId] = nextPrice
-
-    const long = jitter(parseCompactUsd(getMetric({ metrics }, metricLabel.LONG)?.value), 0.012)
-    const short = jitter(parseCompactUsd(getMetric({ metrics }, metricLabel.SHORT)?.value), 0.012)
-    const net = long - short
-    const ratio = short > 0 ? long / short : 1
-    const users = Math.max(0, Math.round(jitter(Number(getMetric({ metrics }, metricLabel.USERS)?.value || 0), 0.02)))
-    const volume = jitter(parseCompactUsd(getMetric({ metrics }, metricLabel.VOLUME)?.value), 0.03)
-    const platformPnl = ensureNonZeroSigned(
-      jitter(parseCompactUsd(getMetric({ metrics }, metricLabel.PLATFORM_PNL)?.value), 0.06) * (Math.random() > 0.52 ? 1 : -1),
-      500
-    )
-    const userPnl = ensureNonZeroSigned(
-      jitter(parseCompactUsd(getMetric({ metrics }, metricLabel.USER_PNL)?.value), 0.08) * (Math.random() > 0.52 ? 1 : -1),
-      500
-    )
-
-    let updated = metrics
-    updated = upsertMetric({ metrics: updated }, metricLabel.LONG, { value: formatCompactUsd(long), tone: 'up' })
-    updated = upsertMetric({ metrics: updated }, metricLabel.SHORT, { value: formatCompactUsd(short), tone: 'down' })
-    updated = upsertMetric({ metrics: updated }, metricLabel.NET, { value: formatCompactUsd(net, { withSign: true }), tone: net >= 0 ? 'up' : 'down' })
-    updated = upsertMetric({ metrics: updated }, metricLabel.RATIO, { value: ratio.toFixed(2), tone: 'neutral' })
-    updated = upsertMetric({ metrics: updated }, metricLabel.USERS, { value: String(users), tone: 'neutral' })
-    updated = upsertMetric({ metrics: updated }, metricLabel.VOLUME, { value: formatCompactUsd(volume), tone: 'neutral' })
-    updated = upsertMetric({ metrics: updated }, metricLabel.PLATFORM_PNL, { value: formatCompactUsd(platformPnl, { withSign: true }), tone: platformPnl >= 0 ? 'up' : 'down' })
-    updated = upsertMetric({ metrics: updated }, metricLabel.USER_PNL, { value: formatCompactUsd(userPnl, { withSign: true }), tone: userPnl >= 0 ? 'up' : 'down' })
-
-    next.metrics = updated
-    return next
-  })
-  marketPrices.value = nextMarketPrices
-  boardNow.value = now
-  boardLastRefreshAt.value = new Date(now).toISOString().replace('T', ' ').split('.')[0]
-}
-
-let boardTimer = null
-const stopBoardTimer = () => {
-  if (boardTimer) clearInterval(boardTimer)
-  boardTimer = null
-}
-const startBoardTimer = () => {
-  stopBoardTimer()
-  if (!isManualLineMode.value) return
-  boardTimer = setInterval(() => refreshBoard(), Number(boardRefreshIntervalMs.value))
-}
-
-watch([boardRefreshIntervalMs, isManualLineMode], ([, manual]) => {
-  if (manual) refreshBoard()
-  startBoardTimer()
-})
-
-onMounted(() => {
-  if (isManualLineMode.value) {
-    refreshBoard()
-    startBoardTimer()
-  } else {
-    stopBoardTimer()
-  }
-})
-
-onBeforeUnmount(() => {
-  stopBoardTimer()
-  for (const [, timer] of manualTimers.entries()) clearTimeout(timer)
-  manualTimers.clear()
-})
 
 const filteredContracts = computed(() => {
   const kw = keyword.value.trim().toLowerCase()
   if (!kw) return contracts.value
   return contracts.value.filter((item) => `${item.symbol} ${item.alias}`.toLowerCase().includes(kw))
 })
-
-const boardSortedContracts = computed(() => {
-  const list = filteredContracts.value.slice()
-  list.sort((a, b) => {
-    const av = parseCompactUsd(getMetric(a, metricLabel.VOLUME)?.value)
-    const bv = parseCompactUsd(getMetric(b, metricLabel.VOLUME)?.value)
-    return bv - av
-  })
-  return list
-})
-
-const boardTotalPages = computed(() => {
-  const total = boardSortedContracts.value.length
-  return Math.max(1, Math.ceil(total / Number(boardPagination.pageSize || 20)))
-})
-
-const boardPageContracts = computed(() => {
-  const start = (boardPagination.currentPage - 1) * boardPagination.pageSize
-  const end = start + boardPagination.pageSize
-  return boardSortedContracts.value.slice(start, end)
-})
-
-watch([() => boardSortedContracts.value.length, () => boardPagination.pageSize], () => {
-  if (boardPagination.currentPage > boardTotalPages.value) boardPagination.currentPage = boardTotalPages.value
-  if (boardPagination.currentPage < 1) boardPagination.currentPage = 1
-})
-
-const marketPriceText = (contract) => {
-  const id = contract?.id
-  const symbol = contract?.symbol || id
-  const price = Number((id && marketPrices.value[id]) || baseMarketPrice(symbol))
-  if (!Number.isFinite(price) || price <= 0) return '-'
-  const decimals = price >= 1000 ? 2 : price >= 1 ? 4 : 6
-  return `$${price.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: decimals })}`
-}
-
-const offsetDirectionLabel = (value) => {
-  const map = {
-    [PERP_CONTROL_OFFSET_DIRECTION.AGAINST]: '逆势',
-    [PERP_CONTROL_OFFSET_DIRECTION.FOLLOW]: '顺势',
-    [PERP_CONTROL_OFFSET_DIRECTION.RANDOM]: '随机',
-    [PERP_CONTROL_OFFSET_DIRECTION.UP]: '向上',
-    [PERP_CONTROL_OFFSET_DIRECTION.DOWN]: '向下'
-  }
-  return map[value] || '随机'
-}
-
-const manualOverrideSummary = (contractId) => {
-  const entry = manualOverrides.value[contractId]
-  if (!entry) return '-'
-  const cfg = entry.overrideConfig || {}
-  const durationSec = Number(entry.durationSec || 0)
-  let remain = '持续'
-  if (durationSec > 0) {
-    const startedAt = Number(entry.startedAt || boardNow.value)
-    const elapsed = Math.max(0, (boardNow.value - startedAt) / 1000)
-    remain = `${Math.max(0, Math.ceil(durationSec - elapsed))}s`
-  }
-  return [
-    `偏移 ${Number(cfg.priceOffset || 0)} 点`,
-    offsetDirectionLabel(cfg.offsetDirection),
-    `滑点 ${Number(cfg.slippagePct || 0).toFixed(2)}%`,
-    `延迟 ${Number(cfg.latencyMs || 0)}ms`,
-    remain
-  ].join(' / ')
-}
 
 const pagination = reactive({
   currentPage: 1,
@@ -405,7 +193,6 @@ const totalPages = computed(() => Math.ceil(filteredContracts.value.length / pag
 
 watch([keyword], () => {
   pagination.currentPage = 1
-  boardPagination.currentPage = 1
 })
 
 const formatParams = (config) => {
@@ -427,7 +214,6 @@ const showConfigModal = ref(false)
 const activeConfigContractId = ref('')
 const activeConfig = computed(() => contracts.value.find((item) => item.id === activeConfigContractId.value)?.config || createDefaultPerpetualControlConfig())
 
-// MFA 验证相关
 const showMfaModal = ref(false)
 const pendingSaveData = ref(null)
 const mfaLoading = ref(false)
@@ -439,7 +225,6 @@ const openConfig = (contractId) => {
 }
 
 const saveConfig = (next) => {
-  // 准备保存数据
   pendingSaveData.value = {
     type: 'CONFIG',
     contractId: activeConfigContractId.value,
@@ -449,89 +234,9 @@ const saveConfig = (next) => {
   showMfaModal.value = true
 }
 
-const showManualModal = ref(false)
-const manualContractId = ref('')
-const manualInitialConfig = ref({})
-const manualInitialDurationSec = ref(0)
-
-const manualContract = computed(() => contracts.value.find((c) => c.id === manualContractId.value) || null)
-const manualContractMetrics = computed(() => {
-  const c = manualContract.value
-  return {
-    volume: getMetric(c || {}, metricLabel.VOLUME)?.value || '-',
-    users: getMetric(c || {}, metricLabel.USERS)?.value || '-',
-    long: getMetric(c || {}, metricLabel.LONG)?.value || '-',
-    short: getMetric(c || {}, metricLabel.SHORT)?.value || '-',
-    net: getMetric(c || {}, metricLabel.NET)?.value || '-',
-    ratio: getMetric(c || {}, metricLabel.RATIO)?.value || '-',
-    platformPnl: getMetric(c || {}, metricLabel.PLATFORM_PNL)?.value || '-'
-  }
-})
-
-const manualBasePrice = computed(() => {
-  const id = manualContractId.value
-  if (id && marketPrices.value[id]) return Number(marketPrices.value[id])
-  const symbol = manualContract.value?.symbol || id || 'BTCUSDT'
-  return baseMarketPrice(symbol)
-})
-
-const openManualLine = (contractId) => {
-  const contract = contracts.value.find((c) => c.id === contractId)
-  manualContractId.value = contractId
-  manualInitialConfig.value = {
-    priceOffset: Number(contract?.config?.priceOffset ?? 5),
-    offsetDirection: contract?.config?.offsetDirection ?? PERP_CONTROL_OFFSET_DIRECTION.AGAINST,
-    slippagePct: 0,
-    latencyMs: 0
-  }
-  manualInitialDurationSec.value = 0
-  showManualModal.value = true
-}
-
-const requestSaveManualLine = ({ contractId, payload }) => {
-  const contract = contracts.value.find((c) => c.id === contractId)
-  if (!contract) return
-  const baseConfig = isManualActive(contract.id) ? clone(manualOverrides.value[contract.id].baseConfig) : clone(contract.config)
-  const baseStatus = isManualActive(contract.id) ? manualOverrides.value[contract.id].baseStatus : contract.status
-  const overrideConfig = {
-    priceOffset: Math.max(0, Math.min(50, Number(payload?.priceOffset || 0))),
-    offsetDirection: payload?.offsetDirection ?? PERP_CONTROL_OFFSET_DIRECTION.AGAINST,
-    slippagePct: Math.max(0, Math.min(2, Number(payload?.slippagePct || 0))),
-    latencyMs: Math.max(0, Math.min(5000, Number(payload?.latencyMs || 0))),
-    maxLeverage: Math.max(1, Math.min(125, Number(baseConfig?.maxLeverage ?? contract?.config?.maxLeverage ?? 100))),
-    autoTriggerEnabled: false
-  }
-  pendingSaveData.value = {
-    type: 'MANUAL',
-    contractId: contract.id,
-    baseConfig,
-    baseStatus,
-    overrideConfig,
-    durationSec: Number(payload?.durationSec || 0)
-  }
-  currentSaveAction.value = 'manual'
-  showManualModal.value = false
-  showMfaModal.value = true
-}
-
-const requestRemoveManualLine = (contractId) => {
-  if (!isManualActive(contractId)) return
-  pendingSaveData.value = {
-    type: 'MANUAL_REMOVE',
-    contractId
-  }
-  currentSaveAction.value = 'manual_remove'
-  showMfaModal.value = true
-}
-
 const mfaMeta = computed(() => {
-  if (currentSaveAction.value === 'manual') {
-    const symbol = pendingSaveData.value?.contractId || ''
-    return { title: '手动插线验证', description: `对 ${symbol} 执行手动插线属于敏感操作，请输入 MFA 验证码` }
-  }
-  if (currentSaveAction.value === 'manual_remove') {
-    const symbol = pendingSaveData.value?.contractId || ''
-    return { title: '解除手动线控验证', description: `解除 ${symbol} 的手动线控属于敏感操作，请输入 MFA 验证码` }
+  if (currentSaveAction.value === 'rule') {
+    return { title: '线控规则验证', description: '修改永续合约线控规则属于敏感操作，请输入 MFA 验证码' }
   }
   return { title: '线控配置验证', description: '修改永续合约线控配置属于敏感操作，请输入 MFA 验证码' }
 })
@@ -561,25 +266,21 @@ const ruleForm = reactive({
 const triggerMeta = computed(() => ruleTriggers[ruleForm.triggerType] || ruleTriggers[PERP_CONTROL_RULE_TRIGGER_TYPE.NET_POSITION])
 const triggerOptions = computed(() => Object.entries(ruleTriggers).map(([value, cfg]) => ({ value, label: cfg.label })))
 
-// 判断当前触发类型是否需要时间区间配置
 const needsTimeWindow = computed(() => {
   return ruleForm.triggerType === PERP_CONTROL_RULE_TRIGGER_TYPE.PNL_RATIO ||
-         ruleForm.triggerType === PERP_CONTROL_RULE_TRIGGER_TYPE.VOLUME_SPIKE || 
+         ruleForm.triggerType === PERP_CONTROL_RULE_TRIGGER_TYPE.VOLUME_SPIKE ||
          ruleForm.triggerType === PERP_CONTROL_RULE_TRIGGER_TYPE.VOLATILITY
 })
 
-// 判断当前触发类型是否需要单边占比配置
 const needsPositionRatio = computed(() => {
   return ruleForm.triggerType === PERP_CONTROL_RULE_TRIGGER_TYPE.NET_POSITION
 })
 
-// 根据触发类型过滤时间区间选项
 const availableTimeWindows = computed(() => {
   if (!needsTimeWindow.value) {
     return timeWindows
   }
-  // 交易量突增和波动率触发，排除"实时数据"选项
-  return timeWindows.filter(tw => tw.value !== PERP_CONTROL_TIME_WINDOW.REALTIME)
+  return timeWindows.filter((tw) => tw.value !== PERP_CONTROL_TIME_WINDOW.REALTIME)
 })
 
 const currentTriggerDirectionLabel = computed(
@@ -589,7 +290,8 @@ const currentOffsetDirectionLabel = computed(() => offsetDirections.find((item) 
 const currentTimeWindowLabel = computed(() => timeWindows.find((item) => item.value === ruleForm.timeWindow)?.label || '实时数据')
 const durationText = computed(() => (Number(ruleForm.durationSec) === 0 ? '持续生效' : `${Number(ruleForm.durationSec)} 秒`))
 
-// 数据计算预览
+const currentContract = computed(() => contracts.value.find((item) => item.id === activeContractId.value) || null)
+
 const mockBasePrice = computed(() => {
   const symbol = currentContract.value?.symbol || 'BTCUSDT'
   if (symbol.includes('BTC')) return 50000
@@ -602,43 +304,36 @@ const calculatedPreview = computed(() => {
   const basePrice = mockBasePrice.value
   const offset = Number(ruleForm.priceOffset || 0)
   const slippage = Number(ruleForm.slippagePct || 0) / 100
-  
-  // 根据偏移方向计算价格
+
   let buyPrice = basePrice
   let sellPrice = basePrice
-  
+
   if (ruleForm.offsetDirection === PERP_CONTROL_OFFSET_DIRECTION.AGAINST) {
-    // 逆势：买入价提高，卖出价降低
     buyPrice = basePrice + offset
     sellPrice = basePrice - offset
   } else if (ruleForm.offsetDirection === PERP_CONTROL_OFFSET_DIRECTION.FOLLOW) {
-    // 顺势：买入价降低，卖出价提高（有利于用户）
     buyPrice = basePrice - offset
     sellPrice = basePrice + offset
   } else {
-    // 随机
     buyPrice = basePrice
     sellPrice = basePrice
   }
-  
-  // 加上滑点影响
+
   const buySlippage = buyPrice * slippage
   const sellSlippage = sellPrice * slippage
-  
-  // 计算用户成本
-  const orderSize = 10000 // 假设订单金额 10000 USDT
+
+  const orderSize = 10000
   const slippageCost = (buySlippage + sellSlippage) * (orderSize / basePrice) / 2
   const totalExtraCost = slippageCost
-  
-  // 风险等级评估
+
   let riskLevel = 'low'
   let riskScore = 0
   riskScore += offset > 10 ? 2 : offset > 5 ? 1 : 0
   riskScore += slippage > 0.003 ? 2 : slippage > 0.001 ? 1 : 0
-  
+
   if (riskScore >= 3) riskLevel = 'high'
   else if (riskScore >= 2) riskLevel = 'medium'
-  
+
   return {
     basePrice,
     buyPrice: buyPrice + buySlippage,
@@ -660,15 +355,13 @@ watch(
     if (!options.some((item) => item.value === ruleForm.triggerDirection)) {
       ruleForm.triggerDirection = options[0]?.value || PERP_CONTROL_RULE_DIRECTION.LONG_HEAVY
     }
-    
-    // 当切换到需要时间区间的触发类型时，设置默认时间区间
+
     const needsTime = next === PERP_CONTROL_RULE_TRIGGER_TYPE.PNL_RATIO ||
-                      next === PERP_CONTROL_RULE_TRIGGER_TYPE.VOLUME_SPIKE || 
+                      next === PERP_CONTROL_RULE_TRIGGER_TYPE.VOLUME_SPIKE ||
                       next === PERP_CONTROL_RULE_TRIGGER_TYPE.VOLATILITY
     if (!needsTime) {
       ruleForm.timeWindow = PERP_CONTROL_TIME_WINDOW.REALTIME
     } else if (ruleForm.timeWindow === PERP_CONTROL_TIME_WINDOW.REALTIME) {
-      // 如果是实时数据，切换到有意义的时间区间
       ruleForm.timeWindow = PERP_CONTROL_TIME_WINDOW.LAST_5MIN
     }
   }
@@ -683,24 +376,21 @@ const formatThreshold = (type, value) => {
 const ruleConditionText = (rule) => {
   const meta = ruleTriggers[rule.triggerType] || ruleTriggers[PERP_CONTROL_RULE_TRIGGER_TYPE.NET_POSITION]
   const direction = meta.directionOptions.find((item) => item.value === rule.triggerDirection)?.label || ''
-  
-  // 盈亏比、交易量突增和波动率触发才显示时间区间
+
   const showTimeWindow = rule.triggerType === PERP_CONTROL_RULE_TRIGGER_TYPE.PNL_RATIO ||
-                         rule.triggerType === PERP_CONTROL_RULE_TRIGGER_TYPE.VOLUME_SPIKE || 
+                         rule.triggerType === PERP_CONTROL_RULE_TRIGGER_TYPE.VOLUME_SPIKE ||
                          rule.triggerType === PERP_CONTROL_RULE_TRIGGER_TYPE.VOLATILITY
-  const timeWindowLabel = showTimeWindow && rule.timeWindow ? 
-    (timeWindows.find((item) => item.value === rule.timeWindow)?.label || '') : ''
-  
+  const timeWindowLabel = showTimeWindow && rule.timeWindow ? (timeWindows.find((item) => item.value === rule.timeWindow)?.label || '') : ''
+
   const parts = [direction, formatThreshold(rule.triggerType, rule.thresholdValue)]
-  
-  // 净持仓触发显示单边占比
+
   if (rule.triggerType === PERP_CONTROL_RULE_TRIGGER_TYPE.NET_POSITION && rule.positionRatio) {
     const sideLabel = rule.triggerDirection === PERP_CONTROL_RULE_DIRECTION.LONG_HEAVY ? '多头' : '空头'
     parts.push(`${sideLabel}占比≥${rule.positionRatio}%`)
   }
-  
+
   if (timeWindowLabel) parts.push(timeWindowLabel)
-  
+
   return parts.join(' | ')
 }
 
@@ -718,23 +408,21 @@ const ruleAffectsText = (rule) => {
 
 const liveRuleConditionText = computed(() => {
   const parts = [currentTriggerDirectionLabel.value, formatThreshold(ruleForm.triggerType, ruleForm.thresholdValue)]
-  
-  // 净持仓触发显示单边占比
+
   if (needsPositionRatio.value) {
     const sideLabel = ruleForm.triggerDirection === PERP_CONTROL_RULE_DIRECTION.LONG_HEAVY ? '多头' : '空头'
     parts.push(`${sideLabel}占比≥${ruleForm.positionRatio}%`)
   }
-  
+
   if (needsTimeWindow.value) {
     parts.push(currentTimeWindowLabel.value)
   }
   return parts.join(' | ')
 })
+
 const liveRuleActionText = computed(
   () =>
-    `偏移 ${ruleForm.priceOffset} 点（${currentOffsetDirectionLabel.value}） | 滑点 ${ruleForm.slippagePct.toFixed(
-      2
-    )}% | ${durationText.value}`
+    `偏移 ${ruleForm.priceOffset} 点（${currentOffsetDirectionLabel.value}） | 滑点 ${ruleForm.slippagePct.toFixed(2)}% | ${durationText.value}`
 )
 
 const toneClass = {
@@ -742,8 +430,6 @@ const toneClass = {
   down: 'text-rose-600',
   neutral: 'text-slate-900'
 }
-
-const currentContract = computed(() => contracts.value.find((item) => item.id === activeContractId.value) || null)
 
 const resetRuleForm = () => {
   ruleForm.name = ''
@@ -774,7 +460,11 @@ const openEditRule = (contractId, rule) => {
   ruleForm.name = rule.name
   ruleForm.triggerType = rule.triggerType || PERP_CONTROL_RULE_TRIGGER_TYPE.NET_POSITION
   ruleForm.thresholdValue = Number(rule.thresholdValue || 100000)
-  ruleForm.triggerDirection = rule.triggerDirection || (ruleForm.triggerType === PERP_CONTROL_RULE_TRIGGER_TYPE.NET_POSITION ? PERP_CONTROL_RULE_DIRECTION.LONG_HEAVY : PERP_CONTROL_RULE_DIRECTION.PROFIT_HIGH)
+  ruleForm.triggerDirection =
+    rule.triggerDirection ||
+    (ruleForm.triggerType === PERP_CONTROL_RULE_TRIGGER_TYPE.NET_POSITION
+      ? PERP_CONTROL_RULE_DIRECTION.LONG_HEAVY
+      : PERP_CONTROL_RULE_DIRECTION.PROFIT_HIGH)
   ruleForm.positionRatio = Number(rule.positionRatio || 60)
   ruleForm.timeWindow = rule.timeWindow || PERP_CONTROL_TIME_WINDOW.REALTIME
   ruleForm.priceOffset = Number(rule.priceOffset || 5)
@@ -787,7 +477,7 @@ const openEditRule = (contractId, rule) => {
 
 const saveRule = () => {
   if (!currentContract.value || !ruleForm.name.trim() || Number(ruleForm.thresholdValue) <= 0) return
-  
+
   const payload = {
     name: ruleForm.name.trim(),
     triggerType: ruleForm.triggerType,
@@ -799,17 +489,14 @@ const saveRule = () => {
     durationSec: Number(ruleForm.durationSec),
     enabled: ruleForm.enabled
   }
-  
-  // 只有交易量突增和波动率触发才保存时间区间
+
   if (needsTimeWindow.value) {
     payload.timeWindow = ruleForm.timeWindow
-  }  
-  // 只有净持仓触发才保存单边占比
+  }
   if (needsPositionRatio.value) {
     payload.positionRatio = Number(ruleForm.positionRatio)
   }
-  
-  // 准备保存数据，显示 MFA 验证
+
   pendingSaveData.value = {
     type: 'RULE',
     contractId: activeContractId.value,
@@ -846,28 +533,20 @@ const toggleContractStatus = (contractId) => {
   })
 }
 
-// 处理 MFA 验证
 const handleMfaVerify = async (code) => {
   mfaLoading.value = true
-  
+
   try {
-    // TODO: 这里调用后端 API 验证 MFA 验证码
-    // const response = await api.verifyMFA(code)
-    
-    // 模拟 API 调用延迟
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    // 验证成功后执行实际的保存操作
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+
     if (pendingSaveData.value) {
       if (currentSaveAction.value === 'config') {
-        // 保存配置
         contracts.value = contracts.value.map((contract) =>
           contract.id === pendingSaveData.value.contractId ? { ...contract, config: { ...pendingSaveData.value.config } } : contract
         )
         showConfigModal.value = false
         alert('线控配置保存成功！')
       } else if (currentSaveAction.value === 'rule') {
-        // 保存规则
         contracts.value = contracts.value.map((contract) => {
           if (contract.id !== pendingSaveData.value.contractId) return contract
           if (pendingSaveData.value.ruleId) {
@@ -893,21 +572,8 @@ const handleMfaVerify = async (code) => {
         resetRuleForm()
         editingRuleId.value = null
         alert('线控规则保存成功！')
-      } else if (currentSaveAction.value === 'manual') {
-        const { contractId, baseConfig, baseStatus, overrideConfig, durationSec } = pendingSaveData.value
-        manualOverrides.value = {
-          ...manualOverrides.value,
-          [contractId]: { baseConfig: clone(baseConfig), baseStatus, overrideConfig: clone(overrideConfig), startedAt: Date.now(), durationSec: Number(durationSec || 0) }
-        }
-        contracts.value = contracts.value.map((c) => (c.id === contractId ? { ...c, status: PERP_CONTROL_CONTRACT_STATUS.RUNNING, config: clone(overrideConfig) } : c))
-        scheduleManualExpiry(contractId, durationSec)
-        alert('手动插线已生效！')
-      } else if (currentSaveAction.value === 'manual_remove') {
-        const { contractId } = pendingSaveData.value
-        revertManual(contractId)
-        alert('手动线控已解除！')
       }
-      
+
       pendingSaveData.value = null
       currentSaveAction.value = null
       showMfaModal.value = false
@@ -923,284 +589,169 @@ const handleMfaVerify = async (code) => {
 <template>
   <section class="space-y-5">
     <header>
-      <h1 class="text-3xl font-semibold text-slate-900">{{ isManualLineMode ? '手动插线' : '合约线控' }}</h1>
-      <p class="mt-1 text-sm text-slate-500">
-        {{ isManualLineMode ? '实时筛选合约并快速执行手动线控操作' : '管理永续合约线控参数、自动规则与运行状态' }}
-      </p>
+      <h1 class="text-3xl font-semibold text-slate-900">合约线控</h1>
+      <p class="mt-1 text-sm text-slate-500">管理永续合约线控参数、自动规则与运行状态</p>
     </header>
 
-    <div v-if="!isManualLineMode" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <article v-for="card in summary" :key="card.label" class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:shadow-md">
         <p class="text-sm text-slate-500 font-medium">{{ card.label }}</p>
         <p class="mt-2 text-2xl font-bold text-slate-900">{{ card.value }}</p>
       </article>
     </div>
 
-    <div v-if="isManualLineMode" class="max-w-lg">
-      <input
-        v-model="keyword"
-        type="text"
-        placeholder="搜索合约 (代码或名称)..."
-        class="ant-input !py-2"
-      />
+    <div class="max-w-lg">
+      <input v-model="keyword" type="text" placeholder="搜索合约 (代码或名称)..." class="ant-input !py-2" />
     </div>
 
-    <article v-if="isManualLineMode" class="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
-      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-5 py-4">
-        <div>
-          <h2 class="text-lg font-semibold text-slate-900">实时合约数据看板</h2>
-          <p class="mt-0.5 text-xs text-slate-500">按 24h 交易量排序，支持手动插线与快速解除</p>
-        </div>
-        <div class="flex flex-wrap items-center gap-3">
-          <!-- <span class="text-xs text-slate-500">实时刷新中（{{ Number(boardRefreshIntervalMs) / 1000 }}s）</span> -->
-          <span class="text-xs text-slate-500">最后刷新：{{ boardLastRefreshAt || '-' }}</span>
-        </div>
-      </div>
-      <div class="overflow-x-auto">
-        <div class="max-h-[640px] overflow-auto">
-          <table class="w-full">
-            <thead class="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
-              <tr>
-                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-900 uppercase">排名</th>
-                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-900 uppercase">合约</th>
-                <th class="px-5 py-3 text-right text-xs font-semibold text-slate-900 uppercase">市场价</th>
-                <th class="px-5 py-3 text-right text-xs font-semibold text-slate-900 uppercase">24h交易量</th>
-                <th class="px-5 py-3 text-right text-xs font-semibold text-slate-900 uppercase">持仓(多/空/净)</th>
-                <th class="px-5 py-3 text-right text-xs font-semibold text-slate-900 uppercase">多空比</th>
-                <th class="px-5 py-3 text-right text-xs font-semibold text-slate-900 uppercase">活跃用户</th>
-                <th class="px-5 py-3 text-right text-xs font-semibold text-slate-900 uppercase">平台盈亏</th>
-                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-900 uppercase">手动配置</th>
-                <th class="px-5 py-3 text-right text-xs font-semibold text-slate-900 uppercase">操作</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-200">
-              <tr v-for="(contract, idx) in boardPageContracts" :key="`board-${contract.id}`" class="hover:bg-slate-50">
-                <td class="px-5 py-4 text-sm font-semibold text-slate-900">
-                  {{ idx + 1 + (boardPagination.currentPage - 1) * boardPagination.pageSize }}
-                </td>
-                <td class="px-5 py-4">
-                  <div>
-                    <p class="text-sm font-bold text-slate-900">{{ contract.symbol }}</p>
-                    <p class="text-xs text-slate-500">{{ contract.alias }}</p>
-                  </div>
-                </td>
-                <td class="px-5 py-4 text-right text-sm font-semibold text-slate-900">{{ marketPriceText(contract) }}</td>
-                <td class="px-5 py-4 text-right text-sm font-semibold text-slate-900">
-                  {{ getMetric(contract, metricLabel.VOLUME)?.value || '-' }}
-                </td>
-                <td class="px-5 py-4 text-right text-xs">
-                  <p class="font-semibold text-slate-900">
-                    {{ getMetric(contract, metricLabel.LONG)?.value || '-' }} /
-                    {{ getMetric(contract, metricLabel.SHORT)?.value || '-' }} /
-                    <span :class="parseCompactUsd(getMetric(contract, metricLabel.NET)?.value) >= 0 ? 'text-emerald-600' : 'text-rose-600'">
-                      {{ getMetric(contract, metricLabel.NET)?.value || '-' }}
-                    </span>
-                  </p>
-                </td>
-                <td class="px-5 py-4 text-right text-sm font-semibold text-slate-900">
-                  {{ getMetric(contract, metricLabel.RATIO)?.value || '-' }}
-                </td>
-                <td class="px-5 py-4 text-right text-sm font-semibold text-slate-900">
-                  {{ getMetric(contract, metricLabel.USERS)?.value || '-' }}
-                </td>
-                <td class="px-5 py-4 text-right text-sm font-semibold">
-                  <span :class="parseCompactUsd(getMetric(contract, metricLabel.PLATFORM_PNL)?.value) >= 0 ? 'text-emerald-600' : 'text-rose-600'">
-                    {{ getMetric(contract, metricLabel.PLATFORM_PNL)?.value || '-' }}
-                  </span>
-                </td>
-                <td class="px-5 py-4 text-xs font-semibold text-slate-700">
-                  <span class="block max-w-[360px] truncate" :title="manualOverrideSummary(contract.id)">
-                    {{ manualOverrideSummary(contract.id) }}
-                  </span>
-                </td>
-                <td class="px-5 py-4 text-right">
-                  <div class="flex items-center justify-end gap-2">
-                    <button type="button" class="ant-btn !h-9 !px-4" @click="openManualLine(contract.id)">手动插线</button>
-                    <button v-if="isManualActive(contract.id)" type="button" class="ant-btn !h-9 !px-4" @click="requestRemoveManualLine(contract.id)">解除</button>
-                    <button type="button" class="ant-btn ant-btn-primary !h-9 !px-4" @click="openConfig(contract.id)">配置</button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-white px-5 py-3">
-          <div class="text-sm text-slate-600">
-            共 <span class="font-medium">{{ boardSortedContracts.length }}</span> 条，第
-            <span class="font-medium">{{ boardPagination.currentPage }}</span> /
-            <span class="font-medium">{{ boardTotalPages }}</span> 页
+    <div class="flex gap-2 flex-col">
+      <article v-for="contract in paginatedContracts" :key="contract.id" class=" rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/30 px-5 py-4">
+          <div class="flex items-center gap-3">
+            <h3 class="text-2xl font-bold text-slate-900">{{ contract.symbol }}</h3>
+            <p class="text-sm text-slate-500 font-medium">{{ contract.alias }}</p>
+            <div class="flex items-center gap-2 ml-2">
+              <span
+                class="rounded-md px-2 py-0.5 text-xs font-bold border"
+                :class="contract.status === PERP_CONTROL_CONTRACT_STATUS.RUNNING ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-amber-50 text-amber-700 border-amber-100'"
+              >
+                {{ contract.status === PERP_CONTROL_CONTRACT_STATUS.RUNNING ? '线控中' : '暂停' }}
+              </span>
+              <span
+                class="rounded-md px-2 py-0.5 text-xs font-bold border"
+                :class="contract.config.autoTriggerEnabled ? 'bg-violet-50 text-violet-700 border-violet-100' : 'bg-slate-100 text-slate-600 border-slate-200'"
+              >
+                {{ contract.config.autoTriggerEnabled ? '自动触发开' : '自动触发关' }}
+              </span>
+            </div>
           </div>
+
           <div class="flex items-center gap-2">
-            <select
-              v-model.number="boardPagination.pageSize"
-              class="rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-700"
-            >
-              <option v-for="size in boardPageSizeOptions" :key="`ps-${size}`" :value="size">{{ size }}/页</option>
-            </select>
-            <button
-              type="button"
-              class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              :disabled="boardPagination.currentPage === 1"
-              @click="boardPagination.currentPage--"
-            >
-              上一页
+            <button type="button" class="ant-btn !h-9 !px-4" @click="toggleContractStatus(contract.id)">
+              {{ contract.status === PERP_CONTROL_CONTRACT_STATUS.RUNNING ? '暂停线控' : '启动线控' }}
             </button>
-            <button
-              type="button"
-              class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              :disabled="boardPagination.currentPage === boardTotalPages"
-              @click="boardPagination.currentPage++"
-            >
-              下一页
-            </button>
-          </div>
-        </div>
-      </div>
-    </article>
-
-    <div v-if="!isManualLineMode" class="max-w-lg">
-      <input
-        v-model="keyword"
-        type="text"
-        placeholder="搜索合约 (代码或名称)..."
-        class="ant-input !py-2"
-      />
-    </div>
-
-    <div v-if="!isManualLineMode">
-    <article
-      v-for="contract in paginatedContracts"
-      :key="contract.id"
-      class="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm"
-    >
-      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/30 px-5 py-4">
-        <div class="flex items-center gap-3">
-          <h3 class="text-2xl font-bold text-slate-900">{{ contract.symbol }}</h3>
-          <p class="text-sm text-slate-500 font-medium">{{ contract.alias }}</p>
-          <div class="flex items-center gap-2 ml-2">
-            <span class="rounded-md px-2 py-0.5 text-xs font-bold border" :class="contract.status === PERP_CONTROL_CONTRACT_STATUS.RUNNING ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-amber-50 text-amber-700 border-amber-100'">
-              {{ contract.status === PERP_CONTROL_CONTRACT_STATUS.RUNNING ? '线控中' : '暂停' }}
-            </span>
-            <span
-              class="rounded-md px-2 py-0.5 text-xs font-bold border"
-              :class="contract.config.autoTriggerEnabled ? 'bg-violet-50 text-violet-700 border-violet-100' : 'bg-slate-100 text-slate-600 border-slate-200'"
-            >
-              {{ contract.config.autoTriggerEnabled ? '自动触发开' : '自动触发关' }}
-            </span>
+            <button type="button" class="ant-btn ant-btn-primary !h-9 !px-4" @click="openConfig(contract.id)">线控配置</button>
           </div>
         </div>
 
-        <div class="flex items-center gap-2">
-          <button type="button" class="ant-btn !h-9 !px-4" @click="toggleContractStatus(contract.id)">
-            {{ contract.status === PERP_CONTROL_CONTRACT_STATUS.RUNNING ? '暂停线控' : '启动线控' }}
-          </button>
-          <button type="button" class="ant-btn ant-btn-primary !h-9 !px-4" @click="openConfig(contract.id)">线控配置</button>
-        </div>
-      </div>
-
-      <div class="p-5 space-y-5">
-        <div class="grid gap-2 md:grid-cols-4 xl:grid-cols-8">
-          <div v-for="metric in contract.metrics" :key="metric.label" class="rounded-lg border border-slate-100 bg-slate-50/50 p-2.5 transition-colors hover:bg-slate-50">
-            <p class="text-[12px] text-slate-400  uppercase tracking-wider">{{ metric.label }}</p>
-            <p class="mt-1 text-sm font-bold" :class="toneClass[metric.tone]">{{ metric.value }}</p>
-          </div>
-        </div>
-
-        <div class="rounded-lg border border-slate-100 bg-white p-4">
-          <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">当前线控参数</p>
-          <div class="flex flex-wrap gap-2">
-            <span v-for="param in formatParams(contract.config)" :key="param" class="rounded-md bg-slate-100 px-2 py-1 text-xs text-slate-600 font-medium border border-slate-200/50">{{ param }}</span>
-          </div>
-        </div>
-
-        <div class="rounded-xl border border-violet-100 bg-violet-50/20 p-4">
-          <div class="flex items-center justify-between mb-3">
-            <p class="text-sm font-bold text-violet-700 flex items-center gap-1.5">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-              自动线控规则
-            </p>
-            <button type="button" class="text-xs font-bold text-violet-600 hover:text-violet-700 flex items-center gap-1" @click="openAddRule(contract.id)">
-              <span class="text-base">+</span> 添加规则
-            </button>
+        <div class="p-5 space-y-5">
+          <div class="grid gap-2 md:grid-cols-4 xl:grid-cols-8">
+            <div v-for="metric in contract.metrics" :key="metric.label" class="rounded-lg border border-slate-100 bg-slate-50/50 p-2.5 transition-colors hover:bg-slate-50">
+              <p class="text-[12px] text-slate-400 uppercase tracking-wider">{{ metric.label }}</p>
+              <p class="mt-1 text-sm font-bold" :class="toneClass[metric.tone]">{{ metric.value }}</p>
+            </div>
           </div>
 
-          <div class="space-y-3">
-            <article v-for="rule in contract.rules" :key="rule.id" class="rounded-lg border border-violet-100/50 bg-white p-4 shadow-sm transition-all hover:shadow-md">
-              <div class="flex items-start justify-between gap-3">
-                <div class="flex items-start gap-4">
-                  <button
-                    type="button"
-                    class="relative mt-1 h-5 w-9 rounded-full transition-colors duration-200 focus:outline-none"
-                    :class="rule.enabled ? 'bg-blue-600' : 'bg-slate-300'"
-                    @click="toggleRule(contract.id, rule.id)"
-                  >
-                    <span class="absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200" :class="rule.enabled ? 'translate-x-4.5 left-0' : 'translate-x-0.5 left-0'"></span>
-                  </button>
-                  <div>
-                    <p class="font-bold text-slate-900">{{ rule.name }}</p>
-                    <div class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium text-slate-500">
-                      <span class="bg-slate-100 px-1.5 py-0.5 rounded">{{ ruleTriggers[rule.triggerType]?.label }}</span>
-                      <span class="text-slate-400">|</span>
-                      <span>{{ ruleConditionText(rule) }}</span>
-                      <span class="text-slate-400">|</span>
-                      <span class="text-blue-600">{{ ruleActionText(rule) }}</span>
+          <div class="rounded-lg border border-slate-100 bg-white p-4">
+            <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">当前线控参数</p>
+            <div class="flex flex-wrap gap-2">
+              <span v-for="param in formatParams(contract.config)" :key="param" class="rounded-md bg-slate-100 px-2 py-1 text-xs text-slate-600 font-medium border border-slate-200/50">
+                {{ param }}
+              </span>
+            </div>
+          </div>
+
+          <div class="rounded-xl border border-violet-100 bg-violet-50/20 p-4">
+            <div class="flex items-center justify-between mb-3">
+              <p class="text-sm font-bold text-violet-700 flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                自动线控规则
+              </p>
+              <button type="button" class="text-xs font-bold text-violet-600 hover:text-violet-700 flex items-center gap-1" @click="openAddRule(contract.id)">
+                <span class="text-base">+</span> 添加规则
+              </button>
+            </div>
+
+            <div class="space-y-3">
+              <article v-for="rule in contract.rules" :key="rule.id" class="rounded-lg border border-violet-100/50 bg-white p-4 shadow-sm transition-all hover:shadow-md">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="flex items-start gap-4">
+                    <div class="mt-1 flex flex-col items-center">
+                      <button
+                        type="button"
+                        class="relative inline-flex cursor-pointer items-center"
+                        @click="toggleRule(contract.id, rule.id)"
+                      >
+                        <span
+                          class="h-5 w-10 rounded-full transition"
+                          :class="rule.enabled ? 'bg-violet-600' : 'bg-slate-300'"
+                        ></span>
+                        <span
+                          class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white transition"
+                          :class="rule.enabled ? 'translate-x-5' : 'translate-x-0'"
+                        ></span>
+                      </button>
+                      <span class="mt-1 text-[10px] font-bold" :class="rule.enabled ? 'text-violet-600' : 'text-slate-400'">
+                        {{ rule.enabled ? '启用' : '停用' }}
+                      </span>
                     </div>
-                    <div class="mt-2 flex items-center gap-4">
-                      <div class="flex items-center gap-1 text-[10px] text-slate-400 font-bold">
-                        <svg class="h-3 w-3 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span>影响: {{ ruleAffectsText(rule) }}</span>
+
+                    <div class="min-w-0">
+                      <div class="flex flex-wrap items-center gap-2">
+                        <h4 class="text-sm font-bold text-slate-900">{{ rule.name }}</h4>
+                        <span class="rounded-md bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">
+                          {{ ruleConditionText(rule) }}
+                        </span>
+                        <span class="rounded-md bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-700">
+                          {{ ruleActionText(rule) }}
+                        </span>
                       </div>
-                      <div class="flex items-center gap-1 text-[10px] text-slate-400 font-bold">
-                        <svg class="h-3 w-3 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4" />
-                        </svg>
-                        <span>已触发 {{ rule.hitCount }} 次</span>
+                      <div class="mt-2 flex flex-wrap items-center gap-4 text-xs text-slate-500">
+                        <div class="flex items-center gap-1">
+                          <svg class="h-3 w-3 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span>影响: {{ ruleAffectsText(rule) }}</span>
+                        </div>
+                        <div class="flex items-center gap-1 text-[10px] text-slate-400 font-bold">
+                          <svg class="h-3 w-3 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4" />
+                          </svg>
+                          <span>已触发 {{ rule.hitCount }} 次</span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div class="flex items-center gap-3">
-                  <button type="button" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors" @click="openEditRule(contract.id, rule)">编辑</button>
-                  <button type="button" class="text-xs font-bold text-rose-400 hover:text-rose-600 transition-colors" @click="deleteRule(contract.id, rule.id)">删除</button>
+                  <div class="flex items-center gap-3">
+                    <button type="button" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors" @click="openEditRule(contract.id, rule)">编辑</button>
+                    <button type="button" class="text-xs font-bold text-rose-400 hover:text-rose-600 transition-colors" @click="deleteRule(contract.id, rule.id)">删除</button>
+                  </div>
                 </div>
-              </div>
-            </article>
+              </article>
+            </div>
           </div>
         </div>
-      </div>
-    </article>
+      </article>
 
-    <!-- 分页 -->
-    <div v-if="totalPages > 1" class="mt-6 flex items-center justify-between border-t border-slate-200 pt-6">
-      <div class="text-sm text-slate-500">
-        共 <span class="font-medium">{{ filteredContracts.length }}</span> 个合约，第 <span class="font-medium">{{ pagination.currentPage }}</span> / <span class="font-medium">{{ totalPages }}</span> 页
+      <div v-if="totalPages > 1" class="mt-6 flex items-center justify-between border-t border-slate-200 pt-6">
+        <div class="text-sm text-slate-500">
+          共 <span class="font-medium">{{ filteredContracts.length }}</span> 个合约，第 <span class="font-medium">{{ pagination.currentPage }}</span> /
+          <span class="font-medium">{{ totalPages }}</span> 页
+        </div>
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            class="ant-btn !h-9 !px-4 !text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            :disabled="pagination.currentPage === 1"
+            @click="pagination.currentPage--"
+          >
+            上一页
+          </button>
+          <button
+            type="button"
+            class="ant-btn !h-9 !px-4 !text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            :disabled="pagination.currentPage === totalPages"
+            @click="pagination.currentPage++"
+          >
+            下一页
+          </button>
+        </div>
       </div>
-      <div class="flex items-center gap-2">
-        <button
-          type="button"
-          class="ant-btn !h-9 !px-4 !text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          :disabled="pagination.currentPage === 1"
-          @click="pagination.currentPage--"
-        >
-          上一页
-        </button>
-        <button
-          type="button"
-          class="ant-btn !h-9 !px-4 !text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          :disabled="pagination.currentPage === totalPages"
-          @click="pagination.currentPage++"
-        >
-          下一页
-        </button>
-      </div>
-    </div>
 
-    <p v-if="filteredContracts.length === 0" class="py-20 text-center text-slate-400">没有匹配的合约</p>
+      <p v-if="filteredContracts.length === 0" class="py-20 text-center text-slate-400">没有匹配的合约</p>
     </div>
   </section>
 
@@ -1212,22 +763,8 @@ const handleMfaVerify = async (code) => {
     @save="saveConfig"
   />
 
-  <PerpetualManualLineModal
-    :open="showManualModal"
-    :contract-id="manualContractId"
-    :contract-label="manualContract?.alias || ''"
-    :base-price="manualBasePrice"
-    :last-refresh-at="boardLastRefreshAt"
-    :metrics="manualContractMetrics"
-    :initial-config="manualInitialConfig"
-    :initial-duration-sec="manualInitialDurationSec"
-    @close="showManualModal = false"
-    @save="requestSaveManualLine"
-  />
-
   <div v-if="showRuleModal" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4">
     <section class="flex h-[88vh] w-full max-w-5xl overflow-hidden rounded-xl bg-white shadow-2xl">
-      <!-- 左侧配置区域 -->
       <div class="flex w-3/5 flex-col border-r border-slate-200">
         <header class="flex items-center justify-between border-b border-slate-200 bg-gradient-to-r from-violet-50 to-blue-50 px-6 py-4">
           <div>
@@ -1238,7 +775,6 @@ const handleMfaVerify = async (code) => {
         </header>
 
         <div class="flex-1 space-y-5 overflow-y-auto px-6 py-5">
-          <!-- 基础信息 -->
           <section class="space-y-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <div class="flex items-center gap-2">
               <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100">
@@ -1248,16 +784,11 @@ const handleMfaVerify = async (code) => {
               </div>
               <h3 class="text-base font-semibold text-slate-900">基础信息</h3>
             </div>
-            
+
             <div class="space-y-4">
               <label class="block space-y-2">
                 <span class="text-sm font-medium text-slate-700">规则名称 <span class="text-rose-500">*</span></span>
-                <input
-                  v-model="ruleForm.name"
-                  type="text"
-                  class="ant-input"
-                  placeholder="如：多头过重自动调整"
-                />
+                <input v-model="ruleForm.name" type="text" class="ant-input" placeholder="如：多头过重自动调整" />
               </label>
 
               <div class="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
@@ -1269,14 +800,20 @@ const handleMfaVerify = async (code) => {
                 </div>
                 <label class="relative inline-flex cursor-pointer items-center">
                   <input v-model="ruleForm.enabled" type="checkbox" class="peer sr-only" />
-                  <div class="peer h-6 w-11 rounded-full bg-slate-300 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-violet-600 peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+                  <div
+                    class="peer h-6 w-11 rounded-full bg-slate-300 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-violet-600 peer-checked:after:translate-x-full peer-checked:after:border-white"
+                  ></div>
                 </label>
               </div>
 
               <div class="rounded-lg border border-blue-100 bg-blue-50/50 px-4 py-3">
                 <div class="flex items-start gap-2">
                   <svg class="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                    <path
+                      fill-rule="evenodd"
+                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                      clip-rule="evenodd"
+                    />
                   </svg>
                   <div class="text-sm font-medium text-blue-700">
                     作用合约：<span class="font-bold text-blue-900">{{ currentContract?.symbol || '-' }}</span>
@@ -1286,7 +823,6 @@ const handleMfaVerify = async (code) => {
             </div>
           </section>
 
-          <!-- 触发条件 -->
           <section class="space-y-4 rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50 p-5 shadow-sm">
             <div class="flex items-center gap-2">
               <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
@@ -1296,7 +832,7 @@ const handleMfaVerify = async (code) => {
               </div>
               <h3 class="text-base font-semibold text-slate-900">触发条件</h3>
             </div>
-            
+
             <div class="space-y-3.5">
               <label class="block space-y-2">
                 <span class="text-sm font-medium text-slate-700">触发类型</span>
@@ -1308,12 +844,7 @@ const handleMfaVerify = async (code) => {
               <div class="grid gap-3.5 sm:grid-cols-2">
                 <label class="block space-y-2">
                   <span class="text-sm font-medium text-slate-700">{{ triggerMeta.thresholdLabel }} <span class="text-rose-500">*</span></span>
-                  <input
-                    v-model.number="ruleForm.thresholdValue"
-                    type="number"
-                    min="0"
-                    class="ant-input"
-                  />
+                  <input v-model.number="ruleForm.thresholdValue" type="number" min="0" class="ant-input" />
                 </label>
                 <label class="block space-y-2">
                   <span class="text-sm font-medium text-slate-700">触发方向</span>
@@ -1323,21 +854,13 @@ const handleMfaVerify = async (code) => {
                 </label>
               </div>
 
-              <!-- 单边占比配置 - 仅净持仓触发时显示 -->
               <div v-if="needsPositionRatio" class="rounded-lg border border-blue-200 bg-white p-4">
                 <label class="block space-y-3">
                   <div class="flex items-center justify-between">
                     <span class="text-sm font-medium text-slate-700">
                       {{ ruleForm.triggerDirection === PERP_CONTROL_RULE_DIRECTION.LONG_HEAVY ? '多头' : '空头' }}占比阈值 (%)
                     </span>
-                    <input
-                      v-model.number="ruleForm.positionRatio"
-                      type="number"
-                      min="50"
-                      max="100"
-                      step="1"
-                      class="ant-input !w-20 !h-8 !px-2 !text-right"
-                    />
+                    <input v-model.number="ruleForm.positionRatio" type="number" min="50" max="100" step="1" class="ant-input !w-20 !h-8 !px-2 !text-right" />
                   </div>
                   <input v-model.number="ruleForm.positionRatio" type="range" min="50" max="100" step="1" class="w-full accent-blue-600" />
                   <div class="flex items-start gap-1.5 rounded-md bg-blue-50 px-3 py-2">
@@ -1351,7 +874,6 @@ const handleMfaVerify = async (code) => {
                 </label>
               </div>
 
-              <!-- 时间区间配置 - 盈亏比、交易量突增和波动率触发时显示 -->
               <div v-if="needsTimeWindow" class="rounded-lg border border-blue-200 bg-white p-4">
                 <label class="block space-y-2">
                   <span class="text-sm font-medium text-slate-700">统计时间区间</span>
@@ -1369,31 +891,27 @@ const handleMfaVerify = async (code) => {
             </div>
           </section>
 
-          <!-- 执行动作 -->
           <section class="space-y-4 rounded-xl border border-violet-200 bg-gradient-to-br from-violet-50 to-purple-50 p-5 shadow-sm">
             <div class="flex items-center gap-2">
               <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-600">
                 <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+                  />
                 </svg>
               </div>
               <h3 class="text-base font-semibold text-slate-900">执行动作</h3>
             </div>
-            
+
             <div class="space-y-4">
-              <!-- 价格偏移 -->
               <div class="rounded-lg border border-violet-100 bg-white p-4">
                 <label class="block space-y-3">
                   <div class="flex items-center justify-between">
                     <span class="text-sm font-medium text-slate-700">价格偏移 (点)</span>
-                    <input
-                      v-model.number="ruleForm.priceOffset"
-                      type="number"
-                      min="0"
-                      max="50"
-                      step="1"
-                      class="ant-input !w-20 !h-8 !px-2 !text-right"
-                    />
+                    <input v-model.number="ruleForm.priceOffset" type="number" min="0" max="50" step="1" class="ant-input !w-20 !h-8 !px-2 !text-right" />
                   </div>
                   <input v-model.number="ruleForm.priceOffset" type="range" min="0" max="50" step="1" class="w-full accent-violet-600" />
                   <div class="flex items-start gap-1.5 rounded-md bg-violet-50 px-3 py-2">
@@ -1405,7 +923,6 @@ const handleMfaVerify = async (code) => {
                 </label>
               </div>
 
-              <!-- 偏移方向和滑点率 -->
               <div class="grid gap-4 sm:grid-cols-2">
                 <label class="block space-y-2">
                   <span class="text-sm font-medium text-slate-700">偏移方向</span>
@@ -1416,29 +933,15 @@ const handleMfaVerify = async (code) => {
 
                 <label class="block space-y-2">
                   <span class="text-sm font-medium text-slate-700">持续时间 (秒)</span>
-                  <input
-                    v-model.number="ruleForm.durationSec"
-                    type="number"
-                    min="0"
-                    class="ant-input"
-                    placeholder="0 为持续生效"
-                  />
+                  <input v-model.number="ruleForm.durationSec" type="number" min="0" class="ant-input" placeholder="0 为持续生效" />
                 </label>
               </div>
 
-              <!-- 滑点率 -->
               <div class="rounded-lg border border-violet-100 bg-white p-4">
                 <label class="block space-y-3">
                   <div class="flex items-center justify-between">
                     <span class="text-sm font-medium text-slate-700">滑点率 (%)</span>
-                    <input
-                      v-model.number="ruleForm.slippagePct"
-                      type="number"
-                      min="0"
-                      max="2"
-                      step="0.01"
-                      class="ant-input !w-20 !h-8 !px-2 !text-right"
-                    />
+                    <input v-model.number="ruleForm.slippagePct" type="number" min="0" max="2" step="0.01" class="ant-input !w-20 !h-8 !px-2 !text-right" />
                   </div>
                   <input v-model.number="ruleForm.slippagePct" type="range" min="0" max="2" step="0.01" class="w-full accent-violet-600" />
                   <div class="flex items-start gap-1.5 rounded-md bg-violet-50 px-3 py-2">
@@ -1455,12 +958,7 @@ const handleMfaVerify = async (code) => {
 
         <footer class="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
           <button type="button" class="ant-btn !h-10 !px-6" @click="showRuleModal = false">取消</button>
-          <button
-            type="button"
-            class="ant-btn ant-btn-primary !h-10 !px-8"
-            :disabled="!ruleForm.name.trim() || Number(ruleForm.thresholdValue) <= 0"
-            @click="saveRule"
-          >
+          <button type="button" class="ant-btn ant-btn-primary !h-10 !px-8" :disabled="!ruleForm.name.trim() || Number(ruleForm.thresholdValue) <= 0" @click="saveRule">
             <span class="flex items-center gap-2">
               <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -1471,7 +969,6 @@ const handleMfaVerify = async (code) => {
         </footer>
       </div>
 
-      <!-- 右侧预览区域 -->
       <div class="flex w-2/5 flex-col bg-gradient-to-br from-slate-50 to-slate-100">
         <header class="border-b border-slate-200 px-5 py-4">
           <h3 class="text-lg font-semibold text-slate-900">实时预览</h3>
@@ -1479,7 +976,6 @@ const handleMfaVerify = async (code) => {
         </header>
 
         <div class="flex-1 space-y-4 overflow-y-auto px-5 py-4">
-          <!-- 规则概览 -->
           <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <div class="flex items-center justify-between">
               <h4 class="text-sm font-semibold text-slate-900">规则概览</h4>
@@ -1502,27 +998,30 @@ const handleMfaVerify = async (code) => {
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <div>
-                    <span class="font-medium text-slate-700">影响参数: </span>
-                    <span class="text-slate-600">
-                      {{ (() => {
-                        const affects = [];
-                        if (Number(ruleForm.priceOffset) > 0) affects.push('价格偏移');
-                        if (Number(ruleForm.slippagePct) > 0) affects.push('滑点');
-                        return affects.length > 0 ? affects.join('、') : '无影响';
-                      })() }}
-                    </span>
+                    <span class="font-medium text-slate-700">触发条件: </span>
+                    <span class="text-slate-600">{{ liveRuleConditionText }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="pt-2 border-t border-slate-100">
+                <div class="flex items-start gap-1.5 text-xs">
+                  <svg class="h-3.5 w-3.5 text-violet-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <span class="font-medium text-slate-700">执行动作: </span>
+                    <span class="text-slate-600">{{ liveRuleActionText }}</span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- 数据计算预览 -->
           <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
             <div class="flex items-center justify-between">
               <h4 class="text-sm font-semibold text-emerald-900">数据计算预览</h4>
-              <span 
-                class="rounded-md px-2 py-1 text-xs font-medium" 
+              <span
+                class="rounded-md px-2 py-1 text-xs font-medium"
                 :class="{
                   'bg-rose-100 text-rose-700': calculatedPreview.riskLevel === 'high',
                   'bg-amber-100 text-amber-700': calculatedPreview.riskLevel === 'medium',
@@ -1533,7 +1032,6 @@ const handleMfaVerify = async (code) => {
               </span>
             </div>
             <div class="mt-3 space-y-3">
-              <!-- 价格影响 -->
               <div class="rounded-md border border-emerald-200 bg-white p-3">
                 <p class="text-xs font-medium text-slate-500">基于模拟价格计算</p>
                 <div class="mt-2 grid grid-cols-3 gap-2 text-center">
@@ -1552,7 +1050,6 @@ const handleMfaVerify = async (code) => {
                 </div>
               </div>
 
-              <!-- 成本影响分析 -->
               <div class="rounded-md border border-emerald-200 bg-white p-3">
                 <p class="text-xs font-medium text-slate-500">10,000 USDT 订单成本影响</p>
                 <div class="mt-2 space-y-1.5">
@@ -1567,7 +1064,6 @@ const handleMfaVerify = async (code) => {
                 </div>
               </div>
 
-              <!-- 风险指标 -->
               <div class="rounded-md border border-emerald-200 bg-white p-3">
                 <p class="text-xs font-medium text-slate-500">风险指标</p>
                 <div class="mt-2 space-y-2">
@@ -1587,11 +1083,14 @@ const handleMfaVerify = async (code) => {
             </div>
           </div>
 
-          <!-- 效果说明 -->
           <div class="rounded-lg border border-amber-200 bg-amber-50 p-4">
             <div class="flex items-start gap-2">
               <svg class="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                <path
+                  fill-rule="evenodd"
+                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                  clip-rule="evenodd"
+                />
               </svg>
               <div class="text-xs text-amber-900">
                 <p class="font-medium">提示</p>
@@ -1604,7 +1103,6 @@ const handleMfaVerify = async (code) => {
     </section>
   </div>
 
-  <!-- MFA 验证弹窗 -->
   <MfaVerificationModal
     v-model:open="showMfaModal"
     :loading="mfaLoading"

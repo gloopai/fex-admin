@@ -502,7 +502,7 @@ const openDeliveryContracts = () => router.push('/delivery/contracts')
               </td>
               <td class="px-5 py-4 text-sm text-slate-600">{{ row.extra }}</td>
               <td class="px-5 py-4 text-right">
-                <button v-if="row.product === '永续'" type="button" class="ant-btn !h-9 !px-4" @click="openPerpManualDialog(row.contractId)">手动控制</button>
+                <button v-if="row.product === '永续'" type="button" class="ant-btn !h-9 !px-4" @click="openPerpManualDialog(row.contractId)">手动插线</button>
                 <button v-else type="button" class="ant-btn !h-9 !px-4" @click="openDeliveryRules">场控设置</button>
               </td>
             </tr>
