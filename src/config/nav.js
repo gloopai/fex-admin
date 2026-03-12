@@ -8,7 +8,8 @@ export const navTree = [
     title: '用户管理',
     icon: 'users',
     children: [
-      { title: '用户列表', path: '/users/list' }
+      { title: '用户列表', path: '/users/list' },
+      { title: '用户标签规则', path: '/users/tag-rules' }
     ]
   },
   {

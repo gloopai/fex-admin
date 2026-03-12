@@ -320,6 +320,11 @@ const routes = [
         component: () => import('../pages/user/UserListPage.vue')
       },
       {
+        path: 'users/tag-rules',
+        name: 'users-tag-rules',
+        component: () => import('../pages/user/UserTagRulePage.vue')
+      },
+      {
         path: 'users/vip-config',
         name: 'users-vip-config',
         component: () => import('../pages/user/VipConfigPage.vue')

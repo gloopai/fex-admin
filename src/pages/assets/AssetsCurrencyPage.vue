@@ -43,6 +43,7 @@ const form = reactive({
   type: ASSET_CURRENCY_TYPE.VIRTUAL,
   name: '',
   symbol: '',
+  isQuoteCurrency: false,
   precision: 6,
   status: ASSET_STATUS.ENABLED,
   autoCollect: true,
@@ -112,6 +113,7 @@ const cloneCoinToForm = (coin) => {
   form.type = normalizeCurrencyType(coin.type)
   form.name = coin.name
   form.symbol = coin.symbol
+  form.isQuoteCurrency = Boolean(coin.isQuoteCurrency)
   form.precision = coin.precision
   form.status = coin.status
   form.autoCollect = coin.autoCollect
@@ -132,6 +134,7 @@ const openCreate = () => {
   form.type = ASSET_CURRENCY_TYPE.VIRTUAL
   form.name = ''
   form.symbol = ''
+  form.isQuoteCurrency = false
   form.precision = 6
   form.status = ASSET_STATUS.ENABLED
   form.autoCollect = true
@@ -168,6 +171,7 @@ const saveCoin = () => {
     type,
     name: form.name.trim(),
     symbol: form.symbol.trim().toUpperCase(),
+    isQuoteCurrency: Boolean(form.isQuoteCurrency),
     precision: Number(form.precision),
     status: form.status,
     autoCollect: offchain ? false : Boolean(form.autoCollect),
@@ -251,6 +255,7 @@ const badgeClass = (status) => (status === ASSET_STATUS.ENABLED ? 'bg-emerald-10
                 <span class="text-base text-slate-500">{{ coin.name }}</span>
                 <span class="rounded-md px-2 py-0.5 text-xs font-medium" :class="badgeClass(coin.status)">{{ coin.status === ASSET_STATUS.ENABLED ? '已启用' : '已禁用' }}</span>
                 <span class="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{{ currencyTypeLabel(coin.type) }}</span>
+                <span v-if="coin.isQuoteCurrency" class="rounded-md bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">计价</span>
               </div>
               <p class="mt-1.5 text-xs text-slate-600">
                 精度: {{ coin.precision }} 位
@@ -414,6 +419,10 @@ const badgeClass = (status) => (status === ASSET_STATUS.ENABLED ? 'bg-emerald-10
             <label class="space-y-1">
               <span class="text-sm">币种符号</span>
               <input v-model="form.symbol" type="text" class="w-full rounded-lg border border-slate-300 px-3 py-2" />
+            </label>
+            <label class="inline-flex items-center gap-2 text-sm md:col-span-2">
+              <input v-model="form.isQuoteCurrency" type="checkbox" class="h-4 w-4" />
+              是否计价货币
             </label>
             <label class="space-y-1">
               <span class="text-sm">精度位数</span>

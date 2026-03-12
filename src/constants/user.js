@@ -37,3 +37,18 @@ export const USER_KYC_STATUS_OPTIONS = [
   { value: USER_KYC_STATUS.VERIFIED, label: '已认证' },
   { value: USER_KYC_STATUS.REJECTED, label: '已拒绝' }
 ]
+
+export const USER_TAG_RULE_STATUS = {
+  ENABLED: 'enabled',
+  DISABLED: 'disabled'
+}
+
+export const USER_TAG_RULE_MATCH_MODE = {
+  ALL: 'all',
+  ANY: 'any'
+}
+
+export const USER_TAG_RULE_STATUS_OPTIONS = [
+  { value: USER_TAG_RULE_STATUS.ENABLED, label: '启用' },
+  { value: USER_TAG_RULE_STATUS.DISABLED, label: '禁用' }
+]
