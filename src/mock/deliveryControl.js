@@ -4,7 +4,6 @@ import {
   DELIVERY_RULE_STATUS,
   DELIVERY_RULE_PRIORITY,
   DELIVERY_RULE_TIME_PERIOD,
-  USER_RISK_LEVEL,
   PROFIT_CONTROL_STRATEGY
 } from '../constants/deliveryControl'
 
@@ -21,10 +20,7 @@ const deliveryAutoRules = [
     trigger: {
       type: DELIVERY_RULE_TRIGGER_TYPE.TRADE_COUNT,
       period: DELIVERY_RULE_TIME_PERIOD.LAST_1H,
-      threshold: 20,
-      conditions: {
-        totalProfit: { operator: '>', value: 1000 }
-      }
+      threshold: 20
     },
     action: {
       type: DELIVERY_RULE_ACTION.PROFIT_CONTROL,
@@ -35,10 +31,7 @@ const deliveryAutoRules = [
           avgLossAmount: -18,
           winFluctuationPercent: 2,
           lossFluctuationPercent: 2,
-          strategy: PROFIT_CONTROL_STRATEGY.SETTLEMENT_PRICE,
-          enableRiskLimits: true,
-          maxProfit: 5000,
-          maxLossRatio: 0.4
+          strategy: PROFIT_CONTROL_STRATEGY.TIME_WINDOW
         },
         applyToNewPositions: true,
         duration: 0
@@ -52,21 +45,22 @@ const deliveryAutoRules = [
   },
   {
     id: 'rule_002',
-    name: '单日盈利过高自动干预',
-    description: '用户单日盈利超过5000 USDT时，禁止新开仓并调整现有持仓盈亏目标',
+    name: '单日盈利过高强制亏损',
+    description: '用户当日累计盈利超过 5000 USDT 时，后续 3 单强制亏损 30%',
     status: DELIVERY_RULE_STATUS.ENABLED,
     priority: DELIVERY_RULE_PRIORITY.HIGH,
     trigger: {
-      type: DELIVERY_RULE_TRIGGER_TYPE.DAILY_PROFIT,
+      type: DELIVERY_RULE_TRIGGER_TYPE.PROFIT_LOSS,
       period: DELIVERY_RULE_TIME_PERIOD.TODAY,
       threshold: 5000
     },
     action: {
-      type: DELIVERY_RULE_ACTION.REJECT_ORDER,
+      type: DELIVERY_RULE_ACTION.FORCE_LOSS,
       params: {
-        lockNewPosition: true,
-        existingWinRate: 0.3,
-        notifyUser: false
+        nextPositionCount: 3,
+        lossPercent: 0.3,
+        applyToNewPositions: true,
+        duration: 60
       }
     },
     hitCount: 12,
@@ -77,19 +71,22 @@ const deliveryAutoRules = [
   },
   {
     id: 'rule_003',
-    name: '大额持仓自动控制',
-    description: '单笔持仓价值超过10000 USDT时，自动采用不利结算价',
+    name: '连续盈利自动阻断',
+    description: '用户最近 24 小时连续盈利 >= 5 次时，下一单强制亏损 25%',
     status: DELIVERY_RULE_STATUS.ENABLED,
     priority: DELIVERY_RULE_PRIORITY.MEDIUM,
     trigger: {
-      type: DELIVERY_RULE_TRIGGER_TYPE.POSITION_VALUE,
-      threshold: 10000
+      type: DELIVERY_RULE_TRIGGER_TYPE.CONSECUTIVE_WINS,
+      period: DELIVERY_RULE_TIME_PERIOD.LAST_24H,
+      threshold: 5
     },
     action: {
-      type: DELIVERY_RULE_ACTION.PRICE_ADJUST,
+      type: DELIVERY_RULE_ACTION.FORCE_LOSS,
       params: {
-        settlePriceMode: 'unfavorable',
-        offsetPercent: 0.5
+        nextPositionCount: 1,
+        lossPercent: 0.25,
+        applyToNewPositions: true,
+        duration: 0
       }
     },
     hitCount: 89,
@@ -100,21 +97,22 @@ const deliveryAutoRules = [
   },
   {
     id: 'rule_004',
-    name: '连胜自动阻断',
-    description: '用户30分钟内连续5次盈利后，下一单自动强制亏损',
+    name: '连续亏损用户保护',
+    description: '用户最近 4 小时连续亏损 >= 5 次时，后续 2 单强制盈利 15%',
     status: DELIVERY_RULE_STATUS.ENABLED,
     priority: DELIVERY_RULE_PRIORITY.HIGH,
     trigger: {
-      type: DELIVERY_RULE_TRIGGER_TYPE.CONSECUTIVE_WINS,
-      period: DELIVERY_RULE_TIME_PERIOD.LAST_1H,
+      type: DELIVERY_RULE_TRIGGER_TYPE.CONSECUTIVE_LOSS,
+      period: DELIVERY_RULE_TIME_PERIOD.LAST_4H,
       threshold: 5
     },
     action: {
-      type: DELIVERY_RULE_ACTION.FORCE_LOSS,
+      type: DELIVERY_RULE_ACTION.FORCE_WIN,
       params: {
-        nextPositionCount: 1,
-        lossPercent: 0.3,
-        lossFluctuationPercent: 2
+        nextPositionCount: 2,
+        profitPercent: 0.15,
+        applyToNewPositions: true,
+        duration: 0
       }
     },
     hitCount: 67,
@@ -125,27 +123,25 @@ const deliveryAutoRules = [
   },
   {
     id: 'rule_005',
-    name: '高净入金用户保护',
-    description: '净入金超过50000 USDT的用户，提升胜率到65%',
+    name: '亏损用户控盈',
+    description: '用户最近 7 天累计亏损超过 8000 USDT 时，提高胜率到 65%',
     status: DELIVERY_RULE_STATUS.PAUSED,
     priority: DELIVERY_RULE_PRIORITY.LOW,
     trigger: {
-      type: DELIVERY_RULE_TRIGGER_TYPE.NET_DEPOSIT,
-      threshold: 50000
+      type: DELIVERY_RULE_TRIGGER_TYPE.PROFIT_LOSS,
+      period: DELIVERY_RULE_TIME_PERIOD.LAST_7D,
+      threshold: 8000
     },
     action: {
       type: DELIVERY_RULE_ACTION.PROFIT_CONTROL,
       params: {
         profitControl: {
           winProbability: 0.65,
-          avgWinAmount: 20,
+          avgWinAmount: 18,
           avgLossAmount: -10,
           winFluctuationPercent: 2,
           lossFluctuationPercent: 2,
-          strategy: PROFIT_CONTROL_STRATEGY.SETTLEMENT_PRICE,
-          enableRiskLimits: false,
-          maxProfit: 10000,
-          maxLossRatio: 0.3
+          strategy: PROFIT_CONTROL_STRATEGY.NONE
         },
         applyToNewPositions: true,
         duration: 1440 // 24小时（分钟）
@@ -177,10 +173,7 @@ const deliveryAutoRules = [
           avgLossAmount: -20,
           winFluctuationPercent: 2,
           lossFluctuationPercent: 2,
-          strategy: PROFIT_CONTROL_STRATEGY.SETTLEMENT_PRICE,
-          enableRiskLimits: true,
-          maxProfit: 3000,
-          maxLossRatio: 0.5
+          strategy: PROFIT_CONTROL_STRATEGY.TIME_WINDOW
         },
         applyToNewPositions: true,
         duration: 0
@@ -203,56 +196,56 @@ const ruleHitHistory = [
     userId: 'U100001',
     userName: '张三',
     triggerTime: '2026-03-10 17:35:22',
-    triggerValue: '22次交易，盈利 +1200 USDT',
-    action: '调整盈亏目标至 -50 USDT/单',
+    triggerValue: '22 次交易',
+    action: '盈亏控制：胜率 20%，EV 预估偏向亏损',
     result: 'success',
     affectedPositions: 3
   },
   {
     id: 'hit_002',
     ruleId: 'rule_004',
-    ruleName: '连胜自动阻断',
+    ruleName: '连续亏损用户保护',
     userId: 'U100005',
     userName: '赵六',
     triggerTime: '2026-03-10 17:18:45',
-    triggerValue: '连续5次盈利',
-    action: '下一单强制亏损',
+    triggerValue: '连续 5 次亏损',
+    action: '后续 2 单强制盈利 15%',
     result: 'success',
     affectedPositions: 1
   },
   {
     id: 'hit_003',
-    ruleId: 'rule_003',
-    ruleName: '大额持仓自动控制',
+    ruleId: 'rule_002',
+    ruleName: '单日盈利过高强制亏损',
     userId: 'U100003',
     userName: '王五',
     triggerTime: '2026-03-10 17:05:33',
-    triggerValue: '持仓价值 $12,500',
-    action: '采用不利结算价 0.5%',
+    triggerValue: '今日累计盈利 $5,200',
+    action: '后续 3 单强制亏损 30%',
     result: 'success',
     affectedPositions: 1
   },
   {
     id: 'hit_004',
-    ruleId: 'rule_002',
-    ruleName: '单日盈利过高自动干预',
+    ruleId: 'rule_003',
+    ruleName: '连续盈利自动阻断',
     userId: 'U100007',
     userName: '钱八',
     triggerTime: '2026-03-10 16:20:10',
-    triggerValue: '今日盈利 $5,200',
-    action: '锁定新开仓，现有持仓盈亏目标 -100 USDT',
+    triggerValue: '连续 5 次盈利',
+    action: '下一单强制亏损 25%',
     result: 'success',
     affectedPositions: 2
   },
   {
     id: 'hit_005',
     ruleId: 'rule_006',
-    ruleName: '盈亏异常监控',
+    ruleName: '盈利异常自动干预',
     userId: 'U100012',
     userName: '孙七',
     triggerTime: '2026-03-10 15:42:12',
-    triggerValue: '4小时盈利 +850 USDT',
-    action: '仅预警',
+    triggerValue: '4 小时盈利 +2,350 USDT',
+    action: '盈亏控制：胜率 15%',
     result: 'success',
     affectedPositions: 0
   }
@@ -260,9 +253,9 @@ const ruleHitHistory = [
 
 // 规则统计数据
 const ruleStatistics = {
-  totalRules: 6,
-  enabledRules: 5,
-  pausedRules: 1,
+  totalRules: 18,
+  enabledRules: 9,
+  pausedRules: 5,
   totalHits: 366,
   todayHits: 45,
   totalAffectedUsers: 1259,

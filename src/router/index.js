@@ -48,6 +48,14 @@ const routes = [
         component: () => import('../pages/perpetual/PerpetualControlEditorPage.vue')
       },
       {
+        path: 'perpetual/manual-line',
+        name: 'perpetual-manual-line',
+        component: () => import('../pages/perpetual/PerpetualControlEditorPage.vue'),
+        meta: {
+          mode: 'manual_line'
+        }
+      },
+      {
         path: 'perpetual/contract-log',
         name: 'perpetual-contract-log',
         component: () => import('../pages/perpetual/PerpetualControlLogPage.vue')

@@ -46,6 +46,7 @@ export const navTree = [
       { title: '杠杆模板', path: '/perpetual/leverage-template' },
       { title: '订单管理', path: '/perpetual/orders' },
       { title: '合约线控', path: '/perpetual/contract-monitor' },
+      { title: '手动插线', path: '/perpetual/manual-line' },
       { title: '合约线控日志', path: '/perpetual/contract-log' },
       { title: '线控决策报表', path: '/perpetual/report' },
       { title: '使用指南', path: '/perpetual/guide' }
