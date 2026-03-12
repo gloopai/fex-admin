@@ -224,6 +224,7 @@ const modalTitle = computed(() => {
 });
 
 const currentTriggerConfig = computed(() => triggerTypeOptions.find((opt) => opt.value === form.trigger.type));
+const currentActionConfig = computed(() => actionTypeOptions.find((opt) => opt.value === form.action.type));
 const needsTimePeriod = computed(() => currentTriggerConfig.value?.needsPeriod);
 
 // 计算期望值
@@ -329,21 +330,25 @@ watch(() => props.open, (isOpen) => {
               <div class="space-y-4">
                 <div class="space-y-1.5">
                   <label class="text-sm text-black/85 font-medium">规则名称 <span class="text-rose-500">*</span></label>
+                  <p class="text-sm text-black/45">用于列表展示与搜索，建议简短清晰。</p>
                   <input v-model="form.name" type="text" placeholder="请输入规则名称" class="ant-input" />
                 </div>
                 <div class="space-y-1.5">
                   <label class="text-sm text-black/85 font-medium">规则描述</label>
+                  <p class="text-sm text-black/45">补充说明规则的触发场景与目的，方便运营识别。</p>
                   <textarea v-model="form.description" rows="2" placeholder="请输入规则描述" class="ant-input"></textarea>
                 </div>
                 <div class="grid gap-4 sm:grid-cols-2">
                   <div class="space-y-1.5">
                     <label class="text-sm text-black/85 font-medium">状态</label>
+                    <p class="text-sm text-black/45">运行中会参与触发；已禁用将完全不生效。</p>
                     <select v-model="form.status" class="ant-select">
                       <option v-for="opt in statusOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
                     </select>
                   </div>
                   <div class="space-y-1.5">
                     <label class="text-sm text-black/85 font-medium">优先级</label>
+                    <p class="text-sm text-black/45">多条规则命中时，高优先级优先生效。</p>
                     <select v-model="form.priority" class="ant-select">
                       <option v-for="opt in priorityOptions" :key="opt.value" :value="opt.value">{{ opt.icon }} {{ opt.label }}</option>
                     </select>
@@ -364,6 +369,7 @@ watch(() => props.open, (isOpen) => {
               <div class="space-y-4">
                 <div class="space-y-1.5">
                   <label class="text-sm text-black/85 font-medium">触发类型</label>
+                  <p class="text-sm text-black/45">{{ currentTriggerConfig?.description }}</p>
                   <select v-model="form.trigger.type" class="ant-select">
                     <option v-for="opt in triggerTypeOptions" :key="opt.value" :value="opt.value">{{ opt.icon }} {{ opt.label }}</option>
                   </select>
@@ -371,6 +377,7 @@ watch(() => props.open, (isOpen) => {
                 <div class="grid gap-4 sm:grid-cols-2">
                   <div class="space-y-1.5">
                     <label class="text-sm text-black/85 font-medium">触发阈值 <span class="text-rose-500">*</span></label>
+                    <p class="text-sm text-black/45">达到阈值即触发；阈值越低触发越频繁。</p>
                     <div class="flex items-center gap-2">
                       <input v-model.number="form.trigger.threshold" type="number" class="ant-input" />
                       <span class="text-sm text-black/65">{{ currentTriggerConfig?.unit }}</span>
@@ -378,6 +385,7 @@ watch(() => props.open, (isOpen) => {
                   </div>
                   <div v-if="needsTimePeriod" class="space-y-1.5">
                     <label class="text-sm text-black/85 font-medium">时间周期</label>
+                    <p class="text-sm text-black/45">用于统计触发条件的时间窗口。</p>
                     <select v-model="form.trigger.period" class="ant-select">
                       <option v-for="opt in timePeriodOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
                     </select>
@@ -398,6 +406,7 @@ watch(() => props.open, (isOpen) => {
               <div class="space-y-4">
                 <div class="space-y-1.5">
                   <label class="text-sm text-black/85 font-medium">动作类型</label>
+                  <p class="text-sm text-black/45">{{ currentActionConfig?.description }}</p>
                   <select v-model="form.action.type" class="ant-select">
                     <option v-for="opt in actionTypeOptions" :key="opt.value" :value="opt.value">{{ opt.icon }} {{ opt.label }}</option>
                   </select>
@@ -408,23 +417,28 @@ watch(() => props.open, (isOpen) => {
                   <div class="grid gap-4 sm:grid-cols-2">
                     <div class="space-y-1.5">
                       <label class="text-sm text-black/65">盈利概率 ({{ (form.action.params.profitControl.winProbability * 100).toFixed(0) }}%)</label>
+                      <p class="text-sm text-black/45">控制长期命中率，越低越偏向亏损结算。</p>
                       <input v-model.number="form.action.params.profitControl.winProbability" type="range" min="0" max="1" step="0.01" class="w-full h-1.5 bg-black/10 rounded-lg appearance-none cursor-pointer accent-antd-primary" />
                     </div>
                     <div class="space-y-1.5">
                       <label class="text-sm text-black/65">预期盈亏值 (EV)</label>
+                      <p class="text-sm text-black/45">根据当前参数实时计算的期望值。</p>
                       <div class="text-sm font-mono font-medium" :class="calculatedExpectedValue >= 0 ? 'text-emerald-500' : 'text-rose-500'">{{ calculatedExpectedValue.toFixed(2) }}%</div>
                     </div>
                     <div class="space-y-1.5">
                       <label class="text-sm text-black/65">单笔盈利 %</label>
                       <input v-model.number="form.action.params.profitControl.avgWinAmount" type="number" class="ant-input !py-2" />
+                      <p class="text-sm text-black/45">单次盈利结算的目标百分比。</p>
                     </div>
                     <div class="space-y-1.5">
                       <label class="text-sm text-black/65">单笔亏损 %</label>
                       <input v-model.number="form.action.params.profitControl.avgLossAmount" type="number" class="ant-input !py-2" />
+                      <p class="text-sm text-black/45">单次亏损结算的目标百分比（通常为负数）。</p>
                     </div>
                   </div>
                   <div class="space-y-1.5">
                     <label class="text-sm text-black/65">价格修正策略</label>
+                    <p class="text-sm text-black/45">选择结算价格修正方式，影响成交与盈亏分布。</p>
                     <div class="grid grid-cols-2 gap-2">
                       <button v-for="opt in profitControlStrategyOptions" :key="opt.value" type="button" @click="form.action.params.profitControl.strategy = opt.value" :class="form.action.params.profitControl.strategy === opt.value ? 'border-antd-primary bg-antd-primary/5 text-antd-primary' : 'border-black/10 bg-white text-black/65'" class="text-sm py-2 px-3 border rounded-md transition-all">{{ opt.label }}</button>
                     </div>
@@ -436,10 +450,12 @@ watch(() => props.open, (isOpen) => {
                   <div class="grid gap-4 sm:grid-cols-2">
                     <div class="space-y-1.5">
                       <label class="text-sm text-black/65">影响订单数</label>
+                      <p class="text-sm text-black/45">对后续 N 单进行强制干预。</p>
                       <input v-model.number="form.action.params.nextPositionCount" type="number" class="ant-input !py-2" />
                     </div>
                     <div class="space-y-1.5">
                       <label class="text-sm text-black/65">{{ form.action.type === DELIVERY_RULE_ACTION.FORCE_WIN ? '盈利' : '亏损' }}比例 %</label>
+                      <p class="text-sm text-black/45">设置强制结算的百分比幅度。</p>
                       <input v-if="form.action.type === DELIVERY_RULE_ACTION.FORCE_WIN" v-model.number="form.action.params.profitPercent" type="number" class="ant-input !py-2" />
                       <input v-else v-model.number="form.action.params.lossPercent" type="number" class="ant-input !py-2" />
                     </div>
@@ -457,6 +473,7 @@ watch(() => props.open, (isOpen) => {
                     <span class="text-sm text-black/65">分钟</span>
                   </div>
                 </div>
+                <p class="text-sm text-black/45">持续时长为 0 表示规则仅生效一次。</p>
               </div>
             </section>
           </div>
