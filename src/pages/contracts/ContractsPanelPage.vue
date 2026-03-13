@@ -394,8 +394,8 @@ const tabItems = [
   { key: 'delivery', label: '交割' }
 ]
 
-const openPerpReport = () => router.push('/perpetual/report')
-const openDeliveryContracts = () => router.push('/delivery/contracts')
+const openPerpReport = () => router.push('/perpetual/manual-line')
+const openDeliveryContracts = () => router.push('/delivery/harvest-control')
 
 const secondsOf = (tierSec) => {
   const n = Number(tierSec || 0)
@@ -519,8 +519,8 @@ const onLockDeliveryHarvest = (payload) => {
           <span class="inline-flex items-center rounded-md border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700">
             做空总额 ${{ formatNumber(Math.round(filteredShortTotal)) }}
           </span>
-          <button v-if="activeTab !== 'delivery'" type="button" class="ant-btn !h-9 !px-4" @click="openPerpReport">永续报表</button>
-          <button v-if="activeTab !== 'perpetual'" type="button" class="ant-btn !h-9 !px-4" @click="openDeliveryContracts">交割合约</button>
+          <button v-if="activeTab !== 'delivery'" type="button" class="ant-btn !h-9 !px-4" @click="openPerpReport">永续线控</button>
+          <button v-if="activeTab !== 'perpetual'" type="button" class="ant-btn !h-9 !px-4" @click="openDeliveryContracts">交割场控</button>
         </div>
       </div>
       <div class="overflow-auto">
