@@ -297,12 +297,12 @@ const manualPreview = computed(() => {
 
 const outlierCheck = computed(() => {
   const p0 = manualPreview.value.marketPrice
-  if (!p0) return { diffPct: 0, level: 'ok', cls: 'border-slate-200 bg-slate-50 text-slate-700', locked: false }
+  if (!p0) return { diffPct: 0, level: 'ok', cls: 'text-slate-600', locked: false }
   const diff = Math.max(Math.abs(manualPreview.value.buyQuote - p0), Math.abs(manualPreview.value.sellQuote - p0))
   const diffPct = (diff / p0) * 100
-  if (diffPct >= 1.0) return { diffPct, level: 'danger', cls: 'border-rose-300 bg-rose-50 text-rose-700', locked: true }
-  if (diffPct >= 0.5) return { diffPct, level: 'warn', cls: 'border-amber-300 bg-amber-50 text-amber-700', locked: false }
-  return { diffPct, level: 'ok', cls: 'border-emerald-200 bg-emerald-50 text-emerald-700', locked: false }
+  if (diffPct >= 1.0) return { diffPct, level: 'danger', cls: 'text-rose-700', locked: true }
+  if (diffPct >= 0.5) return { diffPct, level: 'warn', cls: 'text-amber-700', locked: false }
+  return { diffPct, level: 'ok', cls: 'text-emerald-700', locked: false }
 })
 
 const positionsByContractId = reactive({})
@@ -381,7 +381,6 @@ const riskUsers = computed(() => {
     .map((p) => ({
       ...p,
       pnlNow: userPnlAt(p, mp),
-      notional: Number(p.principal || 0) * Number(p.leverage || 0),
       liqDistance: p.side === 'long' ? Math.max(0, mp - Number(p.liquidationPrice || 0)) : Math.max(0, Number(p.liquidationPrice || 0) - mp)
     }))
     .sort((a, b) => Number(b.pnlNow) - Number(a.pnlNow))
@@ -687,9 +686,7 @@ const emitSave = () =>
 
               <div class="flex items-baseline gap-2 shrink-0">
                 <span class="text-slate-500">偏离率</span>
-                <span class="inline-flex items-center rounded-full border px-2.5 py-1 font-semibold" :class="outlierCheck.cls">
-                  {{ outlierCheck.diffPct.toFixed(2) }}%
-                </span>
+                <span class="font-mono font-semibold tabular-nums whitespace-nowrap" :class="outlierCheck.cls">{{ outlierCheck.diffPct.toFixed(2) }}%</span>
               </div>
 
               <div class="flex items-baseline gap-2 shrink-0 ml-auto">
@@ -711,30 +708,40 @@ const emitSave = () =>
                 <div class="text-[11px] text-slate-400 font-mono">Counterparty</div>
               </div>
 
-              <div class="flex-1 min-h-0 overflow-auto">
-                <table class="min-w-full text-left text-[11px]">
+              <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+                <table class="w-full table-fixed text-left text-[11px]">
                   <thead class="text-slate-500">
                       <tr>
-                        <th class="sticky top-0 z-10 bg-slate-50 px-5 py-2 font-semibold">UID</th>
-                        <th class="sticky top-0 z-10 bg-slate-50 px-5 py-2 text-right font-semibold">方向</th>
-                        <th class="sticky top-0 z-10 bg-slate-50 px-5 py-2 text-right font-semibold">本金</th>
-                        <th class="sticky top-0 z-10 bg-slate-50 px-5 py-2 text-right font-semibold">杠杆</th>
-                        <th class="sticky top-0 z-10 bg-slate-50 px-5 py-2 text-right font-semibold">实时浮盈</th>
-                        <th class="sticky top-0 z-10 bg-slate-50 px-5 py-2 text-right font-semibold">爆仓价</th>
+                        <th class="sticky top-0 z-10 bg-slate-50 px-3 py-2 font-semibold w-20">UID</th>
+                        <th class="sticky top-0 z-10 bg-slate-50 px-3 py-2 text-right font-semibold w-14">方向</th>
+                        <th class="sticky top-0 z-10 bg-slate-50 px-3 py-2 text-right font-semibold">本金 / 杠杆</th>
+                        <th class="sticky top-0 z-10 bg-slate-50 px-3 py-2 text-right font-semibold">开仓价 / 数量</th>
+                        <th class="sticky top-0 z-10 bg-slate-50 px-3 py-2 text-right font-semibold">浮盈 / 收益率</th>
+                        <th class="sticky top-0 z-10 bg-slate-50 px-3 py-2 text-right font-semibold">爆仓价 / 距离</th>
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 text-slate-700">
                       <tr v-for="u in riskUsers" :key="u.uid" class="hover:bg-slate-50/60" :class="String(ui.selectedUid) === String(u.uid) ? 'bg-slate-50' : ''">
-                        <td class="px-5 py-2 font-mono text-slate-900">{{ u.uid }}</td>
-                        <td class="px-5 py-2 text-right">
+                        <td class="px-3 py-2 font-mono text-slate-900 truncate">{{ u.uid }}</td>
+                        <td class="px-3 py-2 text-right">
                           <div class="font-semibold" :class="u.side === 'long' ? 'text-emerald-700' : 'text-rose-700'">{{ u.side === 'long' ? '多' : '空' }}</div>
                         </td>
-                        <td class="px-5 py-2 text-right">
+                        <td class="px-3 py-2 text-right">
                           <div class="font-mono text-slate-900">{{ formatCompactUsd(u.principal) }}</div>
+                          <div class="mt-1 font-mono text-slate-500">{{ u.leverage }}x</div>
                         </td>
-                        <td class="px-5 py-2 text-right font-mono text-slate-700">{{ u.leverage }}x</td>
-                        <td class="px-5 py-2 text-right font-mono" :class="u.pnlNow >= 0 ? 'text-emerald-700' : 'text-rose-700'">{{ formatCompactUsd(u.pnlNow, { withSign: true }) }}</td>
-                        <td class="px-5 py-2 text-right font-mono text-slate-700">{{ formatPrice(u.liquidationPrice) }}</td>
+                        <td class="px-3 py-2 text-right">
+                          <div class="font-mono text-slate-900">{{ formatPrice(u.entryPrice) }}</div>
+                          <div class="mt-1 font-mono text-slate-500">{{ formatCompactNumber(u.qty, u.qty >= 1 ? 4 : 6) }}</div>
+                        </td>
+                        <td class="px-3 py-2 text-right">
+                          <div class="font-mono" :class="u.pnlNow >= 0 ? 'text-emerald-700' : 'text-rose-700'">{{ formatCompactUsd(u.pnlNow, { withSign: true }) }}</div>
+                          <div class="mt-1 font-mono text-slate-500">{{ `${formatCompactNumber((u.pnlNow / Math.max(1, Number(u.principal || 0))) * 100, 2)}%` }}</div>
+                        </td>
+                        <td class="px-3 py-2 text-right">
+                          <div class="font-mono text-slate-900">{{ formatPrice(u.liquidationPrice) }}</div>
+                          <div class="mt-1 font-mono text-slate-500">{{ formatCompactNumber(u.liqDistance, u.liqDistance >= 1 ? 2 : 5) }}</div>
+                        </td>
                       </tr>
                     </tbody>
                 </table>
@@ -881,18 +888,16 @@ const emitSave = () =>
                   <div class="grid grid-cols-3 gap-3 text-[11px]">
                     <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 min-h-[64px] flex flex-col justify-center">
                       <div class="text-slate-500">平台净风险</div>
-                      <div class="mt-1 font-mono tabular-nums whitespace-nowrap" :class="netPositive ? 'text-rose-700' : 'text-emerald-700'">{{ formatCompactUsd(netValue, { withSign: true }) }}</div>
+                      <div class="mt-1  tabular-nums whitespace-nowrap text-sm" :class="netPositive ? 'text-rose-700' : 'text-emerald-700'">{{ formatCompactUsd(netValue, { withSign: true }) }}</div>
                     </div>
                     <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 min-h-[64px] flex flex-col justify-center">
                       <div class="text-slate-500">
                         预估盈亏</div>
-                      <div class="mt-1 font-mono tabular-nums whitespace-nowrap" :class="estPlatformPnl < 0 ? 'text-rose-700' : 'text-emerald-700'">{{ formatCompactUsd(estPlatformPnl, { withSign: true }) }}</div>
+                      <div class="mt-1  tabular-nums whitespace-nowrap text-sm" :class="estPlatformPnl < 0 ? 'text-rose-700' : 'text-emerald-700'">{{ formatCompactUsd(estPlatformPnl, { withSign: true }) }}</div>
                     </div>
                     <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 min-h-[64px] flex flex-col justify-center">
                       <div class="text-slate-500">偏离率</div>
-                      <div class="mt-1 inline-flex items-center rounded-full border px-2.5 py-1 font-semibold" :class="outlierCheck.cls">
-                        <span class="font-mono tabular-nums whitespace-nowrap">{{ outlierCheck.diffPct.toFixed(2) }}%</span>
-                      </div>
+                      <div class="mt-1 f font-semibold tabular-nums whitespace-nowrap text-sm" :class="outlierCheck.cls">{{ outlierCheck.diffPct.toFixed(2) }}%</div>
                     </div>
                   </div>
                 </div>
