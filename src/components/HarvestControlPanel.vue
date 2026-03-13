@@ -700,9 +700,25 @@ const outlierCheck = computed(() => {
   const avg = Number(indexPrices.value.avg || 0)
   const p = Number(previewSettlementPrice.value || 0)
   const diffPct = avg ? (Math.abs(p - avg) / avg) * 100 : 0
-  if (diffPct < 0.3) return { tone: 'green', text: '绿灯', cls: 'bg-emerald-100 text-emerald-700 border-emerald-200', diffPct }
-  if (diffPct < 1.0) return { tone: 'yellow', text: '黄灯', cls: 'bg-amber-100 text-amber-700 border-amber-200', diffPct }
-  return { tone: 'red', text: '红灯', cls: 'bg-rose-100 text-rose-700 border-rose-200', diffPct }
+  if (diffPct < 0.3) return { cls: 'text-emerald-700', diffPct }
+  if (diffPct < 1.0) return { cls: 'text-amber-700', diffPct }
+  return { cls: 'text-rose-700', diffPct }
+})
+
+const priceCompare = computed(() => {
+  const binance = Number(indexPrices.value.binance || 0)
+  const okx = Number(indexPrices.value.okx || 0)
+  const avg = Number(indexPrices.value.avg || 0)
+  const uniform = Number(previewSettlementPrice.value || 0)
+  const long = Number(settlementPrices.value.long || 0)
+  const short = Number(settlementPrices.value.short || 0)
+  const diffUniform = avg ? uniform - avg : 0
+  const diffUniformPct = avg ? (diffUniform / avg) * 100 : 0
+  const diffLong = avg ? long - avg : 0
+  const diffLongPct = avg ? (diffLong / avg) * 100 : 0
+  const diffShort = avg ? short - avg : 0
+  const diffShortPct = avg ? (diffShort / avg) * 100 : 0
+  return { binance, okx, avg, uniform, long, short, diffUniform, diffUniformPct, diffLong, diffLongPct, diffShort, diffShortPct }
 })
 
 const klineByKey = ref({})
@@ -859,7 +875,7 @@ const klineSvg = computed(() => {
 
         <div class="flex-1 overflow-y-auto p-6">
           <div class="grid gap-4 lg:grid-cols-12 h-full">
-             <section class="lg:col-span-6 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+             <section class="lg:col-span-5 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
               <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4 bg-slate-50/40">
                 <div>
                   <h3 class="text-sm font-semibold text-slate-900">用户列表</h3>
@@ -875,11 +891,9 @@ const klineSvg = computed(() => {
                       <tr>
                         <th class="px-3 py-2 font-medium">UID</th>
                         <th class="px-3 py-2 font-medium">方向</th>
-                        <th class="px-3 py-2 font-medium">本金</th>
-                        <th class="px-3 py-2 font-medium">开仓价</th>
+                        <th class="px-3 py-2 font-medium">本金 / 开仓价</th>
                         <th class="px-3 py-2 font-medium">当前盈亏</th>
                         <th class="px-3 py-2 font-medium">爆仓/止损</th>
-                        <th class="px-3 py-2 font-medium">预演盈亏</th>
                         <th class="px-3 py-2 font-medium text-right">选择</th>
                       </tr>
                     </thead>
@@ -894,20 +908,16 @@ const klineSvg = computed(() => {
                             {{ pos.side === 'long' ? '多' : '空' }}
                           </span>
                         </td>
-                        <td class="px-3 py-2 align-top font-mono text-slate-700">{{ formatCompactUsd(pos.principal) }}</td>
-                        <td class="px-3 py-2 align-top font-mono text-slate-700">{{ formatPrice(pos.entryPrice) }}</td>
+                        <td class="px-3 py-2 align-top">
+                          <div class="font-mono text-slate-700">{{ formatCompactUsd(pos.principal) }}</div>
+                          <div class="mt-1 font-mono text-[11px] text-slate-500">{{ formatPrice(pos.entryPrice) }}</div>
+                        </td>
                         <td class="px-3 py-2 align-top font-mono" :class="pos.pnlNow < 0 ? 'text-rose-700' : 'text-emerald-700'">
                           {{ formatCompactUsd(pos.pnlNow, true) }}
                         </td>
                         <td class="px-3 py-2 align-top">
                           <div class="font-mono text-[11px] text-slate-700">{{ formatPrice(pos.liquidationPrice) }}</div>
                           <div class="mt-1 font-mono text-[11px] text-slate-500">{{ formatPrice(pos.stopLossPrice) }}</div>
-                        </td>
-                        <td
-                          class="px-3 py-2 align-top font-mono"
-                          :class="userPreviewPnl(pos) < 0 ? 'text-rose-700' : 'text-emerald-700'"
-                        >
-                          {{ formatCompactUsd(userPreviewPnl(pos), true) }}
                         </td>
                         <td class="px-3 py-2 align-top text-right">
                           <input
@@ -926,7 +936,7 @@ const klineSvg = computed(() => {
             </section>
            
 
-            <section class="lg:col-span-3 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <section class="lg:col-span-3 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col min-h-0">
               <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4 bg-slate-50/40">
                 <div>
                   <h3 class="text-sm font-semibold text-slate-900">指令执行区</h3>
@@ -935,7 +945,7 @@ const klineSvg = computed(() => {
                 <div class="text-[11px] text-slate-400 font-mono">Command Center</div>
               </div>
 
-              <div class="p-5 space-y-4">
+              <div class="flex-1 overflow-y-auto p-5 space-y-4">
                 <div class="space-y-2">
                   <div class="text-xs font-semibold text-slate-900">结算策略</div>
                   <div class="grid grid-cols-2 gap-2">
@@ -1137,7 +1147,9 @@ const klineSvg = computed(() => {
                   </div>
                   <div v-if="lastAction" class="mt-1 text-[11px] text-slate-500">{{ lastAction }}</div>
                 </div>
+              </div>
 
+              <div class="border-t border-slate-200 bg-white p-5">
                 <button
                   type="button"
                   class="w-full rounded-xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white hover:bg-rose-500 disabled:opacity-50"
@@ -1149,31 +1161,53 @@ const klineSvg = computed(() => {
               </div>
             </section>
 
-             <section class="lg:col-span-3 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+             <section class="lg:col-span-4 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col min-h-0">
               <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4 bg-slate-50/40">
                 <div>
-                  <h3 class="text-sm font-semibold text-slate-900">预览</h3>
-                  <p class="mt-0.5 text-[11px] text-slate-500">K 线模拟 + 利润地图</p>
+                  <h3 class="text-sm font-semibold text-slate-900">战情沙盘</h3>
+                  <p class="mt-0.5 text-[11px] text-slate-500">Money Map + PnL Simulator</p>
                 </div>
-                <div class="text-[11px] text-slate-400 font-mono">Preview</div>
+                <div class="text-[11px] text-slate-400 font-mono">The War Room</div>
               </div>
 
-              <div class="p-5 space-y-4">
-                <div class="rounded-lg border border-slate-200 bg-white p-4">
-                  <div class="flex items-center justify-between">
-                    <div>
-                      <div class="text-xs font-semibold text-slate-900">K 线模拟</div>
-                      <div class="mt-0.5 text-[11px] text-slate-500">虚线插针：按预演结算价显示“针”的长度</div>
+              <div class="flex-1 overflow-y-auto p-5 space-y-4">
+                <div class="grid grid-cols-3 gap-3">
+                  <div class="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                    <div class="text-[11px] text-slate-500">平台净风险</div>
+                    <div class="mt-1 font-mono text-sm font-semibold" :class="-platformPnlNow > 0 ? 'text-rose-700' : 'text-emerald-700'">
+                      {{ formatCompactUsd(-platformPnlNow, true) }}
                     </div>
-                    <div class="text-right text-[11px]">
-                      <div class="text-slate-400">离群度自检</div>
-                      <div class="mt-1 inline-flex items-center rounded-full border px-2.5 py-1 font-semibold" :class="outlierCheck.cls">
-                        {{ outlierCheck.text }} · {{ outlierCheck.diffPct.toFixed(2) }}%
-                      </div>
+                    <!-- <div class="mt-0.5 text-[11px] text-slate-400">实时测算</div> -->
+                  </div>
+
+                  <div class="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                    <div class="text-[11px] text-slate-500">预估盈亏</div>
+                    <div class="mt-1 font-mono text-sm font-semibold" :class="previewPlatformPnl < 0 ? 'text-rose-700' : 'text-emerald-700'">
+                      {{ formatCompactUsd(previewPlatformPnl, true) }}
+                    </div>
+                    <!-- <div class="mt-0.5 text-[11px] text-slate-400">按预演结算价</div> -->
+                  </div>
+
+                  <div class="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                    <div class="text-[11px] text-slate-500">偏离率</div>
+                    <div class="mt-1 font-mono text-sm font-semibold" :class="outlierCheck.cls">{{ outlierCheck.diffPct.toFixed(2) }}%</div>
+                    <!-- <div class="mt-0.5 text-[11px] text-slate-400">参考均价对比</div> -->
+                  </div>
+                </div>
+
+                <div class="rounded-xl border border-slate-200 bg-white p-4">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <div class="text-xs font-semibold text-slate-900">持仓分布与利润模拟</div>
+                      <div class="mt-0.5 text-[11px] text-slate-500">点击曲线定位结算价；悬停预演；红区=亏损，绿区=黄金收割</div>
+                    </div>
+                    <div class="text-right shrink-0">
+                      <div class="text-[11px] text-slate-400">市场价</div>
+                      <div class="font-mono text-xs text-slate-900">{{ formatPrice(markPrice) }}</div>
                     </div>
                   </div>
 
-                  <svg class="mt-3 w-full" :viewBox="`0 0 ${klineSvg.w} ${klineSvg.h}`">
+                  <svg class="mt-3 h-24 w-full" :viewBox="`0 0 ${klineSvg.w} ${klineSvg.h}`">
                     <rect x="0" y="0" :width="klineSvg.w" :height="klineSvg.h" fill="#ffffff" rx="10" />
                     <g v-if="klineSvg.candles.length && klineSvg.xFor">
                       <g v-for="(c, i) in klineSvg.candles" :key="i">
@@ -1214,24 +1248,9 @@ const klineSvg = computed(() => {
                       />
                     </g>
                   </svg>
-                </div>
-
-                <div class="rounded-lg border border-slate-200 bg-white p-4">
-                  <div class="flex items-center justify-between">
-                    <div>
-                      <div class="text-xs font-semibold text-slate-900">利润曲线图（利润地图）</div>
-                      <div class="mt-0.5 text-[11px] text-slate-500">
-                        悬停预演 · 点击选定结算价 · 红色为死亡区间 · 绿色为黄金收割区
-                      </div>
-                    </div>
-                    <div class="text-right">
-                      <div class="text-[11px] text-slate-400">预演</div>
-                      <div class="font-mono text-xs text-slate-900">{{ formatPrice(previewSettlementPrice) }}</div>
-                    </div>
-                  </div>
 
                   <svg
-                    class="mt-3 w-full select-none"
+                    class="mt-3 h-36 w-full select-none"
                     :viewBox="`0 0 ${svgLandscape.w} ${svgLandscape.h}`"
                     @mousemove="markHoverPrice"
                     @mouseleave="clearHover"
@@ -1331,9 +1350,59 @@ const klineSvg = computed(() => {
                       </button>
                     </div>
                     <div>
-                      <div class="text-slate-400">预演利润</div>
-                      <div class="font-mono" :class="previewPlatformPnl < 0 ? 'text-rose-700' : 'text-emerald-700'">
-                        {{ formatCompactUsd(previewPlatformPnl, true) }}
+                      <div class="text-slate-400">预演结算价</div>
+                      <div class="font-mono text-slate-900">
+                        <span v-if="mode === 'squeeze'">{{ formatPrice(settlementPrices.long) }} / {{ formatPrice(settlementPrices.short) }}</span>
+                        <span v-else>{{ formatPrice(previewSettlementPrice) }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="rounded-xl border border-slate-200 bg-white p-4">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <div class="text-xs font-semibold text-slate-900">价格对比</div>
+                      <div class="mt-0.5 text-[11px] text-slate-500">参考均价 / 外部指数 / 预演结算价</div>
+                    </div>
+                    <div class="text-right">
+                      <div class="text-[11px] text-slate-400">Tick</div>
+                      <div class="font-mono text-xs text-slate-900">{{ formatPrice(tickSize) }}</div>
+                    </div>
+                  </div>
+
+                  <div class="mt-3 space-y-2 text-xs">
+                    <div class="flex items-center justify-between gap-3">
+                      <div class="text-slate-500">参考价格</div>
+                      <div class="font-mono text-slate-900">{{ formatPrice(priceCompare.avg) }}</div>
+                    </div>
+                    <div class="flex items-center justify-between gap-3">
+                      <div class="text-slate-500">指数价格</div>
+                      <div class="font-mono text-slate-900">{{ formatPrice(priceCompare.binance) }} / {{ formatPrice(priceCompare.okx) }}</div>
+                    </div>
+                    <div class="flex items-center justify-between gap-3">
+                      <div class="text-slate-500">用户看到价</div>
+                      <div class="font-mono text-slate-900">{{ formatPrice(marketPrice) }}</div>
+                    </div>
+                    <div class="flex items-center justify-between gap-3">
+                      <div class="text-slate-500">预演结算价</div>
+                      <div class="font-mono text-slate-900">
+                        <span v-if="mode === 'squeeze'">{{ formatPrice(priceCompare.long) }} / {{ formatPrice(priceCompare.short) }}</span>
+                        <span v-else>{{ formatPrice(priceCompare.uniform) }}</span>
+                      </div>
+                    </div>
+                    <div class="flex items-center justify-between gap-3">
+                      <div class="text-slate-500">Gap</div>
+                      <div v-if="mode === 'squeeze'" class="font-mono text-slate-900">
+                        {{ (priceCompare.diffLong >= 0 ? '+' : '-') + formatPrice(Math.abs(priceCompare.diffLong)) }}
+                        <span class="text-slate-400">({{ priceCompare.diffLongPct.toFixed(2) }}%)</span>
+                        <span class="text-slate-400">/</span>
+                        {{ (priceCompare.diffShort >= 0 ? '+' : '-') + formatPrice(Math.abs(priceCompare.diffShort)) }}
+                        <span class="text-slate-400">({{ priceCompare.diffShortPct.toFixed(2) }}%)</span>
+                      </div>
+                      <div v-else class="font-mono text-slate-900">
+                        {{ (priceCompare.diffUniform >= 0 ? '+' : '-') + formatPrice(Math.abs(priceCompare.diffUniform)) }}
+                        <span class="text-slate-400">({{ priceCompare.diffUniformPct.toFixed(2) }}%)</span>
                       </div>
                     </div>
                   </div>
