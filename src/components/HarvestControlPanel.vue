@@ -810,7 +810,7 @@ const klineSvg = computed(() => {
               <span class="h-4 w-px bg-slate-200 shrink-0"></span>
 
               <div class="flex items-baseline gap-2 shrink-0">
-                <span class="text-slate-500">实时PnL</span>
+                <span class="text-slate-500">实时盈亏 (PnL)</span>
                 <span class="font-mono" :class="platformPnlNow < 0 ? 'text-rose-700' : 'text-emerald-700'">
                   {{ formatCompactUsd(platformPnlNow, true) }}
                 </span>
