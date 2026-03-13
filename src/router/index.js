@@ -97,6 +97,24 @@ const routes = [
         component: () => import('../pages/delivery/DeliveryAutoRuleListPage.vue')
       },
       {
+        path: 'delivery/control',
+        name: 'delivery-control',
+        component: () => import('../pages/delivery/DeliveryManualControlPage.vue'),
+        meta: {
+          title: '交割合约 / 手动场控',
+          desc: '三栏式收割中心：全盘风险热力、价格拨盘与大户追踪。'
+        }
+      },
+      {
+        path: 'delivery/harvest-control',
+        name: 'delivery-harvest-control',
+        component: () => import('../pages/delivery/DeliveryHarvestControlPage.vue'),
+        meta: {
+          title: '交割合约 / 手动场控（Radar）',
+          desc: '两层式场控：L1 全局收割监控，L2 单档位精准操盘。'
+        }
+      },
+      {
         path: 'delivery/rule-history',
         name: 'delivery-rule-history',
         component: () => import('../pages/delivery/DeliveryRuleHistoryPage.vue')

@@ -61,6 +61,8 @@ export const navTree = [
       { title: '周期模板', path: '/delivery/templates' },
       { title: '订单管理', path: '/delivery/orders' },
       { title: '自动化场控', path: '/delivery/auto-rules' },
+      { title: '手动场控', path: '/delivery/control' },
+      { title: '手动场控（Radar）', path: '/delivery/harvest-control' },
       { title: '场控触发日志', path: '/delivery/rule-history' },
       // { title: '规则效果统计', path: '/delivery/rule-statistics' },
       { title: '场控决策报表', path: '/delivery/report' },
