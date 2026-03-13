@@ -105,13 +105,6 @@ const secondsOf = (tierSec) => {
 
 const labelOf = (asset, tierSec) => `${String(asset || '').toUpperCase()}-${secondsOf(tierSec)}s`
 
-const riskTag = (estimatedLossUsd) => {
-  const loss = Math.max(0, Number(estimatedLossUsd || 0))
-  if (loss >= 50_000) return { text: '极高', cls: 'bg-rose-100 text-rose-700 border-rose-200' }
-  if (loss >= 15_000) return { text: '中', cls: 'bg-amber-100 text-amber-700 border-amber-200' }
-  return { text: '安全', cls: 'bg-emerald-100 text-emerald-700 border-emerald-200' }
-}
-
 const now = ref(Date.now())
 const radarRows = ref([])
 
@@ -276,8 +269,8 @@ const deltaTone = (delta) => {
   <section class="space-y-4">
     <header class="flex flex-wrap items-start justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-semibold text-slate-900">交割合约 · 手动场控（全局收割监控）</h1>
-        <p class="mt-1 text-sm text-slate-500">L1 Radar：先找最欠收割的档位，再进入 L2 手术室</p>
+        <h1 class="text-3xl font-semibold text-slate-900">交割合约 · 手动场控（全局监控）</h1>
+        <p class="mt-1 text-sm text-slate-500">查看全局风险档位，选择目标进入实施场控</p>
       </div>
       <div class="flex items-center gap-2 text-xs text-slate-500">
         <span>刷新：1s</span>
@@ -305,11 +298,9 @@ const deltaTone = (delta) => {
               <th class="px-5 py-3 font-medium">总持仓</th>
               <th class="px-5 py-3 font-medium">多空比</th>
               <th class="px-5 py-3 font-medium">活跃用户</th>
-              <th class="px-5 py-3 font-medium">场控状态</th>
               <th class="px-5 py-3 font-medium">平台预估亏损额</th>
               <th class="px-5 py-3 font-medium">平台净头寸 (Delta)</th>
               <th class="px-5 py-3 font-medium">实时盈亏 (PnL)</th>
-              <th class="px-5 py-3 font-medium">风险等级</th>
               <th class="px-5 py-3 font-medium text-right">进入</th>
             </tr>
           </thead>
@@ -348,14 +339,6 @@ const deltaTone = (delta) => {
                 <div class="font-mono text-slate-700">{{ row.activeUsers }}</div>
               </td>
               <td class="px-5 py-3">
-                <span
-                  class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold"
-                  :class="row.controlActive ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-slate-100 text-slate-700 border-slate-200'"
-                >
-                  {{ row.controlActive ? '开启' : '关闭' }}
-                </span>
-              </td>
-              <td class="px-5 py-3">
                 <div class="font-mono text-rose-700">{{ formatCompactUsd(row.estimatedLoss) }}</div>
               </td>
               <td class="px-5 py-3">
@@ -367,14 +350,6 @@ const deltaTone = (delta) => {
                 <div class="font-mono" :class="row.pnlNow < 0 ? 'text-rose-700' : 'text-emerald-700'">
                   {{ formatCompactUsd(row.pnlNow, true) }}
                 </div>
-              </td>
-              <td class="px-5 py-3">
-                <span
-                  class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold"
-                  :class="riskTag(row.estimatedLoss).cls"
-                >
-                  {{ riskTag(row.estimatedLoss).text }}
-                </span>
               </td>
               <td class="px-5 py-3 text-right">
                 <button

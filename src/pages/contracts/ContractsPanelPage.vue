@@ -5,6 +5,7 @@ import { deliveryContractsData, deliveryMarketOverview } from '../../mock/delive
 import { createPerpetualControlContractsMock } from '../../mock/perpetualControl'
 import { PERP_CONTROL_OFFSET_DIRECTION } from '../../constants/perpetualControl'
 import PerpetualManualLineModal from '../../components/PerpetualManualLineModal.vue'
+import HarvestControlPanel from '../../components/HarvestControlPanel.vue'
 
 const router = useRouter()
 
@@ -147,6 +148,9 @@ const showPerpManualModal = ref(false)
 const manualContractId = ref('')
 const manualInitialConfig = ref({})
 const manualInitialDurationSec = ref(1800)
+
+const showDeliveryHarvestPanel = ref(false)
+const deliveryHarvestRow = ref(null)
 
 const manualOverrides = ref({})
 const manualTimers = new Map()
@@ -391,8 +395,56 @@ const tabItems = [
 ]
 
 const openPerpReport = () => router.push('/perpetual/report')
-const openDeliveryRules = () => router.push('/delivery/auto-rules')
 const openDeliveryContracts = () => router.push('/delivery/contracts')
+
+const secondsOf = (tierSec) => {
+  const n = Number(tierSec || 0)
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 60
+}
+
+const labelOf = (asset, tierSec) => `${String(asset || '').toUpperCase()}-${secondsOf(tierSec)}s`
+
+const openDeliveryHarvestControl = (symbol) => {
+  const keyRaw = String(symbol || '').toUpperCase()
+  const m = keyRaw.match(/^([A-Z]+)(\d+)S$/)
+  const asset = String(m?.[1] || keyRaw.replace(/\d+S$/i, '') || '').toUpperCase()
+  const tierSec = secondsOf(m?.[2] || 60)
+  const key = `${asset}${tierSec}S`
+
+  const base =
+    deliveryContracts.value.find((c) => String(c.symbol || '').toUpperCase() === key) ||
+    deliveryContractsData.find((c) => String(c.symbol || '').toUpperCase() === key) ||
+    null
+
+  const marketPrice = baseMarketPrice(asset)
+  const netPosition = Number(base?.netPosition ?? 0)
+  const platformPnl24h = Number(base?.platformPnl24h ?? 0)
+  const estLoss = Math.max(0, Math.abs(platformPnl24h) || 10_000)
+
+  deliveryHarvestRow.value = {
+    key,
+    asset,
+    tierSec,
+    label: labelOf(asset, tierSec),
+    marketPrice,
+    remainSec: tierSec,
+    estimatedLoss: estLoss,
+    platformDelta: Number.isFinite(netPosition) ? netPosition : 0,
+    pnlNow: platformPnl24h,
+    volume24h: Number(base?.volume24h ?? 0),
+    position: Number(base?.position ?? 0),
+    activeUsers: Number(base?.activeUsers ?? 0),
+    longShortRatio: Number(base?.longShortRatio ?? 0),
+    controlActive: Boolean(base?.controlActive)
+  }
+
+  showDeliveryHarvestPanel.value = true
+}
+
+const onLockDeliveryHarvest = (payload) => {
+  const modeLabel = payload?.mode === 'squeeze' ? '双向挤压' : payload?.mode === 'slippage' ? '滑点注入' : '强制结算价'
+  alert(`已锁定：${payload?.label || '-'}\n模式：${modeLabel}\n（示意页面：未接真实接口）`)
+}
 </script>
 
 <template>
@@ -503,7 +555,7 @@ const openDeliveryContracts = () => router.push('/delivery/contracts')
               <td class="px-5 py-4 text-sm text-slate-600">{{ row.extra }}</td>
               <td class="px-5 py-4 text-right">
                 <button v-if="row.product === '永续'" type="button" class="ant-btn !h-9 !px-4" @click="openPerpManualDialog(row.contractId)">手动插线</button>
-                <button v-else type="button" class="ant-btn !h-9 !px-4" @click="openDeliveryRules">场控设置</button>
+                <button v-else type="button" class="ant-btn !h-9 !px-4" @click="openDeliveryHarvestControl(row.symbol)">场控设置</button>
               </td>
             </tr>
           </tbody>
@@ -526,5 +578,7 @@ const openDeliveryContracts = () => router.push('/delivery/contracts')
       @save="applyPerpManual"
       @remove="onRemovePerpManual"
     />
+
+    <HarvestControlPanel v-model="showDeliveryHarvestPanel" :row="deliveryHarvestRow" @lock="onLockDeliveryHarvest" />
   </section>
 </template>

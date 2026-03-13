@@ -490,8 +490,8 @@ const rowTone = (row) => {
   <section class="space-y-4">
     <header class="flex flex-wrap items-start justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-semibold text-slate-900">交割合约 · 手动场控（收割中心）</h1>
-        <p class="mt-1 text-sm text-slate-500">左：全盘风险热力｜中：深度作战区｜右：元凶追踪与精准收割</p>
+        <h1 class="text-3xl font-semibold text-slate-900">交割合约 · 手动场控</h1>
+        <p class="mt-1 text-sm text-slate-500">左：全盘风险热力｜中：深度作战区｜右：元凶追踪与精准场控</p>
       </div>
       <div class="flex items-center gap-2 text-xs text-slate-500">
         <span>刷新：1s</span>

@@ -787,16 +787,7 @@ const klineSvg = computed(() => {
               <div class="text-xs text-slate-500">The War Room Header</div>
               <h2 class="mt-1 text-xl font-semibold text-slate-900">实施场控：{{ label }}</h2>
               <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500">
-                <!-- <span class="font-mono">倒计时 {{ formatCountdown(remainSec) }}</span> -->
-                <!-- <span class="text-slate-300">|</span> -->
-                <span>市价 {{ formatPrice(marketPrice) }}</span>
-                <span class="text-slate-300">|</span>
-                <span v-if="mode === 'squeeze'">
-                  结算 多 {{ formatPrice(settlementPrices.long) }} / 空 {{ formatPrice(settlementPrices.short) }}
-                </span>
-                <!-- <span v-else>预演结算 {{ formatPrice(previewSettlementPrice) }}</span> -->
-                <!-- <span class="text-slate-300">|</span> -->
-                <span>平台利润 {{ formatCompactUsd(previewPlatformPnl, true) }}</span>
+                <span>设置结算策略并预览影响，确认后执行场控</span>
               </div>
             </div>
           <button
