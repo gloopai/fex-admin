@@ -625,23 +625,10 @@ const volTone = computed(() => {
   return { text: '波动平稳', cls: 'text-emerald-700' }
 })
 
-const flowWindowSec = ref(20)
-const flowEvents = ref([])
 const heartbeat = ref(0)
-let flowTimer = null
+let heartbeatTimer = null
 
-const pushFlow = () => {
-  if (!key.value) return
-  const rand = seeded(`${key.value}_${Math.floor(Date.now() / 1000)}_flow`)
-  const notional = allPositions.value.reduce((s, p) => s + Number(p.principal || 0) * Number(p.leverage || 0), 0)
-  const base = Math.max(800, notional * 0.0018)
-  const spike = rand() < 0.08 ? 3.5 : 1
-  const longIn = base * spike * (0.55 + rand() * 0.75)
-  const shortIn = base * spike * (0.55 + rand() * 0.75)
-  const now = Date.now()
-  const next = [...flowEvents.value, { t: now, longIn, shortIn }].slice(-240)
-  const cutoff = now - Math.max(5, Number(flowWindowSec.value || 20)) * 1000
-  flowEvents.value = next.filter((x) => x.t >= cutoff)
+const bumpHeartbeat = () => {
   heartbeat.value++
 }
 
@@ -649,30 +636,53 @@ watch(
   () => open.value,
   (v) => {
     if (v) {
-      if (!flowTimer) {
-        pushFlow()
-        flowTimer = setInterval(pushFlow, 1000)
+      if (!heartbeatTimer) {
+        bumpHeartbeat()
+        heartbeatTimer = setInterval(bumpHeartbeat, 1000)
       }
-    } else if (flowTimer) {
-      clearInterval(flowTimer)
-      flowTimer = null
+    } else if (heartbeatTimer) {
+      clearInterval(heartbeatTimer)
+      heartbeatTimer = null
     }
   },
   { immediate: true }
 )
 
 onBeforeUnmount(() => {
-  if (flowTimer) clearInterval(flowTimer)
+  if (heartbeatTimer) clearInterval(heartbeatTimer)
 })
 
-const flowSpeed = computed(() => {
-  heartbeat.value
-  const events = flowEvents.value
-  const window = Math.max(5, Number(flowWindowSec.value || 20))
-  if (!events.length) return { longPerSec: 0, shortPerSec: 0 }
-  const longSum = events.reduce((s, e) => s + Number(e.longIn || 0), 0)
-  const shortSum = events.reduce((s, e) => s + Number(e.shortIn || 0), 0)
-  return { longPerSec: longSum / window, shortPerSec: shortSum / window }
+const exposureSummary = computed(() => {
+  const positions = targetedPositions.value
+  let longNotional = 0
+  let shortNotional = 0
+  let longUsers = 0
+  let shortUsers = 0
+  for (const p of positions) {
+    const notional = Math.max(0, Number(p.principal || 0)) * Math.max(0, Number(p.leverage || 0))
+    if (p.side === 'long') {
+      longNotional += notional
+      longUsers += 1
+    } else {
+      shortNotional += notional
+      shortUsers += 1
+    }
+  }
+  const totalNotional = longNotional + shortNotional
+  const ratio = shortNotional > 0 ? longNotional / shortNotional : longNotional > 0 ? Infinity : 0
+  return {
+    longNotional,
+    shortNotional,
+    totalNotional,
+    longUsers,
+    shortUsers,
+    netNotional: longNotional - shortNotional,
+    ratio
+  }
+})
+
+const platformPnlNow = computed(() => {
+  return platformProfitAtUniform(markPrice.value)
 })
 
 const indexPrices = computed(() => {
@@ -777,15 +787,15 @@ const klineSvg = computed(() => {
               <div class="text-xs text-slate-500">The War Room Header</div>
               <h2 class="mt-1 text-xl font-semibold text-slate-900">实施场控：{{ label }}</h2>
               <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500">
-                <span class="font-mono">倒计时 {{ formatCountdown(remainSec) }}</span>
-                <span class="text-slate-300">|</span>
+                <!-- <span class="font-mono">倒计时 {{ formatCountdown(remainSec) }}</span> -->
+                <!-- <span class="text-slate-300">|</span> -->
                 <span>市价 {{ formatPrice(marketPrice) }}</span>
                 <span class="text-slate-300">|</span>
                 <span v-if="mode === 'squeeze'">
                   结算 多 {{ formatPrice(settlementPrices.long) }} / 空 {{ formatPrice(settlementPrices.short) }}
                 </span>
-                <span v-else>预演结算 {{ formatPrice(previewSettlementPrice) }}</span>
-                <span class="text-slate-300">|</span>
+                <!-- <span v-else>预演结算 {{ formatPrice(previewSettlementPrice) }}</span> -->
+                <!-- <span class="text-slate-300">|</span> -->
                 <span>平台利润 {{ formatCompactUsd(previewPlatformPnl, true) }}</span>
               </div>
             </div>
@@ -798,39 +808,66 @@ const klineSvg = computed(() => {
           </button>
           </div>
 
-          <div class="mt-4 grid gap-3 md:grid-cols-2">
-            <div class="rounded-xl border border-slate-200 bg-white p-4">
-              <div class="flex items-center justify-between">
-                <div class="text-xs font-semibold text-slate-900">价格波动计</div>
-                <div class="font-mono text-sm text-slate-900">{{ volatilityPct.toFixed(2) }}%</div>
-              </div>
-              <div class="mt-2 flex items-center justify-between text-[11px] text-slate-500">
-                <span>近 60s 波动率</span>
+          <div class="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-2.5">
+            <div class="flex items-center gap-4 overflow-x-auto whitespace-nowrap text-[11px] text-slate-600">
+              <div class="flex items-baseline gap-2 shrink-0">
+                <span class="text-slate-500">波动(60s)</span>
+                <span class="font-mono text-slate-900">{{ volatilityPct.toFixed(2) }}%</span>
                 <span :class="volTone.cls">{{ volTone.text }}</span>
               </div>
-            </div>
 
-            <div class="rounded-xl border border-slate-200 bg-white p-4">
-              <div class="flex items-center justify-between">
-                <div class="text-xs font-semibold text-slate-900">资金流速</div>
-                <div class="text-[11px] text-slate-500">近 {{ flowWindowSec }}s</div>
+              <span class="h-4 w-px bg-slate-200 shrink-0"></span>
+
+              <div class="flex items-baseline gap-2 shrink-0">
+                <span class="text-slate-500">实时PnL</span>
+                <span class="font-mono" :class="platformPnlNow < 0 ? 'text-rose-700' : 'text-emerald-700'">
+                  {{ formatCompactUsd(platformPnlNow, true) }}
+                </span>
               </div>
-              <div class="mt-2 grid grid-cols-2 gap-2 text-[11px]">
-                <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                  <div class="text-slate-500">多头注入</div>
-                  <div class="mt-1 font-mono text-slate-900">{{ formatCompactUsd(flowSpeed.longPerSec, true) }}/s</div>
-                </div>
-                <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                  <div class="text-slate-500">空头注入</div>
-                  <div class="mt-1 font-mono text-slate-900">{{ formatCompactUsd(flowSpeed.shortPerSec, true) }}/s</div>
-                </div>
+
+              <div class="flex items-baseline gap-2 shrink-0">
+                <span class="text-slate-500">预演利润</span>
+                <span class="font-mono" :class="previewPlatformPnl < 0 ? 'text-rose-700' : 'text-emerald-700'">
+                  {{ formatCompactUsd(previewPlatformPnl, true) }}
+                </span>
+              </div>
+
+              <span class="h-4 w-px bg-slate-200 shrink-0"></span>
+
+              <div class="flex items-baseline gap-2 shrink-0">
+                <span class="text-slate-500">多仓</span>
+                <span class="font-mono text-slate-900">{{ formatCompactUsd(exposureSummary.longNotional) }}</span>
+                <span class="font-mono text-slate-400">({{ exposureSummary.longUsers }})</span>
+              </div>
+
+              <div class="flex items-baseline gap-2 shrink-0">
+                <span class="text-slate-500">空仓</span>
+                <span class="font-mono text-slate-900">{{ formatCompactUsd(exposureSummary.shortNotional) }}</span>
+                <span class="font-mono text-slate-400">({{ exposureSummary.shortUsers }})</span>
+              </div>
+
+              <div class="flex items-baseline gap-2 shrink-0">
+                <span class="text-slate-500">净头寸</span>
+                <span class="font-mono text-slate-900">{{ formatCompactUsd(exposureSummary.netNotional, true) }}</span>
+              </div>
+
+              <div class="flex items-baseline gap-2 shrink-0">
+                <span class="text-slate-500">多空比</span>
+                <span class="font-mono text-slate-900">{{ Number.isFinite(exposureSummary.ratio) ? exposureSummary.ratio.toFixed(2) : '∞' }}</span>
+              </div>
+
+              <span class="h-4 w-px bg-slate-200 shrink-0"></span>
+
+              <div class="flex items-baseline gap-2 shrink-0 ml-auto">
+                <span class="text-slate-500">范围</span>
+                <span class="font-mono text-slate-900">{{ selectedUids.length ? `已选 ${selectedUids.length}` : '全部用户' }}</span>
               </div>
             </div>
           </div>
         </div>
 
         <div class="flex-1 overflow-y-auto p-6">
-          <div class="grid gap-4 lg:grid-cols-12">
+          <div class="grid gap-4 lg:grid-cols-12 h-full">
              <section class="lg:col-span-6 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
               <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4 bg-slate-50/40">
                 <div>
@@ -840,8 +877,8 @@ const klineSvg = computed(() => {
                 <div class="text-[11px] text-slate-400 font-mono">Advanced Scanner</div>
               </div>
 
-              <div class="space-y-4">
-                <div class="max-h-[520px] overflow-auto">
+              <div class="space-y-4 h-full">
+                <div class="max-h-[90%] overflow-auto">
                   <table class="w-full text-left text-xs">
                     <thead class="bg-slate-50 text-[11px] text-slate-500">
                       <tr>
