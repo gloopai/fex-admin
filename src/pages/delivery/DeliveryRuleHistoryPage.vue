@@ -84,6 +84,7 @@ const nextPage = () => {
               <th>用户</th>
               <th>触发值</th>
               <th>执行动作</th>
+              <th>操作人</th>
               <th class="text-center">结果</th>
               <th class="text-center">影响持仓</th>
             </tr>
@@ -98,6 +99,7 @@ const nextPage = () => {
               </td>
               <td class="text-sm text-slate-600">{{ hit.triggerValue }}</td>
               <td class="text-sm text-slate-600">{{ hit.action }}</td>
+              <td class="text-sm text-slate-600">{{ hit.operator }}</td>
               <td class="text-center">
                 <span
                   class="rounded-md px-2 py-1 text-xs font-medium"
@@ -111,7 +113,7 @@ const nextPage = () => {
               </td>
             </tr>
             <tr v-if="paginatedHistory.length === 0">
-              <td colspan="7" class="text-center text-sm text-slate-500 py-10">
+              <td colspan="8" class="text-center text-sm text-slate-500 py-10">
                 暂无符合条件的数据
               </td>
             </tr>

@@ -198,6 +198,7 @@ const ruleHitHistory = [
     triggerTime: '2026-03-10 17:35:22',
     triggerValue: '22 次交易',
     action: '盈亏控制：胜率 20%，EV 预估偏向亏损',
+    operator: 'system',
     result: 'success',
     affectedPositions: 3
   },
@@ -210,6 +211,7 @@ const ruleHitHistory = [
     triggerTime: '2026-03-10 17:18:45',
     triggerValue: '连续 5 次亏损',
     action: '后续 2 单强制盈利 15%',
+    operator: 'risk_admin',
     result: 'success',
     affectedPositions: 1
   },
@@ -222,6 +224,7 @@ const ruleHitHistory = [
     triggerTime: '2026-03-10 17:05:33',
     triggerValue: '今日累计盈利 $5,200',
     action: '后续 3 单强制亏损 30%',
+    operator: 'ops_admin',
     result: 'success',
     affectedPositions: 1
   },
@@ -234,6 +237,7 @@ const ruleHitHistory = [
     triggerTime: '2026-03-10 16:20:10',
     triggerValue: '连续 5 次盈利',
     action: '下一单强制亏损 25%',
+    operator: 'system',
     result: 'success',
     affectedPositions: 2
   },
@@ -246,6 +250,7 @@ const ruleHitHistory = [
     triggerTime: '2026-03-10 15:42:12',
     triggerValue: '4 小时盈利 +2,350 USDT',
     action: '盈亏控制：胜率 15%',
+    operator: 'risk_manager',
     result: 'success',
     affectedPositions: 0
   }
