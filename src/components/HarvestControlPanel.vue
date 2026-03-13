@@ -101,6 +101,7 @@ const remainSec = computed(() => Number(props.row?.remainSec ?? 0))
 const tickSize = computed(() => tickSizeFor(asset.value, marketPrice.value))
 
 const positionsByKey = ref({})
+const selectedUids = ref([])
 
 const generatePositions = (seedKey, mp) => {
   const rand = seeded(`${seedKey}_positions`)
@@ -162,6 +163,13 @@ const allPositions = computed(() => {
   return positionsByKey.value[key.value] || []
 })
 
+const targetedPositions = computed(() => {
+  const picked = selectedUids.value.map((x) => String(x))
+  if (picked.length === 0) return allPositions.value
+  const set = new Set(picked)
+  return allPositions.value.filter((p) => set.has(String(p.uid)))
+})
+
 const userPnlAt = (pos, settlementPrice) => {
   const p = Number(settlementPrice || 0)
   const entry = Number(pos.entryPrice || 0)
@@ -181,26 +189,98 @@ const priceBandPct = computed(() => {
 const priceMin = computed(() => roundToTick(marketPrice.value * (1 - priceBandPct.value), tickSize.value))
 const priceMax = computed(() => roundToTick(marketPrice.value * (1 + priceBandPct.value), tickSize.value))
 
-const platformProfitAt = (settlementPrice) => {
-  return -allPositions.value.reduce((sum, pos) => sum + userPnlAt(pos, settlementPrice), 0)
+const platformProfitAtUniform = (settlementPrice) => {
+  return -targetedPositions.value.reduce((sum, pos) => sum + userPnlAt(pos, settlementPrice), 0)
 }
 
+const platformProfitAtSqueeze = (longSettlementPrice, shortSettlementPrice) => {
+  return -targetedPositions.value.reduce((sum, pos) => {
+    const p = pos.side === 'long' ? longSettlementPrice : shortSettlementPrice
+    return sum + userPnlAt(pos, p)
+  }, 0)
+}
+
+const controlPrice = ref(0)
+const mode = ref('force')
+const slippagePoints = ref(8)
+const slippageDir = ref('sub')
+const squeezePoints = ref(6)
+const squeezeCenter = ref(0)
+const locked = ref(false)
+const lastAction = ref('')
+const hoverPrice = ref(null)
+
+const squeezeGap = computed(() => Math.max(0, Number(squeezePoints.value || 0)) * tickSize.value)
+
+const squeezeCenterMin = computed(() => {
+  const min = priceMin.value + squeezeGap.value
+  const max = priceMax.value - squeezeGap.value
+  if (!Number.isFinite(min) || !Number.isFinite(max) || min >= max) return priceMin.value
+  return roundToTick(min, tickSize.value)
+})
+
+const squeezeCenterMax = computed(() => {
+  const min = priceMin.value + squeezeGap.value
+  const max = priceMax.value - squeezeGap.value
+  if (!Number.isFinite(min) || !Number.isFinite(max) || min >= max) return priceMax.value
+  return roundToTick(max, tickSize.value)
+})
+
+const settlementPrices = computed(() => {
+  if (mode.value !== 'squeeze') {
+    const p = finalSettlementPrice.value
+    return { long: p, short: p }
+  }
+  const center = clamp(squeezeCenter.value, squeezeCenterMin.value, squeezeCenterMax.value)
+  const gap = squeezeGap.value
+  const long = roundToTick(clamp(center - gap, priceMin.value, priceMax.value), tickSize.value)
+  const short = roundToTick(clamp(center + gap, priceMin.value, priceMax.value), tickSize.value)
+  return { long, short }
+})
+
+const platformProfitAtForCurve = (centerOrUniformPrice) => {
+  const p = Number(centerOrUniformPrice || 0)
+  if (mode.value === 'squeeze') {
+    const gap = squeezeGap.value
+    const longP = clamp(p - gap, priceMin.value, priceMax.value)
+    const shortP = clamp(p + gap, priceMin.value, priceMax.value)
+    return platformProfitAtSqueeze(longP, shortP)
+  }
+  return platformProfitAtUniform(p)
+}
+
+const curveMin = computed(() => {
+  if (mode.value !== 'squeeze') return priceMin.value
+  const min = squeezeCenterMin.value
+  const max = squeezeCenterMax.value
+  if (!Number.isFinite(min) || !Number.isFinite(max) || min >= max) return priceMin.value
+  return min
+})
+
+const curveMax = computed(() => {
+  if (mode.value !== 'squeeze') return priceMax.value
+  const min = squeezeCenterMin.value
+  const max = squeezeCenterMax.value
+  if (!Number.isFinite(min) || !Number.isFinite(max) || min >= max) return priceMax.value
+  return max
+})
+
 const profitCurve = computed(() => {
-  const min = priceMin.value
-  const max = priceMax.value
+  const min = curveMin.value
+  const max = curveMax.value
   const steps = 120
   if (!Number.isFinite(min) || !Number.isFinite(max) || min >= max) return []
   const points = []
   for (let i = 0; i <= steps; i++) {
     const price = min + ((max - min) * i) / steps
-    points.push({ price, profit: platformProfitAt(price) })
+    points.push({ price, profit: platformProfitAtForCurve(price) })
   }
   return points
 })
 
 const bestPoint = computed(() => {
   const points = profitCurve.value
-  if (points.length === 0) return { price: marketPrice.value, profit: platformProfitAt(marketPrice.value) }
+  if (points.length === 0) return { price: marketPrice.value, profit: platformProfitAtForCurve(marketPrice.value) }
   let best = points[0]
   for (const p of points) {
     if (p.profit > best.profit) best = p
@@ -234,7 +314,7 @@ const svgLandscape = computed(() => {
   const maxProfit = Math.max(...profits)
   const span = maxProfit - minProfit || 1
   const xFor = (price) => {
-    const t = (price - priceMin.value) / (priceMax.value - priceMin.value)
+    const t = (price - curveMin.value) / (curveMax.value - curveMin.value)
     return pad + clamp(t, 0, 1) * (w - pad * 2)
   }
   const yFor = (profit) => {
@@ -271,24 +351,35 @@ const deathZones = computed(() => {
 const harvestZone = computed(() => {
   const points = profitCurve.value
   if (points.length < 2) return null
-  const span = (priceMax.value - priceMin.value) * 0.06
+  const span = (curveMax.value - curveMin.value) * 0.06
   return { from: bestPoint.value.price - span, to: bestPoint.value.price + span }
 })
 
-const controlPrice = ref(0)
-const mode = ref('force')
-const slippagePoints = ref(8)
-const slippageDir = ref('sub')
-const locked = ref(false)
-const lastAction = ref('')
-const hoverPrice = ref(null)
+const hoverSettlementPrice = computed(() => {
+  const raw = hoverPrice.value
+  const n = Number(raw)
+  if (raw === null) return null
+  if (!Number.isFinite(n)) return null
+  return n
+})
 
 const previewSettlementPrice = computed(() => {
-  if (hoverPrice.value !== null && Number.isFinite(Number(hoverPrice.value))) return Number(hoverPrice.value)
   return finalSettlementPrice.value
 })
 
-const previewPlatformPnl = computed(() => platformProfitAt(previewSettlementPrice.value))
+const previewPlatformPnl = computed(() => {
+  if (mode.value === 'squeeze') return platformProfitAtSqueeze(settlementPrices.value.long, settlementPrices.value.short)
+  return platformProfitAtUniform(previewSettlementPrice.value)
+})
+
+const userPreviewSettlementPrice = (pos) => {
+  if (mode.value !== 'squeeze') return previewSettlementPrice.value
+  return pos?.side === 'long' ? settlementPrices.value.long : settlementPrices.value.short
+}
+
+const userPreviewPnl = (pos) => {
+  return userPnlAt(pos, userPreviewSettlementPrice(pos))
+}
 
 const markHoverPrice = (evt) => {
   if (!svgLandscape.value.xFor) return
@@ -296,7 +387,7 @@ const markHoverPrice = (evt) => {
   if (!box) return
   const x = clamp(evt.clientX - box.left, svgLandscape.value.pad, svgLandscape.value.w - svgLandscape.value.pad)
   const t = (x - svgLandscape.value.pad) / (svgLandscape.value.w - svgLandscape.value.pad * 2)
-  const p = priceMin.value + t * (priceMax.value - priceMin.value)
+  const p = curveMin.value + t * (curveMax.value - curveMin.value)
   hoverPrice.value = roundToTick(p, tickSize.value)
 }
 
@@ -308,23 +399,34 @@ watch(
   () => key.value,
   () => {
     controlPrice.value = roundToTick(marketPrice.value, tickSize.value)
+    squeezeCenter.value = roundToTick(marketPrice.value, tickSize.value)
     mode.value = 'force'
     slippagePoints.value = 8
     slippageDir.value = 'sub'
+    squeezePoints.value = 6
     locked.value = false
     lastAction.value = ''
     hoverPrice.value = null
+    selectedUids.value = []
   },
   { immediate: true }
 )
 
-watch([priceMin, priceMax, tickSize], () => {
-  if (mode.value !== 'force') return
-  const next = roundToTick(clamp(controlPrice.value, priceMin.value, priceMax.value), tickSize.value)
-  if (Number.isFinite(next)) controlPrice.value = next
+watch([priceMin, priceMax, tickSize, squeezePoints], () => {
+  if (mode.value === 'force') {
+    const next = roundToTick(clamp(controlPrice.value, priceMin.value, priceMax.value), tickSize.value)
+    if (Number.isFinite(next)) controlPrice.value = next
+  }
+  if (mode.value === 'squeeze') {
+    const next = roundToTick(clamp(squeezeCenter.value, squeezeCenterMin.value, squeezeCenterMax.value), tickSize.value)
+    if (Number.isFinite(next)) squeezeCenter.value = next
+  }
 })
 
 const finalSettlementPrice = computed(() => {
+  if (mode.value === 'squeeze') {
+    return roundToTick(clamp(squeezeCenter.value, squeezeCenterMin.value, squeezeCenterMax.value), tickSize.value)
+  }
   if (mode.value === 'slippage') {
     const sign = slippageDir.value === 'add' ? 1 : -1
     const points = Math.max(0, Number(slippagePoints.value || 0))
@@ -333,7 +435,10 @@ const finalSettlementPrice = computed(() => {
   return roundToTick(clamp(controlPrice.value, priceMin.value, priceMax.value), tickSize.value)
 })
 
-const estPlatformPnl = computed(() => platformProfitAt(finalSettlementPrice.value))
+const estPlatformPnl = computed(() => {
+  if (mode.value === 'squeeze') return platformProfitAtSqueeze(settlementPrices.value.long, settlementPrices.value.short)
+  return platformProfitAtUniform(finalSettlementPrice.value)
+})
 
 const onCurveClick = (evt) => {
   if (locked.value) return
@@ -341,10 +446,29 @@ const onCurveClick = (evt) => {
   if (!box) return
   const x = clamp(evt.clientX - box.left, svgLandscape.value.pad, svgLandscape.value.w - svgLandscape.value.pad)
   const t = (x - svgLandscape.value.pad) / (svgLandscape.value.w - svgLandscape.value.pad * 2)
-  const p = priceMin.value + t * (priceMax.value - priceMin.value)
-  mode.value = 'force'
-  controlPrice.value = roundToTick(p, tickSize.value)
-  lastAction.value = `曲线点选：${formatPrice(controlPrice.value)}`
+  const p = curveMin.value + t * (curveMax.value - curveMin.value)
+  if (mode.value === 'squeeze') {
+    squeezeCenter.value = roundToTick(clamp(p, squeezeCenterMin.value, squeezeCenterMax.value), tickSize.value)
+    lastAction.value = `曲线点选：中心 ${formatPrice(squeezeCenter.value)}`
+  } else {
+    mode.value = 'force'
+    controlPrice.value = roundToTick(p, tickSize.value)
+    lastAction.value = `曲线点选：${formatPrice(controlPrice.value)}`
+  }
+  hoverPrice.value = null
+}
+
+const fillSettlementPrice = (price, labelText) => {
+  if (locked.value) return
+  if (mode.value === 'squeeze') {
+    squeezeCenter.value = roundToTick(clamp(Number(price || 0), squeezeCenterMin.value, squeezeCenterMax.value), tickSize.value)
+    lastAction.value = `${labelText}：中心 ${formatPrice(squeezeCenter.value)}`
+  } else {
+    mode.value = 'force'
+    controlPrice.value = roundToTick(Number(price || 0), tickSize.value)
+    lastAction.value = `${labelText}：${formatPrice(controlPrice.value)}`
+  }
+  hoverPrice.value = null
 }
 
 const stopLossPriceOf = (pos, lossFraction) => {
@@ -357,15 +481,12 @@ const stopLossPriceOf = (pos, lossFraction) => {
   return roundToTick(clamp(p, priceMin.value, priceMax.value), tickSize.value)
 }
 
-const blastPriceOf = (pos) => stopLossPriceOf(pos, 1)
-
 const positionsWithStats = computed(() => {
   return allPositions.value.map((p) => {
     return {
       ...p,
       pnlNow: userPnlAt(p, marketPrice.value),
-      stopLossPrice: stopLossPriceOf(p, 0.5),
-      blastPrice: blastPriceOf(p)
+      stopLossPrice: stopLossPriceOf(p, 0.5)
     }
   })
 })
@@ -374,24 +495,34 @@ const topProfitUsers = computed(() => {
   return [...positionsWithStats.value].sort((a, b) => Number(b.pnlNow || 0) - Number(a.pnlNow || 0)).slice(0, 20)
 })
 
-const blastOne = (pos) => {
-  if (locked.value) return
-  if (!pos) return
-  mode.value = 'force'
-  controlPrice.value = pos.blastPrice
-  hoverPrice.value = null
-  lastAction.value = `一键爆破：${pos.uid} → ${formatPrice(controlPrice.value)}`
-}
-
 const nudge = (dir) => {
   if (locked.value) return
   mode.value = 'force'
   controlPrice.value = roundToTick(controlPrice.value + Number(dir || 0) * tickSize.value, tickSize.value)
 }
 
+const squeezeNudge = (dir) => {
+  if (locked.value) return
+  mode.value = 'squeeze'
+  squeezeCenter.value = roundToTick(squeezeCenter.value + Number(dir || 0) * tickSize.value, tickSize.value)
+}
+
+const squeezeAll = () => {
+  if (locked.value) return
+  mode.value = 'squeeze'
+  squeezeCenter.value = roundToTick(clamp(bestPoint.value.price, squeezeCenterMin.value, squeezeCenterMax.value), tickSize.value)
+  hoverPrice.value = null
+  lastAction.value = `整体收缩：中心 ${formatPrice(squeezeCenter.value)}`
+}
+
 const lockPlan = () => {
   locked.value = true
-  lastAction.value = `锁定收割方案：${formatPrice(finalSettlementPrice.value)}`
+  const picked = selectedUids.value.map((x) => String(x))
+  const userLabel = picked.length ? `已选 ${picked.length}` : '全部'
+  lastAction.value =
+    mode.value === 'squeeze'
+      ? `锁定收割方案：多 ${formatPrice(settlementPrices.value.long)} / 空 ${formatPrice(settlementPrices.value.short)} · 用户：${userLabel}`
+      : `锁定收割方案：${formatPrice(finalSettlementPrice.value)} · 用户：${userLabel}`
   emit('lock', {
     key: key.value,
     label: label.value,
@@ -399,18 +530,13 @@ const lockPlan = () => {
     tierSec: tierSec.value,
     mode: mode.value,
     settlementPrice: finalSettlementPrice.value,
-    estPlatformPnl: estPlatformPnl.value
+    settlementPriceLong: mode.value === 'squeeze' ? settlementPrices.value.long : null,
+    settlementPriceShort: mode.value === 'squeeze' ? settlementPrices.value.short : null,
+    squeezePoints: mode.value === 'squeeze' ? Number(squeezePoints.value || 0) : null,
+    estPlatformPnl: estPlatformPnl.value,
+    targetUids: picked.length ? picked : null
   })
 }
-
-const hedgeStatus = computed(() => {
-  const exposure = Number(props.row?.platformDelta || 0)
-  const denom = Math.max(1, Number(props.row?.position || 0))
-  const ratio = Math.abs(exposure) / denom
-  if (ratio >= 0.35) return { text: '极度风险', cls: 'bg-rose-100 text-rose-700 border-rose-200' }
-  if (ratio >= 0.18) return { text: '平衡', cls: 'bg-amber-100 text-amber-700 border-amber-200' }
-  return { text: '绝对安全', cls: 'bg-emerald-100 text-emerald-700 border-emerald-200' }
-})
 
 const priceHistory = ref([])
 watch(
@@ -604,7 +730,10 @@ const klineSvg = computed(() => {
                 <span class="text-slate-300">|</span>
                 <span>市价 {{ formatPrice(marketPrice) }}</span>
                 <span class="text-slate-300">|</span>
-                <span>预演结算 {{ formatPrice(previewSettlementPrice) }}</span>
+                <span v-if="mode === 'squeeze'">
+                  结算 多 {{ formatPrice(settlementPrices.long) }} / 空 {{ formatPrice(settlementPrices.short) }}
+                </span>
+                <span v-else>预演结算 {{ formatPrice(previewSettlementPrice) }}</span>
                 <span class="text-slate-300">|</span>
                 <span>平台利润 {{ formatCompactUsd(previewPlatformPnl, true) }}</span>
               </div>
@@ -618,17 +747,7 @@ const klineSvg = computed(() => {
           </button>
           </div>
 
-          <div class="mt-4 grid gap-3 md:grid-cols-3">
-            <div class="rounded-xl border border-slate-200 bg-white p-4">
-              <div class="flex items-center justify-between">
-                <div class="text-xs font-semibold text-slate-900">平台对冲状态</div>
-                <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold" :class="hedgeStatus.cls">
-                  {{ hedgeStatus.text }}
-                </span>
-              </div>
-              <div class="mt-2 text-[11px] text-slate-500">基于净敞口与持仓规模估算的安全区间</div>
-            </div>
-
+          <div class="mt-4 grid gap-3 md:grid-cols-2">
             <div class="rounded-xl border border-slate-200 bg-white p-4">
               <div class="flex items-center justify-between">
                 <div class="text-xs font-semibold text-slate-900">价格波动计</div>
@@ -665,7 +784,7 @@ const klineSvg = computed(() => {
               <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4 bg-slate-50/40">
                 <div>
                   <h3 class="text-sm font-semibold text-slate-900">用户列表</h3>
-                  <p class="mt-0.5 text-[11px] text-slate-500">Top 20 · 关键参数/爆仓止损/一键爆破</p>
+                  <p class="mt-0.5 text-[11px] text-slate-500">Top 20 · 勾选用户则仅对勾选生效（不选=全部）</p>
                 </div>
                 <div class="text-[11px] text-slate-400 font-mono">Advanced Scanner</div>
               </div>
@@ -682,7 +801,7 @@ const klineSvg = computed(() => {
                         <th class="px-3 py-2 font-medium">当前盈亏</th>
                         <th class="px-3 py-2 font-medium">爆仓/止损</th>
                         <th class="px-3 py-2 font-medium">预演盈亏</th>
-                        <th class="px-3 py-2 font-medium text-right">爆破</th>
+                        <th class="px-3 py-2 font-medium text-right">选择</th>
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -707,23 +826,18 @@ const klineSvg = computed(() => {
                         </td>
                         <td
                           class="px-3 py-2 align-top font-mono"
-                          :class="userPnlAt(pos, previewSettlementPrice) < 0 ? 'text-rose-700' : 'text-emerald-700'"
+                          :class="userPreviewPnl(pos) < 0 ? 'text-rose-700' : 'text-emerald-700'"
                         >
-                          {{ formatCompactUsd(userPnlAt(pos, previewSettlementPrice), true) }}
+                          {{ formatCompactUsd(userPreviewPnl(pos), true) }}
                         </td>
                         <td class="px-3 py-2 align-top text-right">
-                          <button
-                            type="button"
-                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                          <input
+                            type="checkbox"
+                            class="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900 disabled:opacity-40"
                             :disabled="locked"
-                            @click="blastOne(pos)"
-                            title="一键爆破：自动调至吞掉本金的价位"
-                          >
-                            <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
-                              <path stroke-linecap="round" stroke-linejoin="round" d="M12 2v4m0 12v4M2 12h4m12 0h4" />
-                              <circle cx="12" cy="12" r="3" />
-                            </svg>
-                          </button>
+                            :value="pos.uid"
+                            v-model="selectedUids"
+                          />
                         </td>
                       </tr>
                     </tbody>
@@ -737,7 +851,7 @@ const klineSvg = computed(() => {
               <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4 bg-slate-50/40">
                 <div>
                   <h3 class="text-sm font-semibold text-slate-900">指令执行区</h3>
-                  <p class="mt-0.5 text-[11px] text-slate-500">强制结算价 / 滑点注入</p>
+                  <p class="mt-0.5 text-[11px] text-slate-500">强制结算价 / 滑点注入 / 双向挤压</p>
                 </div>
                 <div class="text-[11px] text-slate-400 font-mono">Command Center</div>
               </div>
@@ -768,20 +882,41 @@ const klineSvg = computed(() => {
                       />
                       <div class="text-sm text-slate-900">滑点注入</div>
                     </label>
+                    <label class="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2">
+                      <input
+                        type="radio"
+                        name="mode"
+                        value="squeeze"
+                        class="h-4 w-4 text-slate-900 focus:ring-slate-900"
+                        v-model="mode"
+                        :disabled="locked"
+                      />
+                      <div class="text-sm text-slate-900">双向挤压</div>
+                    </label>
                   </div>
                 </div>
 
                 <div class="rounded-lg border border-slate-200 p-3 space-y-2">
                   <div class="flex items-center justify-between">
-                    <div class="text-xs font-semibold text-slate-900">结算价</div>
-                    <div class="font-mono text-xs text-slate-700">{{ formatPrice(finalSettlementPrice) }}</div>
+                    <div class="text-xs font-semibold text-slate-900">标记价</div>
+                    <div class="font-mono text-xs text-slate-700">{{ formatPrice(marketPrice) }}</div>
+                  </div>
+                  <div class="flex items-start justify-between gap-2">
+                    <div class="text-xs font-semibold text-slate-900">用户结算价</div>
+                    <div class="text-right">
+                      <div v-if="mode === 'squeeze'" class="space-y-0.5">
+                        <div class="font-mono text-xs text-slate-700">多 {{ formatPrice(settlementPrices.long) }}</div>
+                        <div class="font-mono text-xs text-slate-700">空 {{ formatPrice(settlementPrices.short) }}</div>
+                      </div>
+                      <div v-else class="font-mono text-xs text-slate-700">{{ formatPrice(finalSettlementPrice) }}</div>
+                    </div>
                   </div>
 
                   <div v-if="mode === 'force'" class="space-y-2">
                     <div class="flex items-center gap-2">
                       <button
                         type="button"
-                        class="h-9 w-9 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                        class="h-9 w-9 shrink-0 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 flex items-center justify-center leading-none"
                         :disabled="locked"
                         @click="nudge(-1)"
                       >
@@ -789,7 +924,7 @@ const klineSvg = computed(() => {
                       </button>
                       <input
                         type="number"
-                        class="h-9 flex-1 rounded-lg border border-slate-200 px-3 font-mono text-sm text-slate-900 focus:border-slate-900 focus:outline-none focus:ring-0 disabled:bg-slate-50"
+                        class="h-9 min-w-0 flex-1 rounded-lg border border-slate-200 px-3 font-mono text-sm text-slate-900 focus:border-slate-900 focus:outline-none focus:ring-0 disabled:bg-slate-50"
                         v-model.number="controlPrice"
                         :step="tickSize"
                         :min="priceMin"
@@ -798,7 +933,7 @@ const klineSvg = computed(() => {
                       />
                       <button
                         type="button"
-                        class="h-9 w-9 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                        class="h-9 w-9 shrink-0 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 flex items-center justify-center leading-none"
                         :disabled="locked"
                         @click="nudge(1)"
                       >
@@ -810,7 +945,7 @@ const klineSvg = computed(() => {
                     </div>
                   </div>
 
-                  <div v-else class="space-y-2">
+                  <div v-else-if="mode === 'slippage'" class="space-y-2">
                     <div class="grid grid-cols-2 gap-2">
                       <select
                         class="h-9 rounded-lg border border-slate-200 px-3 text-sm text-slate-900 focus:border-slate-900 focus:outline-none focus:ring-0 disabled:bg-slate-50"
@@ -829,6 +964,69 @@ const klineSvg = computed(() => {
                       />
                     </div>
                     <div class="text-[11px] text-slate-500">基于当前市价注入滑点：N 个点（Tick）</div>
+                  </div>
+
+                  <div v-else class="space-y-2">
+                    <div class="flex items-center gap-2">
+                      <button
+                        type="button"
+                        class="h-9 w-9 shrink-0 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 flex items-center justify-center leading-none"
+                        :disabled="locked"
+                        @click="squeezeNudge(-1)"
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        class="h-9 min-w-0 flex-1 rounded-lg border border-slate-200 px-3 font-mono text-sm text-slate-900 focus:border-slate-900 focus:outline-none focus:ring-0 disabled:bg-slate-50"
+                        v-model.number="squeezeCenter"
+                        :step="tickSize"
+                        :min="squeezeCenterMin"
+                        :max="squeezeCenterMax"
+                        :disabled="locked"
+                      />
+                      <button
+                        type="button"
+                        class="h-9 w-9 shrink-0 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 flex items-center justify-center leading-none"
+                        :disabled="locked"
+                        @click="squeezeNudge(1)"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 text-[11px]">
+                      <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                        <div class="text-slate-500">多头结算价</div>
+                        <div class="mt-1 font-mono text-slate-900">{{ formatPrice(settlementPrices.long) }}</div>
+                      </div>
+                      <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                        <div class="text-slate-500">空头结算价</div>
+                        <div class="mt-1 font-mono text-slate-900">{{ formatPrice(settlementPrices.short) }}</div>
+                      </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                      <input
+                        type="number"
+                        class="h-9 rounded-lg border border-slate-200 px-3 font-mono text-sm text-slate-900 focus:border-slate-900 focus:outline-none focus:ring-0 disabled:bg-slate-50"
+                        v-model.number="squeezePoints"
+                        min="0"
+                        :disabled="locked"
+                      />
+                      <button
+                        type="button"
+                        class="h-9 rounded-lg bg-slate-900 px-3 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-40"
+                        :disabled="locked"
+                        @click="squeezeAll"
+                      >
+                        整体收缩
+                      </button>
+                    </div>
+
+                    <div class="text-[11px] text-slate-500">
+                      中心区间 {{ formatPrice(squeezeCenterMin) }} ~ {{ formatPrice(squeezeCenterMax) }} · Gap {{ formatPrice(squeezeGap) }}
+                    </div>
                   </div>
                 </div>
 
@@ -918,21 +1116,6 @@ const klineSvg = computed(() => {
                       />
                     </g>
                   </svg>
-
-                  <div class="mt-2 grid grid-cols-3 gap-2 text-[11px] text-slate-500">
-                    <div>
-                      <div class="text-slate-400">Binance 指数</div>
-                      <div class="font-mono text-slate-900">{{ formatPrice(indexPrices.binance) }}</div>
-                    </div>
-                    <div>
-                      <div class="text-slate-400">OKX 指数</div>
-                      <div class="font-mono text-slate-900">{{ formatPrice(indexPrices.okx) }}</div>
-                    </div>
-                    <div>
-                      <div class="text-slate-400">预演结算</div>
-                      <div class="font-mono text-slate-900">{{ formatPrice(previewSettlementPrice) }}</div>
-                    </div>
-                  </div>
                 </div>
 
                 <div class="rounded-lg border border-slate-200 bg-white p-4">
@@ -986,14 +1169,23 @@ const klineSvg = computed(() => {
                         stroke-dasharray="4 4"
                       />
                       <line
-                        v-if="hoverPrice !== null"
                         :x1="svgLandscape.xFor(previewSettlementPrice)"
                         :x2="svgLandscape.xFor(previewSettlementPrice)"
                         :y1="svgLandscape.pad"
                         :y2="svgLandscape.h - svgLandscape.pad"
-                        stroke="#0f172a"
+                        stroke="#0ea5e9"
                         stroke-dasharray="6 4"
-                        opacity="0.8"
+                        opacity="0.85"
+                      />
+                      <line
+                        v-if="hoverSettlementPrice !== null"
+                        :x1="svgLandscape.xFor(hoverSettlementPrice)"
+                        :x2="svgLandscape.xFor(hoverSettlementPrice)"
+                        :y1="svgLandscape.pad"
+                        :y2="svgLandscape.h - svgLandscape.pad"
+                        stroke="#0f172a"
+                        stroke-dasharray="4 4"
+                        opacity="0.75"
                       />
                       <path :d="svgLandscape.path" fill="none" stroke="#0f172a" stroke-width="2.25" />
                       <circle
@@ -1010,7 +1202,7 @@ const klineSvg = computed(() => {
                       />
                       <circle
                         :cx="svgLandscape.xFor(marketPrice)"
-                        :cy="svgLandscape.yFor(platformProfitAt(marketPrice))"
+                        :cy="svgLandscape.yFor(platformProfitAtForCurve(marketPrice))"
                         r="4.2"
                         fill="#0ea5e9"
                       />
@@ -1020,11 +1212,25 @@ const klineSvg = computed(() => {
                   <div class="mt-3 grid grid-cols-3 gap-2 text-[11px] text-slate-500">
                     <div>
                       <div class="text-slate-400">盈亏平衡</div>
-                      <div class="font-mono text-slate-900">{{ formatPrice(breakevenPoint.price) }}</div>
+                      <button
+                        type="button"
+                        class="font-mono text-slate-900 hover:underline disabled:opacity-40"
+                        :disabled="locked"
+                        @click="fillSettlementPrice(breakevenPoint.price, '盈亏平衡')"
+                      >
+                        {{ formatPrice(breakevenPoint.price) }}
+                      </button>
                     </div>
                     <div>
                       <div class="text-slate-400">最大利润点</div>
-                      <div class="font-mono text-slate-900">{{ formatPrice(bestPoint.price) }}</div>
+                      <button
+                        type="button"
+                        class="font-mono text-slate-900 hover:underline disabled:opacity-40"
+                        :disabled="locked"
+                        @click="fillSettlementPrice(bestPoint.price, '最大利润点')"
+                      >
+                        {{ formatPrice(bestPoint.price) }}
+                      </button>
                     </div>
                     <div>
                       <div class="text-slate-400">预演利润</div>

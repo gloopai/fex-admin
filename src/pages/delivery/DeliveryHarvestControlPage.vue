@@ -231,12 +231,16 @@ const pickRow = (row) => {
 }
 
 const onLock = (payload) => {
-  const modeLabel = payload?.mode === 'slippage' ? '滑点注入' : '强制结算价'
+  const modeLabel = payload?.mode === 'squeeze' ? '双向挤压' : payload?.mode === 'slippage' ? '滑点注入' : '强制结算价'
+  const picked = Array.isArray(payload?.targetUids) ? payload.targetUids : null
+  const settlementLabel =
+    payload?.mode === 'squeeze'
+      ? `多 ${formatPrice(payload?.settlementPriceLong)} / 空 ${formatPrice(payload?.settlementPriceShort)}`
+      : formatPrice(payload?.settlementPrice)
   alert(
-    `已锁定：${payload?.label || '-'}\n模式：${modeLabel}\n结算价：${formatPrice(payload?.settlementPrice)}\n平台预估盈亏：${formatCompactUsd(
-      payload?.estPlatformPnl,
-      true
-    )}\n（示意页面：未接真实接口）`
+    `已锁定：${payload?.label || '-'}\n模式：${modeLabel}\n结算价：${settlementLabel}\n用户：${
+      picked?.length ? `已选 ${picked.length}` : '全部'
+    }\n平台预估盈亏：${formatCompactUsd(payload?.estPlatformPnl, true)}\n（示意页面：未接真实接口）`
   )
 }
 
