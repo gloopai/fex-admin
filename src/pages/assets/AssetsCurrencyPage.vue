@@ -8,8 +8,12 @@ import { createAssetsCoinsMock } from '../../mock/assets'
 const statusTab = ref(ASSET_COMMON_FILTER_ALL)
 const searchDraft = ref('')
 const currencyTypeDraft = ref('all')
+const depositSupportDraft = ref('all')
+const withdrawSupportDraft = ref('all')
 const searchApplied = ref('')
 const currencyTypeApplied = ref('all')
+const depositSupportApplied = ref('all')
+const withdrawSupportApplied = ref('all')
 const showEditModal = ref(false)
 const editingCoinId = ref('')
 const modalTab = ref(ASSET_MODAL_TAB.BASIC)
@@ -46,11 +50,15 @@ const currencyTypeLabel = (value) => {
 const applySearch = () => {
   searchApplied.value = searchDraft.value
   currencyTypeApplied.value = currencyTypeDraft.value
+  depositSupportApplied.value = depositSupportDraft.value
+  withdrawSupportApplied.value = withdrawSupportDraft.value
   currentPage.value = 1
 }
 
 const resetSearch = () => {
   currencyTypeDraft.value = 'all'
+  depositSupportDraft.value = 'all'
+  withdrawSupportDraft.value = 'all'
   searchDraft.value = ''
   applySearch()
 }
@@ -60,6 +68,8 @@ const form = reactive({
   name: '',
   symbol: '',
   isQuoteCurrency: false,
+  canDeposit: true,
+  canWithdraw: true,
   precision: 6,
   status: ASSET_STATUS.ENABLED,
   autoCollect: true,
@@ -102,7 +112,11 @@ const filteredCoins = computed(() => {
     const hitStatus = statusTab.value === ASSET_COMMON_FILTER_ALL || coin.status === statusTab.value
     const hitKeyword = !kw || `${coin.name} ${coin.symbol}`.toLowerCase().includes(kw)
     const hitType = currencyTypeApplied.value === 'all' || normalizeCurrencyType(coin.type) === currencyTypeApplied.value
-    return hitStatus && hitKeyword && hitType
+    const hitDeposit =
+      depositSupportApplied.value === 'all' || Boolean(coin.canDeposit) === (depositSupportApplied.value === 'enabled')
+    const hitWithdraw =
+      withdrawSupportApplied.value === 'all' || Boolean(coin.canWithdraw) === (withdrawSupportApplied.value === 'enabled')
+    return hitStatus && hitKeyword && hitType && hitDeposit && hitWithdraw
   })
 })
 
@@ -119,7 +133,7 @@ const goNext = () => {
   if (currentPage.value < totalPages.value) currentPage.value++
 }
 
-watch([statusTab, searchApplied, currencyTypeApplied], () => {
+watch([statusTab, searchApplied, currencyTypeApplied, depositSupportApplied, withdrawSupportApplied], () => {
   currentPage.value = 1
 })
 
@@ -130,6 +144,8 @@ const cloneCoinToForm = (coin) => {
   form.name = coin.name
   form.symbol = coin.symbol
   form.isQuoteCurrency = Boolean(coin.isQuoteCurrency)
+  form.canDeposit = coin.canDeposit ?? true
+  form.canWithdraw = coin.canWithdraw ?? true
   form.precision = coin.precision
   form.status = coin.status
   form.autoCollect = coin.autoCollect
@@ -151,6 +167,8 @@ const openCreate = () => {
   form.name = ''
   form.symbol = ''
   form.isQuoteCurrency = false
+  form.canDeposit = true
+  form.canWithdraw = true
   form.precision = 6
   form.status = ASSET_STATUS.ENABLED
   form.autoCollect = true
@@ -188,6 +206,8 @@ const saveCoin = () => {
     name: form.name.trim(),
     symbol: form.symbol.trim().toUpperCase(),
     isQuoteCurrency: Boolean(form.isQuoteCurrency),
+    canDeposit: Boolean(form.canDeposit),
+    canWithdraw: Boolean(form.canWithdraw),
     precision: Number(form.precision),
     status: form.status,
     autoCollect: offchain ? false : Boolean(form.autoCollect),
@@ -249,6 +269,24 @@ const badgeClass = (status) => (status === ASSET_STATUS.ENABLED ? 'bg-emerald-10
           <div class="flex items-center gap-2">
             <span class="text-sm text-slate-600 whitespace-nowrap">币种类型</span>
             <CurrencyTypeSelect v-model="currencyTypeDraft" class="shrink-0" />
+          </div>
+
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-slate-600 whitespace-nowrap">入金</span>
+            <select v-model="depositSupportDraft" class="w-28 rounded-lg border border-slate-300 px-2 !h-8 text-sm">
+              <option value="all">全部</option>
+              <option value="enabled">开启</option>
+              <option value="disabled">关闭</option>
+            </select>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-slate-600 whitespace-nowrap">出金</span>
+            <select v-model="withdrawSupportDraft" class="w-28 rounded-lg border border-slate-300 px-2 !h-8 text-sm">
+              <option value="all">全部</option>
+              <option value="enabled">开启</option>
+              <option value="disabled">关闭</option>
+            </select>
           </div>
 
           <div class="flex items-center gap-2 w-full sm:w-auto">
@@ -313,6 +351,10 @@ const badgeClass = (status) => (status === ASSET_STATUS.ENABLED ? 'bg-emerald-10
               </div>
               <p class="mt-1.5 text-xs text-slate-600">
                 精度: {{ coin.precision }} 位
+                <span class="mx-2 text-slate-300">|</span>
+                入金: <span class="font-medium" :class="coin.canDeposit ? 'text-emerald-600' : 'text-slate-500'">{{ coin.canDeposit ? '开启' : '关闭' }}</span>
+                <span class="mx-2 text-slate-300">|</span>
+                出金: <span class="font-medium" :class="coin.canWithdraw ? 'text-emerald-600' : 'text-slate-500'">{{ coin.canWithdraw ? '开启' : '关闭' }}</span>
                 <span class="mx-2 text-slate-300">|</span>
                 自动归集: <span class="font-medium" :class="coin.autoCollect ? 'text-blue-600' : 'text-slate-500'">{{ coin.autoCollect ? `开启 (${coin.intervalMin} 分钟)` : '关闭' }}</span>
               </p>
@@ -477,6 +519,14 @@ const badgeClass = (status) => (status === ASSET_STATUS.ENABLED ? 'bg-emerald-10
             <label class="inline-flex items-center gap-2 text-sm md:col-span-2">
               <input v-model="form.isQuoteCurrency" type="checkbox" class="h-4 w-4" />
               是否计价货币
+            </label>
+            <label class="inline-flex items-center gap-2 text-sm md:col-span-2">
+              <input v-model="form.canDeposit" type="checkbox" class="h-4 w-4" />
+              允许入金
+            </label>
+            <label class="inline-flex items-center gap-2 text-sm md:col-span-2">
+              <input v-model="form.canWithdraw" type="checkbox" class="h-4 w-4" />
+              允许出金
             </label>
             <label class="space-y-1">
               <span class="text-sm">精度位数</span>
