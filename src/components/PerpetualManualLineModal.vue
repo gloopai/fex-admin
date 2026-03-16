@@ -121,15 +121,13 @@ const props = defineProps({
 const emit = defineEmits(['close', 'save', 'remove'])
 
 const ui = reactive({
-  intent: 'squeeze',
+  intent: 'harvest_short',
   selectedUid: ''
 })
 
 const form = reactive({
   priceOffset: 5,
   offsetDirection: PERP_CONTROL_OFFSET_DIRECTION.AGAINST,
-  slippagePct: 0,
-  spreadPoints: 0,
   latencyMs: 0,
   durationSec: 0
 })
@@ -140,16 +138,13 @@ const quickManualInputs = {
 
 const initFromProps = () => {
   const cfg = props.initialConfig || {}
-  const p0 = basePrice.value
   form.priceOffset = Number(cfg.priceOffset ?? 5)
-  form.offsetDirection = PERP_CONTROL_OFFSET_DIRECTION.AGAINST
-  form.slippagePct = Number(cfg.slippagePct ?? 0)
-  form.spreadPoints = Math.max(0, Math.min(500, Math.round((p0 * Number(cfg.slippagePct || 0)) / 100)))
+  form.offsetDirection = PERP_CONTROL_OFFSET_DIRECTION.UP
   form.latencyMs = Number(cfg.latencyMs ?? 0)
   form.durationSec = Number(props.initialDurationSec ?? 0)
   ui.selectedUid = ''
 
-  ui.intent = 'squeeze'
+  ui.intent = 'harvest_short'
 }
 
 watch(
@@ -167,19 +162,17 @@ watch(
   (next) => {
     if (next === 'harvest_long') form.offsetDirection = PERP_CONTROL_OFFSET_DIRECTION.DOWN
     else if (next === 'harvest_short') form.offsetDirection = PERP_CONTROL_OFFSET_DIRECTION.UP
-    else if (next === 'squeeze') form.offsetDirection = PERP_CONTROL_OFFSET_DIRECTION.AGAINST
   }
 )
 
 const setOffsetDirection = (dir) => {
-  if (dir === PERP_CONTROL_OFFSET_DIRECTION.UP) ui.intent = 'harvest_short'
-  else if (dir === PERP_CONTROL_OFFSET_DIRECTION.DOWN) ui.intent = 'harvest_long'
-  else ui.intent = 'squeeze'
-  form.offsetDirection = dir
+  if (dir === PERP_CONTROL_OFFSET_DIRECTION.DOWN) ui.intent = 'harvest_long'
+  else ui.intent = 'harvest_short'
+  form.offsetDirection = ui.intent === 'harvest_long' ? PERP_CONTROL_OFFSET_DIRECTION.DOWN : PERP_CONTROL_OFFSET_DIRECTION.UP
 }
 
 const quickPriceOffsets = [1, 2, 3, 5, 8, 13]
-const quickSlippagePcts = [0, 0.02, 0.05, 0.1, 0.2, 0.3, 0.5, 1, 1.5, 2]
+ 
 
 const basePrice = computed(() => {
   const p = Number(props.basePrice || 0)
@@ -194,30 +187,52 @@ const ratioValue = computed(() => {
 
 const platformPnlPositive = computed(() => parseCompactUsd(props.metrics?.platformPnl) >= 0)
 
-const derivedSlippagePct = computed(() => {
-  return clamp(Number(form.slippagePct || 0), 0, 2)
-})
+ 
 
-const slippagePctUi = computed({
-  get: () => derivedSlippagePct.value,
-  set: (pct) => {
-    const v = clamp(Number(pct || 0), 0, 2)
-    form.slippagePct = v
-  }
-})
+const priceOffsetFocused = ref(false)
+const priceOffsetDraft = ref('0')
 
 watch(
-  () => [basePrice.value, form.slippagePct],
-  ([p0]) => {
-    const p = Number(p0 || 0)
-    if (!p || !Number.isFinite(p) || p <= 0) {
-      form.spreadPoints = 0
-      return
-    }
-    form.spreadPoints = clamp(Math.round((Number(form.slippagePct || 0) / 100) * p), 0, 500)
+  () => form.priceOffset,
+  (v) => {
+    if (priceOffsetFocused.value) return
+    priceOffsetDraft.value = String(clamp(Math.round(Number(v || 0)), 0, 50))
   },
   { immediate: true }
 )
+
+const onPriceOffsetDraftFocus = () => {
+  priceOffsetFocused.value = true
+}
+
+const onPriceOffsetDraftInput = (evt) => {
+  const raw = evt?.target?.value ?? ''
+  priceOffsetDraft.value = raw
+  const n = Number(raw)
+  if (!Number.isFinite(n)) return
+  form.priceOffset = clamp(Math.round(n), 0, 50)
+}
+
+const onPriceOffsetDraftBlur = () => {
+  priceOffsetFocused.value = false
+  form.priceOffset = clamp(Math.round(Number(form.priceOffset || 0)), 0, 50)
+  priceOffsetDraft.value = String(form.priceOffset)
+}
+
+watch(
+  () => form.offsetDirection,
+  (dir) => {
+    if (dir === PERP_CONTROL_OFFSET_DIRECTION.DOWN) return
+    if (dir === PERP_CONTROL_OFFSET_DIRECTION.UP) return
+    form.offsetDirection = PERP_CONTROL_OFFSET_DIRECTION.UP
+    ui.intent = 'harvest_short'
+  },
+  { immediate: true }
+)
+
+ 
+
+ 
 
 const quoteAt = (centerPrice, offsetPoints, offsetDirection) => {
   const p0 = Number(centerPrice || 0)
@@ -271,12 +286,11 @@ const platformProfitAt = ({ centerPrice, offsetPoints, offsetDirection, spreadPo
 const manualPreview = computed(() => {
   const p0 = basePrice.value
   const offset = Number(form.priceOffset || 0)
-  const spreadPoints = Number(form.spreadPoints || 0)
   const { buyQuote, sellQuote, mid, long, short } = settlementAt({
     centerPrice: p0,
     offsetPoints: offset,
     offsetDirection: form.offsetDirection,
-    spreadPoints
+    spreadPoints: 0
   })
   const profitRatePct = p0 > 0 ? ((mid - p0) / p0) * 100 : 0
 
@@ -285,7 +299,6 @@ const manualPreview = computed(() => {
     buyQuote,
     sellQuote,
     mid,
-    spreadPoints,
     longSettlementPrice: long,
     shortSettlementPrice: short,
     profitRatePct
@@ -436,7 +449,7 @@ const curve = computed(() => {
       centerPrice: price,
       offsetPoints: Number(form.priceOffset || 0),
       offsetDirection: form.offsetDirection,
-      spreadPoints: Number(form.spreadPoints || 0)
+      spreadPoints: 0
     })
     return { price, profit }
   })
@@ -512,7 +525,6 @@ const emitSave = () =>
     payload: {
       priceOffset: Number(form.priceOffset || 0),
       offsetDirection: form.offsetDirection,
-      slippagePct: derivedSlippagePct.value,
       latencyMs: Number(form.latencyMs || 0),
       durationSec: Number(form.durationSec || 0)
     }
@@ -674,22 +686,27 @@ const emitSave = () =>
                   <div class="flex items-center justify-between">
                     <div class="text-xs font-semibold text-slate-900">K线偏移</div>
                     <div class="flex items-center gap-2">
-                      <span class="font-mono text-sm font-semibold text-slate-900">
-                        <span v-if="form.offsetDirection === PERP_CONTROL_OFFSET_DIRECTION.UP">+{{ Number(form.priceOffset || 0) }}点</span>
-                        <span v-else-if="form.offsetDirection === PERP_CONTROL_OFFSET_DIRECTION.DOWN">-{{ Number(form.priceOffset || 0) }}点</span>
-                        <span v-else>±{{ Number(form.priceOffset || 0) }}点</span>
-                      </span>
+                      <div class="flex items-center gap-1 font-mono text-sm font-semibold text-slate-900">
+                        <span v-if="form.offsetDirection === PERP_CONTROL_OFFSET_DIRECTION.UP">+</span>
+                        <span v-else-if="form.offsetDirection === PERP_CONTROL_OFFSET_DIRECTION.DOWN">-</span>
+                        <span v-else>+</span>
+                        <input
+                          :value="priceOffsetDraft"
+                          type="number"
+                          min="0"
+                          max="50"
+                          step="1"
+                          inputmode="numeric"
+                          class="h-8 w-20 rounded-lg border border-slate-200 bg-white px-2 text-right font-mono text-sm font-semibold text-slate-900 focus:border-slate-900 focus:outline-none focus:ring-0"
+                          @focus="onPriceOffsetDraftFocus"
+                          @input="onPriceOffsetDraftInput"
+                          @blur="onPriceOffsetDraftBlur"
+                        />
+                        <span>点</span>
+                      </div>
                     </div>
                   </div>
-                  <div class="mt-2 grid grid-cols-3 gap-2">
-                    <button
-                      type="button"
-                      class="h-8 rounded-lg border text-[11px] font-semibold transition"
-                      :class="form.offsetDirection === PERP_CONTROL_OFFSET_DIRECTION.AGAINST ? 'border-slate-900 bg-slate-900 text-white shadow-sm ring-2 ring-slate-900 ring-offset-1 ring-offset-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'"
-                      @click="setOffsetDirection(PERP_CONTROL_OFFSET_DIRECTION.AGAINST)"
-                    >
-                      双向
-                    </button>
+                  <div class="mt-2 grid grid-cols-2 gap-2">
                     <button
                       type="button"
                       class="h-8 rounded-lg border text-[11px] font-semibold transition"
@@ -715,27 +732,7 @@ const emitSave = () =>
                   </div>
                 </div>
 
-                <div class="rounded-xl border border-slate-200 bg-white p-4">
-                  <div class="flex items-center justify-between">
-                    <div>
-                      <div class="text-xs font-semibold text-slate-900">K线偏移量波动</div>
-                      <div class="mt-0.5 text-[11px] text-slate-500">≈ {{ slippagePctUi.toFixed(2) }}%</div>
-                    </div>
-                    <div class="font-mono text-sm font-semibold text-slate-900">{{ slippagePctUi.toFixed(2) }}%</div>
-                  </div>
-                  <input v-model.number="slippagePctUi" type="range" min="0" max="2" step="0.01" class="mt-2 w-full accent-black" />
-                  <div class="mt-2 flex flex-wrap gap-2">
-                    <button
-                      v-for="v in quickSlippagePcts"
-                      :key="`sp-${v}`"
-                      type="button"
-                      class="h-8 rounded-lg border border-slate-200 bg-white px-2.5 text-[11px] font-semibold text-slate-700 transition hover:bg-slate-50"
-                      @click="slippagePctUi = v"
-                    >
-                      {{ `${formatCompactNumber(v, v < 1 ? 2 : v < 2 ? 1 : 0)}%` }}
-                    </button>
-                  </div>
-                </div>
+                
 
                 <div class="rounded-xl border border-slate-200 bg-white p-4">
                   <div class="flex items-center justify-between">
@@ -840,7 +837,10 @@ const emitSave = () =>
                     </div>
                     <div class="grid grid-cols-12 gap-2 items-center py-1">
                       <div class="col-span-3 text-slate-500">K线偏移量</div>
-                      <div class="col-span-9 font-mono tabular-nums whitespace-nowrap text-right text-slate-900">±{{ Number(form.priceOffset || 0).toFixed(2) }} ({{ manualPreview.profitRatePct.toFixed(2) }}%)</div>
+                      <div class="col-span-9 font-mono tabular-nums whitespace-nowrap text-right text-slate-900">
+                        {{ form.offsetDirection === PERP_CONTROL_OFFSET_DIRECTION.DOWN ? '-' : '+' }}{{ Number(form.priceOffset || 0).toFixed(2) }}
+                        ({{ manualPreview.profitRatePct.toFixed(2) }}%)
+                      </div>
                     </div>
                   </div>
                 </div>
