@@ -78,7 +78,7 @@ export const navTree = [
     ]
   },
   {
-    title: '资金管理',
+    title: '资产管理',
     icon: 'wallet',
     children: [
       { title: '币种管理', path: '/assets/currencies' },

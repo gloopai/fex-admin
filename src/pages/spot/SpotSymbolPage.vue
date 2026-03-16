@@ -10,7 +10,6 @@ const filters = reactive({
   keyword: '',
   isOpen: 'all',
   pairType: 'all',
-  isTableCreate: 'all',
   includeDeleted: false
 })
 
@@ -33,9 +32,9 @@ const form = reactive({
   base_coin_prec: 0,
   quote_coin_name: '',
   quote_coin_prec: 0,
-  is_table_create: 0,
   is_open: 1,
-  pair_type: 1
+  pair_type: 1,
+  is_show_market: 1
 })
 
 const pairTypeOptions = [
@@ -66,7 +65,6 @@ const loadSymbols = async () => {
       keyword: filters.keyword,
       is_open: filters.isOpen,
       pair_type: filters.pairType,
-      is_table_create: filters.isTableCreate,
       includeDeleted: filters.includeDeleted
     })
     if (result.success) {
@@ -83,7 +81,7 @@ const loadSymbols = async () => {
 }
 
 watch(
-  () => [filters.keyword, filters.isOpen, filters.pairType, filters.isTableCreate, filters.includeDeleted],
+  () => [filters.keyword, filters.isOpen, filters.pairType, filters.includeDeleted],
   () => {
     pagination.currentPage = 1
     loadSymbols()
@@ -105,7 +103,6 @@ const resetFilters = () => {
   filters.keyword = ''
   filters.isOpen = 'all'
   filters.pairType = 'all'
-  filters.isTableCreate = 'all'
   filters.includeDeleted = false
 }
 
@@ -118,7 +115,6 @@ const openCreate = () => {
   form.base_coin_prec = 0
   form.quote_coin_name = ''
   form.quote_coin_prec = 0
-  form.is_table_create = 0
   form.is_open = 1
   form.pair_type = 1
   showEditModal.value = true
@@ -133,9 +129,9 @@ const openEdit = (row) => {
   form.base_coin_prec = Number(row.base_coin_prec)
   form.quote_coin_name = row.quote_coin_name
   form.quote_coin_prec = Number(row.quote_coin_prec)
-  form.is_table_create = Number(row.is_table_create)
   form.is_open = Number(row.is_open)
   form.pair_type = Number(row.pair_type)
+  form.is_show_market = Number(row.is_show_market ?? 1)
   showEditModal.value = true
 }
 
@@ -154,9 +150,9 @@ const saveSymbol = async () => {
     base_coin_prec: Number(form.base_coin_prec),
     quote_coin_name: String(form.quote_coin_name || '').trim().toUpperCase(),
     quote_coin_prec: Number(form.quote_coin_prec),
-    is_table_create: Number(form.is_table_create) ? 1 : 0,
     is_open: Number(form.is_open) ? 1 : 0,
-    pair_type: Number(form.pair_type)
+    pair_type: Number(form.pair_type),
+    is_show_market: Number(form.is_show_market) ? 1 : 0
   }
 
   if (!payload.symbol_name) return alert('请输入交易对名称')
@@ -202,23 +198,6 @@ const toggleOpen = async (row) => {
   }
 }
 
-const toggleTableCreate = async (row) => {
-  const next = Number(row.is_table_create) ? 0 : 1
-  loading.value = true
-  try {
-    const result = await symbolApi.updateSymbol({ id: row.id, is_table_create: next })
-    if (result.success) {
-      await loadSymbols()
-    } else {
-      alert(result.message || '操作失败')
-    }
-  } catch (e) {
-    alert(e?.message || '操作失败')
-  } finally {
-    loading.value = false
-  }
-}
-
 const removeSymbol = async (row) => {
   const ok = window.confirm(`确认删除交易对：${row.symbol_name}？`)
   if (!ok) return
@@ -252,7 +231,7 @@ const goNext = () => {
     <header class="flex flex-wrap items-start justify-between gap-4">
       <div>
         <h1 class="text-3xl font-semibold text-slate-900">交易对管理</h1>
-        <p class="mt-1 text-sm text-slate-500">管理交易对基础信息、开关状态与建表状态。</p>
+        <p class="mt-1 text-sm text-slate-500">管理交易对基础信息与开关状态。</p>
       </div>
     </header>
 
@@ -269,11 +248,6 @@ const goNext = () => {
             <option value="1">虚拟币</option>
             <option value="2">法币</option>
             <option value="3">贵金属</option>
-          </select>
-          <select v-model="filters.isTableCreate" class="ant-select !w-28">
-            <option value="all">建表状态</option>
-            <option value="1">已建表</option>
-            <option value="0">未建表</option>
           </select>
           <label class="inline-flex items-center gap-2 text-sm text-slate-600">
             <input v-model="filters.includeDeleted" type="checkbox" class="h-4 w-4 rounded border-slate-300" />
@@ -305,10 +279,8 @@ const goNext = () => {
               <th class="whitespace-nowrap px-4 py-3">基础币</th>
               <th class="whitespace-nowrap px-4 py-3">计价币</th>
               <th class="whitespace-nowrap px-4 py-3">类型</th>
-              <th class="whitespace-nowrap px-4 py-3">建表</th>
               <th class="whitespace-nowrap px-4 py-3">开启</th>
-              <th class="whitespace-nowrap px-4 py-3">创建时间</th>
-              <th class="whitespace-nowrap px-4 py-3">更新时间</th>
+              <th class="whitespace-nowrap px-4 py-3">行情显示</th>
               <th class="whitespace-nowrap px-4 py-3 text-right">操作</th>
             </tr>
           </thead>
@@ -332,22 +304,20 @@ const goNext = () => {
               </td>
               <td class="whitespace-nowrap px-4 py-3 text-slate-700">{{ pairTypeLabel(row.pair_type) }}</td>
               <td class="whitespace-nowrap px-4 py-3">
-                <span class="rounded px-2 py-0.5 text-xs font-medium" :class="badgeClass(Number(row.is_table_create))">
-                  {{ Number(row.is_table_create) ? '已建表' : '未建表' }}
-                </span>
-              </td>
-              <td class="whitespace-nowrap px-4 py-3">
                 <span class="rounded px-2 py-0.5 text-xs font-medium" :class="badgeClass(Number(row.is_open))">
                   {{ Number(row.is_open) ? '开启' : '关闭' }}
                 </span>
               </td>
-              <td class="whitespace-nowrap px-4 py-3 text-slate-600">{{ fmtTime(row.created_at) }}</td>
-              <td class="whitespace-nowrap px-4 py-3 text-slate-600">{{ fmtTime(row.updated_at) }}</td>
+              <td class="whitespace-nowrap px-4 py-3">
+                <span class="rounded px-2 py-0.5 text-xs font-medium" :class="badgeClass(Number(row.is_show_market))">
+                  {{ Number(row.is_show_market) ? '显示' : '隐藏' }}
+                </span>
+              </td>
               <td class="whitespace-nowrap px-4 py-3 text-right">
                 <div class="inline-flex items-center gap-2">
                   <button type="button" class="ant-btn ant-btn-sm" :disabled="Number(row.deleted_at)" @click="openEdit(row)">编辑</button>
-                  <button type="button" class="ant-btn ant-btn-sm" :disabled="Number(row.deleted_at)" @click="toggleOpen(row)">{{ Number(row.is_open) ? '关闭' : '开启' }}</button>
-                  <button type="button" class="ant-btn ant-btn-sm" :disabled="Number(row.deleted_at)" @click="toggleTableCreate(row)">{{ Number(row.is_table_create) ? '取消建表' : '标记建表' }}</button>
+                  <!-- <button type="button" class="ant-btn ant-btn-sm" :disabled="Number(row.deleted_at)" @click="toggleOpen(row)">{{ Number(row.is_open) ? '关闭' : '开启' }}</button>
+                  <button type="button" class="ant-btn ant-btn-sm" :disabled="Number(row.deleted_at)" @click="toggleShowMarket(row)">{{ Number(row.is_show_market) ? '隐藏行情' : '显示行情' }}</button> -->
                   <button type="button" class="ant-btn ant-btn-sm !text-rose-600" :disabled="Number(row.deleted_at)" @click="removeSymbol(row)">删除</button>
                 </div>
               </td>
@@ -443,17 +413,17 @@ const goNext = () => {
 
             <div class="grid gap-4 sm:grid-cols-2">
               <div class="space-y-1.5">
-                <label class="text-sm text-black/85 font-medium">是否建表</label>
-                <select v-model.number="form.is_table_create" class="ant-select">
-                  <option :value="1">已建表</option>
-                  <option :value="0">未建表</option>
-                </select>
-              </div>
-              <div class="space-y-1.5">
                 <label class="text-sm text-black/85 font-medium">是否开启</label>
                 <select v-model.number="form.is_open" class="ant-select">
                   <option :value="1">开启</option>
                   <option :value="0">关闭</option>
+                </select>
+              </div>
+              <div class="space-y-1.5">
+                <label class="text-sm text-black/85 font-medium">行情中显示</label>
+                <select v-model.number="form.is_show_market" class="ant-select">
+                  <option :value="1">显示</option>
+                  <option :value="0">隐藏</option>
                 </select>
               </div>
             </div>

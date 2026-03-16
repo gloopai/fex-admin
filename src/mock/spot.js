@@ -427,7 +427,8 @@ const createSymbolMocks = () => {
       deleted_at: 0,
       is_table_create: i % 4 === 0 ? 0 : 1,
       is_open: i % 6 === 0 ? 0 : 1,
-      pair_type: t.pair_type
+      pair_type: t.pair_type,
+      is_show_market: i % 5 === 0 ? 0 : 1
     })
   }
   return items
@@ -527,7 +528,8 @@ export const symbolApi = {
           deleted_at: 0,
           is_table_create: Number(input.is_table_create) ? 1 : 0,
           is_open: Number(input.is_open) ? 1 : 0,
-          pair_type: Number(input.pair_type) || 1
+          pair_type: Number(input.pair_type) || 1,
+          is_show_market: Number(input.is_show_market) ? 1 : 0
         }
 
         symbolStore.unshift(row)
@@ -559,6 +561,7 @@ export const symbolApi = {
         if (input.is_table_create !== undefined) next.is_table_create = Number(input.is_table_create) ? 1 : 0
         if (input.is_open !== undefined) next.is_open = Number(input.is_open) ? 1 : 0
         if (input.pair_type !== undefined) next.pair_type = Number(input.pair_type)
+        if (input.is_show_market !== undefined) next.is_show_market = Number(input.is_show_market) ? 1 : 0
 
         if (!next.symbol_name) return resolve({ success: false, message: 'symbol_name 不能为空' })
         if (!Number.isFinite(next.symbol_id) || next.symbol_id <= 0) return resolve({ success: false, message: 'symbol_id 不合法' })
