@@ -101,16 +101,6 @@
                   {{ product.baseCurrency }}/{{ product.quoteCurrency }}
                 </span>
               </div>
-              <p class="mt-2 text-sm text-slate-600">
-                24h 成交量: <span class="text-slate-900 font-medium font-mono">{{ formatVolume(product.volume24h) }}</span>
-                <span class="mx-3 text-slate-200">|</span>
-                24h 涨跌:
-                <span class="font-medium font-mono" :class="product.priceChange24h >= 0 ? 'text-emerald-600' : 'text-rose-600'">
-                  {{ formatSignedPercent(product.priceChange24h) }}
-                </span>
-                <span class="mx-3 text-slate-200">|</span>
-                精度: <span class="text-slate-900 font-medium font-mono">{{ product.pricePrecision }} / {{ product.quantityPrecision }}</span>
-              </p>
             </div>
 
             <div class="flex items-center gap-2">
@@ -131,7 +121,11 @@
           <div class="grid gap-0 md:grid-cols-2 bg-slate-50/30">
             <div class="border-b border-slate-100 p-4 md:border-b-0 md:border-r">
               <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">交易限制</p>
-              <ul class="mt-3 grid grid-cols-3 gap-4 text-sm">
+              <ul class="mt-3 grid grid-cols-4 gap-4 text-sm">
+                <li class="flex flex-col gap-1">
+                  <span class="text-slate-500 text-xs">精度</span>
+                  <span class="text-slate-900 font-semibold font-mono">{{ product.pricePrecision }} / {{ product.quantityPrecision }}</span>
+                </li>
                 <li class="flex flex-col gap-1">
                   <span class="text-slate-500 text-xs">最小下单量</span>
                   <span class="text-slate-900 font-semibold font-mono">{{ formatAmount(product.minOrderQuantity) }}</span>
@@ -148,8 +142,8 @@
             </div>
 
             <div class="p-4">
-              <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">费率与深度</p>
-              <ul class="mt-3 grid grid-cols-3 gap-4 text-sm">
+              <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">费率</p>
+              <ul class="mt-3 grid grid-cols-2 gap-4 text-sm">
                 <li class="flex flex-col gap-1">
                   <span class="text-slate-500 text-xs">买入费率</span>
                   <span class="text-emerald-600 font-bold font-mono">{{ formatRate(product.buyFee) }}</span>
@@ -157,10 +151,6 @@
                 <li class="flex flex-col gap-1">
                   <span class="text-slate-500 text-xs">卖出费率</span>
                   <span class="text-rose-600 font-bold font-mono">{{ formatRate(product.sellFee) }}</span>
-                </li>
-                <li class="flex flex-col gap-1">
-                  <span class="text-slate-500 text-xs">深度(买/卖)</span>
-                  <span class="text-slate-900 font-semibold font-mono">{{ formatVolume(product.bidDepth) }} / {{ formatVolume(product.askDepth) }}</span>
                 </li>
               </ul>
             </div>
