@@ -67,6 +67,38 @@ const deliveryProducts = [
     maxHold: '30000',
     buyFee: '0.1',
     sellFee: '0.2'
+  },
+  {
+    id: 'xau-opt',
+    name: 'XAU期权',
+    code: 'XAU_OPT',
+    pair: 'XAU/USDT',
+    status: DELIVERY_STATUS.ENABLED,
+    templateId: 'tpl-standard',
+    templateName: '标准周期',
+    buyRange: '10 - 20,000 USDT',
+    maxPosition: '120,000 USDT',
+    minBuy: '10',
+    maxBuy: '20000',
+    maxHold: '120000',
+    buyFee: '0.1',
+    sellFee: '0.2'
+  },
+  {
+    id: 'usd-opt',
+    name: 'USD期权',
+    code: 'USD_OPT',
+    pair: 'USD/USDT',
+    status: DELIVERY_STATUS.DISABLED,
+    templateId: 'tpl-long',
+    templateName: '长线周期',
+    buyRange: '10 - 200,000 USDT',
+    maxPosition: '500,000 USDT',
+    minBuy: '10',
+    maxBuy: '200000',
+    maxHold: '500000',
+    buyFee: '0.05',
+    sellFee: '0.1'
   }
 ]
 

@@ -7,6 +7,38 @@
       </div>
     </header>
 
+    <article class="rounded-xl border border-slate-200 bg-white p-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex w-full flex-wrap items-center gap-2 md:w-auto">
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <span class="text-sm text-slate-600 whitespace-nowrap">产品名称</span>
+            <div class="relative w-full sm:w-80">
+              <input
+                v-model="searchKeywordDraft"
+                type="text"
+                class="ant-input w-full pl-9 !h-8"
+                placeholder="搜索产品名称 / 产品ID / 币种..."
+                @keyup.enter="applySearch"
+              />
+              <svg viewBox="0 0 20 20" class="pointer-events-none absolute left-3 top-2 h-4 w-4 text-slate-400" fill="none">
+                <circle cx="9" cy="9" r="5.8" stroke="currentColor" stroke-width="1.6" />
+                <path d="M13.6 13.6L16.4 16.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 shrink-0">
+          <button type="button" class="ant-btn !h-8" @click="resetSearch">
+            <span>重置</span>
+          </button>
+          <button type="button" class="ant-btn ant-btn-primary !h-8" @click="applySearch">
+            <span>搜索</span>
+          </button>
+        </div>
+      </div>
+    </article>
+
     <article class="rounded-xl border border-slate-200 bg-white">
       <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 p-4">
         <div class="inline-flex items-center gap-6 text-sm">
@@ -42,31 +74,13 @@
           >
             已下架
           </button>
+          <span class="text-slate-400">|</span>
+          <span class="text-slate-500">共 <span class="font-medium text-slate-700">{{ totalItems }}</span> 条</span>
         </div>
 
-        <div class="flex flex-wrap items-center gap-3">
-          <div class="relative w-72">
-            <input
-              v-model="searchKeyword"
-              type="text"
-              class="ant-input w-full pl-9"
-              placeholder="搜索产品名称 / 产品ID / 币种..."
-              @keyup.enter="handleSearch"
-            />
-            <svg viewBox="0 0 20 20" class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" fill="none">
-              <circle cx="9" cy="9" r="5.8" stroke="currentColor" stroke-width="1.6" />
-              <path d="M13.6 13.6L16.4 16.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-            </svg>
-          </div>
-          <button
-            type="button"
-            class="ant-btn ant-btn-primary inline-flex items-center gap-1.5"
-            @click="showAddProduct"
-          >
-            <span class="text-lg leading-none">+</span>
-            <span>新增产品</span>
-          </button>
-        </div>
+        <button type="button" class="ant-btn ant-btn-primary !h-8 shrink-0" @click="showAddProduct">
+          <span>+ 新增产品</span>
+        </button>
       </div>
 
       <div class="p-4 space-y-4">
@@ -419,7 +433,8 @@ const products = ref([])
 const showModal = ref(false)
 const isEditing = ref(false)
 const editingProductId = ref(null)
-const searchKeyword = ref('')
+const searchKeywordDraft = ref('')
+const searchKeywordApplied = ref('')
 const spotSymbolLoading = ref(false)
 const spotSymbols = ref([])
 const lastSyncedSpotSymbol = ref('')
@@ -458,10 +473,26 @@ onMounted(() => {
   loadSpotSymbols()
 })
 
-// 监听筛选和搜索变化，重置分页
-watch([filters, searchKeyword], () => {
+watch(
+  () => filters.value.status,
+  () => {
+    pagination.value.currentPage = 1
+  }
+)
+
+watch(searchKeywordApplied, () => {
   pagination.value.currentPage = 1
-}, { deep: true })
+})
+
+const applySearch = () => {
+  searchKeywordApplied.value = searchKeywordDraft.value
+  pagination.value.currentPage = 1
+}
+
+const resetSearch = () => {
+  searchKeywordDraft.value = ''
+  applySearch()
+}
 
 const spotSymbolOptions = computed(() => {
   const baseOptions = spotSymbols.value
@@ -573,7 +604,7 @@ const filteredProducts = computed(() => {
   }
   
   // 搜索关键词过滤
-  const keyword = searchKeyword.value.trim().toLowerCase()
+  const keyword = searchKeywordApplied.value.trim().toLowerCase()
   if (keyword) {
     result = result.filter(p => 
       p.productName.toLowerCase().includes(keyword) ||
@@ -595,13 +626,10 @@ const paginatedProducts = computed(() => {
   return filteredProducts.value.slice(start, end)
 })
 
-const handleSearch = () => {
-  pagination.value.currentPage = 1
-}
-
 const resetAll = () => {
   filters.value = { status: '' }
-  searchKeyword.value = ''
+  searchKeywordDraft.value = ''
+  searchKeywordApplied.value = ''
   pagination.value.currentPage = 1
 }
 

@@ -1,11 +1,15 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
+import CurrencyTypeSelect from '../../components/CurrencyTypeSelect.vue'
 import MfaVerificationModal from '../../components/MfaVerificationModal.vue'
 import { ASSET_COMMON_FILTER_ALL, ASSET_CURRENCY_TYPE, ASSET_MODAL_TAB, ASSET_STATUS } from '../../constants/assets'
 import { createAssetsCoinsMock } from '../../mock/assets'
 
 const statusTab = ref(ASSET_COMMON_FILTER_ALL)
-const search = ref('')
+const searchDraft = ref('')
+const currencyTypeDraft = ref('all')
+const searchApplied = ref('')
+const currencyTypeApplied = ref('all')
 const showEditModal = ref(false)
 const editingCoinId = ref('')
 const modalTab = ref(ASSET_MODAL_TAB.BASIC)
@@ -37,6 +41,18 @@ const currencyTypeLabel = (value) => {
   if (type === ASSET_CURRENCY_TYPE.METAL) return '贵金属'
   if (type === ASSET_CURRENCY_TYPE.FIAT) return '法币'
   return String(type || '')
+}
+
+const applySearch = () => {
+  searchApplied.value = searchDraft.value
+  currencyTypeApplied.value = currencyTypeDraft.value
+  currentPage.value = 1
+}
+
+const resetSearch = () => {
+  currencyTypeDraft.value = 'all'
+  searchDraft.value = ''
+  applySearch()
 }
 
 const form = reactive({
@@ -81,11 +97,12 @@ watch(
 )
 
 const filteredCoins = computed(() => {
-  const kw = search.value.trim().toLowerCase()
+  const kw = searchApplied.value.trim().toLowerCase()
   return coins.value.filter((coin) => {
     const hitStatus = statusTab.value === ASSET_COMMON_FILTER_ALL || coin.status === statusTab.value
     const hitKeyword = !kw || `${coin.name} ${coin.symbol}`.toLowerCase().includes(kw)
-    return hitStatus && hitKeyword
+    const hitType = currencyTypeApplied.value === 'all' || normalizeCurrencyType(coin.type) === currencyTypeApplied.value
+    return hitStatus && hitKeyword && hitType
   })
 })
 
@@ -102,10 +119,9 @@ const goNext = () => {
   if (currentPage.value < totalPages.value) currentPage.value++
 }
 
-// 当搜索或筛选状态改变时，重置页码
-const handleFilterChange = () => {
+watch([statusTab, searchApplied, currencyTypeApplied], () => {
   currentPage.value = 1
-}
+})
 
 const enabledCount = computed(() => coins.value.filter((c) => c.status === ASSET_STATUS.ENABLED).length)
 
@@ -219,26 +235,64 @@ const badgeClass = (status) => (status === ASSET_STATUS.ENABLED ? 'bg-emerald-10
 </script>
 
 <template>
-  <section class="space-y-3">
+  <section class="space-y-4">
     <header class="flex flex-wrap items-start justify-between gap-4">
       <div>
         <h1 class="text-3xl font-semibold text-slate-900">币种管理</h1>
         <p class="mt-1 text-sm text-slate-500">管理币种配置和网络设置</p>
       </div>
-      <div class="flex items-center gap-4">
-        <p class="text-sm text-slate-500">启用币种: <span class="font-semibold text-blue-600">{{ enabledCount }}</span> / {{ coins.length }}</p>
-        <button type="button" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" @click="openCreate">+ 新增币种</button>
-      </div>
     </header>
 
-    <article class="rounded-xl border border-slate-200 bg-white">
-      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-3">
-        <div class="inline-flex items-center gap-4 text-sm">
-          <button type="button" class="font-medium" :class="statusTab === ASSET_COMMON_FILTER_ALL ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = ASSET_COMMON_FILTER_ALL; handleFilterChange()">全部</button>
-          <button type="button" class="font-medium" :class="statusTab === ASSET_STATUS.ENABLED ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = ASSET_STATUS.ENABLED; handleFilterChange()">已启用</button>
-          <button type="button" class="font-medium" :class="statusTab === ASSET_STATUS.DISABLED ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = ASSET_STATUS.DISABLED; handleFilterChange()">已禁用</button>
+    <article class="rounded-xl border border-slate-200 bg-white p-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex w-full flex-wrap items-center gap-2 md:w-auto">
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-slate-600 whitespace-nowrap">币种类型</span>
+            <CurrencyTypeSelect v-model="currencyTypeDraft" class="shrink-0" />
+          </div>
+
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <span class="text-sm text-slate-600 whitespace-nowrap">币种名称</span>
+            <div class="relative w-full sm:w-80">
+              <input
+                v-model="searchDraft"
+                type="text"
+                class="ant-input w-full pl-9 !h-8"
+                placeholder="搜索币种名称或符号..."
+                @keyup.enter="applySearch"
+              />
+              <svg viewBox="0 0 20 20" class="pointer-events-none absolute left-3 top-2 h-4 w-4 text-slate-400" fill="none">
+                <circle cx="9" cy="9" r="5.8" stroke="currentColor" stroke-width="1.6" />
+                <path d="M13.6 13.6L16.4 16.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+              </svg>
+            </div>
+          </div>
         </div>
-        <input v-model="search" type="text" placeholder="搜索币种名称或符号..." class="w-full max-w-sm rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500" @input="handleFilterChange" />
+
+        <div class="flex items-center gap-2 shrink-0">
+          <button type="button" class="ant-btn !h-8" @click="resetSearch">
+            <span>重置</span>
+          </button>
+          <button type="button" class="ant-btn ant-btn-primary !h-8" @click="applySearch">
+            <span>搜索</span>
+          </button>
+        </div>
+      </div>
+    </article>
+
+    <article class="rounded-xl border border-slate-200 bg-white">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4">
+        <div class="inline-flex items-center gap-4 text-sm">
+          <button type="button" class="font-medium" :class="statusTab === ASSET_COMMON_FILTER_ALL ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = ASSET_COMMON_FILTER_ALL">全部</button>
+          <button type="button" class="font-medium" :class="statusTab === ASSET_STATUS.ENABLED ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = ASSET_STATUS.ENABLED">已启用</button>
+          <button type="button" class="font-medium" :class="statusTab === ASSET_STATUS.DISABLED ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = ASSET_STATUS.DISABLED">已禁用</button>
+          <span class="text-slate-400">|</span>
+          <span class="text-slate-500">启用币种: <span class="font-medium text-slate-700">{{ enabledCount }}</span> / {{ coins.length }}</span>
+        </div>
+
+        <button type="button" class="ant-btn ant-btn-primary !h-8 shrink-0" @click="openCreate">
+          <span>+ 新增币种</span>
+        </button>
       </div>
 
       <div class="space-y-3 p-3">

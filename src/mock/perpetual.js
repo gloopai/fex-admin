@@ -184,6 +184,42 @@ const perpetualProducts = [
     buyFee: '0.050%',
     sellFee: '0.100%',
     leverageBadges: ['1x', '2x', '3x', '5x', '10x', '20x', '+4']
+  },
+  {
+    id: 'xau-perp',
+    sortOrder: 7,
+    name: 'XAU永续',
+    code: 'XAU_PERP',
+    pair: 'XAU/USDT',
+    status: PERPETUAL_STATUS.ENABLED,
+    templateId: 'standard',
+    templateName: '标准 杠杆模板',
+    leverageRange: '1x - 100x',
+    buyRange: '10 - 20,000 USDT',
+    maxPosition: '120,000 USDT',
+    minBuy: '10 USDT',
+    maxBuy: '20,000 USDT',
+    buyFee: '0.020%',
+    sellFee: '0.050%',
+    leverageBadges: ['1x', '2x', '3x', '5x', '10x', '20x', '+4']
+  },
+  {
+    id: 'usd-perp',
+    sortOrder: 8,
+    name: 'USD永续',
+    code: 'USD_PERP',
+    pair: 'USD/USDT',
+    status: PERPETUAL_STATUS.DISABLED,
+    templateId: 'conservative',
+    templateName: '保守型 杠杆模板',
+    leverageRange: '1x - 20x',
+    buyRange: '10 - 200,000 USDT',
+    maxPosition: '500,000 USDT',
+    minBuy: '10 USDT',
+    maxBuy: '200,000 USDT',
+    buyFee: '0.010%',
+    sellFee: '0.020%',
+    leverageBadges: ['1x', '2x', '3x', '5x', '10x', '20x']
   }
 ]
 

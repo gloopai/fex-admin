@@ -165,6 +165,42 @@ const assetsCoins = [
     ]
   },
   {
+    id: 'usd',
+    name: 'US Dollar',
+    symbol: 'USD',
+    isQuoteCurrency: false,
+    precision: 2,
+    status: ASSET_STATUS.ENABLED,
+    type: ASSET_CURRENCY_TYPE.FIAT,
+    autoCollect: false,
+    intervalMin: 0,
+    networks: []
+  },
+  {
+    id: 'eur',
+    name: 'Euro',
+    symbol: 'EUR',
+    isQuoteCurrency: false,
+    precision: 2,
+    status: ASSET_STATUS.ENABLED,
+    type: ASSET_CURRENCY_TYPE.FIAT,
+    autoCollect: false,
+    intervalMin: 0,
+    networks: []
+  },
+  {
+    id: 'cny',
+    name: 'Chinese Yuan',
+    symbol: 'CNY',
+    isQuoteCurrency: false,
+    precision: 2,
+    status: ASSET_STATUS.ENABLED,
+    type: ASSET_CURRENCY_TYPE.FIAT,
+    autoCollect: false,
+    intervalMin: 0,
+    networks: []
+  },
+  {
     id: 'xau',
     name: 'Gold',
     symbol: 'XAU',

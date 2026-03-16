@@ -1,6 +1,8 @@
 <script setup>
 import { computed, reactive, ref, watch, onMounted } from 'vue'
 import ControlConfigModal from '../../components/ControlConfigModal.vue'
+import CurrencyTypeSelect from '../../components/CurrencyTypeSelect.vue'
+import { ASSET_CURRENCY_TYPE } from '../../constants/assets'
 import {
   PERPETUAL_COMMON_FILTER_ALL,
   PERPETUAL_CONTRACT_STEP,
@@ -14,10 +16,14 @@ import {
   perpetualLeverageLevels,
   perpetualProductStatusMeta
 } from '../../mock/perpetual'
+import { createAssetsCoinsMock } from '../../mock/assets'
 import { symbolApi } from '../../mock/spot'
 
 const statusTab = ref(PERPETUAL_COMMON_FILTER_ALL)
-const search = ref('')
+const searchDraft = ref('')
+const currencyTypeDraft = ref('all')
+const searchApplied = ref('')
+const currencyTypeApplied = ref('all')
 
 const pagination = reactive({
   currentPage: 1,
@@ -40,10 +46,57 @@ const toSymbol = (pair = '') => pair.replace('/', '')
 const templates = ref(createPerpetualTemplatesMock())
 const products = ref(createPerpetualProductsMock())
 const controlConfigs = reactive(createPerpetualControlConfigsMock())
+const assetsCoins = createAssetsCoinsMock()
 
 const controlModalOpen = ref(false)
 const activeControlSymbol = ref('')
 const productStatusMeta = perpetualProductStatusMeta
+
+const applySearch = () => {
+  searchApplied.value = searchDraft.value
+  currencyTypeApplied.value = currencyTypeDraft.value
+  pagination.currentPage = 1
+}
+
+const resetSearch = () => {
+  currencyTypeDraft.value = 'all'
+  searchDraft.value = ''
+  applySearch()
+}
+
+const normalizeCurrencyType = (value) => {
+  if (value === ASSET_CURRENCY_TYPE.VIRTUAL || value === ASSET_CURRENCY_TYPE.METAL || value === ASSET_CURRENCY_TYPE.FIAT) return value
+  if (value === 'onchain') return ASSET_CURRENCY_TYPE.VIRTUAL
+  if (value === 'offchain') return ASSET_CURRENCY_TYPE.FIAT
+  return ASSET_CURRENCY_TYPE.VIRTUAL
+}
+
+const coinTypeMap = computed(() => {
+  const map = new Map()
+  assetsCoins.forEach((coin) => {
+    if (!coin?.symbol) return
+    map.set(String(coin.symbol).toUpperCase(), normalizeCurrencyType(coin.type))
+  })
+  return map
+})
+
+const currencyTypeBySymbol = (symbol) => {
+  if (!symbol) return ASSET_CURRENCY_TYPE.VIRTUAL
+  return coinTypeMap.value.get(String(symbol).toUpperCase()) || ASSET_CURRENCY_TYPE.VIRTUAL
+}
+
+const currencyTypeByPair = (pair) => {
+  const { baseCurrency } = parsePair(pair)
+  return currencyTypeBySymbol(baseCurrency)
+}
+
+const currencyTypeLabel = (value) => {
+  const type = normalizeCurrencyType(value)
+  if (type === ASSET_CURRENCY_TYPE.VIRTUAL) return '虚拟币'
+  if (type === ASSET_CURRENCY_TYPE.FIAT) return '法币'
+  if (type === ASSET_CURRENCY_TYPE.METAL) return '贵金属'
+  return String(type || '')
+}
 
 const ensureControlConfig = (symbol) => {
   if (!symbol) return
@@ -122,12 +175,13 @@ refreshTemplateUsage()
 normalizeProductOrder()
 
 const filteredProducts = computed(() => {
-  const keyword = search.value.trim().toLowerCase()
+  const keyword = searchApplied.value.trim().toLowerCase()
   return products.value
     .filter((item) => {
     const matchesStatus = statusTab.value === PERPETUAL_COMMON_FILTER_ALL || item.status === statusTab.value
     const matchesKeyword = !keyword || [item.name, item.code, item.pair].join(' ').toLowerCase().includes(keyword)
-    return matchesStatus && matchesKeyword
+    const matchesCurrencyType = currencyTypeApplied.value === 'all' || currencyTypeByPair(item.pair) === currencyTypeApplied.value
+    return matchesStatus && matchesKeyword && matchesCurrencyType
   })
     .sort((a, b) => Number(a.sortOrder || 9999) - Number(b.sortOrder || 9999))
 })
@@ -140,7 +194,7 @@ const paginatedProducts = computed(() => {
 
 const totalPages = computed(() => Math.ceil(filteredProducts.value.length / pagination.pageSize))
 
-watch([search, statusTab], () => {
+watch([statusTab, searchApplied, currencyTypeApplied], () => {
   pagination.currentPage = 1
 })
 
@@ -322,47 +376,70 @@ onMounted(() => {
       </div>
     </header>
 
-    <article class="rounded-xl border border-slate-200 bg-white">
-      <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 p-4">
-        <div class="flex flex-wrap items-center gap-4">
-          <div class="inline-flex items-center gap-2 text-sm">
-            <button type="button" class="font-medium" :class="statusTab === PERPETUAL_COMMON_FILTER_ALL ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = PERPETUAL_COMMON_FILTER_ALL">全部</button>
-            <button
-              type="button"
-              class="font-medium"
-              :class="statusTab === PERPETUAL_STATUS.ENABLED ? 'text-blue-600' : 'text-slate-500'"
-              @click="statusTab = PERPETUAL_STATUS.ENABLED"
-            >
-              已启用
-            </button>
-            <button
-              type="button"
-              class="font-medium"
-              :class="statusTab === PERPETUAL_STATUS.DISABLED ? 'text-blue-600' : 'text-slate-500'"
-              @click="statusTab = PERPETUAL_STATUS.DISABLED"
-            >
-              已禁用
-            </button>
+    <article class="rounded-xl border border-slate-200 bg-white p-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex w-full flex-wrap items-center gap-2 md:w-auto">
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-slate-600 whitespace-nowrap">币种类型</span>
+            <CurrencyTypeSelect v-model="currencyTypeDraft" class="shrink-0" />
+          </div>
+
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <span class="text-sm text-slate-600 whitespace-nowrap">产品名称</span>
+            <div class="relative w-full sm:w-80">
+              <input
+                v-model="searchDraft"
+                type="text"
+                class="ant-input w-full pl-9 !h-8"
+                placeholder="搜索产品名称或代码..."
+                @keyup.enter="applySearch"
+              />
+              <svg viewBox="0 0 20 20" class="pointer-events-none absolute left-3 top-2 h-4 w-4 text-slate-400" fill="none">
+                <circle cx="9" cy="9" r="5.8" stroke="currentColor" stroke-width="1.6" />
+                <path d="M13.6 13.6L16.4 16.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+              </svg>
+            </div>
           </div>
         </div>
 
-        <div class="flex w-full max-w-2xl flex-wrap items-center justify-end gap-2">
-          <div class="relative w-full max-w-sm">
-            <input
-              v-model="search"
-              type="text"
-              class="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm outline-none focus:border-blue-500"
-              placeholder="搜索产品名称或代码..."
-            />
-            <svg viewBox="0 0 20 20" class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" fill="none">
-              <circle cx="9" cy="9" r="5.8" stroke="currentColor" stroke-width="1.6" />
-              <path d="M13.6 13.6L16.4 16.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-            </svg>
-          </div>
-          <button type="button" class="ant-btn ant-btn-primary" @click="openCreateContract">
-            <span>+ 新增合约</span>
+        <div class="flex items-center gap-2 shrink-0">
+          <button type="button" class="ant-btn !h-8" @click="resetSearch">
+            <span>重置</span>
+          </button>
+          <button type="button" class="ant-btn ant-btn-primary !h-8" @click="applySearch">
+            <span>搜索</span>
           </button>
         </div>
+      </div>
+    </article>
+
+    <article class="rounded-xl border border-slate-200 bg-white">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4">
+        <div class="inline-flex items-center gap-2 text-sm">
+          <button type="button" class="font-medium" :class="statusTab === PERPETUAL_COMMON_FILTER_ALL ? 'text-blue-600' : 'text-slate-500'" @click="statusTab = PERPETUAL_COMMON_FILTER_ALL">全部</button>
+          <button
+            type="button"
+            class="font-medium"
+            :class="statusTab === PERPETUAL_STATUS.ENABLED ? 'text-blue-600' : 'text-slate-500'"
+            @click="statusTab = PERPETUAL_STATUS.ENABLED"
+          >
+            已启用
+          </button>
+          <button
+            type="button"
+            class="font-medium"
+            :class="statusTab === PERPETUAL_STATUS.DISABLED ? 'text-blue-600' : 'text-slate-500'"
+            @click="statusTab = PERPETUAL_STATUS.DISABLED"
+          >
+            已禁用
+          </button>
+          <span class="ml-2 text-slate-400">|</span>
+          <span class="text-slate-500">共 <span class="font-medium text-slate-700">{{ filteredProducts.length }}</span> 个</span>
+        </div>
+
+        <button type="button" class="ant-btn ant-btn-primary !h-8 shrink-0" @click="openCreateContract">
+          <span>+ 新增合约</span>
+        </button>
       </div>
 
       <div class="space-y-4 p-4">
@@ -376,6 +453,7 @@ onMounted(() => {
                 <span class="rounded-md px-2 py-0.5 text-xs font-medium" :class="productStatusMeta[item.status]?.badgeClass">
                   {{ productStatusMeta[item.status]?.text || '未知状态' }}
                 </span>
+                <span class="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{{ currencyTypeLabel(currencyTypeByPair(item.pair)) }}</span>
               </div>
               <p class="mt-2 text-sm text-slate-700">
                 交易对: {{ item.pair }}

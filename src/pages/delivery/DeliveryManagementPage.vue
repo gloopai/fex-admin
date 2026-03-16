@@ -1,14 +1,21 @@
 <script setup>
 import { computed, reactive, ref, watch, onMounted } from 'vue'
 import { COMMON_FILTER_ALL, DELIVERY_CONTRACT_TAB, DELIVERY_STATUS } from '../../constants/delivery'
+import { ASSET_CURRENCY_TYPE } from '../../constants/assets'
+import CurrencyTypeSelect from '../../components/CurrencyTypeSelect.vue'
 import { createDeliveryProductsMock, createDeliveryTemplatesMock } from '../../mock/delivery'
+import { createAssetsCoinsMock } from '../../mock/assets'
 import { symbolApi } from '../../mock/spot'
 
 const statusTab = ref(COMMON_FILTER_ALL)
-const search = ref('')
+const searchDraft = ref('')
+const currencyTypeDraft = ref('all')
+const searchApplied = ref('')
+const currencyTypeApplied = ref('all')
 
 const templates = ref(createDeliveryTemplatesMock())
 const products = ref(createDeliveryProductsMock())
+const assetsCoins = createAssetsCoinsMock()
 
 // 分页状态
 const pagination = reactive({
@@ -17,12 +24,59 @@ const pagination = reactive({
   total: 0
 })
 
+const applySearch = () => {
+  searchApplied.value = searchDraft.value
+  currencyTypeApplied.value = currencyTypeDraft.value
+  pagination.currentPage = 1
+}
+
+const resetSearch = () => {
+  currencyTypeDraft.value = 'all'
+  searchDraft.value = ''
+  applySearch()
+}
+
+const normalizeCurrencyType = (value) => {
+  if (value === ASSET_CURRENCY_TYPE.VIRTUAL || value === ASSET_CURRENCY_TYPE.METAL || value === ASSET_CURRENCY_TYPE.FIAT) return value
+  if (value === 'onchain') return ASSET_CURRENCY_TYPE.VIRTUAL
+  if (value === 'offchain') return ASSET_CURRENCY_TYPE.FIAT
+  return ASSET_CURRENCY_TYPE.VIRTUAL
+}
+
+const coinTypeMap = computed(() => {
+  const map = new Map()
+  assetsCoins.forEach((coin) => {
+    if (!coin?.symbol) return
+    map.set(String(coin.symbol).toUpperCase(), normalizeCurrencyType(coin.type))
+  })
+  return map
+})
+
+const currencyTypeBySymbol = (symbol) => {
+  if (!symbol) return ASSET_CURRENCY_TYPE.VIRTUAL
+  return coinTypeMap.value.get(String(symbol).toUpperCase()) || ASSET_CURRENCY_TYPE.VIRTUAL
+}
+
+const currencyTypeByPair = (pair) => {
+  const [baseCurrency] = String(pair || '').split('/')
+  return currencyTypeBySymbol(baseCurrency)
+}
+
+const currencyTypeLabel = (value) => {
+  const type = normalizeCurrencyType(value)
+  if (type === ASSET_CURRENCY_TYPE.VIRTUAL) return '虚拟币'
+  if (type === ASSET_CURRENCY_TYPE.FIAT) return '法币'
+  if (type === ASSET_CURRENCY_TYPE.METAL) return '贵金属'
+  return String(type || '')
+}
+
 const allFilteredProducts = computed(() => {
-  const kw = search.value.trim().toLowerCase()
+  const kw = searchApplied.value.trim().toLowerCase()
   return products.value.filter((p) => {
     const hitStatus = statusTab.value === COMMON_FILTER_ALL || p.status === statusTab.value
     const hitKw = !kw || `${p.name} ${p.code} ${p.pair}`.toLowerCase().includes(kw)
-    return hitStatus && hitKw
+    const hitCurrencyType = currencyTypeApplied.value === 'all' || currencyTypeByPair(p.pair) === currencyTypeApplied.value
+    return hitStatus && hitKw && hitCurrencyType
   })
 })
 
@@ -35,7 +89,7 @@ const filteredProducts = computed(() => {
 const totalPages = computed(() => Math.ceil(allFilteredProducts.value.length / pagination.pageSize))
 
 // 监听筛选变化，重置页码
-watch([statusTab, search], () => {
+watch([statusTab, searchApplied, currencyTypeApplied], () => {
   pagination.currentPage = 1
 })
 
@@ -197,63 +251,79 @@ onMounted(() => {
       </div>
     </header>
 
-    <article class="rounded-xl border border-slate-200 bg-white">
-      <!-- 筛选栏 -->
-      <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 p-4">
-        <div class="flex flex-wrap items-center gap-6">
-          <div class="inline-flex items-center gap-6 text-sm">
-            <button
-              type="button"
-              class="relative py-2 font-medium transition-colors"
-              :class="statusTab === COMMON_FILTER_ALL ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600' : 'text-slate-500 hover:text-slate-700'"
-              @click="statusTab = COMMON_FILTER_ALL"
-            >
-              全部
-            </button>
-            <button
-              type="button"
-              class="relative py-2 font-medium transition-colors"
-              :class="statusTab === DELIVERY_STATUS.ENABLED ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600' : 'text-slate-500 hover:text-slate-700'"
-              @click="statusTab = DELIVERY_STATUS.ENABLED"
-            >
-              已启用
-            </button>
-            <button
-              type="button"
-              class="relative py-2 font-medium transition-colors"
-              :class="statusTab === DELIVERY_STATUS.DISABLED ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600' : 'text-slate-500 hover:text-slate-700'"
-              @click="statusTab = DELIVERY_STATUS.DISABLED"
-            >
-              已禁用
-            </button>
+    <article class="rounded-xl border border-slate-200 bg-white p-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex w-full flex-wrap items-center gap-2 md:w-auto">
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-slate-600 whitespace-nowrap">币种类型</span>
+            <CurrencyTypeSelect v-model="currencyTypeDraft" class="shrink-0" />
+          </div>
+
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <span class="text-sm text-slate-600 whitespace-nowrap">产品名称</span>
+            <div class="relative w-full sm:w-80">
+              <input
+                v-model="searchDraft"
+                type="text"
+                class="ant-input w-full pl-9 !h-8"
+                placeholder="搜索产品名称或代码..."
+                @keyup.enter="applySearch"
+              />
+              <svg viewBox="0 0 20 20" class="pointer-events-none absolute left-3 top-2 h-4 w-4 text-slate-400" fill="none">
+                <circle cx="9" cy="9" r="5.8" stroke="currentColor" stroke-width="1.6" />
+                <path d="M13.6 13.6L16.4 16.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+              </svg>
+            </div>
           </div>
         </div>
 
-        <div class="flex flex-wrap items-center gap-3">
-          <div class="relative w-64">
-            <input
-              v-model="search"
-              type="text"
-              class="ant-input w-full pl-9"
-              placeholder="搜索产品名称或代码..."
-            />
-            <svg viewBox="0 0 20 20" class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" fill="none">
-              <circle cx="9" cy="9" r="5.8" stroke="currentColor" stroke-width="1.6" />
-              <path d="M13.6 13.6L16.4 16.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-            </svg>
-          </div>
-          <button
-            type="button"
-            class="ant-btn ant-btn-primary inline-flex items-center gap-1.5"
-            @click="openCreateContract()"
-          >
-            <span class="text-lg leading-none">+</span>
-            <span>新增合约</span>
+        <div class="flex items-center gap-2 shrink-0">
+          <button type="button" class="ant-btn !h-8" @click="resetSearch">
+            <span>重置</span>
+          </button>
+          <button type="button" class="ant-btn ant-btn-primary !h-8" @click="applySearch">
+            <span>搜索</span>
           </button>
         </div>
       </div>
+    </article>
 
-      <!-- 列表内容 -->
+    <article class="rounded-xl border border-slate-200 bg-white">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4">
+        <div class="inline-flex items-center gap-6 text-sm">
+          <button
+            type="button"
+            class="relative py-2 font-medium transition-colors"
+            :class="statusTab === COMMON_FILTER_ALL ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600' : 'text-slate-500 hover:text-slate-700'"
+            @click="statusTab = COMMON_FILTER_ALL"
+          >
+            全部
+          </button>
+          <button
+            type="button"
+            class="relative py-2 font-medium transition-colors"
+            :class="statusTab === DELIVERY_STATUS.ENABLED ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600' : 'text-slate-500 hover:text-slate-700'"
+            @click="statusTab = DELIVERY_STATUS.ENABLED"
+          >
+            已启用
+          </button>
+          <button
+            type="button"
+            class="relative py-2 font-medium transition-colors"
+            :class="statusTab === DELIVERY_STATUS.DISABLED ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600' : 'text-slate-500 hover:text-slate-700'"
+            @click="statusTab = DELIVERY_STATUS.DISABLED"
+          >
+            已禁用
+          </button>
+          <span class="text-slate-400">|</span>
+          <span class="text-slate-500">共 <span class="font-medium text-slate-700">{{ allFilteredProducts.length }}</span> 个</span>
+        </div>
+
+        <button type="button" class="ant-btn ant-btn-primary !h-8 shrink-0" @click="openCreateContract()">
+          <span>+ 新增合约</span>
+        </button>
+      </div>
+
       <div class="p-4 space-y-4">
         <article
           v-for="item in filteredProducts"
@@ -270,6 +340,9 @@ onMounted(() => {
                   :class="statusClass(item.status)"
                 >
                   {{ item.status === DELIVERY_STATUS.ENABLED ? '已启用' : '已禁用' }}
+                </span>
+                <span class="px-2 py-0.5 text-xs text-slate-600 bg-slate-100 border border-slate-200 rounded">
+                  {{ currencyTypeLabel(currencyTypeByPair(item.pair)) }}
                 </span>
                 <span class="px-2 py-0.5 text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded">
                   {{ item.templateName }}
