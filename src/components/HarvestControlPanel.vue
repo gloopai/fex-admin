@@ -3,14 +3,6 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
 const clamp = (n, min, max) => Math.min(max, Math.max(min, n))
 
-const median = (arr) => {
-  const xs = (arr || []).map((x) => Number(x)).filter((x) => Number.isFinite(x))
-  if (!xs.length) return 0
-  xs.sort((a, b) => a - b)
-  const mid = Math.floor((xs.length - 1) / 2)
-  return xs.length % 2 ? xs[mid] : (xs[mid] + xs[mid + 1]) / 2
-}
-
 const formatCompactNumber = (n, digits) => {
   const str = Number(n).toFixed(digits)
   return str.replace(/\.0+$/, '').replace(/(\.\d*[1-9])0+$/, '$1')
@@ -48,9 +40,11 @@ const formatPrice = (value) => {
 }
 
 const pad2 = (n) => String(n).padStart(2, '0')
-const formatCountdown = (sec) => {
-  const s = Math.max(0, Math.floor(Number(sec || 0)))
-  return `${pad2(Math.floor(s / 60))}:${pad2(s % 60)}`
+
+const formatDateTime = (ts) => {
+  const d = new Date(Number(ts || 0))
+  if (Number.isNaN(d.getTime())) return '-'
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`
 }
 
 const tickSizeFor = (asset, price) => {
@@ -105,8 +99,10 @@ const label = computed(() => props.row?.label || '-')
 const asset = computed(() => props.row?.asset || '')
 const tierSec = computed(() => Number(props.row?.tierSec || 0))
 const marketPrice = computed(() => Number(props.row?.marketPrice || 0))
-const remainSec = computed(() => Number(props.row?.remainSec ?? 0))
 const tickSize = computed(() => tickSizeFor(asset.value, marketPrice.value))
+
+const volume24h = computed(() => Number(props.row?.volume24h || 0))
+const activeUsers = computed(() => Number(props.row?.activeUsers || 0))
 
 const positionsByKey = ref({})
 const selectedUids = ref([])
@@ -410,20 +406,6 @@ const previewSettlementPrice = computed(() => {
   return finalSettlementPrice.value
 })
 
-const previewPlatformPnl = computed(() => {
-  if (mode.value === 'squeeze') return platformProfitAtSqueeze(settlementPrices.value.long, settlementPrices.value.short)
-  return platformProfitAtUniform(previewSettlementPrice.value)
-})
-
-const userPreviewSettlementPrice = (pos) => {
-  if (mode.value !== 'squeeze') return previewSettlementPrice.value
-  return pos?.side === 'long' ? settlementPrices.value.long : settlementPrices.value.short
-}
-
-const userPreviewPnl = (pos) => {
-  return userPnlAt(pos, userPreviewSettlementPrice(pos))
-}
-
 const markHoverPrice = (evt) => {
   if (!svgLandscape.value.xFor) return
   const box = evt.currentTarget?.getBoundingClientRect?.()
@@ -602,35 +584,17 @@ watch(
   { immediate: true }
 )
 
-const volatilityPct = computed(() => {
-  const hist = priceHistory.value
-  if (!hist || hist.length < 6) return 0
-  const rets = []
-  for (let i = 1; i < hist.length; i++) {
-    const prev = Number(hist[i - 1].p || 0)
-    const cur = Number(hist[i].p || 0)
-    if (!prev || !cur) continue
-    rets.push(Math.log(cur / prev))
-  }
-  if (rets.length < 5) return 0
-  const mean = rets.reduce((s, x) => s + x, 0) / rets.length
-  const v = rets.reduce((s, x) => s + (x - mean) * (x - mean), 0) / Math.max(1, rets.length - 1)
-  return Math.sqrt(v) * 100
-})
-
-const volTone = computed(() => {
-  const v = volatilityPct.value
-  if (v >= 0.9) return { text: '波动偏大', cls: 'text-rose-700' }
-  if (v >= 0.45) return { text: '波动适中', cls: 'text-amber-700' }
-  return { text: '波动平稳', cls: 'text-emerald-700' }
-})
-
 const heartbeat = ref(0)
 let heartbeatTimer = null
 
 const bumpHeartbeat = () => {
   heartbeat.value++
 }
+
+const lastRefreshAtText = computed(() => {
+  heartbeat.value
+  return formatDateTime(Date.now())
+})
 
 watch(
   () => open.value,
@@ -683,42 +647,6 @@ const exposureSummary = computed(() => {
 
 const platformPnlNow = computed(() => {
   return platformProfitAtUniform(markPrice.value)
-})
-
-const indexPrices = computed(() => {
-  heartbeat.value
-  if (!key.value) return { binance: marketPrice.value, okx: marketPrice.value, avg: marketPrice.value }
-  const t = Math.floor(Date.now() / 1000)
-  const r1 = seeded(`${key.value}_${t}_bin`)()
-  const r2 = seeded(`${key.value}_${t}_okx`)()
-  const binance = marketPrice.value * (1 + (r1 * 2 - 1) * 0.0016)
-  const okx = marketPrice.value * (1 + (r2 * 2 - 1) * 0.0014)
-  return { binance, okx, avg: (binance + okx) / 2 }
-})
-
-const outlierCheck = computed(() => {
-  const avg = Number(indexPrices.value.avg || 0)
-  const p = Number(previewSettlementPrice.value || 0)
-  const diffPct = avg ? (Math.abs(p - avg) / avg) * 100 : 0
-  if (diffPct < 0.3) return { cls: 'text-emerald-700', diffPct }
-  if (diffPct < 1.0) return { cls: 'text-amber-700', diffPct }
-  return { cls: 'text-rose-700', diffPct }
-})
-
-const priceCompare = computed(() => {
-  const binance = Number(indexPrices.value.binance || 0)
-  const okx = Number(indexPrices.value.okx || 0)
-  const avg = Number(indexPrices.value.avg || 0)
-  const uniform = Number(previewSettlementPrice.value || 0)
-  const long = Number(settlementPrices.value.long || 0)
-  const short = Number(settlementPrices.value.short || 0)
-  const diffUniform = avg ? uniform - avg : 0
-  const diffUniformPct = avg ? (diffUniform / avg) * 100 : 0
-  const diffLong = avg ? long - avg : 0
-  const diffLongPct = avg ? (diffLong / avg) * 100 : 0
-  const diffShort = avg ? short - avg : 0
-  const diffShortPct = avg ? (diffShort / avg) * 100 : 0
-  return { binance, okx, avg, uniform, long, short, diffUniform, diffUniformPct, diffLong, diffLongPct, diffShort, diffShortPct }
 })
 
 const klineByKey = ref({})
@@ -818,49 +746,36 @@ const klineSvg = computed(() => {
           <div class="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-2.5">
             <div class="flex items-center gap-4 overflow-x-auto whitespace-nowrap text-[11px] text-slate-600">
               <div class="flex items-baseline gap-2 shrink-0">
-                <span class="text-slate-500">波动(60s)</span>
-                <span class="font-mono text-slate-900">{{ volatilityPct.toFixed(2) }}%</span>
-                <span :class="volTone.cls">{{ volTone.text }}</span>
+                <span class="text-slate-500">更新</span>
+                <span class="font-mono text-slate-900">{{ lastRefreshAtText || '-' }}</span>
               </div>
 
               <span class="h-4 w-px bg-slate-200 shrink-0"></span>
 
               <div class="flex items-baseline gap-2 shrink-0">
-                <span class="text-slate-500">实时盈亏 (PnL)</span>
+                <span class="text-slate-500">24h交易量</span>
+                <span class="font-mono text-slate-900">{{ volume24h > 0 ? formatCompactUsd(volume24h) : '-' }}</span>
+              </div>
+
+              <div class="flex items-baseline gap-2 shrink-0">
+                <span class="text-slate-500">活跃用户</span>
+                <span class="font-mono text-slate-900">{{ activeUsers > 0 ? Math.round(activeUsers) : '-' }}</span>
+              </div>
+
+              <span class="h-4 w-px bg-slate-200 shrink-0"></span>
+
+              <div class="flex items-baseline gap-2 shrink-0">
+                <span class="text-slate-500">平台盈亏</span>
                 <span class="font-mono" :class="platformPnlNow < 0 ? 'text-rose-700' : 'text-emerald-700'">
                   {{ formatCompactUsd(platformPnlNow, true) }}
                 </span>
               </div>
 
-              <div class="flex items-baseline gap-2 shrink-0">
-                <span class="text-slate-500">预演利润</span>
-                <span class="font-mono" :class="previewPlatformPnl < 0 ? 'text-rose-700' : 'text-emerald-700'">
-                  {{ formatCompactUsd(previewPlatformPnl, true) }}
-                </span>
-              </div>
-
               <span class="h-4 w-px bg-slate-200 shrink-0"></span>
 
               <div class="flex items-baseline gap-2 shrink-0">
-                <span class="text-slate-500">多仓</span>
-                <span class="font-mono text-slate-900">{{ formatCompactUsd(exposureSummary.longNotional) }}</span>
-                <span class="font-mono text-slate-400">({{ exposureSummary.longUsers }})</span>
-              </div>
-
-              <div class="flex items-baseline gap-2 shrink-0">
-                <span class="text-slate-500">空仓</span>
-                <span class="font-mono text-slate-900">{{ formatCompactUsd(exposureSummary.shortNotional) }}</span>
-                <span class="font-mono text-slate-400">({{ exposureSummary.shortUsers }})</span>
-              </div>
-
-              <div class="flex items-baseline gap-2 shrink-0">
-                <span class="text-slate-500">净头寸</span>
-                <span class="font-mono text-slate-900">{{ formatCompactUsd(exposureSummary.netNotional, true) }}</span>
-              </div>
-
-              <div class="flex items-baseline gap-2 shrink-0">
-                <span class="text-slate-500">多空比</span>
-                <span class="font-mono text-slate-900">{{ Number.isFinite(exposureSummary.ratio) ? exposureSummary.ratio.toFixed(2) : '∞' }}</span>
+                <span class="text-slate-500">持仓(多/空/净)</span>
+                <span class="font-mono text-slate-900">{{ formatCompactUsd(exposureSummary.longNotional) }} / {{ formatCompactUsd(exposureSummary.shortNotional) }} / {{ formatCompactUsd(exposureSummary.netNotional, true) }}</span>
               </div>
 
               <span class="h-4 w-px bg-slate-200 shrink-0"></span>
@@ -1091,7 +1006,7 @@ const klineSvg = computed(() => {
                       </button>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-2 text-[11px]">
+                    <!-- <div class="grid grid-cols-2 gap-2 text-[11px]">
                       <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                         <div class="text-slate-500">多头结算价</div>
                         <div class="mt-1 font-mono text-slate-900">{{ formatPrice(settlementPrices.long) }}</div>
@@ -1100,7 +1015,7 @@ const klineSvg = computed(() => {
                         <div class="text-slate-500">空头结算价</div>
                         <div class="mt-1 font-mono text-slate-900">{{ formatPrice(settlementPrices.short) }}</div>
                       </div>
-                    </div>
+                    </div> -->
 
                     <div class="grid grid-cols-2 gap-2">
                       <input
@@ -1171,30 +1086,6 @@ const klineSvg = computed(() => {
               </div>
 
               <div class="flex-1 overflow-y-auto p-5 space-y-4">
-                <div class="grid grid-cols-3 gap-3">
-                  <div class="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                    <div class="text-[11px] text-slate-500">平台净风险</div>
-                    <div class="mt-1 font-mono text-sm font-semibold" :class="-platformPnlNow > 0 ? 'text-rose-700' : 'text-emerald-700'">
-                      {{ formatCompactUsd(-platformPnlNow, true) }}
-                    </div>
-                    <!-- <div class="mt-0.5 text-[11px] text-slate-400">实时测算</div> -->
-                  </div>
-
-                  <div class="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                    <div class="text-[11px] text-slate-500">预估盈亏</div>
-                    <div class="mt-1 font-mono text-sm font-semibold" :class="previewPlatformPnl < 0 ? 'text-rose-700' : 'text-emerald-700'">
-                      {{ formatCompactUsd(previewPlatformPnl, true) }}
-                    </div>
-                    <!-- <div class="mt-0.5 text-[11px] text-slate-400">按预演结算价</div> -->
-                  </div>
-
-                  <div class="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                    <div class="text-[11px] text-slate-500">偏离率</div>
-                    <div class="mt-1 font-mono text-sm font-semibold" :class="outlierCheck.cls">{{ outlierCheck.diffPct.toFixed(2) }}%</div>
-                    <!-- <div class="mt-0.5 text-[11px] text-slate-400">参考均价对比</div> -->
-                  </div>
-                </div>
-
                 <div class="rounded-xl border border-slate-200 bg-white p-4">
                   <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
@@ -1359,54 +1250,7 @@ const klineSvg = computed(() => {
                   </div>
                 </div>
 
-                <div class="rounded-xl border border-slate-200 bg-white p-4">
-                  <div class="flex items-center justify-between">
-                    <div>
-                      <div class="text-xs font-semibold text-slate-900">价格对比</div>
-                      <div class="mt-0.5 text-[11px] text-slate-500">参考均价 / 外部指数 / 预演结算价</div>
-                    </div>
-                    <div class="text-right">
-                      <div class="text-[11px] text-slate-400">Tick</div>
-                      <div class="font-mono text-xs text-slate-900">{{ formatPrice(tickSize) }}</div>
-                    </div>
-                  </div>
-
-                  <div class="mt-3 space-y-2 text-xs">
-                    <div class="flex items-center justify-between gap-3">
-                      <div class="text-slate-500">参考价格</div>
-                      <div class="font-mono text-slate-900">{{ formatPrice(priceCompare.avg) }}</div>
-                    </div>
-                    <div class="flex items-center justify-between gap-3">
-                      <div class="text-slate-500">指数价格</div>
-                      <div class="font-mono text-slate-900">{{ formatPrice(priceCompare.binance) }} / {{ formatPrice(priceCompare.okx) }}</div>
-                    </div>
-                    <div class="flex items-center justify-between gap-3">
-                      <div class="text-slate-500">用户看到价</div>
-                      <div class="font-mono text-slate-900">{{ formatPrice(marketPrice) }}</div>
-                    </div>
-                    <div class="flex items-center justify-between gap-3">
-                      <div class="text-slate-500">预演结算价</div>
-                      <div class="font-mono text-slate-900">
-                        <span v-if="mode === 'squeeze'">{{ formatPrice(priceCompare.long) }} / {{ formatPrice(priceCompare.short) }}</span>
-                        <span v-else>{{ formatPrice(priceCompare.uniform) }}</span>
-                      </div>
-                    </div>
-                    <div class="flex items-center justify-between gap-3">
-                      <div class="text-slate-500">Gap</div>
-                      <div v-if="mode === 'squeeze'" class="font-mono text-slate-900">
-                        {{ (priceCompare.diffLong >= 0 ? '+' : '-') + formatPrice(Math.abs(priceCompare.diffLong)) }}
-                        <span class="text-slate-400">({{ priceCompare.diffLongPct.toFixed(2) }}%)</span>
-                        <span class="text-slate-400">/</span>
-                        {{ (priceCompare.diffShort >= 0 ? '+' : '-') + formatPrice(Math.abs(priceCompare.diffShort)) }}
-                        <span class="text-slate-400">({{ priceCompare.diffShortPct.toFixed(2) }}%)</span>
-                      </div>
-                      <div v-else class="font-mono text-slate-900">
-                        {{ (priceCompare.diffUniform >= 0 ? '+' : '-') + formatPrice(Math.abs(priceCompare.diffUniform)) }}
-                        <span class="text-slate-400">({{ priceCompare.diffUniformPct.toFixed(2) }}%)</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+               
               </div>
             </section>
 
