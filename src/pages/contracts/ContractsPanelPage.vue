@@ -21,6 +21,8 @@ const metricLabel = {
   SHORT: '空头持仓',
   NET: '净持仓',
   RATIO: '多空比',
+  LONG_PNL: '做多盈亏',
+  SHORT_PNL: '做空盈亏',
   PLATFORM_PNL: '平台盈亏'
 }
 
@@ -103,7 +105,9 @@ const ensurePerpMetrics = (contract) => {
   const baseShort = 600_000 + (seed % 28) * 80_000
   const net = baseLong - baseShort
   const ratio = baseShort > 0 ? baseLong / baseShort : 1
-  const platformPnl = ensureNonZeroSigned((seed % 2 === 0 ? 1 : -1) * (15_000 + (seed % 70) * 800), 500)
+  const longPnl = ensureNonZeroSigned((seed % 2 === 0 ? 1 : -1) * (9_000 + (seed % 60) * 620), 500)
+  const shortPnl = ensureNonZeroSigned((seed % 3 === 0 ? 1 : -1) * (7_000 + (seed % 55) * 540), 500)
+  const platformPnl = longPnl + shortPnl
 
   const existing = Array.isArray(contract.metrics) ? contract.metrics : []
   const byLabel = new Map(existing.map((m) => [m.label, { ...m }]))
@@ -119,6 +123,8 @@ const ensurePerpMetrics = (contract) => {
     getOr(metricLabel.RATIO, { label: metricLabel.RATIO, value: ratio.toFixed(2) }),
     getOr(metricLabel.USERS, { label: metricLabel.USERS, value: String(baseUsers) }),
     getOr(metricLabel.VOLUME, { label: metricLabel.VOLUME, value: formatCompactUsd(baseVol) }),
+    getOr(metricLabel.LONG_PNL, { label: metricLabel.LONG_PNL, value: formatCompactUsd(longPnl, true) }),
+    getOr(metricLabel.SHORT_PNL, { label: metricLabel.SHORT_PNL, value: formatCompactUsd(shortPnl, true) }),
     getOr(metricLabel.PLATFORM_PNL, { label: metricLabel.PLATFORM_PNL, value: formatCompactUsd(platformPnl, true) })
   ]
 }
@@ -278,7 +284,9 @@ const refreshData = () => {
     const ratio = short > 0 ? long / short : 1
     const users = Math.max(0, Math.round(jitter(Number(getMetric({ metrics }, metricLabel.USERS)?.value || 0), 0.02)))
     const volume = jitter(parseCompactUsd(getMetric({ metrics }, metricLabel.VOLUME)?.value), 0.03)
-    const platformPnl = ensureNonZeroSigned(jitter(parseCompactUsd(getMetric({ metrics }, metricLabel.PLATFORM_PNL)?.value), 0.08), 500)
+    const longPnl = ensureNonZeroSigned(jitter(parseCompactUsd(getMetric({ metrics }, metricLabel.LONG_PNL)?.value), 0.08), 500)
+    const shortPnl = ensureNonZeroSigned(jitter(parseCompactUsd(getMetric({ metrics }, metricLabel.SHORT_PNL)?.value), 0.08), 500)
+    const platformPnl = longPnl + shortPnl
 
     let updated = metrics
     updated = upsertMetric({ metrics: updated }, metricLabel.LONG, { value: formatCompactUsd(long) })
@@ -287,6 +295,8 @@ const refreshData = () => {
     updated = upsertMetric({ metrics: updated }, metricLabel.RATIO, { value: ratio.toFixed(2) })
     updated = upsertMetric({ metrics: updated }, metricLabel.USERS, { value: String(users) })
     updated = upsertMetric({ metrics: updated }, metricLabel.VOLUME, { value: formatCompactUsd(volume) })
+    updated = upsertMetric({ metrics: updated }, metricLabel.LONG_PNL, { value: formatCompactUsd(longPnl, true) })
+    updated = upsertMetric({ metrics: updated }, metricLabel.SHORT_PNL, { value: formatCompactUsd(shortPnl, true) })
     updated = upsertMetric({ metrics: updated }, metricLabel.PLATFORM_PNL, { value: formatCompactUsd(platformPnl, true) })
 
     next.metrics = updated
@@ -298,7 +308,10 @@ const refreshData = () => {
     const next = { ...c }
     next.volume24h = Math.max(0, Math.round(jitter(next.volume24h, 0.03)))
     next.activeUsers = Math.max(0, Math.round(jitter(next.activeUsers, 0.02)))
-    next.platformPnl24h = Math.round(ensureNonZeroSigned(jitter(next.platformPnl24h, 0.08), 500))
+    next.longPnl24h = Math.round(ensureNonZeroSigned(jitter(next.longPnl24h ?? 0, 0.08), 500))
+    next.shortPnl24h = Math.round(ensureNonZeroSigned(jitter(next.shortPnl24h ?? 0, 0.08), 500))
+    next.platformPnl24h = Number(next.longPnl24h || 0) + Number(next.shortPnl24h || 0)
+    next.userPnl24h = -next.platformPnl24h
     return next
   })
 
@@ -306,6 +319,8 @@ const refreshData = () => {
     ...deliveryOverview.value,
     totalVolume24h: deliveryContracts.value.reduce((sum, c) => sum + Number(c.volume24h || 0), 0),
     activeUsers24h: deliveryContracts.value.reduce((sum, c) => sum + Number(c.activeUsers || 0), 0),
+    longPnl24h: deliveryContracts.value.reduce((sum, c) => sum + Number(c.longPnl24h || 0), 0),
+    shortPnl24h: deliveryContracts.value.reduce((sum, c) => sum + Number(c.shortPnl24h || 0), 0),
     platformPnl24h: deliveryContracts.value.reduce((sum, c) => sum + Number(c.platformPnl24h || 0), 0)
   }
 
@@ -329,6 +344,14 @@ const perpPlatformPnl = computed(() => {
   return perpContracts.value.reduce((sum, c) => sum + parseCompactUsd(getMetric(c, metricLabel.PLATFORM_PNL)?.value), 0)
 })
 
+const perpLongPnl = computed(() => {
+  return perpContracts.value.reduce((sum, c) => sum + parseCompactUsd(getMetric(c, metricLabel.LONG_PNL)?.value), 0)
+})
+
+const perpShortPnl = computed(() => {
+  return perpContracts.value.reduce((sum, c) => sum + parseCompactUsd(getMetric(c, metricLabel.SHORT_PNL)?.value), 0)
+})
+
 const perpVolume24h = computed(() => {
   return perpContracts.value.reduce((sum, c) => sum + parseCompactUsd(getMetric(c, metricLabel.VOLUME)?.value), 0)
 })
@@ -338,10 +361,14 @@ const perpActiveUsers = computed(() => {
 })
 
 const deliveryPlatformPnl = computed(() => deliveryOverview.value.platformPnl24h || 0)
+const deliveryLongPnl = computed(() => deliveryOverview.value.longPnl24h || 0)
+const deliveryShortPnl = computed(() => deliveryOverview.value.shortPnl24h || 0)
 const deliveryVolume24h = computed(() => deliveryOverview.value.totalVolume24h || 0)
 const deliveryActiveUsers = computed(() => deliveryOverview.value.activeUsers24h || 0)
 
 const totalPlatformPnl = computed(() => perpPlatformPnl.value + deliveryPlatformPnl.value)
+const totalLongPnl = computed(() => perpLongPnl.value + deliveryLongPnl.value)
+const totalShortPnl = computed(() => perpShortPnl.value + deliveryShortPnl.value)
 const totalVolume = computed(() => perpVolume24h.value + deliveryVolume24h.value)
 const totalActiveUsers = computed(() => perpActiveUsers.value + deliveryActiveUsers.value)
 
@@ -470,17 +497,17 @@ const onLockDeliveryHarvest = (payload) => {
 
     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <p class="text-sm text-slate-500">当前筛选盈亏</p>
+        <p class="text-sm text-slate-500">平台盈亏</p>
         <p class="mt-2 text-3xl font-bold font-mono" :class="selectedPlatformPnl >= 0 ? 'text-emerald-600' : 'text-rose-600'">
           {{ formatCompactUsd(selectedPlatformPnl, true) }}
         </p>
         <p class="mt-2 text-xs text-slate-400">筛选：{{ activeFilterLabel }}</p>
       </article>
 
-      <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm" :class="activeTab === 'perpetual' ? 'ring-2 ring-blue-500/30' : 'opacity-80'">
-        <p class="text-sm text-slate-500">永续平台盈亏</p>
-        <p class="mt-2 text-3xl font-bold font-mono" :class="perpPlatformPnl >= 0 ? 'text-emerald-600' : 'text-rose-600'">
-          {{ formatCompactUsd(perpPlatformPnl, true) }}
+      <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <p class="text-sm text-slate-500">做多</p>
+        <p class="mt-2 text-3xl font-bold font-mono text-emerald-600">
+          {{ formatCompactUsd(totalLongPnl, true) }}
         </p>
         <div class="mt-3 flex items-center justify-between text-xs text-slate-400">
           <span>合约数</span>
@@ -488,10 +515,10 @@ const onLockDeliveryHarvest = (payload) => {
         </div>
       </article>
 
-      <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm" :class="activeTab === 'delivery' ? 'ring-2 ring-blue-500/30' : 'opacity-80'">
-        <p class="text-sm text-slate-500">交割平台盈亏</p>
-        <p class="mt-2 text-3xl font-bold font-mono" :class="deliveryPlatformPnl >= 0 ? 'text-emerald-600' : 'text-rose-600'">
-          {{ formatCompactUsd(deliveryPlatformPnl, true) }}
+      <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <p class="text-sm text-slate-500">做空</p>
+        <p class="mt-2 text-3xl font-bold font-mono text-rose-600">
+          {{ formatCompactUsd(totalShortPnl, true) }}
         </p>
         <div class="mt-3 flex items-center justify-between text-xs text-slate-400">
           <span>临近到期</span>

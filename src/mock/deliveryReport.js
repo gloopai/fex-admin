@@ -17,6 +17,8 @@ export const deliveryMarketOverview = {
   totalPosition: 4250000,        // 总持仓 (USDT)
   totalUsers: 2850,              // 总用户数
   activeUsers24h: 1890,          // 24h活跃用户
+  longPnl24h: 218600,            // 24h做多盈亏 (USDT)
+  shortPnl24h: -61800,           // 24h做空盈亏 (USDT)
   platformPnl24h: 156800,        // 24h平台盈亏 (USDT)
   userPnl24h: -156800,           // 24h用户盈亏 (USDT)
   longShortRatio: 1.28,          // 多空比
@@ -43,6 +45,8 @@ export const deliveryContractsData = [
     netPosition: 280000,
     longShortRatio: 1.40,
     activeUsers: 685,
+    longPnl24h: 45200,
+    shortPnl24h: 23300,
     platformPnl24h: 68500,
     userPnl24h: -68500,
     controlActive: true,
@@ -64,6 +68,8 @@ export const deliveryContractsData = [
     netPosition: 160000,
     longShortRatio: 1.44,
     activeUsers: 428,
+    longPnl24h: 28700,
+    shortPnl24h: 13800,
     platformPnl24h: 42500,
     userPnl24h: -42500,
     controlActive: true,
@@ -85,6 +91,8 @@ export const deliveryContractsData = [
     netPosition: -140000,
     longShortRatio: 0.63,
     activeUsers: 325,
+    longPnl24h: 12000,
+    shortPnl24h: -50000,
     platformPnl24h: -38000,
     userPnl24h: 38000,
     controlActive: true,
@@ -106,6 +114,8 @@ export const deliveryContractsData = [
     netPosition: 75000,
     longShortRatio: 1.37,
     activeUsers: 268,
+    longPnl24h: 16400,
+    shortPnl24h: 12100,
     platformPnl24h: 28500,
     userPnl24h: -28500,
     controlActive: false,
@@ -127,6 +137,8 @@ export const deliveryContractsData = [
     netPosition: 5000,
     longShortRatio: 1.03,
     activeUsers: 184,
+    longPnl24h: 9800,
+    shortPnl24h: 8400,
     platformPnl24h: 18200,
     userPnl24h: -18200,
     controlActive: false,
@@ -148,6 +160,8 @@ export const deliveryContractsData = [
     netPosition: 130000,
     longShortRatio: 3.00,
     activeUsers: 158,
+    longPnl24h: -13400,
+    shortPnl24h: -34600,
     platformPnl24h: -48000,
     userPnl24h: 48000,
     controlActive: true,
@@ -518,4 +532,3 @@ export const deliveryAutoRuleEffectComparison = [
     rulesApplied: ['RULE-001', 'RULE-004', 'RULE-005']
   }
 ]
-
