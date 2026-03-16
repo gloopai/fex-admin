@@ -540,12 +540,6 @@ const onLockDeliveryHarvest = (payload) => {
           <p class="mt-0.5 text-xs text-slate-500">按 24h 交易量排序TOP 10，筛选仅影响列表展示</p>
         </div>
         <div class="flex items-center gap-2">
-          <span class="inline-flex items-center rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-            做多总额 ${{ formatNumber(Math.round(filteredLongTotal)) }}
-          </span>
-          <span class="inline-flex items-center rounded-md border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700">
-            做空总额 ${{ formatNumber(Math.round(filteredShortTotal)) }}
-          </span>
           <button v-if="activeTab !== 'delivery'" type="button" class="ant-btn !h-9 !px-4" @click="openPerpReport">永续线控</button>
           <button v-if="activeTab !== 'perpetual'" type="button" class="ant-btn !h-9 !px-4" @click="openDeliveryContracts">交割场控</button>
         </div>
