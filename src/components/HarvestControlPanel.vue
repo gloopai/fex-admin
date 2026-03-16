@@ -472,6 +472,11 @@ const applySlippageToControlPrice = () => {
   lastAction.value = `滑点应用：${slippageDir.value === 'add' ? '+' : '-'}${points} → ${formatPrice(controlPrice.value)}`
 }
 
+watch([slippageDir, slippagePoints], () => {
+  if (locked.value) return
+  applySlippageToControlPrice()
+})
+
 const onCurveClick = (evt) => {
   if (locked.value) return
   const box = evt.currentTarget?.getBoundingClientRect?.()
@@ -537,14 +542,6 @@ const squeezeNudge = (dir) => {
   if (locked.value) return
   mode.value = 'squeeze'
   squeezeCenter.value = roundToTick(squeezeCenter.value + Number(dir || 0) * tickSize.value, tickSize.value)
-}
-
-const squeezeAll = () => {
-  if (locked.value) return
-  mode.value = 'squeeze'
-  squeezeCenter.value = roundToTick(clamp(bestPoint.value.price, squeezeCenterMin.value, squeezeCenterMax.value), tickSize.value)
-  hoverPrice.value = null
-  lastAction.value = `整体收缩：中心 ${formatPrice(squeezeCenter.value)}`
 }
 
 const lockPlan = () => {
@@ -897,13 +894,7 @@ const klineSvg = computed(() => {
                   
                   <div class="flex items-start justify-between gap-2">
                     <div class="text-xs font-semibold text-slate-900">用户结算价</div>
-                    <div class="text-right">
-                      <div v-if="mode === 'squeeze'" class="space-y-0.5">
-                        <div class="font-mono text-xs text-slate-700">多 {{ formatPrice(settlementPrices.long) }}</div>
-                        <div class="font-mono text-xs text-slate-700">空 {{ formatPrice(settlementPrices.short) }}</div>
-                      </div>
-                      <div v-else class="font-mono text-xs text-slate-700">{{ formatPrice(finalSettlementPrice) }}</div>
-                    </div>
+                    
                   </div>
 
                   <div v-if="mode === 'force'" class="space-y-2">
@@ -953,14 +944,6 @@ const klineSvg = computed(() => {
                         :disabled="locked"
                       />
                     </div>
-                    <button
-                      type="button"
-                      class="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 hover:bg-slate-50 disabled:opacity-40"
-                      :disabled="locked"
-                      @click="applySlippageToControlPrice"
-                    >
-                      按滑点生成结算价
-                    </button>
                     <div class="text-[11px] text-slate-500">
                       区间 {{ formatPrice(priceMin) }} ~ {{ formatPrice(priceMax) }} · Tick {{ formatPrice(tickSize) }}
                     </div>
@@ -1006,7 +989,7 @@ const klineSvg = computed(() => {
                       </button>
                     </div>
 
-                    <!-- <div class="grid grid-cols-2 gap-2 text-[11px]">
+                    <div class="grid grid-cols-2 gap-2 text-[11px]">
                       <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                         <div class="text-slate-500">多头结算价</div>
                         <div class="mt-1 font-mono text-slate-900">{{ formatPrice(settlementPrices.long) }}</div>
@@ -1015,9 +998,10 @@ const klineSvg = computed(() => {
                         <div class="text-slate-500">空头结算价</div>
                         <div class="mt-1 font-mono text-slate-900">{{ formatPrice(settlementPrices.short) }}</div>
                       </div>
-                    </div> -->
+                    </div>
 
-                    <div class="grid grid-cols-2 gap-2">
+                    <div class="pt-1 text-[11px] font-semibold text-slate-700">滑点</div>
+                    <div>
                       <input
                         type="number"
                         class="h-9 rounded-lg border border-slate-200 px-3 font-mono text-sm text-slate-900 focus:border-slate-900 focus:outline-none focus:ring-0 disabled:bg-slate-50"
@@ -1025,14 +1009,6 @@ const klineSvg = computed(() => {
                         min="0"
                         :disabled="locked"
                       />
-                      <button
-                        type="button"
-                        class="h-9 rounded-lg bg-slate-900 px-3 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-40"
-                        :disabled="locked"
-                        @click="squeezeAll"
-                      >
-                        整体收缩
-                      </button>
                     </div>
                     
                     <div class="text-[11px] text-slate-500">
