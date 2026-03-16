@@ -121,9 +121,8 @@ const props = defineProps({
 const emit = defineEmits(['close', 'save', 'remove'])
 
 const ui = reactive({
-  mode: 'force',
   intent: 'squeeze',
-  selectedUid: '',
+  selectedUid: ''
 })
 
 const form = reactive({
@@ -193,8 +192,6 @@ const ratioValue = computed(() => {
   return Number.isFinite(n) && n > 0 ? n : 1
 })
 
-const netValue = computed(() => parseCompactUsd(props.metrics?.net))
-const netPositive = computed(() => netValue.value >= 0)
 const platformPnlPositive = computed(() => parseCompactUsd(props.metrics?.platformPnl) >= 0)
 
 const derivedSlippagePct = computed(() => {
@@ -387,46 +384,6 @@ const riskUsers = computed(() => {
     .slice(0, 24)
 })
 
-const settlementPrices = computed(() => {
-  return {
-    long: manualPreview.value.longSettlementPrice,
-    short: manualPreview.value.shortSettlementPrice
-  }
-})
-
-const estPlatformPnl = computed(() => {
-  const pLong = settlementPrices.value.long
-  const pShort = settlementPrices.value.short
-  if (!Number.isFinite(pLong) || !Number.isFinite(pShort)) return 0
-  return -allPositions.value.reduce((sum, pos) => {
-    const p = pos.side === 'long' ? pLong : pShort
-    return sum + userPnlAt(pos, p)
-  }, 0)
-})
-
-const liquidationSim = computed(() => {
-  const pLong = settlementPrices.value.long
-  const pShort = settlementPrices.value.short
-  let longCount = 0
-  let shortCount = 0
-  let longGain = 0
-  let shortGain = 0
-  for (const pos of allPositions.value) {
-    if (pos.side === 'long') {
-      if (Number.isFinite(pos.liquidationPrice) && pLong <= pos.liquidationPrice) {
-        longCount += 1
-        longGain += -userPnlAt(pos, pos.liquidationPrice)
-      }
-    } else {
-      if (Number.isFinite(pos.liquidationPrice) && pShort >= pos.liquidationPrice) {
-        shortCount += 1
-        shortGain += -userPnlAt(pos, pos.liquidationPrice)
-      }
-    }
-  }
-  return { longCount, shortCount, longGain, shortGain }
-})
-
 const priceBandPct = computed(() => {
   const p = manualPreview.value.marketPrice
   if (p >= 1000) return 0.02
@@ -540,69 +497,11 @@ const onCurveLeave = () => {
   hoverPrice.value = null
 }
 
-const applySmartSqueeze = () => {
-  const p0 = manualPreview.value.marketPrice
-  const best = curve.value.best?.price
-  if (!Number.isFinite(p0) || !Number.isFinite(best)) return
-  const diff = Math.round(Math.abs(best - p0))
-  if (best >= p0) {
-    form.offsetDirection = PERP_CONTROL_OFFSET_DIRECTION.UP
-    form.priceOffset = clamp(diff, 0, 50)
-  } else {
-    form.offsetDirection = PERP_CONTROL_OFFSET_DIRECTION.DOWN
-    form.priceOffset = clamp(diff, 0, 50)
-  }
-}
-
-const applyForceAlign = () => {
-  const p0 = manualPreview.value.marketPrice
-  const best = curve.value.best?.price
-  if (!Number.isFinite(p0) || !Number.isFinite(best)) return
-  const need = estPlatformPnl.value < 0
-  if (!need) return
-  const diff = Math.max(5, Math.round(Math.abs(best - p0)))
-  if (best >= p0) {
-    form.offsetDirection = PERP_CONTROL_OFFSET_DIRECTION.UP
-    form.priceOffset = clamp(diff, 0, 50)
-  } else {
-    form.offsetDirection = PERP_CONTROL_OFFSET_DIRECTION.DOWN
-    form.priceOffset = clamp(diff, 0, 50)
-  }
-  form.spreadPoints = clamp(Math.max(Number(form.spreadPoints || 0), 5), 0, 500)
-}
-
-const aimText = computed(() => {
-  const sim = liquidationSim.value
-  const pLong = settlementPrices.value.long
-  const pShort = settlementPrices.value.short
-  return {
-    longLine: `多头结算 ${formatPrice(pLong)} · 可爆多 ${formatCompactUsd(sim.longGain)} (${sim.longCount})`,
-    shortLine: `空头结算 ${formatPrice(pShort)} · 可爆空 ${formatCompactUsd(sim.shortGain)} (${sim.shortCount})`
-  }
-})
-
 const targetUser = computed(() => {
   const uid = String(ui.selectedUid || '')
   if (!uid) return null
   return riskUsers.value.find((x) => String(x.uid) === uid) || null
 })
-
-const aimAtUser = (uid) => {
-  const user = riskUsers.value.find((x) => String(x.uid) === String(uid))
-  if (!user) return
-  ui.selectedUid = String(user.uid)
-  const p0 = manualPreview.value.marketPrice
-  const liq = Number(user.liquidationPrice || 0)
-  if (!p0 || !Number.isFinite(liq) || liq <= 0) return
-  if (user.side === 'long') {
-    ui.intent = 'harvest_long'
-    form.priceOffset = clamp(Math.ceil(p0 - liq), 0, 50)
-  } else {
-    ui.intent = 'harvest_short'
-    form.priceOffset = clamp(Math.ceil(liq - p0), 0, 50)
-  }
-  form.spreadPoints = clamp(Math.max(Number(form.spreadPoints || 0), 5), 0, 500)
-}
 
 const close = () => emit('close')
 const remove = () => emit('remove', { contractId: props.contractId })
@@ -611,14 +510,11 @@ const emitSave = () =>
   emit('save', {
     contractId: props.contractId,
     payload: {
-      mode: ui.mode,
-      intent: ui.intent,
       priceOffset: Number(form.priceOffset || 0),
       offsetDirection: form.offsetDirection,
       slippagePct: derivedSlippagePct.value,
       latencyMs: Number(form.latencyMs || 0),
-      durationSec: Number(form.durationSec || 0),
-      spreadPoints: Number(form.spreadPoints || 0)
+      durationSec: Number(form.durationSec || 0)
     }
   })
 </script>
@@ -634,7 +530,7 @@ const emitSave = () =>
               <div class="text-xs text-slate-500">The War Room Header</div>
               <h2 class="mt-1 text-xl font-semibold text-slate-900">手动插线：{{ contractId || '-' }}</h2>
               <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500">
-                <span>净头寸优先 · 利润地图 · 大户追踪</span>
+                <span>调整永续合约K线偏移</span>
                 <span v-if="contractLabel" class="truncate">· {{ contractLabel }}</span>
               </div>
             </div>
@@ -663,23 +559,13 @@ const emitSave = () =>
               </div>
 
               <div class="flex items-baseline gap-2 shrink-0">
-                <span class="text-slate-500">持仓(多/空)</span>
-                <span class="font-mono text-slate-900">{{ metrics.long }} / {{ metrics.short }}</span>
-              </div>
-
-              <div class="flex items-baseline gap-2 shrink-0">
-                <span class="text-slate-500">净头寸</span>
-                <span class="font-mono" :class="netPositive ? 'text-rose-700' : 'text-emerald-700'">{{ metrics.net }}</span>
+                <span class="text-slate-500">持仓(多/空/净)</span>
+                <span class="font-mono text-slate-900">{{ metrics.long }} / {{ metrics.short }} / {{ metrics.net }}</span>
               </div>
 
               <div class="flex items-baseline gap-2 shrink-0">
                 <span class="text-slate-500">平台盈亏</span>
                 <span class="font-mono" :class="platformPnlPositive ? 'text-emerald-700' : 'text-rose-700'">{{ metrics.platformPnl }}</span>
-              </div>
-
-              <div class="flex items-baseline gap-2 shrink-0">
-                <span class="text-slate-500">预估收益</span>
-                <span class="font-mono" :class="estPlatformPnl < 0 ? 'text-rose-700' : 'text-emerald-700'">{{ formatCompactUsd(estPlatformPnl, { withSign: true }) }}</span>
               </div>
 
               <span class="h-4 w-px bg-slate-200 shrink-0"></span>
@@ -786,7 +672,7 @@ const emitSave = () =>
 
                 <div class="rounded-xl border border-slate-200 bg-white p-4">
                   <div class="flex items-center justify-between">
-                    <div class="text-xs font-semibold text-slate-900">重心偏移</div>
+                    <div class="text-xs font-semibold text-slate-900">K线偏移</div>
                     <div class="flex items-center gap-2">
                       <span class="font-mono text-sm font-semibold text-slate-900">
                         <span v-if="form.offsetDirection === PERP_CONTROL_OFFSET_DIRECTION.UP">+{{ Number(form.priceOffset || 0) }}点</span>
@@ -832,7 +718,7 @@ const emitSave = () =>
                 <div class="rounded-xl border border-slate-200 bg-white p-4">
                   <div class="flex items-center justify-between">
                     <div>
-                      <div class="text-xs font-semibold text-slate-900">双向价差 (Gap)</div>
+                      <div class="text-xs font-semibold text-slate-900">K线偏移量波动</div>
                       <div class="mt-0.5 text-[11px] text-slate-500">≈ {{ slippagePctUi.toFixed(2) }}%</div>
                     </div>
                     <div class="font-mono text-sm font-semibold text-slate-900">{{ slippagePctUi.toFixed(2) }}%</div>
@@ -884,24 +770,6 @@ const emitSave = () =>
               </div>
 
               <div class="flex-1 min-h-0 overflow-y-auto p-5 space-y-4">
-                <div class="rounded-lg border border-slate-200 bg-white p-4">
-                  <div class="grid grid-cols-3 gap-3 text-[11px]">
-                    <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 min-h-[64px] flex flex-col justify-center">
-                      <div class="text-slate-500">平台净风险</div>
-                      <div class="mt-1  tabular-nums whitespace-nowrap text-sm" :class="netPositive ? 'text-rose-700' : 'text-emerald-700'">{{ formatCompactUsd(netValue, { withSign: true }) }}</div>
-                    </div>
-                    <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 min-h-[64px] flex flex-col justify-center">
-                      <div class="text-slate-500">
-                        预估盈亏</div>
-                      <div class="mt-1  tabular-nums whitespace-nowrap text-sm" :class="estPlatformPnl < 0 ? 'text-rose-700' : 'text-emerald-700'">{{ formatCompactUsd(estPlatformPnl, { withSign: true }) }}</div>
-                    </div>
-                    <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 min-h-[64px] flex flex-col justify-center">
-                      <div class="text-slate-500">偏离率</div>
-                      <div class="mt-1 f font-semibold tabular-nums whitespace-nowrap text-sm" :class="outlierCheck.cls">{{ outlierCheck.diffPct.toFixed(2) }}%</div>
-                    </div>
-                  </div>
-                </div>
-
                 <div class="rounded-lg border border-slate-200 bg-white p-4">
                   <div class="flex items-center justify-between">
                     <div>
@@ -971,20 +839,8 @@ const emitSave = () =>
                       <div class="col-span-9 font-mono tabular-nums whitespace-nowrap text-right text-slate-900">{{ formatPrice(manualPreview.buyQuote) }} / {{ formatPrice(manualPreview.sellQuote) }}</div>
                     </div>
                     <div class="grid grid-cols-12 gap-2 items-center py-1">
-                      <div class="col-span-3 text-slate-500">Gap</div>
+                      <div class="col-span-3 text-slate-500">K线偏移量</div>
                       <div class="col-span-9 font-mono tabular-nums whitespace-nowrap text-right text-slate-900">±{{ Number(form.priceOffset || 0).toFixed(2) }} ({{ manualPreview.profitRatePct.toFixed(2) }}%)</div>
-                    </div>
-                    <div class="grid grid-cols-12 gap-2 items-center py-1">
-                      <div class="col-span-3 text-slate-500">多头结算</div>
-                      <div class="col-span-9 font-mono tabular-nums whitespace-nowrap text-right" :class="liquidationSim.longGain > 0 ? 'text-emerald-700' : 'text-slate-700'">
-                        {{ liquidationSim.longGain > 0 ? `回收 ${formatCompactUsd(liquidationSim.longGain)}` : '-' }}
-                      </div>
-                    </div>
-                    <div class="grid grid-cols-12 gap-2 items-center py-1">
-                      <div class="col-span-3 text-slate-500">空头结算</div>
-                      <div class="col-span-9 font-mono tabular-nums whitespace-nowrap text-right" :class="liquidationSim.shortGain > 0 ? 'text-emerald-700' : 'text-slate-700'">
-                        {{ liquidationSim.shortGain > 0 ? `回收 ${formatCompactUsd(liquidationSim.shortGain)}` : '-' }}
-                      </div>
                     </div>
                   </div>
                 </div>
