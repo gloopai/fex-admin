@@ -247,11 +247,23 @@ const locked = ref(false)
 const lastAction = ref('')
 const hoverPrice = ref(null)
 
-const outcomeBias = ref('balanced')
+const outcomeBias = ref('user_lose')
 const outcomeIntensity = ref(70)
 const deviationPctLimit = ref(1.2)
 const autoApplyRecommendation = ref(true)
 const advancedTune = ref(false)
+const showAdvanced = ref(false)
+
+const intensityPresets = [
+  { label: '轻', value: 30 },
+  { label: '中', value: 60 },
+  { label: '强', value: 85 }
+]
+
+const ready = computed(() => {
+  const p = Number(markPrice.value || 0)
+  return Boolean(key.value) && Number.isFinite(p) && p > 0 && targetedPositions.value.length > 0
+})
 
 const squeezeGap = computed(() => Math.max(0, Number(squeezePoints.value || 0)) * tickSize.value)
 
@@ -476,11 +488,12 @@ watch(
     lastAction.value = ''
     hoverPrice.value = null
     selectedUids.value = []
-    outcomeBias.value = 'balanced'
+    outcomeBias.value = 'user_lose'
     outcomeIntensity.value = 70
     deviationPctLimit.value = 1.2
     autoApplyRecommendation.value = true
     advancedTune.value = false
+    showAdvanced.value = false
   },
   { immediate: true }
 )
@@ -998,9 +1011,12 @@ const klineSvg = computed(() => {
                         value="force"
                         class="h-4 w-4 text-slate-900 focus:ring-slate-900"
                         v-model="mode"
-                        :disabled="locked"
+                        :disabled="locked || !ready"
                       />
-                      <div class="text-sm text-slate-900">统一结算</div>
+                      <div class="min-w-0">
+                        <div class="text-sm font-semibold text-slate-900">统一结算</div>
+                        <div class="text-[11px] text-slate-500">多空同价，易解释</div>
+                      </div>
                     </label>
                     <label class="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2">
                       <input
@@ -1009,9 +1025,12 @@ const klineSvg = computed(() => {
                         value="squeeze"
                         class="h-4 w-4 text-slate-900 focus:ring-slate-900"
                         v-model="mode"
-                        :disabled="locked"
+                        :disabled="locked || !ready"
                       />
-                      <div class="text-sm text-slate-900">双向挤压</div>
+                      <div class="min-w-0">
+                        <div class="text-sm font-semibold text-slate-900">双向挤压</div>
+                        <div class="text-[11px] text-slate-500">多空不同价，强度更高</div>
+                      </div>
                     </label>
                   </div>
                 </div>
@@ -1021,8 +1040,11 @@ const klineSvg = computed(() => {
                     <div class="text-xs font-semibold text-slate-900">标记价</div>
                     <div class="font-mono text-xs text-slate-700">{{ formatPrice(markPrice) }}</div>
                   </div>
+                  <div v-if="!ready" class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-900/80">
+                    等待合约/行情数据就绪后再执行
+                  </div>
                   <div class="space-y-2">
-                    <div class="text-xs font-semibold text-slate-900">结果控制</div>
+                    <div class="text-xs font-semibold text-slate-900">目标偏好</div>
                     <div class="grid grid-cols-3 gap-2 text-[11px]">
                       <label class="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2">
                         <input
@@ -1031,9 +1053,9 @@ const klineSvg = computed(() => {
                           value="user_win"
                           class="h-4 w-4 text-slate-900 focus:ring-slate-900"
                           v-model="outcomeBias"
-                          :disabled="locked"
+                          :disabled="locked || !ready"
                         />
-                        <div class="text-slate-900">提高盈利比例</div>
+                        <div class="text-slate-900">偏向用户</div>
                       </label>
                       <label class="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2">
                         <input
@@ -1042,9 +1064,9 @@ const klineSvg = computed(() => {
                           value="balanced"
                           class="h-4 w-4 text-slate-900 focus:ring-slate-900"
                           v-model="outcomeBias"
-                          :disabled="locked"
+                          :disabled="locked || !ready"
                         />
-                        <div class="text-slate-900">接近均衡</div>
+                        <div class="text-slate-900">中性</div>
                       </label>
                       <label class="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2">
                         <input
@@ -1053,16 +1075,17 @@ const klineSvg = computed(() => {
                           value="user_lose"
                           class="h-4 w-4 text-slate-900 focus:ring-slate-900"
                           v-model="outcomeBias"
-                          :disabled="locked"
+                          :disabled="locked || !ready"
                         />
-                        <div class="text-slate-900">降低盈利比例</div>
+                        <div class="text-slate-900">偏向平台</div>
                       </label>
                     </div>
+                    <div class="text-[11px] text-slate-500">通过选择结算价，让整体胜率趋势靠近目标值；不保证每单命中</div>
                   </div>
 
                   <div class="space-y-1.5">
                     <div class="flex items-center justify-between">
-                      <div class="text-[11px] font-semibold text-slate-700">强度</div>
+                      <div class="text-[11px] font-semibold text-slate-700">偏向程度</div>
                       <div class="font-mono text-[11px] text-slate-700">目标胜率 {{ Math.round(targetWinRate * 100) }}%</div>
                     </div>
                     <input
@@ -1071,9 +1094,22 @@ const klineSvg = computed(() => {
                       max="100"
                       step="1"
                       v-model.number="outcomeIntensity"
-                      :disabled="locked || outcomeBias === 'balanced'"
+                      :disabled="locked || !ready || outcomeBias === 'balanced'"
                       class="w-full accent-slate-900 disabled:opacity-40"
                     />
+                    <div class="flex flex-wrap items-center gap-2">
+                      <button
+                        v-for="p in intensityPresets"
+                        :key="`preset-${p.value}`"
+                        type="button"
+                        class="h-7 rounded-lg border border-slate-200 bg-white px-2 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                        :disabled="locked || !ready || outcomeBias === 'balanced'"
+                        @click="outcomeIntensity = p.value"
+                      >
+                        {{ p.label }}
+                      </button>
+                      <div v-if="outcomeBias === 'balanced'" class="text-[11px] text-slate-400">中性模式不启用偏向</div>
+                    </div>
                   </div>
 
                   <div v-if="mode === 'squeeze'" class="space-y-1.5">
@@ -1086,27 +1122,8 @@ const klineSvg = computed(() => {
                       class="h-9 w-full rounded-lg border border-slate-200 px-3 font-mono text-sm text-slate-900 focus:border-slate-900 focus:outline-none focus:ring-0 disabled:bg-slate-50"
                       v-model.number="squeezePoints"
                       min="0"
-                      :disabled="locked"
+                      :disabled="locked || !ready"
                     />
-                  </div>
-
-                  <div class="space-y-1.5">
-                    <div class="flex items-center justify-between">
-                      <div class="text-[11px] font-semibold text-slate-700">偏离保护</div>
-                      <div class="font-mono text-[11px] text-slate-700">±{{ Number(deviationPctLimit || 0).toFixed(1) }}%</div>
-                    </div>
-                    <input
-                      type="range"
-                      min="0.2"
-                      max="8"
-                      step="0.1"
-                      v-model.number="deviationPctLimit"
-                      :disabled="locked"
-                      class="w-full accent-slate-900 disabled:opacity-40"
-                    />
-                    <div class="text-[11px] text-slate-500">
-                      推荐区间 {{ formatPrice(recommendRange.min) }} ~ {{ formatPrice(recommendRange.max) }} · Tick {{ formatPrice(tickSize) }}
-                    </div>
                   </div>
 
                   <div class="flex items-center justify-between gap-3">
@@ -1115,19 +1132,135 @@ const klineSvg = computed(() => {
                         type="checkbox"
                         class="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900 disabled:opacity-40"
                         v-model="autoApplyRecommendation"
-                        :disabled="locked"
+                        :disabled="locked || !ready"
                       />
                       自动应用推荐
                     </label>
-                    <label class="flex items-center gap-2 text-[11px] text-slate-500">
+                    <button
+                      type="button"
+                      class="text-[11px] font-semibold text-slate-700 hover:text-slate-900 disabled:opacity-40"
+                      :disabled="locked || !ready"
+                      @click="showAdvanced = !showAdvanced"
+                    >
+                      {{ showAdvanced ? '收起高级设置' : '展开高级设置' }}
+                    </button>
+                  </div>
+
+                  <div v-if="showAdvanced" class="space-y-3 pt-1">
+                    <div class="space-y-1.5">
+                      <div class="flex items-center justify-between">
+                        <div class="text-[11px] font-semibold text-slate-700">价格偏离上限</div>
+                        <div class="font-mono text-[11px] text-slate-700">±{{ Number(deviationPctLimit || 0).toFixed(1) }}%</div>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.2"
+                        max="8"
+                        step="0.1"
+                        v-model.number="deviationPctLimit"
+                        :disabled="locked || !ready"
+                        class="w-full accent-slate-900 disabled:opacity-40"
+                      />
+                      <div class="text-[11px] text-slate-500">
+                        推荐区间 {{ formatPrice(recommendRange.min) }} ~ {{ formatPrice(recommendRange.max) }} · Tick {{ formatPrice(tickSize) }}
+                      </div>
+                    </div>
+
+                    <label class="flex items-center justify-between gap-3">
+                      <div class="min-w-0">
+                        <div class="text-[11px] font-semibold text-slate-700">时间窗口修正</div>
+                        <div class="text-[11px] text-slate-500">以窗口均价作为参考标记价（{{ Math.round(contractWindowSec) }}s）</div>
+                      </div>
                       <input
                         type="checkbox"
                         class="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900 disabled:opacity-40"
                         v-model="windowPriceEnabled"
-                        :disabled="locked"
+                        :disabled="locked || !ready"
                       />
-                      启用时间窗口修正（{{ Math.round(contractWindowSec) }}s）
                     </label>
+
+                    <div class="space-y-2">
+                      <label class="flex items-center justify-between gap-3">
+                        <span class="text-[11px] font-semibold text-slate-700">高级微调</span>
+                        <input
+                          type="checkbox"
+                          class="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900 disabled:opacity-40"
+                          v-model="advancedTune"
+                          :disabled="locked || !ready"
+                        />
+                      </label>
+
+                      <div v-if="advancedTune" class="space-y-2">
+                        <div class="text-[11px] text-slate-500">仅用于最后 1-2 Tick 校正</div>
+
+                        <div v-if="mode === 'force'" class="flex items-center gap-2">
+                          <button
+                            type="button"
+                            class="h-9 w-9 shrink-0 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 flex items-center justify-center leading-none"
+                            :disabled="locked || !ready"
+                            @click="nudge(-1)"
+                          >
+                            -
+                          </button>
+                          <input
+                            type="number"
+                            class="h-9 min-w-0 flex-1 rounded-lg border border-slate-200 px-3 font-mono text-sm text-slate-900 focus:border-slate-900 focus:outline-none focus:ring-0 disabled:bg-slate-50"
+                            v-model.number="controlPrice"
+                            :step="tickSize"
+                            :min="priceMin"
+                            :max="priceMax"
+                            :disabled="locked || !ready"
+                          />
+                          <button
+                            type="button"
+                            class="h-9 w-9 shrink-0 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 flex items-center justify-center leading-none"
+                            :disabled="locked || !ready"
+                            @click="nudge(1)"
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        <div v-else class="flex items-center gap-2">
+                          <button
+                            type="button"
+                            class="h-9 w-9 shrink-0 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 flex items-center justify-center leading-none"
+                            :disabled="locked || !ready"
+                            @click="squeezeNudge(-1)"
+                          >
+                            -
+                          </button>
+                          <input
+                            type="number"
+                            class="h-9 min-w-0 flex-1 rounded-lg border border-slate-200 px-3 font-mono text-sm text-slate-900 focus:border-slate-900 focus:outline-none focus:ring-0 disabled:bg-slate-50"
+                            v-model.number="squeezeCenter"
+                            :step="tickSize"
+                            :min="squeezeCenterMin"
+                            :max="squeezeCenterMax"
+                            :disabled="locked || !ready"
+                          />
+                          <button
+                            type="button"
+                            class="h-9 w-9 shrink-0 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 flex items-center justify-center leading-none"
+                            :disabled="locked || !ready"
+                            @click="squeezeNudge(1)"
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        <div v-if="mode === 'squeeze'" class="grid grid-cols-2 gap-2 text-[11px]">
+                          <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                            <div class="text-slate-500">多头结算价</div>
+                            <div class="mt-1 font-mono text-slate-900">{{ formatPrice(settlementPrices.long) }}</div>
+                          </div>
+                          <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                            <div class="text-slate-500">空头结算价</div>
+                            <div class="mt-1 font-mono text-slate-900">{{ formatPrice(settlementPrices.short) }}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 space-y-1.5">
@@ -1136,7 +1269,7 @@ const klineSvg = computed(() => {
                       <button
                         type="button"
                         class="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
-                        :disabled="locked"
+                        :disabled="locked || !ready"
                         @click="applyRecommended"
                       >
                         应用
@@ -1149,89 +1282,6 @@ const klineSvg = computed(() => {
                     <div class="text-[11px] text-slate-500">
                       用户胜率 {{ Math.round(Number(recommendedPoint.winRate || 0) * 100) }}%（赢{{ recommendedPoint.winCount || 0 }}/输{{ recommendedPoint.lossCount || 0 }}/平{{ recommendedPoint.flatCount || 0 }}）
                       · 平台 {{ formatCompactUsd(recommendedPoint.profit, true) }}
-                    </div>
-                  </div>
-
-                  <div class="space-y-2">
-                    <label class="flex items-center justify-between gap-3">
-                      <span class="text-[11px] font-semibold text-slate-700">高级微调</span>
-                      <input
-                        type="checkbox"
-                        class="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900 disabled:opacity-40"
-                        v-model="advancedTune"
-                        :disabled="locked"
-                      />
-                    </label>
-
-                    <div v-if="advancedTune" class="space-y-2">
-                      <div class="text-[11px] text-slate-500">仅用于最后 1-2 Tick 校正</div>
-
-                      <div v-if="mode === 'force'" class="flex items-center gap-2">
-                        <button
-                          type="button"
-                          class="h-9 w-9 shrink-0 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 flex items-center justify-center leading-none"
-                          :disabled="locked"
-                          @click="nudge(-1)"
-                        >
-                          -
-                        </button>
-                        <input
-                          type="number"
-                          class="h-9 min-w-0 flex-1 rounded-lg border border-slate-200 px-3 font-mono text-sm text-slate-900 focus:border-slate-900 focus:outline-none focus:ring-0 disabled:bg-slate-50"
-                          v-model.number="controlPrice"
-                          :step="tickSize"
-                          :min="priceMin"
-                          :max="priceMax"
-                          :disabled="locked"
-                        />
-                        <button
-                          type="button"
-                          class="h-9 w-9 shrink-0 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 flex items-center justify-center leading-none"
-                          :disabled="locked"
-                          @click="nudge(1)"
-                        >
-                          +
-                        </button>
-                      </div>
-
-                      <div v-else class="flex items-center gap-2">
-                        <button
-                          type="button"
-                          class="h-9 w-9 shrink-0 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 flex items-center justify-center leading-none"
-                          :disabled="locked"
-                          @click="squeezeNudge(-1)"
-                        >
-                          -
-                        </button>
-                        <input
-                          type="number"
-                          class="h-9 min-w-0 flex-1 rounded-lg border border-slate-200 px-3 font-mono text-sm text-slate-900 focus:border-slate-900 focus:outline-none focus:ring-0 disabled:bg-slate-50"
-                          v-model.number="squeezeCenter"
-                          :step="tickSize"
-                          :min="squeezeCenterMin"
-                          :max="squeezeCenterMax"
-                          :disabled="locked"
-                        />
-                        <button
-                          type="button"
-                          class="h-9 w-9 shrink-0 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 flex items-center justify-center leading-none"
-                          :disabled="locked"
-                          @click="squeezeNudge(1)"
-                        >
-                          +
-                        </button>
-                      </div>
-
-                      <div v-if="mode === 'squeeze'" class="grid grid-cols-2 gap-2 text-[11px]">
-                        <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                          <div class="text-slate-500">多头结算价</div>
-                          <div class="mt-1 font-mono text-slate-900">{{ formatPrice(settlementPrices.long) }}</div>
-                        </div>
-                        <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                          <div class="text-slate-500">空头结算价</div>
-                          <div class="mt-1 font-mono text-slate-900">{{ formatPrice(settlementPrices.short) }}</div>
-                        </div>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -1258,7 +1308,7 @@ const klineSvg = computed(() => {
                 <button
                   type="button"
                   class="w-full rounded-xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white hover:bg-rose-500 disabled:opacity-50"
-                  :disabled="locked"
+                  :disabled="locked || !ready"
                   @click="lockPlan"
                 >
                   执行方案
