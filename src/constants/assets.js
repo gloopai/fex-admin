@@ -13,7 +13,6 @@ export const ASSET_CURRENCY_TYPE = {
 
 export const ASSET_MODAL_TAB = {
   BASIC: 'basic',
-  COLLECT: 'collect',
   NETWORK: 'network'
 }
 

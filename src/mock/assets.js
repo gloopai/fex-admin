@@ -25,7 +25,6 @@ const assetsCoins = [
     status: ASSET_STATUS.ENABLED,
     type: ASSET_CURRENCY_TYPE.VIRTUAL,
     autoCollect: true,
-    intervalMin: 60,
     networks: [
       {
         id: 'erc20',
@@ -33,6 +32,7 @@ const assetsCoins = [
         contract: '0xdac17f958d2ee523a2206206994597c13d831ec7',
         collectAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
         threshold: 100,
+        intervalMin: 60,
         gasLimit: 60000,
         status: ASSET_STATUS.ENABLED
       },
@@ -42,6 +42,7 @@ const assetsCoins = [
         contract: 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t',
         collectAddress: 'TKzxdSv2FZKQrEqkKVgp5DcwEXBEKMg2Ax',
         threshold: 50,
+        intervalMin: 60,
         gasLimit: 1,
         status: ASSET_STATUS.ENABLED
       },
@@ -51,6 +52,7 @@ const assetsCoins = [
         contract: '0x55d398326f99059fF775485246999027B3197955',
         collectAddress: '0x8e23Ee67f9A0A1f57A13Af11f4f66f6E7c5eA1A3',
         threshold: 50,
+        intervalMin: 60,
         gasLimit: 45000,
         status: ASSET_STATUS.DISABLED
       }
@@ -67,7 +69,6 @@ const assetsCoins = [
     status: ASSET_STATUS.ENABLED,
     type: ASSET_CURRENCY_TYPE.VIRTUAL,
     autoCollect: true,
-    intervalMin: 120,
     networks: [
       {
         id: 'btc-native',
@@ -75,6 +76,7 @@ const assetsCoins = [
         contract: '-',
         collectAddress: '1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2',
         threshold: 0.01,
+        intervalMin: 120,
         gasLimit: 1,
         status: ASSET_STATUS.ENABLED
       }
@@ -91,7 +93,6 @@ const assetsCoins = [
     status: ASSET_STATUS.DISABLED,
     type: ASSET_CURRENCY_TYPE.VIRTUAL,
     autoCollect: false,
-    intervalMin: 120,
     networks: [
       {
         id: 'eth-native',
@@ -99,6 +100,7 @@ const assetsCoins = [
         contract: '-',
         collectAddress: '0xabcd12ef34567890abcd12ef34567890abcd12ef',
         threshold: 0.1,
+        intervalMin: 120,
         gasLimit: 21000,
         status: ASSET_STATUS.DISABLED
       }
@@ -115,7 +117,6 @@ const assetsCoins = [
     status: ASSET_STATUS.ENABLED,
     type: ASSET_CURRENCY_TYPE.VIRTUAL,
     autoCollect: true,
-    intervalMin: 180,
     networks: [
       {
         id: 'ltc-native',
@@ -123,6 +124,7 @@ const assetsCoins = [
         contract: '-',
         collectAddress: 'LgeP8pXnNfN6x1uH2m2P6R4y7G1jK5W8Vz',
         threshold: 0.5,
+        intervalMin: 180,
         gasLimit: 1,
         status: ASSET_STATUS.ENABLED
       }
@@ -139,7 +141,6 @@ const assetsCoins = [
     status: ASSET_STATUS.ENABLED,
     type: ASSET_CURRENCY_TYPE.VIRTUAL,
     autoCollect: true,
-    intervalMin: 60,
     networks: [
       {
         id: 'sol-native',
@@ -147,6 +148,7 @@ const assetsCoins = [
         contract: '-',
         collectAddress: '7pP5kR1qV6W7x2p9r7vK4f5g3h2j1l0m9n8o7p6q5r4s',
         threshold: 1,
+        intervalMin: 60,
         gasLimit: 1,
         status: ASSET_STATUS.ENABLED
       }
@@ -163,7 +165,6 @@ const assetsCoins = [
     status: ASSET_STATUS.ENABLED,
     type: ASSET_CURRENCY_TYPE.VIRTUAL,
     autoCollect: true,
-    intervalMin: 120,
     networks: [
       {
         id: 'doge-native',
@@ -171,6 +172,7 @@ const assetsCoins = [
         contract: '-',
         collectAddress: 'DKv8pXnNfN6x1uH2m2P6R4y7G1jK5W8Vz',
         threshold: 100,
+        intervalMin: 120,
         gasLimit: 1,
         status: ASSET_STATUS.ENABLED
       }
@@ -187,7 +189,6 @@ const assetsCoins = [
     status: ASSET_STATUS.ENABLED,
     type: ASSET_CURRENCY_TYPE.FIAT,
     autoCollect: false,
-    intervalMin: 0,
     networks: []
   },
   {
@@ -201,7 +202,6 @@ const assetsCoins = [
     status: ASSET_STATUS.ENABLED,
     type: ASSET_CURRENCY_TYPE.FIAT,
     autoCollect: false,
-    intervalMin: 0,
     networks: []
   },
   {
@@ -215,7 +215,6 @@ const assetsCoins = [
     status: ASSET_STATUS.ENABLED,
     type: ASSET_CURRENCY_TYPE.FIAT,
     autoCollect: false,
-    intervalMin: 0,
     networks: []
   },
   {
@@ -229,7 +228,6 @@ const assetsCoins = [
     status: ASSET_STATUS.ENABLED,
     type: ASSET_CURRENCY_TYPE.METAL,
     autoCollect: false,
-    intervalMin: 0,
     networks: []
   },
   {
@@ -243,7 +241,6 @@ const assetsCoins = [
     status: ASSET_STATUS.ENABLED,
     type: ASSET_CURRENCY_TYPE.METAL,
     autoCollect: false,
-    intervalMin: 0,
     networks: []
   },
   {
@@ -257,7 +254,6 @@ const assetsCoins = [
     status: ASSET_STATUS.ENABLED,
     type: ASSET_CURRENCY_TYPE.METAL,
     autoCollect: false,
-    intervalMin: 0,
     networks: []
   },
   {
@@ -271,7 +267,6 @@ const assetsCoins = [
     status: ASSET_STATUS.ENABLED,
     type: ASSET_CURRENCY_TYPE.METAL,
     autoCollect: false,
-    intervalMin: 0,
     networks: []
   }
 ]

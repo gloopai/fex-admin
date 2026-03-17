@@ -73,7 +73,6 @@ const form = reactive({
   precision: 6,
   status: ASSET_STATUS.ENABLED,
   autoCollect: true,
-  intervalMin: 60,
   networks: []
 })
 
@@ -89,7 +88,6 @@ watch(
   (nextType) => {
     if (isNonVirtualType(nextType)) {
       form.autoCollect = false
-      form.intervalMin = 0
       form.networks = []
       activeNetworkId.value = ''
       if (modalTab.value !== ASSET_MODAL_TAB.BASIC) modalTab.value = ASSET_MODAL_TAB.BASIC
@@ -98,11 +96,9 @@ watch(
 
     if (!form.networks.length) {
       const id = `nw-${Date.now()}`
-      form.networks = [{ id, name: '', contract: '', collectAddress: '', threshold: 100, gasLimit: 60000, status: ASSET_STATUS.ENABLED }]
+      form.networks = [{ id, name: '', contract: '', collectAddress: '', threshold: 100, intervalMin: 60, gasLimit: 60000, status: ASSET_STATUS.ENABLED }]
       activeNetworkId.value = id
     }
-
-    if (Number(form.intervalMin) <= 0) form.intervalMin = 60
   }
 )
 
@@ -149,8 +145,14 @@ const cloneCoinToForm = (coin) => {
   form.precision = coin.precision
   form.status = coin.status
   form.autoCollect = coin.autoCollect
-  form.intervalMin = coin.intervalMin
-  form.networks = Array.isArray(coin.networks) ? coin.networks.map((n) => ({ ...n })) : []
+  form.networks = Array.isArray(coin.networks)
+    ? coin.networks.map((n) => ({
+        ...n,
+        threshold: Number(n.threshold),
+        gasLimit: Number(n.gasLimit),
+        intervalMin: Number(n.intervalMin ?? coin.intervalMin ?? 60)
+      }))
+    : []
 }
 
 const openEdit = (coin) => {
@@ -172,9 +174,8 @@ const openCreate = () => {
   form.precision = 6
   form.status = ASSET_STATUS.ENABLED
   form.autoCollect = true
-  form.intervalMin = 60
   form.networks = [
-    { id: `nw-${Date.now()}`, name: '', contract: '', collectAddress: '', threshold: 100, gasLimit: 60000, status: ASSET_STATUS.ENABLED }
+    { id: `nw-${Date.now()}`, name: '', contract: '', collectAddress: '', threshold: 100, intervalMin: 60, gasLimit: 60000, status: ASSET_STATUS.ENABLED }
   ]
   modalTab.value = ASSET_MODAL_TAB.BASIC
   activeNetworkId.value = form.networks[0]?.id || ''
@@ -183,7 +184,7 @@ const openCreate = () => {
 
 const addNetwork = () => {
   const id = `nw-${Date.now()}`
-  form.networks.push({ id, name: '', contract: '', collectAddress: '', threshold: 100, gasLimit: 60000, status: ASSET_STATUS.ENABLED })
+  form.networks.push({ id, name: '', contract: '', collectAddress: '', threshold: 100, intervalMin: 60, gasLimit: 60000, status: ASSET_STATUS.ENABLED })
   modalTab.value = ASSET_MODAL_TAB.NETWORK
   activeNetworkId.value = id
 }
@@ -211,8 +212,14 @@ const saveCoin = () => {
     precision: Number(form.precision),
     status: form.status,
     autoCollect: offchain ? false : Boolean(form.autoCollect),
-    intervalMin: offchain ? 0 : Number(form.intervalMin),
-    networks: offchain ? [] : form.networks.map((n) => ({ ...n, threshold: Number(n.threshold), gasLimit: Number(n.gasLimit) }))
+    networks: offchain
+      ? []
+      : form.networks.map((n) => ({
+          ...n,
+          threshold: Number(n.threshold),
+          intervalMin: Number.isFinite(Number(n.intervalMin)) ? Number(n.intervalMin) : 60,
+          gasLimit: Number(n.gasLimit)
+        }))
   }
 
   // 保存待提交的数据，先显示 MFA 验证弹窗
@@ -355,10 +362,17 @@ const badgeClass = (status) => (status === ASSET_STATUS.ENABLED ? 'bg-emerald-10
                 入金: <span class="font-medium" :class="coin.canDeposit ? 'text-emerald-600' : 'text-slate-500'">{{ coin.canDeposit ? '开启' : '关闭' }}</span>
                 <span class="mx-2 text-slate-300">|</span>
                 出金: <span class="font-medium" :class="coin.canWithdraw ? 'text-emerald-600' : 'text-slate-500'">{{ coin.canWithdraw ? '开启' : '关闭' }}</span>
-                <span class="mx-2 text-slate-300">|</span>
-                自动归集: <span class="font-medium" :class="coin.autoCollect ? 'text-blue-600' : 'text-slate-500'">{{ coin.autoCollect ? `开启 (${coin.intervalMin} 分钟)` : '关闭' }}</span>
               </p>
-              <p class="mt-1 text-xs text-slate-500">支持网络 ({{ isNonVirtualType(coin.type) ? '-' : coin.networks.length }})</p>
+              <p class="mt-1 text-xs text-slate-500">
+                支持网络 ({{ isNonVirtualType(coin.type) ? '-' : coin.networks.length }})
+                <template v-if="!isNonVirtualType(coin.type)">
+                  <span class="mx-2 text-slate-300">|</span>
+                  归集设置:
+                  <span class="font-medium" :class="coin.autoCollect ? 'text-blue-600' : 'text-slate-500'">
+                    {{ coin.autoCollect ? '开启（按网络）' : '关闭' }}
+                  </span>
+                </template>
+              </p>
             </div>
             <button type="button" class="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50" @click="openEdit(coin)">编辑</button>
           </div>
@@ -372,6 +386,7 @@ const badgeClass = (status) => (status === ASSET_STATUS.ENABLED ? 'bg-emerald-10
               <ul class="mt-2 space-y-0.5 text-xs text-slate-600">
                 <li>合约: {{ network.contract }}</li>
                 <li>归集: {{ network.collectAddress }}</li>
+                <li>归集间隔: {{ network.intervalMin }} 分钟</li>
                 <li>阈值: {{ network.threshold }} {{ coin.symbol }}</li>
               </ul>
             </article>
@@ -430,19 +445,10 @@ const badgeClass = (status) => (status === ASSET_STATUS.ENABLED ? 'bg-emerald-10
             v-if="!isOffchain"
             type="button"
             class="rounded-md px-3 py-1.5 text-sm"
-            :class="modalTab === ASSET_MODAL_TAB.COLLECT ? 'bg-white font-medium text-blue-600 shadow-sm' : 'text-slate-600'"
-            @click="modalTab = ASSET_MODAL_TAB.COLLECT"
-          >
-            归集配置
-          </button>
-          <button
-            v-if="!isOffchain"
-            type="button"
-            class="rounded-md px-3 py-1.5 text-sm"
             :class="modalTab === ASSET_MODAL_TAB.NETWORK ? 'bg-white font-medium text-blue-600 shadow-sm' : 'text-slate-600'"
             @click="modalTab = ASSET_MODAL_TAB.NETWORK"
           >
-            网络配置
+            设置网络
           </button>
         </nav>
 
@@ -506,7 +512,7 @@ const badgeClass = (status) => (status === ASSET_STATUS.ENABLED ? 'bg-emerald-10
                   </div>
                 </button>
               </div>
-              <p v-if="isOffchain" class="mt-2 text-xs text-amber-600">已选择非虚拟币：将不显示归集配置与网络配置，保存时自动清空网络。</p>
+              <p v-if="isOffchain" class="mt-2 text-xs text-amber-600">已选择非虚拟币：将不显示归集设置与网络设置，保存时自动清空网络。</p>
             </div>
             <label class="space-y-1">
               <span class="text-sm">币种名称</span>
@@ -542,24 +548,19 @@ const badgeClass = (status) => (status === ASSET_STATUS.ENABLED ? 'bg-emerald-10
           </div>
         </section>
 
-        <section v-if="modalTab === ASSET_MODAL_TAB.COLLECT" class="rounded-lg border border-slate-200 p-4">
-          <h3 class="text-sm font-medium text-slate-900">归集配置</h3>
-          <div class="mt-3 grid gap-3 md:grid-cols-2">
-            <label class="inline-flex items-center gap-2 text-sm">
-              <input v-model="form.autoCollect" type="checkbox" class="h-4 w-4" />
-              启用自动归集
-            </label>
-            <label class="space-y-1">
-              <span class="text-sm">归集间隔 (分钟)</span>
-              <input v-model.number="form.intervalMin" :disabled="!form.autoCollect" type="number" min="0" class="w-full rounded-lg border border-slate-300 px-3 py-2" />
-            </label>
-          </div>
-        </section>
-
         <section v-if="modalTab === ASSET_MODAL_TAB.NETWORK" class="rounded-lg border border-slate-200 p-4">
           <div class="flex items-center justify-between">
-            <h3 class="text-sm font-medium text-slate-900">网络配置</h3>
+            <h3 class="text-sm font-medium text-slate-900">设置网络</h3>
             <button type="button" class="rounded-md bg-blue-600 px-3 py-1.5 text-sm text-white" @click="addNetwork">+ 添加网络</button>
+          </div>
+          <div class="mt-3 rounded-lg border border-slate-200 bg-white p-3">
+            <h4 class="text-sm font-medium text-slate-900">归集设置</h4>
+            <div class="mt-3">
+              <label class="inline-flex items-center gap-2 text-sm">
+                <input v-model="form.autoCollect" type="checkbox" class="h-4 w-4" />
+                启用自动归集
+              </label>
+            </div>
           </div>
           <p class="mt-2 text-xs text-slate-500">仅展开当前编辑网络，减少干扰；可切换网络逐个配置。</p>
 
@@ -592,6 +593,10 @@ const badgeClass = (status) => (status === ASSET_STATUS.ENABLED ? 'bg-emerald-10
                 <label class="space-y-1">
                   <span class="text-sm">最小归集数量</span>
                   <input v-model.number="network.threshold" type="number" class="w-full rounded-lg border border-slate-300 px-3 py-2" />
+                </label>
+                <label class="space-y-1">
+                  <span class="text-sm">归集间隔 (分钟)</span>
+                  <input v-model.number="network.intervalMin" :disabled="!form.autoCollect" type="number" min="0" class="w-full rounded-lg border border-slate-300 px-3 py-2" />
                 </label>
                 <label class="space-y-1">
                   <span class="text-sm">合约地址</span>
