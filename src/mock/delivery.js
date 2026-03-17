@@ -49,7 +49,7 @@ const deliveryProducts = [
     minBuy: '10',
     maxBuy: '10000',
     maxHold: '50000',
-    buyFee: '0.1',
+    buyFee: '0',
     sellFee: '0.2'
   },
   {
@@ -65,7 +65,7 @@ const deliveryProducts = [
     minBuy: '5',
     maxBuy: '5000',
     maxHold: '30000',
-    buyFee: '0.1',
+    buyFee: '0',
     sellFee: '0.2'
   },
   {
@@ -81,7 +81,7 @@ const deliveryProducts = [
     minBuy: '10',
     maxBuy: '20000',
     maxHold: '120000',
-    buyFee: '0.1',
+    buyFee: '0',
     sellFee: '0.2'
   },
   {
@@ -97,7 +97,7 @@ const deliveryProducts = [
     minBuy: '10',
     maxBuy: '200000',
     maxHold: '500000',
-    buyFee: '0.05',
+    buyFee: '0',
     sellFee: '0.1'
   }
 ]
@@ -194,7 +194,7 @@ const deliveryOperationLogs = [
     operator: 'admin01',
     action: '编辑交割合约',
     target: 'BTC_OPT',
-    detail: '买入费率 0.08% -> 0.10%',
+    detail: '交割费率 0.18% -> 0.20%',
     status: DELIVERY_LOG_STATUS.SUCCESS
   },
   {

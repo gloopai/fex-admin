@@ -241,13 +241,17 @@ const platformProfitAtSqueeze = (longSettlementPrice, shortSettlementPrice) => {
 
 const controlPrice = ref(0)
 const mode = ref('force')
-const slippagePoints = ref(8)
-const slippageDir = ref('sub')
 const squeezePoints = ref(6)
 const squeezeCenter = ref(0)
 const locked = ref(false)
 const lastAction = ref('')
 const hoverPrice = ref(null)
+
+const outcomeBias = ref('balanced')
+const outcomeIntensity = ref(70)
+const deviationPctLimit = ref(1.2)
+const autoApplyRecommendation = ref(true)
+const advancedTune = ref(false)
 
 const squeezeGap = computed(() => Math.max(0, Number(squeezePoints.value || 0)) * tickSize.value)
 
@@ -288,6 +292,42 @@ const platformProfitAtForCurve = (centerOrUniformPrice) => {
   return platformProfitAtUniform(p)
 }
 
+const summaryAt = (centerOrUniformPrice) => {
+  const center = Number(centerOrUniformPrice || 0)
+  const total = targetedPositions.value.length
+  if (!total) {
+    return { profit: 0, winCount: 0, lossCount: 0, flatCount: 0, winRate: 0 }
+  }
+
+  let winCount = 0
+  let lossCount = 0
+  let flatCount = 0
+
+  if (mode.value === 'squeeze') {
+    const gap = squeezeGap.value
+    const longP = clamp(center - gap, priceMin.value, priceMax.value)
+    const shortP = clamp(center + gap, priceMin.value, priceMax.value)
+    for (const pos of targetedPositions.value) {
+      const p = pos.side === 'long' ? longP : shortP
+      const pnl = userPnlAt(pos, p)
+      if (pnl > 0) winCount += 1
+      else if (pnl < 0) lossCount += 1
+      else flatCount += 1
+    }
+    const profit = platformProfitAtSqueeze(longP, shortP)
+    return { profit, winCount, lossCount, flatCount, winRate: winCount / total }
+  }
+
+  for (const pos of targetedPositions.value) {
+    const pnl = userPnlAt(pos, center)
+    if (pnl > 0) winCount += 1
+    else if (pnl < 0) lossCount += 1
+    else flatCount += 1
+  }
+  const profit = platformProfitAtUniform(center)
+  return { profit, winCount, lossCount, flatCount, winRate: winCount / total }
+}
+
 const curveMin = computed(() => {
   if (mode.value !== 'squeeze') return priceMin.value
   const min = squeezeCenterMin.value
@@ -304,7 +344,7 @@ const curveMax = computed(() => {
   return max
 })
 
-const profitCurve = computed(() => {
+const curveStats = computed(() => {
   const min = curveMin.value
   const max = curveMax.value
   const steps = 120
@@ -312,14 +352,18 @@ const profitCurve = computed(() => {
   const points = []
   for (let i = 0; i <= steps; i++) {
     const price = min + ((max - min) * i) / steps
-    points.push({ price, profit: platformProfitAtForCurve(price) })
+    const s = summaryAt(price)
+    points.push({ price, profit: s.profit, winRate: s.winRate, winCount: s.winCount, lossCount: s.lossCount, flatCount: s.flatCount })
   }
   return points
 })
 
 const bestPoint = computed(() => {
-  const points = profitCurve.value
-  if (points.length === 0) return { price: marketPrice.value, profit: platformProfitAtForCurve(marketPrice.value) }
+  const points = curveStats.value
+  if (points.length === 0) {
+    const s = summaryAt(marketPrice.value)
+    return { price: marketPrice.value, profit: s.profit, winRate: s.winRate, winCount: s.winCount, lossCount: s.lossCount, flatCount: s.flatCount }
+  }
   let best = points[0]
   for (const p of points) {
     if (p.profit > best.profit) best = p
@@ -328,8 +372,8 @@ const bestPoint = computed(() => {
 })
 
 const breakevenPoint = computed(() => {
-  const points = profitCurve.value
-  if (points.length === 0) return { price: marketPrice.value, profit: 0 }
+  const points = curveStats.value
+  if (points.length === 0) return { price: marketPrice.value, profit: 0, winRate: 0, winCount: 0, lossCount: 0, flatCount: 0 }
   let best = points[0]
   let bestAbs = Math.abs(best.profit)
   for (const p of points) {
@@ -343,7 +387,7 @@ const breakevenPoint = computed(() => {
 })
 
 const svgLandscape = computed(() => {
-  const points = profitCurve.value
+  const points = curveStats.value
   const w = 620
   const h = 220
   const pad = 22
@@ -372,7 +416,7 @@ const svgLandscape = computed(() => {
 
 const deathZones = computed(() => {
   if (!svgLandscape.value.xFor) return []
-  const points = profitCurve.value
+  const points = curveStats.value
   const zones = []
   let start = null
   for (let i = 0; i < points.length; i++) {
@@ -388,7 +432,7 @@ const deathZones = computed(() => {
 })
 
 const harvestZone = computed(() => {
-  const points = profitCurve.value
+  const points = curveStats.value
   if (points.length < 2) return null
   const span = (curveMax.value - curveMin.value) * 0.06
   return { from: bestPoint.value.price - span, to: bestPoint.value.price + span }
@@ -427,13 +471,16 @@ watch(
     controlPrice.value = roundToTick(marketPrice.value, tickSize.value)
     squeezeCenter.value = roundToTick(marketPrice.value, tickSize.value)
     mode.value = 'force'
-    slippagePoints.value = 8
-    slippageDir.value = 'sub'
     squeezePoints.value = 6
     locked.value = false
     lastAction.value = ''
     hoverPrice.value = null
     selectedUids.value = []
+    outcomeBias.value = 'balanced'
+    outcomeIntensity.value = 70
+    deviationPctLimit.value = 1.2
+    autoApplyRecommendation.value = true
+    advancedTune.value = false
   },
   { immediate: true }
 )
@@ -461,21 +508,96 @@ const estPlatformPnl = computed(() => {
   return platformProfitAtUniform(finalSettlementPrice.value)
 })
 
-const applySlippageToControlPrice = () => {
+const targetWinRate = computed(() => {
+  const t = clamp(Number(outcomeIntensity.value || 0), 0, 100) / 100
+  if (outcomeBias.value === 'user_win') return 0.5 + t * 0.35
+  if (outcomeBias.value === 'user_lose') return 0.5 - t * 0.35
+  return 0.5
+})
+
+const recommendRange = computed(() => {
+  const mark = Number(markPrice.value || 0)
+  const pct = clamp(Number(deviationPctLimit.value || 0), 0.1, 20) / 100
+  if (!Number.isFinite(mark) || mark <= 0 || !Number.isFinite(pct)) return { min: curveMin.value, max: curveMax.value }
+  const min = mark * (1 - pct)
+  const max = mark * (1 + pct)
+  return { min: Math.max(curveMin.value, min), max: Math.min(curveMax.value, max) }
+})
+
+const recommendedPoint = computed(() => {
+  const points = curveStats.value
+  if (!points.length) {
+    const s = summaryAt(finalSettlementPrice.value)
+    return { price: finalSettlementPrice.value, ...s }
+  }
+
+  const range = recommendRange.value
+  const filtered = points.filter((p) => p.price >= range.min && p.price <= range.max)
+  const candidates = filtered.length ? filtered : points
+  const mark = Number(markPrice.value || 0) || 1
+
+  let best = candidates[0]
+  let bestScore = Infinity
+  for (const p of candidates) {
+    const winGap = Math.abs(Number(p.winRate || 0) - Number(targetWinRate.value || 0))
+    const dev = Math.abs(Number(p.price || 0) - Number(markPrice.value || 0)) / mark
+    const profit = Number(p.profit || 0)
+    const profitScale = exposureSummary.value.totalNotional > 0 ? Math.abs(profit) / exposureSummary.value.totalNotional : Math.abs(profit)
+    const score =
+      winGap * 120 +
+      dev * 18 +
+      (outcomeBias.value === 'balanced' ? profitScale * 20 : outcomeBias.value === 'user_win' ? Math.max(0, -profitScale) * 10 : 0)
+
+    if (score < bestScore) {
+      bestScore = score
+      best = p
+    } else if (score === bestScore) {
+      if (outcomeBias.value === 'user_lose') {
+        if (profit > best.profit) best = p
+      } else if (outcomeBias.value === 'user_win') {
+        if (profit > best.profit) best = p
+      } else if (Math.abs(profit) < Math.abs(best.profit)) best = p
+    }
+  }
+  return best
+})
+
+const recommendedSettlementPrices = computed(() => {
+  const p = Number(recommendedPoint.value?.price || 0)
+  if (mode.value !== 'squeeze') return { long: p, short: p }
+  const gap = squeezeGap.value
+  const long = roundToTick(clamp(p - gap, priceMin.value, priceMax.value), tickSize.value)
+  const short = roundToTick(clamp(p + gap, priceMin.value, priceMax.value), tickSize.value)
+  return { long, short }
+})
+
+const currentSummary = computed(() => {
+  return summaryAt(finalSettlementPrice.value)
+})
+
+const applyRecommended = () => {
   if (locked.value) return
-  mode.value = 'force'
-  const sign = slippageDir.value === 'add' ? 1 : -1
-  const points = Math.max(0, Number(slippagePoints.value || 0))
-  const next = roundToTick(markPrice.value + sign * points * tickSize.value, tickSize.value)
-  controlPrice.value = roundToTick(clamp(next, priceMin.value, priceMax.value), tickSize.value)
+  const p = roundToTick(Number(recommendedPoint.value?.price || 0), tickSize.value)
+  if (!Number.isFinite(p) || p <= 0) return
+  if (mode.value === 'squeeze') {
+    squeezeCenter.value = roundToTick(clamp(p, squeezeCenterMin.value, squeezeCenterMax.value), tickSize.value)
+  } else {
+    controlPrice.value = roundToTick(clamp(p, priceMin.value, priceMax.value), tickSize.value)
+  }
   hoverPrice.value = null
-  lastAction.value = `滑点应用：${slippageDir.value === 'add' ? '+' : '-'}${points} → ${formatPrice(controlPrice.value)}`
+  const winPct = Math.round(Number(recommendedPoint.value?.winRate || 0) * 100)
+  lastAction.value = `应用推荐：用户胜率 ${winPct}% · ${formatPrice(p)}`
 }
 
-watch([slippageDir, slippagePoints], () => {
-  if (locked.value) return
-  applySlippageToControlPrice()
-})
+watch(
+  [mode, outcomeBias, outcomeIntensity, deviationPctLimit, selectedUids],
+  () => {
+    if (locked.value) return
+    if (!autoApplyRecommendation.value) return
+    applyRecommended()
+  },
+  { flush: 'post' }
+)
 
 const onCurveClick = (evt) => {
   if (locked.value) return
@@ -548,10 +670,12 @@ const lockPlan = () => {
   locked.value = true
   const picked = selectedUids.value.map((x) => String(x))
   const userLabel = picked.length ? `已选 ${picked.length}` : '全部'
+  const s = summaryAt(finalSettlementPrice.value)
+  const winPct = Math.round(Number(s.winRate || 0) * 100)
   lastAction.value =
     mode.value === 'squeeze'
-      ? `锁定收割方案：多 ${formatPrice(settlementPrices.value.long)} / 空 ${formatPrice(settlementPrices.value.short)} · 用户：${userLabel}`
-      : `锁定收割方案：${formatPrice(finalSettlementPrice.value)} · 用户：${userLabel}`
+      ? `锁定结算方案：多 ${formatPrice(settlementPrices.value.long)} / 空 ${formatPrice(settlementPrices.value.short)} · 范围：${userLabel}`
+      : `锁定结算方案：${formatPrice(finalSettlementPrice.value)} · 范围：${userLabel}`
   emit('lock', {
     key: key.value,
     label: label.value,
@@ -563,7 +687,13 @@ const lockPlan = () => {
     settlementPriceShort: mode.value === 'squeeze' ? settlementPrices.value.short : null,
     squeezePoints: mode.value === 'squeeze' ? Number(squeezePoints.value || 0) : null,
     estPlatformPnl: estPlatformPnl.value,
-    targetUids: picked.length ? picked : null
+    targetUids: picked.length ? picked : null,
+    outcomeBias: outcomeBias.value,
+    outcomeIntensity: Number(outcomeIntensity.value || 0),
+    deviationPctLimit: Number(deviationPctLimit.value || 0),
+    outcomeWinRate: winPct,
+    outcomeWinCount: s.winCount,
+    outcomeLossCount: s.lossCount
   })
 }
 
@@ -886,151 +1016,235 @@ const klineSvg = computed(() => {
                   </div>
                 </div>
 
-                <div class="rounded-lg border border-slate-200 p-3 space-y-2">
+                <div class="rounded-lg border border-slate-200 p-3 space-y-3">
                   <div class="flex items-center justify-between">
                     <div class="text-xs font-semibold text-slate-900">标记价</div>
                     <div class="font-mono text-xs text-slate-700">{{ formatPrice(markPrice) }}</div>
                   </div>
-                  
-                  <div class="flex items-start justify-between gap-2">
-                    <div class="text-xs font-semibold text-slate-900">用户结算价</div>
-                    
-                  </div>
-
-                  <div v-if="mode === 'force'" class="space-y-2">
-                    <div class="flex items-center gap-2">
-                      <button
-                        type="button"
-                        class="h-9 w-9 shrink-0 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 flex items-center justify-center leading-none"
-                        :disabled="locked"
-                        @click="nudge(-1)"
-                      >
-                        -
-                      </button>
-                      <input
-                        type="number"
-                        class="h-9 min-w-0 flex-1 rounded-lg border border-slate-200 px-3 font-mono text-sm text-slate-900 focus:border-slate-900 focus:outline-none focus:ring-0 disabled:bg-slate-50"
-                        v-model.number="controlPrice"
-                        :step="tickSize"
-                        :min="priceMin"
-                        :max="priceMax"
-                        :disabled="locked"
-                      />
-                      <button
-                        type="button"
-                        class="h-9 w-9 shrink-0 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 flex items-center justify-center leading-none"
-                        :disabled="locked"
-                        @click="nudge(1)"
-                      >
-                        +
-                      </button>
-                    </div>
-
-                    <div class="pt-1 text-[11px] font-semibold text-slate-700">滑点</div>
-                    <div class="grid grid-cols-2 gap-2">
-                      <select
-                        class="h-9 rounded-lg border border-slate-200 px-3 text-sm text-slate-900 focus:border-slate-900 focus:outline-none focus:ring-0 disabled:bg-slate-50"
-                        v-model="slippageDir"
-                        :disabled="locked"
-                      >
-                        <option value="sub">-</option>
-                        <option value="add">+</option>
-                      </select>
-                      <input
-                        type="number"
-                        class="h-9 rounded-lg border border-slate-200 px-3 font-mono text-sm text-slate-900 focus:border-slate-900 focus:outline-none focus:ring-0 disabled:bg-slate-50"
-                        v-model.number="slippagePoints"
-                        min="0"
-                        :disabled="locked"
-                      />
-                    </div>
-                    <div class="text-[11px] text-slate-500">
-                      区间 {{ formatPrice(priceMin) }} ~ {{ formatPrice(priceMax) }} · Tick {{ formatPrice(tickSize) }}
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <label class="flex items-center gap-2 text-[11px] text-slate-500">
-                          <input
-                            type="checkbox"
-                            class="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900 disabled:opacity-40"
-                            v-model="windowPriceEnabled"
-                            :disabled="locked"
-                          />
-                          启用时间窗口修正（{{ Math.round(contractWindowSec) }}s）
+                  <div class="space-y-2">
+                    <div class="text-xs font-semibold text-slate-900">结果控制</div>
+                    <div class="grid grid-cols-3 gap-2 text-[11px]">
+                      <label class="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2">
+                        <input
+                          type="radio"
+                          name="outcomeBias"
+                          value="user_win"
+                          class="h-4 w-4 text-slate-900 focus:ring-slate-900"
+                          v-model="outcomeBias"
+                          :disabled="locked"
+                        />
+                        <div class="text-slate-900">提高盈利比例</div>
                       </label>
+                      <label class="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2">
+                        <input
+                          type="radio"
+                          name="outcomeBias"
+                          value="balanced"
+                          class="h-4 w-4 text-slate-900 focus:ring-slate-900"
+                          v-model="outcomeBias"
+                          :disabled="locked"
+                        />
+                        <div class="text-slate-900">接近均衡</div>
+                      </label>
+                      <label class="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2">
+                        <input
+                          type="radio"
+                          name="outcomeBias"
+                          value="user_lose"
+                          class="h-4 w-4 text-slate-900 focus:ring-slate-900"
+                          v-model="outcomeBias"
+                          :disabled="locked"
+                        />
+                        <div class="text-slate-900">降低盈利比例</div>
+                      </label>
+                    </div>
                   </div>
-                  </div>
 
-                  <div v-else class="space-y-2">
-                    <div class="flex items-center gap-2">
-                      <button
-                        type="button"
-                        class="h-9 w-9 shrink-0 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 flex items-center justify-center leading-none"
-                        :disabled="locked"
-                        @click="squeezeNudge(-1)"
-                      >
-                        -
-                      </button>
-                      <input
-                        type="number"
-                        class="h-9 min-w-0 flex-1 rounded-lg border border-slate-200 px-3 font-mono text-sm text-slate-900 focus:border-slate-900 focus:outline-none focus:ring-0 disabled:bg-slate-50"
-                        v-model.number="squeezeCenter"
-                        :step="tickSize"
-                        :min="squeezeCenterMin"
-                        :max="squeezeCenterMax"
-                        :disabled="locked"
-                      />
-                      <button
-                        type="button"
-                        class="h-9 w-9 shrink-0 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 flex items-center justify-center leading-none"
-                        :disabled="locked"
-                        @click="squeezeNudge(1)"
-                      >
-                        +
-                      </button>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-2 text-[11px]">
-                      <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                        <div class="text-slate-500">多头结算价</div>
-                        <div class="mt-1 font-mono text-slate-900">{{ formatPrice(settlementPrices.long) }}</div>
-                      </div>
-                      <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                        <div class="text-slate-500">空头结算价</div>
-                        <div class="mt-1 font-mono text-slate-900">{{ formatPrice(settlementPrices.short) }}</div>
-                      </div>
-                    </div>
-
-                    <div class="pt-1 text-[11px] font-semibold text-slate-700">滑点</div>
-                    <div>
-                      <input
-                        type="number"
-                        class="h-9 rounded-lg border border-slate-200 px-3 font-mono text-sm text-slate-900 focus:border-slate-900 focus:outline-none focus:ring-0 disabled:bg-slate-50"
-                        v-model.number="squeezePoints"
-                        min="0"
-                        :disabled="locked"
-                      />
-                    </div>
-                    
-                    <div class="text-[11px] text-slate-500">
-                      中心区间 {{ formatPrice(squeezeCenterMin) }} ~ {{ formatPrice(squeezeCenterMax) }} · Gap {{ formatPrice(squeezeGap) }}
-                    </div>
+                  <div class="space-y-1.5">
                     <div class="flex items-center justify-between">
-                          <label class="flex items-center gap-2 text-[11px] text-slate-500">
-                            <input
-                              type="checkbox"
-                              class="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900 disabled:opacity-40"
-                              v-model="windowPriceEnabled"
-                              :disabled="locked"
-                            />
-                            启用时间窗口修正（{{ Math.round(contractWindowSec) }}s）
-                        </label>
+                      <div class="text-[11px] font-semibold text-slate-700">强度</div>
+                      <div class="font-mono text-[11px] text-slate-700">目标胜率 {{ Math.round(targetWinRate * 100) }}%</div>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="1"
+                      v-model.number="outcomeIntensity"
+                      :disabled="locked || outcomeBias === 'balanced'"
+                      class="w-full accent-slate-900 disabled:opacity-40"
+                    />
+                  </div>
+
+                  <div v-if="mode === 'squeeze'" class="space-y-1.5">
+                    <div class="flex items-center justify-between">
+                      <div class="text-[11px] font-semibold text-slate-700">挤压跨度（Points）</div>
+                      <div class="font-mono text-[11px] text-slate-700">Gap {{ formatPrice(squeezeGap) }}</div>
+                    </div>
+                    <input
+                      type="number"
+                      class="h-9 w-full rounded-lg border border-slate-200 px-3 font-mono text-sm text-slate-900 focus:border-slate-900 focus:outline-none focus:ring-0 disabled:bg-slate-50"
+                      v-model.number="squeezePoints"
+                      min="0"
+                      :disabled="locked"
+                    />
+                  </div>
+
+                  <div class="space-y-1.5">
+                    <div class="flex items-center justify-between">
+                      <div class="text-[11px] font-semibold text-slate-700">偏离保护</div>
+                      <div class="font-mono text-[11px] text-slate-700">±{{ Number(deviationPctLimit || 0).toFixed(1) }}%</div>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.2"
+                      max="8"
+                      step="0.1"
+                      v-model.number="deviationPctLimit"
+                      :disabled="locked"
+                      class="w-full accent-slate-900 disabled:opacity-40"
+                    />
+                    <div class="text-[11px] text-slate-500">
+                      推荐区间 {{ formatPrice(recommendRange.min) }} ~ {{ formatPrice(recommendRange.max) }} · Tick {{ formatPrice(tickSize) }}
+                    </div>
+                  </div>
+
+                  <div class="flex items-center justify-between gap-3">
+                    <label class="flex items-center gap-2 text-[11px] text-slate-500">
+                      <input
+                        type="checkbox"
+                        class="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900 disabled:opacity-40"
+                        v-model="autoApplyRecommendation"
+                        :disabled="locked"
+                      />
+                      自动应用推荐
+                    </label>
+                    <label class="flex items-center gap-2 text-[11px] text-slate-500">
+                      <input
+                        type="checkbox"
+                        class="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900 disabled:opacity-40"
+                        v-model="windowPriceEnabled"
+                        :disabled="locked"
+                      />
+                      启用时间窗口修正（{{ Math.round(contractWindowSec) }}s）
+                    </label>
+                  </div>
+
+                  <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 space-y-1.5">
+                    <div class="flex items-center justify-between gap-2">
+                      <div class="text-[11px] text-slate-500">推荐结算</div>
+                      <button
+                        type="button"
+                        class="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                        :disabled="locked"
+                        @click="applyRecommended"
+                      >
+                        应用
+                      </button>
+                    </div>
+                    <div class="font-mono text-sm text-slate-900">
+                      <span v-if="mode === 'squeeze'">{{ formatPrice(recommendedSettlementPrices.long) }} / {{ formatPrice(recommendedSettlementPrices.short) }}</span>
+                      <span v-else>{{ formatPrice(recommendedPoint.price) }}</span>
+                    </div>
+                    <div class="text-[11px] text-slate-500">
+                      用户胜率 {{ Math.round(Number(recommendedPoint.winRate || 0) * 100) }}%（赢{{ recommendedPoint.winCount || 0 }}/输{{ recommendedPoint.lossCount || 0 }}/平{{ recommendedPoint.flatCount || 0 }}）
+                      · 平台 {{ formatCompactUsd(recommendedPoint.profit, true) }}
+                    </div>
+                  </div>
+
+                  <div class="space-y-2">
+                    <label class="flex items-center justify-between gap-3">
+                      <span class="text-[11px] font-semibold text-slate-700">高级微调</span>
+                      <input
+                        type="checkbox"
+                        class="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900 disabled:opacity-40"
+                        v-model="advancedTune"
+                        :disabled="locked"
+                      />
+                    </label>
+
+                    <div v-if="advancedTune" class="space-y-2">
+                      <div class="text-[11px] text-slate-500">仅用于最后 1-2 Tick 校正</div>
+
+                      <div v-if="mode === 'force'" class="flex items-center gap-2">
+                        <button
+                          type="button"
+                          class="h-9 w-9 shrink-0 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 flex items-center justify-center leading-none"
+                          :disabled="locked"
+                          @click="nudge(-1)"
+                        >
+                          -
+                        </button>
+                        <input
+                          type="number"
+                          class="h-9 min-w-0 flex-1 rounded-lg border border-slate-200 px-3 font-mono text-sm text-slate-900 focus:border-slate-900 focus:outline-none focus:ring-0 disabled:bg-slate-50"
+                          v-model.number="controlPrice"
+                          :step="tickSize"
+                          :min="priceMin"
+                          :max="priceMax"
+                          :disabled="locked"
+                        />
+                        <button
+                          type="button"
+                          class="h-9 w-9 shrink-0 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 flex items-center justify-center leading-none"
+                          :disabled="locked"
+                          @click="nudge(1)"
+                        >
+                          +
+                        </button>
+                      </div>
+
+                      <div v-else class="flex items-center gap-2">
+                        <button
+                          type="button"
+                          class="h-9 w-9 shrink-0 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 flex items-center justify-center leading-none"
+                          :disabled="locked"
+                          @click="squeezeNudge(-1)"
+                        >
+                          -
+                        </button>
+                        <input
+                          type="number"
+                          class="h-9 min-w-0 flex-1 rounded-lg border border-slate-200 px-3 font-mono text-sm text-slate-900 focus:border-slate-900 focus:outline-none focus:ring-0 disabled:bg-slate-50"
+                          v-model.number="squeezeCenter"
+                          :step="tickSize"
+                          :min="squeezeCenterMin"
+                          :max="squeezeCenterMax"
+                          :disabled="locked"
+                        />
+                        <button
+                          type="button"
+                          class="h-9 w-9 shrink-0 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 flex items-center justify-center leading-none"
+                          :disabled="locked"
+                          @click="squeezeNudge(1)"
+                        >
+                          +
+                        </button>
+                      </div>
+
+                      <div v-if="mode === 'squeeze'" class="grid grid-cols-2 gap-2 text-[11px]">
+                        <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                          <div class="text-slate-500">多头结算价</div>
+                          <div class="mt-1 font-mono text-slate-900">{{ formatPrice(settlementPrices.long) }}</div>
+                        </div>
+                        <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                          <div class="text-slate-500">空头结算价</div>
+                          <div class="mt-1 font-mono text-slate-900">{{ formatPrice(settlementPrices.short) }}</div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
                 
 
                 <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                  <div class="text-xs text-slate-600">
+                  <div class="flex items-baseline justify-between gap-2">
+                    <div class="text-xs text-slate-600">当前方案</div>
+                    <div class="font-mono text-xs text-slate-700">
+                      胜率 {{ Math.round(Number(currentSummary.winRate || 0) * 100) }}%（赢{{ currentSummary.winCount || 0 }}/输{{ currentSummary.lossCount || 0 }}/平{{ currentSummary.flatCount || 0 }}）
+                    </div>
+                  </div>
+                  <div class="mt-1 text-xs text-slate-600">
                     平台预估盈亏
                     <span class="ml-1 font-mono" :class="estPlatformPnl < 0 ? 'text-rose-700' : 'text-emerald-700'">
                       {{ formatCompactUsd(estPlatformPnl, true) }}

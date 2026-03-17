@@ -117,7 +117,7 @@ const contractForm = reactive({
   minBuy: '10',
   maxBuy: '10000',
   maxHold: '50000',
-  buyFee: '0.1',
+  buyFee: '0',
   sellFee: '0.2'
 })
 
@@ -137,7 +137,7 @@ const openCreateContract = () => {
   contractForm.minBuy = '10'
   contractForm.maxBuy = '10000'
   contractForm.maxHold = '50000'
-  contractForm.buyFee = '0.1'
+  contractForm.buyFee = '0'
   contractForm.sellFee = '0.2'
   showContractModal.value = true
 }
@@ -156,8 +156,8 @@ const openEditContract = (item) => {
   contractForm.minBuy = item.minBuy
   contractForm.maxBuy = item.maxBuy
   contractForm.maxHold = item.maxHold
-  contractForm.buyFee = item.buyFee
-  contractForm.sellFee = item.sellFee
+  contractForm.buyFee = '0'
+  contractForm.sellFee = item.sellFee ?? item.deliveryFee ?? '0'
   showContractModal.value = true
 }
 
@@ -174,7 +174,7 @@ const saveContract = () => {
     minBuy: contractForm.minBuy,
     maxBuy: contractForm.maxBuy,
     maxHold: contractForm.maxHold,
-    buyFee: contractForm.buyFee,
+    buyFee: '0',
     sellFee: contractForm.sellFee
   }
 
@@ -397,13 +397,9 @@ onMounted(() => {
             </div>
             <div class="p-4">
               <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">手续费率</p>
-              <ul class="mt-3 grid grid-cols-2 gap-4 text-sm">
+              <ul class="mt-3 grid grid-cols-1 gap-4 text-sm">
                 <li class="flex flex-col gap-1">
-                  <span class="text-slate-500 text-xs">买入费率</span>
-                  <span class="text-emerald-600 font-bold font-mono">{{ Number(item.buyFee).toFixed(2) }}%</span>
-                </li>
-                <li class="flex flex-col gap-1">
-                  <span class="text-slate-500 text-xs">卖出费率</span>
+                  <span class="text-slate-500 text-xs">交割费率</span>
                   <span class="text-rose-600 font-bold font-mono">{{ Number(item.sellFee).toFixed(2) }}%</span>
                 </li>
               </ul>
@@ -616,21 +612,9 @@ onMounted(() => {
                 </div>
               </div>
 
-              <div v-if="contractTab === DELIVERY_CONTRACT_TAB.FEE" class="grid gap-6 md:grid-cols-2">
+              <div v-if="contractTab === DELIVERY_CONTRACT_TAB.FEE" class="grid gap-6 md:grid-cols-1">
                 <div class="space-y-1.5">
-                  <label class="text-sm text-slate-900">买入费率 (%)</label>
-                  <div class="relative">
-                    <input
-                      v-model="contractForm.buyFee"
-                      type="number"
-                      step="0.01"
-                      class="ant-input font-mono pr-8"
-                    />
-                    <span class="absolute right-3 top-1.5 text-slate-400 text-sm">%</span>
-                  </div>
-                </div>
-                <div class="space-y-1.5">
-                  <label class="text-sm text-slate-900">卖出费率 (%)</label>
+                  <label class="text-sm text-slate-900">交割手续费率 (%)</label>
                   <div class="relative">
                     <input
                       v-model="contractForm.sellFee"
