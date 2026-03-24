@@ -40,19 +40,16 @@ const emit = defineEmits([
         </select>
       </div>
 
-      <div>
-        <label class="mb-1.5 block text-sm font-medium text-slate-700">开始日期</label>
-        <input
-          :value="dateRange.start"
-          type="date"
-          class="ant-input !py-1.5"
-          @input="emit('update:date-range', { ...dateRange, start: $event.target.value })"
-        >
-      </div>
-
-      <div class="flex items-end gap-2">
-        <div class="flex-1">
-          <label class="mb-1.5 block text-sm font-medium text-slate-700">结束日期</label>
+      <div class="lg:col-span-2">
+        <label class="mb-1.5 block text-sm font-medium text-slate-700">申请时间范围</label>
+        <div class="flex items-center gap-2">
+          <input
+            :value="dateRange.start"
+            type="date"
+            class="ant-input !py-1.5"
+            @input="emit('update:date-range', { ...dateRange, start: $event.target.value })"
+          >
+          <span class="text-slate-400">至</span>
           <input
             :value="dateRange.end"
             type="date"
@@ -60,6 +57,9 @@ const emit = defineEmits([
             @input="emit('update:date-range', { ...dateRange, end: $event.target.value })"
           >
         </div>
+      </div>
+
+      <div class="flex items-end gap-2">
         <button
           title="重置筛选"
           class="rounded-lg bg-slate-100 p-2 text-slate-500 transition-colors hover:bg-slate-200"

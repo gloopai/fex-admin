@@ -20,8 +20,8 @@ export const navTree = [
       { title: 'VIP等级配置', path: '/admin/users/vip-config' },
       { title: 'VIP升级日志', path: '/admin/users/vip-upgrades' },
       { title: '信用分配置', path: '/admin/users/credit-score-config' },
-      { title: '信用分变动日志', path: '/admin/users/credit-score-changes' },
       { title: '信用分变动审核', path: '/admin/users/credit-score-audit' },
+      { title: '信用分变动日志', path: '/admin/users/credit-score-changes' },
       { title: '认证等级配置', path: '/admin/users/verification-config' },
       { title: '认证身份审核', path: '/admin/users/verification-audit' },
       { title: '认证审核日志', path: '/admin/users/verification-log' }
@@ -131,16 +131,6 @@ export const navTree = [
     children: [
       
       { title: '错误码管理', path: '/admin/system/error-codes' }
-    ]
-  },
-  {
-    title: '前台模板',
-    icon: 'spark',
-    children: [
-      { title: '个人中心（PC）', path: '/front/personal-center' },
-      { title: '个人中心（移动）', path: '/m/personal-center' },
-      { title: '认证流程（PC）', path: '/front/verification-flow' },
-      { title: '认证流程（移动）', path: '/m/verification-flow' }
     ]
   },
  

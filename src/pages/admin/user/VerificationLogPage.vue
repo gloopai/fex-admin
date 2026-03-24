@@ -13,7 +13,7 @@ const loading = ref(false)
 // 搜索和筛选
 const searchKeyword = ref('')
 const filterActionType = ref('all')
-const filterDateRange = ref('all')
+const filterDateRange = ref({ start: '', end: '' })
 
 // 分页
 const pagination = reactive({
@@ -29,18 +29,30 @@ const visibleActionTypes = [
   LOG_ACTION_TYPE.AUDIT_RESUBMIT
 ]
 const actionTypeOptions = LOG_ACTION_TYPE_OPTIONS.filter((it) => visibleActionTypes.includes(it.value))
+const detailToneConfig = {
+  [LOG_ACTION_TYPE.AUDIT_APPROVED]: {
+    textClass: 'text-emerald-700',
+    boxClass: 'border-emerald-200 bg-emerald-50 text-emerald-700'
+  },
+  [LOG_ACTION_TYPE.AUDIT_REJECTED]: {
+    textClass: 'text-rose-700',
+    boxClass: 'border-rose-200 bg-rose-50 text-rose-700'
+  },
+  [LOG_ACTION_TYPE.AUDIT_RESUBMIT]: {
+    textClass: 'text-amber-700',
+    boxClass: 'border-amber-200 bg-amber-50 text-amber-700'
+  },
+  [LOG_ACTION_TYPE.CONFIG_UPDATE]: {
+    textClass: 'text-purple-700',
+    boxClass: 'border-purple-200 bg-purple-50 text-purple-700'
+  }
+}
 
 // 获取数据
 const fetchLogs = async () => {
   loading.value = true
   try {
     const keyword = searchKeyword.value.trim().toLowerCase()
-    const now = Date.now()
-    const ranges = {
-      today: 24 * 60 * 60 * 1000,
-      week: 7 * 24 * 60 * 60 * 1000,
-      month: 30 * 24 * 60 * 60 * 1000
-    }
 
     let filtered = verificationLogList.filter((log) => visibleActionTypes.includes(log.actionType))
 
@@ -57,11 +69,17 @@ const fetchLogs = async () => {
       filtered = filtered.filter((log) => log.actionType === filterActionType.value)
     }
 
-    if (filterDateRange.value !== 'all') {
-      const range = ranges[filterDateRange.value]
-      if (range) {
-        filtered = filtered.filter((log) => now - new Date(log.actionTime).getTime() <= range)
-      }
+    if (filterDateRange.value.start || filterDateRange.value.end) {
+      const startTs = filterDateRange.value.start ? new Date(filterDateRange.value.start).getTime() : null
+      const endTs = filterDateRange.value.end
+        ? new Date(`${filterDateRange.value.end}T23:59:59`).getTime()
+        : null
+      filtered = filtered.filter((log) => {
+        const t = new Date(log.actionTime).getTime()
+        if (startTs != null && t < startTs) return false
+        if (endTs != null && t > endTs) return false
+        return true
+      })
     }
 
     filtered.sort((a, b) => new Date(b.actionTime) - new Date(a.actionTime))
@@ -237,7 +255,7 @@ const exportLogs = () => {
 const resetFilters = () => {
   searchKeyword.value = ''
   filterActionType.value = 'all'
-  filterDateRange.value = 'all'
+  filterDateRange.value = { start: '', end: '' }
   pagination.currentPage = 1
 }
 
@@ -328,16 +346,20 @@ const showToast = (message) => {
           <!-- 时间范围 -->
           <div class="flex items-end gap-2 lg:col-span-2">
             <div class="flex-1">
-              <label class="block text-sm font-medium text-slate-700 mb-1.5">时间范围</label>
-              <select 
-                v-model="filterDateRange"
-                class="ant-select !py-1.5"
-              >
-                <option value="all">全部时间</option>
-                <option value="today">今天</option>
-                <option value="week">最近一周</option>
-                <option value="month">最近一月</option>
-              </select>
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">申请时间范围</label>
+              <div class="flex items-center gap-2">
+                <input
+                  v-model="filterDateRange.start"
+                  type="date"
+                  class="ant-input !py-1.5"
+                >
+                <span class="text-slate-400">至</span>
+                <input
+                  v-model="filterDateRange.end"
+                  type="date"
+                  class="ant-input !py-1.5"
+                >
+              </div>
             </div>
             <button
               @click="resetFilters"
@@ -451,7 +473,7 @@ const showToast = (message) => {
 
     <transition name="audit-drawer">
       <div v-if="showDetailModal && selectedLog && selectedSiteInfo" class="fixed inset-0 z-40 bg-slate-900/35" @click.self="closeDetail">
-        <section class="audit-drawer-panel flex h-[88vh] w-full flex-col overflow-hidden rounded-b-2xl border-b border-slate-200 bg-slate-50 shadow-2xl">
+        <section class="audit-drawer-panel absolute left-0 right-0 top-0 flex h-[88vh] w-full flex-col overflow-hidden rounded-b-2xl border-b border-slate-200 bg-slate-50 shadow-2xl">
           <div class="border-b border-slate-200 bg-gradient-to-r from-white to-slate-100 px-5 py-4">
             <div class="flex items-start justify-between gap-4">
               <div>
@@ -504,8 +526,21 @@ const showToast = (message) => {
                     <div class="flex justify-between"><span class="text-slate-500">操作时间</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.actionTime }}</span></div>
                     <div class="flex justify-between"><span class="text-slate-500">操作人</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.operator }}</span></div>
                     <div class="flex justify-between"><span class="text-slate-500">IP</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.ipAddress }}</span></div>
+                    <div class="flex justify-between gap-3">
+                      <span class="shrink-0 text-slate-500">审核描述</span>
+                      <span
+                        class="text-right font-medium"
+                        :class="detailToneConfig[selectedLog.actionType]?.textClass || 'text-slate-900'"
+                      >
+                        {{ selectedSiteInfo.description }}
+                      </span>
+                    </div>
                   </div>
-                  <div v-if="selectedSiteInfo.reason !== '-'" class="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
+                  <div
+                    v-if="selectedSiteInfo.reason !== '-'"
+                    class="mt-3 rounded-lg border p-3 text-xs"
+                    :class="detailToneConfig[selectedLog.actionType]?.boxClass || 'border-slate-200 bg-slate-50 text-slate-700'"
+                  >
                     原因：{{ selectedSiteInfo.reason }}
                   </div>
                 </section>

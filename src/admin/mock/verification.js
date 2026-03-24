@@ -99,6 +99,14 @@ const buildAdvancedDocuments = (seed = 0) => {
   ]
 }
 
+const randomAuditLevelTransition = () => {
+  const from = [VERIFICATION_LEVEL.NONE, VERIFICATION_LEVEL.BASIC][Math.floor(Math.random() * 2)]
+  return {
+    beforeLevel: from,
+    afterLevel: from === VERIFICATION_LEVEL.NONE ? VERIFICATION_LEVEL.BASIC : VERIFICATION_LEVEL.ADVANCED
+  }
+}
+
 export const verificationAuditList = [
   generateVerificationAudit(1, {
     username: 'alice_wang',
@@ -327,7 +335,7 @@ export const verificationLogList = [
     actionTime: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
     operator: 'admin_02',
     beforeLevel: VERIFICATION_LEVEL.NONE,
-    afterLevel: VERIFICATION_LEVEL.NONE,
+    afterLevel: VERIFICATION_LEVEL.BASIC,
     description: '认证审核被拒绝',
     details: {
       auditId: 'audit_4',
@@ -340,7 +348,7 @@ export const verificationLogList = [
     actionTime: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
     operator: 'admin_01',
     beforeLevel: VERIFICATION_LEVEL.NONE,
-    afterLevel: VERIFICATION_LEVEL.NONE,
+    afterLevel: VERIFICATION_LEVEL.BASIC,
     description: '要求补充材料',
     details: {
       auditId: 'audit_5',
@@ -394,9 +402,24 @@ export const verificationLogList = [
 for (let i = 9; i <= 60; i++) {
   const actionTypes = Object.values(LOG_ACTION_TYPE)
   const actionType = actionTypes[Math.floor(Math.random() * actionTypes.length)]
-  const levels = Object.values(VERIFICATION_LEVEL)
-  const beforeLevel = levels[Math.floor(Math.random() * levels.length)]
-  const afterLevel = actionType === LOG_ACTION_TYPE.LEVEL_UPGRADE ? VERIFICATION_LEVEL.ADVANCED : beforeLevel
+  let beforeLevel = null
+  let afterLevel = null
+
+  // 根据动作类型生成更真实的等级变化，避免出现同等级变更记录
+  if (actionType === LOG_ACTION_TYPE.LEVEL_UPGRADE) {
+    beforeLevel = [VERIFICATION_LEVEL.NONE, VERIFICATION_LEVEL.BASIC][Math.floor(Math.random() * 2)]
+    afterLevel = beforeLevel === VERIFICATION_LEVEL.NONE ? VERIFICATION_LEVEL.BASIC : VERIFICATION_LEVEL.ADVANCED
+  } else if (actionType === LOG_ACTION_TYPE.LEVEL_DOWNGRADE) {
+    beforeLevel = [VERIFICATION_LEVEL.BASIC, VERIFICATION_LEVEL.ADVANCED][Math.floor(Math.random() * 2)]
+    afterLevel = beforeLevel === VERIFICATION_LEVEL.ADVANCED ? VERIFICATION_LEVEL.BASIC : VERIFICATION_LEVEL.NONE
+  } else if (actionType === LOG_ACTION_TYPE.AUDIT_APPROVED) {
+    beforeLevel = [VERIFICATION_LEVEL.NONE, VERIFICATION_LEVEL.BASIC][Math.floor(Math.random() * 2)]
+    afterLevel = beforeLevel === VERIFICATION_LEVEL.NONE ? VERIFICATION_LEVEL.BASIC : VERIFICATION_LEVEL.ADVANCED
+  } else if (actionType === LOG_ACTION_TYPE.AUDIT_REJECTED || actionType === LOG_ACTION_TYPE.AUDIT_RESUBMIT) {
+    const transition = randomAuditLevelTransition()
+    beforeLevel = transition.beforeLevel
+    afterLevel = transition.afterLevel
+  }
   
   verificationLogList.push(generateVerificationLog(i, {
     username: `user_${1000 + i}`,
