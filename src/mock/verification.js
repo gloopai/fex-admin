@@ -41,9 +41,10 @@ export const verificationConfig = {
     withdrawLimit: null, // 无限制
     requireDocuments: [
       VERIFICATION_DOC_TYPE.ID_CARD,
-      // VERIFICATION_DOC_TYPE.INCOME_PROOF, // 当前配置不需要
-      // VERIFICATION_DOC_TYPE.BANK_STATEMENT, // 当前配置不需要
-      // VERIFICATION_DOC_TYPE.ID_CARD_HOLD // 当前配置不需要
+      VERIFICATION_DOC_TYPE.ID_CARD_HOLD,
+      VERIFICATION_DOC_TYPE.INCOME_PROOF,
+      VERIFICATION_DOC_TYPE.BANK_STATEMENT,
+      VERIFICATION_DOC_TYPE.ADDRESS_PROOF
     ],
     description: '完成高级身份认证的用户，享有最高权限'
   }

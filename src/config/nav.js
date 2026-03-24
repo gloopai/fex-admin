@@ -133,5 +133,15 @@ export const navTree = [
       { title: '错误码管理', path: '/system/error-codes' }
     ]
   },
+  {
+    title: '前台模板',
+    icon: 'spark',
+    children: [
+      { title: '个人中心（PC）', path: '/front/personal-center' },
+      { title: '个人中心（移动）', path: '/m/personal-center' },
+      { title: '认证流程（PC）', path: '/front/verification-flow' },
+      { title: '认证流程（移动）', path: '/m/verification-flow' }
+    ]
+  },
  
 ]
