@@ -1,5 +1,6 @@
 <script setup>
 import { useRoute } from 'vue-router'
+import CrossPlatformFloatNav from '../components/CrossPlatformFloatNav.vue'
 
 const route = useRoute()
 
@@ -27,5 +28,6 @@ const isActive = (to) => route.path.startsWith(to)
       </div>
     </div>
     <RouterView />
+    <CrossPlatformFloatNav />
   </div>
 </template>
