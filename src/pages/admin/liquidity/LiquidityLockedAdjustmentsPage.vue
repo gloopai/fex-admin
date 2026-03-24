@@ -7,7 +7,7 @@ import {
 	adjustmentStatusMeta,
 	adjustmentTypeMeta,
 	COMMON_FILTER_ALL
-} from '../../../constants/liquidityLocked'
+} from '../../../admin/constants/liquidityLocked'
 import { createLockedAdjustmentsMock, createLockedOrdersMock } from '../../../admin/mock/liquidityLocked'
 
 const adjustments = ref(createLockedAdjustmentsMock())
@@ -188,7 +188,7 @@ import {
 	adjustmentStatusMeta,
 	adjustmentTypeMeta,
 	COMMON_FILTER_ALL
-} from '../../../constants/liquidityLocked'
+} from '../../../admin/constants/liquidityLocked'
 import { createLockedAdjustmentsMock, createLockedOrdersMock } from '../../../admin/mock/liquidityLocked'
 
 const adjustments = ref(createLockedAdjustmentsMock())

@@ -772,7 +772,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { mockUserMonitoring } from '../../../admin/mock/cryptoLending'
-import { RISK_LEVEL_LABELS } from '../../../constants/cryptoLending'
+import { RISK_LEVEL_LABELS } from '../../../admin/constants/cryptoLending'
 
 const users = ref([])
 const currentPage = ref(1)

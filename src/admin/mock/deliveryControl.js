@@ -5,7 +5,7 @@ import {
   DELIVERY_RULE_PRIORITY,
   DELIVERY_RULE_TIME_PERIOD,
   PROFIT_CONTROL_STRATEGY
-} from '../../constants/deliveryControl'
+} from '../constants/deliveryControl'
 
 const clone = (value) => JSON.parse(JSON.stringify(value))
 

@@ -1,4 +1,4 @@
-import { DELIVERY_STATUS } from '../../constants/delivery'
+import { DELIVERY_STATUS } from '../constants/delivery'
 
 const clone = (value) => JSON.parse(JSON.stringify(value))
 

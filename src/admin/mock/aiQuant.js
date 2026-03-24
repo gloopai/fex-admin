@@ -7,7 +7,7 @@ import {
   VIP_LEVEL,
   OPERATION_MODE,
   SETTLEMENT_PERIOD
-} from '../../constants/aiQuant'
+} from '../constants/aiQuant'
 
 // 模拟产品数据
 export const createAiQuantProductsMock = () => [

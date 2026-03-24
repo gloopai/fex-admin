@@ -2,12 +2,12 @@
 import { computed, reactive, ref, watch, onMounted } from 'vue'
 import ControlConfigModal from '../../../admin/components/ControlConfigModal.vue'
 import CurrencyTypeSelect from '../../../admin/components/CurrencyTypeSelect.vue'
-import { ASSET_CURRENCY_TYPE } from '../../../constants/assets'
+import { ASSET_CURRENCY_TYPE } from '../../../admin/constants/assets'
 import {
   PERPETUAL_COMMON_FILTER_ALL,
   PERPETUAL_CONTRACT_STEP,
   PERPETUAL_STATUS
-} from '../../../constants/perpetual'
+} from '../../../admin/constants/perpetual'
 import {
   createDefaultPerpetualControlConfig,
   createPerpetualControlConfigsMock,

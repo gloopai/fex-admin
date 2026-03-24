@@ -825,7 +825,7 @@ import { mockRepayments } from '../../../admin/mock/cryptoLending'
 import {
   REPAYMENT_STATUS_LABELS,
   REPAYMENT_TYPE_LABELS
-} from '../../../constants/cryptoLending'
+} from '../../../admin/constants/cryptoLending'
 
 const repayments = ref([])
 const currentPage = ref(1)

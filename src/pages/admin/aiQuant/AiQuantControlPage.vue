@@ -826,7 +826,7 @@ import {
 	CONTROL_STATUS,
 	controlStatusMeta,
 	COMMON_FILTER_ALL
-} from '../../../constants/aiQuant'
+} from '../../../admin/constants/aiQuant'
 import { createControlRecordsMock } from '../../../admin/mock/aiQuant'
 
 const controls = ref(createControlRecordsMock())

@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { mockReferralStats, referralApi } from '../../../admin/mock/referral'
-import { STATS_PERIOD_OPTIONS } from '../../../constants/referral'
+import { STATS_PERIOD_OPTIONS } from '../../../admin/constants/referral'
 
 // 统计周期
 const selectedPeriod = ref('month')

@@ -7,7 +7,7 @@ import {
 	PURCHASE_LIMIT_TYPE,
 	COMMON_FILTER_ALL,
 	SUPPORTED_CURRENCIES
-} from '../../../constants/liquidityLocked'
+} from '../../../admin/constants/liquidityLocked'
 import { createLockedProductsMock } from '../../../admin/mock/liquidityLocked'
 
 const products = ref(createLockedProductsMock())

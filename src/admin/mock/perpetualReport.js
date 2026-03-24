@@ -1,4 +1,4 @@
-import { RISK_LEVEL, POSITION_SIDE, USER_TYPE } from '../../constants/perpetualReport'
+import { RISK_LEVEL, POSITION_SIDE, USER_TYPE } from '../constants/perpetualReport'
 
 // 市场概览数据
 export const marketOverviewData = {

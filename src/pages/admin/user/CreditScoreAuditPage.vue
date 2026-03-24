@@ -6,7 +6,7 @@ import {
   CREDIT_SCORE_CHANGE_TYPE_OPTIONS,
   CREDIT_SCORE_AUDIT_STATUS,
   CREDIT_SCORE_AUDIT_STATUS_OPTIONS
-} from '../../../constants/creditScore'
+} from '../../../admin/constants/creditScore'
 
 // 审核列表数据
 const auditList = ref([])

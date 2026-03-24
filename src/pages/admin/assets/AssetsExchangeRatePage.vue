@@ -4,7 +4,7 @@ import MfaVerificationModal from '../../../admin/components/MfaVerificationModal
 import {
   EXCHANGE_RATE_SOURCE,
   EXCHANGE_RATE_TYPE
-} from '../../../constants/assets'
+} from '../../../admin/constants/assets'
 import { createExchangeRatePairsMock, createFeeTemplatesMock } from '../../../admin/mock/assets'
 import { getActiveVipLevels } from '../../../admin/mock/vip'
 

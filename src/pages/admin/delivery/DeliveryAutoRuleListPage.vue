@@ -5,7 +5,7 @@ import {
   DELIVERY_RULE_PRIORITY,
   DELIVERY_RULE_TRIGGER_TYPE,
   DELIVERY_RULE_ACTION
-} from '../../../constants/deliveryControl'
+} from '../../../admin/constants/deliveryControl'
 import {
   createDeliveryAutoRulesMock,
   createRuleStatisticsMock

@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { ASSET_CURRENCY_TYPE } from '../../constants/assets'
+import { ASSET_CURRENCY_TYPE } from '../constants/assets'
 
 const props = defineProps({
   modelValue: {

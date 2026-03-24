@@ -449,7 +449,7 @@ import {
 	ADJUSTMENT_TYPE,
 	adjustmentTypeMeta,
 	SUPPORTED_CURRENCIES
-} from '../../../constants/aiQuant'
+} from '../../../admin/constants/aiQuant'
 import { createYieldAdjustmentsMock, createAiQuantProductsMock } from '../../../admin/mock/aiQuant'
 
 const route = useRoute()

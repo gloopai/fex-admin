@@ -7,7 +7,7 @@ import {
   USER_TAG_RULE_STATUS,
   USER_TAG_RULE_STATUS_OPTIONS,
   USER_TAG_RULE_MATCH_MODE
-} from '../../../constants/user'
+} from '../../../admin/constants/user'
 import {
   createUserTagRuleItem,
   deleteUserTagRuleItem,

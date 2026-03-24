@@ -1,7 +1,7 @@
 <script setup>
 import { computed, reactive, ref, watch, onMounted } from 'vue'
-import { COMMON_FILTER_ALL, DELIVERY_CONTRACT_TAB, DELIVERY_STATUS } from '../../../constants/delivery'
-import { ASSET_CURRENCY_TYPE } from '../../../constants/assets'
+import { COMMON_FILTER_ALL, DELIVERY_CONTRACT_TAB, DELIVERY_STATUS } from '../../../admin/constants/delivery'
+import { ASSET_CURRENCY_TYPE } from '../../../admin/constants/assets'
 import CurrencyTypeSelect from '../../../admin/components/CurrencyTypeSelect.vue'
 import { createDeliveryProductsMock, createDeliveryTemplatesMock } from '../../../admin/mock/delivery'
 import { createAssetsCoinsMock } from '../../../admin/mock/assets'

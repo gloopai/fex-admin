@@ -1,4 +1,4 @@
-import { DELIVERY_CONTROL_STATUS, DELIVERY_LOG_STATUS, DELIVERY_STATUS } from '../../constants/delivery'
+import { DELIVERY_CONTROL_STATUS, DELIVERY_LOG_STATUS, DELIVERY_STATUS } from '../constants/delivery'
 
 const clone = (value) => JSON.parse(JSON.stringify(value))
 

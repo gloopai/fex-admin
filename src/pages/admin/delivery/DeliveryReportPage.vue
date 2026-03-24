@@ -7,10 +7,10 @@ import {
   DELIVERY_USER_TYPE_CONFIG,
   DELIVERY_CYCLE_TYPE_CONFIG,
   DELIVERY_CONTRACT_STATUS_CONFIG
-} from '../../../constants/deliveryReport'
+} from '../../../admin/constants/deliveryReport'
 import { 
   DELIVERY_RULE_ACTION_CONFIG 
-} from '../../../constants/deliveryControl'
+} from '../../../admin/constants/deliveryControl'
 import {
   deliveryMarketOverview,
   deliveryContractsData,

@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { deliveryContractsData, deliveryMarketOverview } from '../../../admin/mock/deliveryReport'
 import { createPerpetualControlContractsMock } from '../../../admin/mock/perpetualControl'
-import { PERP_CONTROL_OFFSET_DIRECTION } from '../../../constants/perpetualControl'
+import { PERP_CONTROL_OFFSET_DIRECTION } from '../../../admin/constants/perpetualControl'
 import PerpetualManualLineModal from '../../../admin/components/PerpetualManualLineModal.vue'
 import HarvestControlPanel from '../../../admin/components/HarvestControlPanel.vue'
 

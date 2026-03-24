@@ -3,7 +3,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import {
   PERPETUAL_COMMON_FILTER_ALL,
   PERPETUAL_STATUS
-} from '../../../constants/perpetual'
+} from '../../../admin/constants/perpetual'
 import {
   createPerpetualProductsMock,
   createPerpetualTemplatesMock,

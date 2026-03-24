@@ -17,7 +17,7 @@ import {
   productStatusMeta,
   PURCHASE_LIMIT_TYPE,
   SUPPORTED_CURRENCIES
-} from '../../../constants/liquidityLocked'
+} from '../../../admin/constants/liquidityLocked'
 import {
   createLockedAdjustmentsMock,
   createLockedAlertsMock,

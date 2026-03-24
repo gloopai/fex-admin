@@ -1,4 +1,4 @@
-import { PERPETUAL_STATUS } from '../../constants/perpetual'
+import { PERPETUAL_STATUS } from '../constants/perpetual'
 
 const clone = (value) => JSON.parse(JSON.stringify(value))
 

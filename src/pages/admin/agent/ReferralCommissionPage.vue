@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, reactive, watch } from 'vue'
 import { referralApi } from '../../../admin/mock/referral'
-import { COMMISSION_STATUS, COMMISSION_STATUS_OPTIONS, REFERRAL_TYPE_OPTIONS } from '../../../constants/referral'
+import { COMMISSION_STATUS, COMMISSION_STATUS_OPTIONS, REFERRAL_TYPE_OPTIONS } from '../../../admin/constants/referral'
 
 // 搜索和筛选
 const searchKeyword = ref('')

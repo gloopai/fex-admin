@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { mockReferralConfig, referralApi } from '../../../admin/mock/referral'
-import { DEFAULT_REFERRAL_CONFIG } from '../../../constants/referral'
+import { DEFAULT_REFERRAL_CONFIG } from '../../../admin/constants/referral'
 
 // 配置表单
 const config = ref({...mockReferralConfig})

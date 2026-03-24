@@ -6,7 +6,7 @@ import {
   RISK_LEVEL_CONFIG,
   USER_TYPE_CONFIG,
   RISK_ASSESSMENT_CRITERIA
-} from '../../../constants/perpetualReport'
+} from '../../../admin/constants/perpetualReport'
 import {
   marketOverviewData,
   contractsData,

@@ -5,7 +5,7 @@ import {
 	ORDER_STATUS,
 	orderStatusMeta,
 	COMMON_FILTER_ALL
-} from '../../../constants/liquidityLocked'
+} from '../../../admin/constants/liquidityLocked'
 import { createLockedOrdersMock } from '../../../admin/mock/liquidityLocked'
 
 const orders = ref(createLockedOrdersMock())

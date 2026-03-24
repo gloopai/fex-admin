@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { vipLevels } from '../../../admin/mock/vip'
-import { VIP_LEVEL_STATUS } from '../../../constants/vip'
+import { VIP_LEVEL_STATUS } from '../../../admin/constants/vip'
 
 // 编辑模态框状态
 const showModal = ref(false)

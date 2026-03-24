@@ -345,7 +345,7 @@ import {
 	orderStatusMeta,
 	COMMON_FILTER_ALL,
 	vipLevelMeta
-} from '../../../constants/aiQuant'
+} from '../../../admin/constants/aiQuant'
 import { createAiQuantOrdersMock } from '../../../admin/mock/aiQuant'
 
 const orders = ref(createAiQuantOrdersMock())

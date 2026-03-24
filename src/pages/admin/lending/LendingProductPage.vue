@@ -892,7 +892,7 @@ import { mockProducts } from '../../../admin/mock/cryptoLending'
 import {
   PRODUCT_STATUS_LABELS,
   INTEREST_RATE_TYPE_LABELS
-} from '../../../constants/cryptoLending'
+} from '../../../admin/constants/cryptoLending'
 
 const products = ref([])
 const showModal = ref(false)

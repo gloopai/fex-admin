@@ -4,7 +4,7 @@ import {
   PERP_CONTROL_RULE_DIRECTION,
   PERP_CONTROL_RULE_TRIGGER_TYPE,
   PERP_CONTROL_TIME_WINDOW
-} from '../../constants/perpetualControl'
+} from '../constants/perpetualControl'
 import { createDefaultPerpetualControlConfig } from './perpetual'
 
 const clone = (value) => JSON.parse(JSON.stringify(value))

@@ -1,4 +1,4 @@
-import { REFERRAL_TYPE, COMMISSION_STATUS } from '../../constants/referral'
+import { REFERRAL_TYPE, COMMISSION_STATUS } from '../constants/referral'
 
 // 模拟分销配置
 export const mockReferralConfig = {

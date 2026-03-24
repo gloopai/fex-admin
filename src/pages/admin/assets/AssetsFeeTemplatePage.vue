@@ -3,7 +3,7 @@ import { computed, reactive, ref } from 'vue'
 import MfaVerificationModal from '../../../admin/components/MfaVerificationModal.vue'
 import {
   FEE_TEMPLATE_TYPE
-} from '../../../constants/assets'
+} from '../../../admin/constants/assets'
 import { createFeeTemplatesMock } from '../../../admin/mock/assets'
 import { getActiveVipLevels } from '../../../admin/mock/vip'
 

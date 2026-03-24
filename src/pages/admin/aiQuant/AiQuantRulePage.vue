@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import {
 	vipLevelMeta
-} from '../../../constants/aiQuant'
+} from '../../../admin/constants/aiQuant'
 
 const activeSection = ref('intro')
 

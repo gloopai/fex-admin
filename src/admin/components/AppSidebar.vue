@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { navTree } from '../../config/nav'
+import { navTree } from '../config/nav'
 import SidebarNode from './SidebarNode.vue'
 
 const props = defineProps({

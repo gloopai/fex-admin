@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, watch, reactive } from 'vue'
 import { getVipUpgradeLogs, vipUpgradeLogs } from '../../../admin/mock/vip'
-import { VIP_UPGRADE_REASON, VIP_UPGRADE_REASON_OPTIONS } from '../../../constants/vip'
+import { VIP_UPGRADE_REASON, VIP_UPGRADE_REASON_OPTIONS } from '../../../admin/constants/vip'
 
 // 搜索和筛选
 const searchKeyword = ref('')

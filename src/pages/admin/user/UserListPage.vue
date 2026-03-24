@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, reactive, watch } from 'vue'
 import UserCard from '../../../admin/components/UserCard.vue'
 import { getUsers, usersList } from '../../../admin/mock/user'
-import { USER_STATUS, USER_ROLE, USER_KYC_STATUS } from '../../../constants/user'
+import { USER_STATUS, USER_ROLE, USER_KYC_STATUS } from '../../../admin/constants/user'
 
 // 搜索关键词
 const searchKeyword = ref('')

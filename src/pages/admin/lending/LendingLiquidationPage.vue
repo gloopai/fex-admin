@@ -884,7 +884,7 @@ import { mockLiquidations } from '../../../admin/mock/cryptoLending'
 import {
   LIQUIDATION_STATUS_LABELS,
   LIQUIDATION_TRIGGER_LABELS
-} from '../../../constants/cryptoLending'
+} from '../../../admin/constants/cryptoLending'
 
 const liquidations = ref([])
 const currentPage = ref(1)

@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import MfaVerificationModal from '../../../admin/components/MfaVerificationModal.vue'
-import { ASSET_WALLET_STATUS } from '../../../constants/assets'
+import { ASSET_WALLET_STATUS } from '../../../admin/constants/assets'
 import { createManualCollectConfigMock } from '../../../admin/mock/assets'
 
 const selectedCoin = ref('USDT')

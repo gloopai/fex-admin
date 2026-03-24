@@ -412,7 +412,7 @@ import {
 	SETTLEMENT_PERIOD,
 	OPERATION_MODE,
 	VIP_LEVEL
-} from '../../../constants/aiQuant'
+} from '../../../admin/constants/aiQuant'
 import { createAiQuantProductsMock } from '../../../admin/mock/aiQuant'
 
 const router = useRouter()

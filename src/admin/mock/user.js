@@ -1,4 +1,4 @@
-import { USER_STATUS, USER_ROLE, USER_KYC_STATUS } from '../../constants/user'
+import { USER_STATUS, USER_ROLE, USER_KYC_STATUS } from '../constants/user'
 
 const generateUser = (id, overrides = {}) => ({
   id: `user_${id}`,

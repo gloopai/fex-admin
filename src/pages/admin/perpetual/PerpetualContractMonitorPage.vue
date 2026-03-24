@@ -9,7 +9,7 @@ import {
   PERP_CONTROL_RULE_MODAL_TAB,
   PERP_CONTROL_RULE_TRIGGER_TYPE,
   PERP_CONTROL_TIME_WINDOW
-} from '../../../constants/perpetualControl'
+} from '../../../admin/constants/perpetualControl'
 import {
   createPerpetualControlContractsMock,
   perpetualControlOffsetDirections,
