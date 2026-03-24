@@ -1,9 +1,9 @@
 <script setup>
 import { ref, computed, onMounted, watch, reactive } from 'vue'
-import { getVerificationLogs, verificationLogList } from '../../../admin/mock/verification'
+import { verificationLogList } from '../../../admin/mock/verification'
 import { 
-  LOG_ACTION_TYPE_OPTIONS,
-  VERIFICATION_LEVEL_OPTIONS 
+  LOG_ACTION_TYPE,
+  LOG_ACTION_TYPE_OPTIONS
 } from '../../../constants/verification'
 
 // 日志列表数据
@@ -23,20 +23,52 @@ const pagination = reactive({
 })
 
 const totalPages = computed(() => Math.ceil(pagination.total / pagination.pageSize))
+const visibleActionTypes = [
+  LOG_ACTION_TYPE.AUDIT_APPROVED,
+  LOG_ACTION_TYPE.AUDIT_REJECTED,
+  LOG_ACTION_TYPE.AUDIT_RESUBMIT
+]
+const actionTypeOptions = LOG_ACTION_TYPE_OPTIONS.filter((it) => visibleActionTypes.includes(it.value))
 
 // 获取数据
 const fetchLogs = async () => {
   loading.value = true
   try {
-    const { list, total } = await getVerificationLogs({
-      page: pagination.currentPage,
-      pageSize: pagination.pageSize,
-      searchKeyword: searchKeyword.value,
-      actionType: filterActionType.value,
-      dateRange: filterDateRange.value
-    })
-    logList.value = list
-    pagination.total = total
+    const keyword = searchKeyword.value.trim().toLowerCase()
+    const now = Date.now()
+    const ranges = {
+      today: 24 * 60 * 60 * 1000,
+      week: 7 * 24 * 60 * 60 * 1000,
+      month: 30 * 24 * 60 * 60 * 1000
+    }
+
+    let filtered = verificationLogList.filter((log) => visibleActionTypes.includes(log.actionType))
+
+    if (keyword) {
+      filtered = filtered.filter((log) =>
+        String(log.username || '').toLowerCase().includes(keyword)
+        || String(log.userId || '').toLowerCase().includes(keyword)
+        || String(log.operator || '').toLowerCase().includes(keyword)
+        || String(log.description || '').toLowerCase().includes(keyword)
+      )
+    }
+
+    if (filterActionType.value !== 'all') {
+      filtered = filtered.filter((log) => log.actionType === filterActionType.value)
+    }
+
+    if (filterDateRange.value !== 'all') {
+      const range = ranges[filterDateRange.value]
+      if (range) {
+        filtered = filtered.filter((log) => now - new Date(log.actionTime).getTime() <= range)
+      }
+    }
+
+    filtered.sort((a, b) => new Date(b.actionTime) - new Date(a.actionTime))
+    pagination.total = filtered.length
+    const start = (pagination.currentPage - 1) * pagination.pageSize
+    const end = start + pagination.pageSize
+    logList.value = filtered.slice(start, end)
   } catch (error) {
     console.error('获取认证日志失败:', error)
   } finally {
@@ -63,18 +95,18 @@ onMounted(fetchLogs)
 
 // 统计信息
 const statistics = computed(() => {
-  const total = verificationLogList.length
-  const today = verificationLogList.filter(log => {
+  const visibleLogs = verificationLogList.filter((log) => visibleActionTypes.includes(log.actionType))
+  const total = visibleLogs.length
+  const today = visibleLogs.filter(log => {
     const logDate = new Date(log.actionTime).toDateString()
     const nowDate = new Date().toDateString()
     return logDate === nowDate
   }).length
   
-  const configUpdates = verificationLogList.filter(log => log.actionType === 'config_update').length
-  const auditActions = verificationLogList.filter(log => 
-    log.actionType === 'audit_approved' || 
-    log.actionType === 'audit_rejected' || 
-    log.actionType === 'audit_resubmit'
+  const auditActions = visibleLogs.filter(log => 
+    log.actionType === LOG_ACTION_TYPE.AUDIT_APPROVED || 
+    log.actionType === LOG_ACTION_TYPE.AUDIT_REJECTED || 
+    log.actionType === LOG_ACTION_TYPE.AUDIT_RESUBMIT
   ).length
   
   return [
@@ -89,12 +121,6 @@ const statistics = computed(() => {
       value: total.toLocaleString(),
       trend: '所有记录',
       color: 'gray'
-    },
-    {
-      label: '配置变更',
-      value: configUpdates.toLocaleString(),
-      trend: '次修改',
-      color: 'purple'
     },
     {
       label: '审核操作',
@@ -127,16 +153,8 @@ const actionTypeConfig = {
     class: 'bg-amber-100 text-amber-700',
     icon: '↩'
   },
-  'level_upgrade': { 
-    text: '等级升级', 
-    class: 'bg-blue-100 text-blue-700',
-    icon: '↑'
-  },
-  'level_downgrade': { 
-    text: '等级降级', 
-    class: 'bg-orange-100 text-orange-700',
-    icon: '↓'
-  }
+  'level_upgrade': { text: '等级升级', class: 'bg-blue-100 text-blue-700', icon: '↑' },
+  'level_downgrade': { text: '等级降级', class: 'bg-orange-100 text-orange-700', icon: '↓' }
 }
 
 // 等级配置
@@ -298,7 +316,7 @@ const showToast = (message) => {
             >
               <option value="all">全部类型</option>
               <option 
-                v-for="option in LOG_ACTION_TYPE_OPTIONS" 
+                v-for="option in actionTypeOptions" 
                 :key="option.value" 
                 :value="option.value"
               >
@@ -442,7 +460,12 @@ const showToast = (message) => {
                   {{ selectedSiteInfo.username }}（{{ selectedSiteInfo.uid }}）的日志详情
                 </div>
                 <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                  <span class="rounded-full bg-slate-900 px-2.5 py-1 text-white">类型：{{ selectedSiteInfo.actionTypeText }}</span>
+                  <span
+                    class="rounded-full px-2.5 py-1 font-medium"
+                    :class="actionTypeConfig[selectedLog.actionType]?.class || 'bg-slate-100 text-slate-700'"
+                  >
+                    类型：{{ selectedSiteInfo.actionTypeText }}
+                  </span>
                   <span class="rounded-full bg-white px-2.5 py-1 text-slate-600 ring-1 ring-slate-200">时间：{{ selectedSiteInfo.actionTime }}</span>
                   <span class="rounded-full bg-white px-2.5 py-1 text-slate-600 ring-1 ring-slate-200">操作人：{{ selectedSiteInfo.operator }}</span>
                 </div>
