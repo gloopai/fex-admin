@@ -1,6 +1,6 @@
 <script setup>
 import { storeToRefs } from 'pinia'
-import { useConsoleStore } from '../../../stores/console'
+import { useConsoleStore } from '../../../admin/stores/console'
 import OrderTable from '../../../admin/components/OrderTable.vue'
 
 const store = useConsoleStore()
