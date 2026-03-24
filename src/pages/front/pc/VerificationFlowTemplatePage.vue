@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { verificationConfig } from '../../mock/verification'
-import { VERIFICATION_DOC_TYPE, VERIFICATION_DOC_TYPE_OPTIONS, VERIFICATION_LEVEL } from '../../constants/verification'
+import { verificationConfig } from '../../../mock/verification'
+import { VERIFICATION_DOC_TYPE, VERIFICATION_DOC_TYPE_OPTIONS, VERIFICATION_LEVEL } from '../../../constants/verification'
 
 const basicStatus = ref('unsubmitted') // unsubmitted | reviewing | approved | rejected
 const advancedStatus = ref('idle') // idle | reviewing | approved | rejected
@@ -217,7 +217,7 @@ const resetFlow = () => {
         <div class="text-xs text-white/55">身份认证 / 审批流程</div>
         <h1 class="mt-1 text-2xl font-semibold">身份认证</h1>
         <p class="mt-2 max-w-[720px] text-sm text-white/65">
-          先完成初级认证并通过审核，再按清单上传高级认证材料。页面下方提供“联调工具”用于模拟后台审批（上线前可隐藏）。
+          先完成初级认证并通过审核，再按清单上传高级认证材料。
         </p>
       </div>
       <div class="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white/80">
@@ -320,7 +320,7 @@ const resetFlow = () => {
             <div>
               <div class="text-xs text-white/55">步骤 1 / 2</div>
               <h2 class="mt-1 text-xl font-semibold">初级认证</h2>
-              <p class="mt-2 text-sm text-white/65">提交后进入审核，通过后解锁高级认证资料上传。</p>
+              <p v-if="!(basicStatus === 'approved' && !expandBasicPrimary)" class="mt-2 text-sm text-white/65">提交后进入审核，通过后解锁高级认证资料上传。</p>
             </div>
             <div
               class="rounded-full border px-3 py-1 text-xs"
@@ -352,7 +352,7 @@ const resetFlow = () => {
           <div v-if="basicStatus === 'rejected'" class="mt-4 rounded-xl border border-rose-300/40 bg-rose-300/10 p-4 text-sm text-rose-100">
             初级审核未通过：请根据提示修改资料后重新提交。
           </div>
-          <div v-if="basicStatus === 'approved'" class="mt-4 rounded-xl border border-emerald-300/40 bg-emerald-300/10 p-4 text-sm text-emerald-100">
+          <div v-if="basicStatus === 'approved' && expandBasicPrimary" class="mt-4 rounded-xl border border-emerald-300/40 bg-emerald-300/10 p-4 text-sm text-emerald-100">
             初级审核已通过：请继续完成高级资料上传与提交。初级资料区域默认收起，避免遮挡高级区块。
           </div>
 
@@ -416,10 +416,9 @@ const resetFlow = () => {
             <p class="mt-3 text-xs text-white/55">初级认证已完成：信息以提交内容为准。若需修改，请等待驳回后重新提交或联系客服。</p>
           </div>
 
-          <div class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div v-if="showBasicForm" class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div class="text-xs text-white/55">提交后进入审核队列（演示）</div>
             <button
-              v-if="showBasicForm"
               class="w-full rounded-lg bg-lime-400 px-5 py-3 text-sm font-semibold text-black sm:w-auto"
               @click="submitBasic"
             >
@@ -643,7 +642,7 @@ const resetFlow = () => {
             </button>
           </div>
 
-          <div class="mt-5 rounded-xl border border-white/10 bg-black/20 p-4">
+          <!-- <div class="mt-5 rounded-xl border border-white/10 bg-black/20 p-4">
             <button type="button" class="flex w-full items-center justify-between text-left" @click="showPayload = !showPayload">
               <div>
                 <div class="text-sm font-semibold text-white/90">联调：提交数据结构预览</div>
@@ -652,7 +651,7 @@ const resetFlow = () => {
               <span class="text-white/60">{{ showPayload ? '收起' : '展开' }}</span>
             </button>
             <pre v-if="showPayload" class="mt-3 overflow-auto text-xs text-white/70">{{ JSON.stringify(backendPayloadPreview, null, 2) }}</pre>
-          </div>
+          </div> -->
         </section>
       </div>
     </div>

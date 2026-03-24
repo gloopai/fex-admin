@@ -6,7 +6,7 @@ export const frontDesktopRoutes = [
   {
     path: 'personal-center',
     name: 'front-personal-center-desktop',
-    component: () => import('../../pages/front/PersonalCenterDesktopTemplatePage.vue'),
+    component: () => import('../../pages/front/pc/PersonalCenterTemplatePage.vue'),
     meta: {
       title: '前台个人中心模板（PC）'
     }
@@ -14,7 +14,7 @@ export const frontDesktopRoutes = [
   {
     path: 'verification-flow',
     name: 'front-verification-flow-desktop',
-    component: () => import('../../pages/front/VerificationFlowDesktopTemplatePage.vue'),
+    component: () => import('../../pages/front/pc/VerificationFlowTemplatePage.vue'),
     meta: {
       title: '前台认证流程模板（PC）'
     }
@@ -29,7 +29,7 @@ export const frontMobileRoutes = [
   {
     path: 'personal-center',
     name: 'front-personal-center-mobile',
-    component: () => import('../../pages/front/PersonalCenterMobileTemplatePage.vue'),
+    component: () => import('../../pages/front/m/PersonalCenterTemplatePage.vue'),
     meta: {
       title: '前台个人中心模板（移动）'
     }
@@ -37,7 +37,7 @@ export const frontMobileRoutes = [
   {
     path: 'verification-flow',
     name: 'front-verification-flow-mobile',
-    component: () => import('../../pages/front/VerificationFlowMobileTemplatePage.vue'),
+    component: () => import('../../pages/front/m/VerificationFlowTemplatePage.vue'),
     meta: {
       title: '前台认证流程模板（移动）'
     }

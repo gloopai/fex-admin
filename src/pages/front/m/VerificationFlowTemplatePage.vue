@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { verificationConfig } from '../../mock/verification'
-import { VERIFICATION_DOC_TYPE, VERIFICATION_DOC_TYPE_OPTIONS, VERIFICATION_LEVEL } from '../../constants/verification'
+import { verificationConfig } from '../../../mock/verification'
+import { VERIFICATION_DOC_TYPE, VERIFICATION_DOC_TYPE_OPTIONS, VERIFICATION_LEVEL } from '../../../constants/verification'
 
 const basicStatus = ref('unsubmitted')
 const advancedStatus = ref('idle')
@@ -300,7 +300,7 @@ form.value.files = Object.fromEntries([
       <div v-if="basicStatus === 'rejected'" class="mt-3 rounded-2xl border border-rose-300/40 bg-rose-300/10 p-3 text-sm text-rose-100">
         审核未通过：请修改后重新提交。
       </div>
-      <div v-if="basicStatus === 'approved'" class="mt-3 rounded-2xl border border-emerald-300/40 bg-emerald-300/10 p-3 text-sm text-emerald-100">
+      <div v-if="basicStatus === 'approved' && expandBasicPrimary" class="mt-3 rounded-2xl border border-emerald-300/40 bg-emerald-300/10 p-3 text-sm text-emerald-100">
         初级已通过：下方可继续完成高级认证。初级资料默认已收起，避免占用屏幕。
       </div>
 
