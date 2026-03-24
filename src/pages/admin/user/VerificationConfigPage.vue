@@ -24,6 +24,9 @@ const toast = ref({
 const startEdit = (level) => {
   editingLevel.value = level
   tempConfig.value = JSON.parse(JSON.stringify(configs.value[level]))
+  if (typeof tempConfig.value.withdrawMinAmount !== 'number') {
+    tempConfig.value.withdrawMinAmount = 0
+  }
 }
 
 // 取消编辑
@@ -35,6 +38,7 @@ const cancelEdit = () => {
 // 保存配置
 const saveConfig = () => {
   if (editingLevel.value && tempConfig.value) {
+    tempConfig.value.withdrawMinAmount = Number(tempConfig.value.withdrawMinAmount) || 0
     configs.value[editingLevel.value] = { ...tempConfig.value }
     editingLevel.value = null
     tempConfig.value = null
@@ -133,6 +137,18 @@ const showToast = (message) => {
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
               </div>
+
+              <div>
+                <label class="block text-sm text-gray-700 mb-1">单笔最小出金金额（U）</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  v-model.number="tempConfig.withdrawMinAmount"
+                  placeholder="例如：10"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+              </div>
             </div>
 
             <div class="flex space-x-2 pt-4 border-t">
@@ -179,6 +195,13 @@ const showToast = (message) => {
                 <span class="text-sm text-gray-600">提币限额</span>
                 <span class="text-sm font-medium text-gray-900">
                   {{ configs[VERIFICATION_LEVEL.NONE].withdrawLimit ? `${configs[VERIFICATION_LEVEL.NONE].withdrawLimit.toLocaleString()} USDT/日` : '无限制' }}
+                </span>
+              </div>
+
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600">最小出金金额</span>
+                <span class="text-sm font-medium text-gray-900">
+                  {{ Number(configs[VERIFICATION_LEVEL.NONE].withdrawMinAmount || 0).toLocaleString() }} U
                 </span>
               </div>
 
@@ -244,6 +267,18 @@ const showToast = (message) => {
                   type="number" 
                   v-model.number="tempConfig.withdrawLimit"
                   placeholder="留空表示无限制"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+              </div>
+
+              <div>
+                <label class="block text-sm text-gray-700 mb-1">单笔最小出金金额（U）</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  v-model.number="tempConfig.withdrawMinAmount"
+                  placeholder="例如：10"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
               </div>
@@ -315,6 +350,13 @@ const showToast = (message) => {
                 </span>
               </div>
 
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600">最小出金金额</span>
+                <span class="text-sm font-medium text-gray-900">
+                  {{ Number(configs[VERIFICATION_LEVEL.BASIC].withdrawMinAmount || 0).toLocaleString() }} U
+                </span>
+              </div>
+
               <div class="pt-3 border-t">
                 <span class="text-sm text-gray-600">需要证件</span>
                 <div class="mt-2 text-sm text-gray-500">
@@ -377,6 +419,18 @@ const showToast = (message) => {
                   type="number" 
                   v-model.number="tempConfig.withdrawLimit"
                   placeholder="留空表示无限制"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+              </div>
+
+              <div>
+                <label class="block text-sm text-gray-700 mb-1">单笔最小出金金额（U）</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  v-model.number="tempConfig.withdrawMinAmount"
+                  placeholder="例如：10"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
               </div>
@@ -448,6 +502,13 @@ const showToast = (message) => {
                 </span>
               </div>
 
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600">最小出金金额</span>
+                <span class="text-sm font-medium text-gray-900">
+                  {{ Number(configs[VERIFICATION_LEVEL.ADVANCED].withdrawMinAmount || 0).toLocaleString() }} U
+                </span>
+              </div>
+
               <div class="pt-3 border-t">
                 <span class="text-sm text-gray-600">需要证件</span>
                 <div class="mt-2 text-sm text-gray-500">
@@ -482,6 +543,10 @@ const showToast = (message) => {
         <li class="flex items-start">
           <span class="mr-2">•</span>
           <span><strong>高级认证：</strong>完成完整身份认证的用户，通常给予最高权限和无限额度</span>
+        </li>
+        <li class="flex items-start">
+          <span class="mr-2">•</span>
+          <span><strong>最小出金金额：</strong>按 U 本位配置，为单笔出金下限（不是每日限额）</span>
         </li>
         <li class="flex items-start">
           <span class="mr-2">•</span>

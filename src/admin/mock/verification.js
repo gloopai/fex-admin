@@ -14,6 +14,7 @@ export const verificationConfig = {
     canDeposit: true,
     canTrade: true,
     canWithdraw: true,
+    withdrawMinAmount: 100, // 单笔最小出金金额（U）
     withdrawLimit: null, // null表示无限制
     requireDocuments: [],
     description: '未完成身份认证的用户'
@@ -25,6 +26,7 @@ export const verificationConfig = {
     canDeposit: true,
     canTrade: true,
     canWithdraw: true,
+    withdrawMinAmount: 50, // 单笔最小出金金额（U）
     withdrawLimit: 10000, // 每日提币限额（USDT）
     requireDocuments: [
       // VERIFICATION_DOC_TYPE.ID_CARD  // 当前配置不需要上传证件
@@ -38,6 +40,7 @@ export const verificationConfig = {
     canDeposit: true,
     canTrade: true,
     canWithdraw: true,
+    withdrawMinAmount: 10, // 单笔最小出金金额（U）
     withdrawLimit: null, // 无限制
     requireDocuments: [
       VERIFICATION_DOC_TYPE.ID_CARD,
