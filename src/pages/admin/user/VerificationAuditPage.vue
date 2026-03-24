@@ -4,13 +4,11 @@ import { getVerificationAudits, verificationAuditList } from '../../../admin/moc
 import AuditStatsCards from '../../../admin/components/verification-audit/AuditStatsCards.vue'
 import AuditFilters from '../../../admin/components/verification-audit/AuditFilters.vue'
 import AuditTable from '../../../admin/components/verification-audit/AuditTable.vue'
-import AuditDetailModal from '../../../admin/components/verification-audit/AuditDetailModal.vue'
 import {
   VERIFICATION_LEVEL,
   VERIFICATION_LEVEL_OPTIONS,
   VERIFICATION_STATUS,
   VERIFICATION_STATUS_OPTIONS,
-  VERIFICATION_DOC_TYPE,
   VERIFICATION_DOC_TYPE_OPTIONS
 } from '../../../constants/verification'
 
@@ -42,51 +40,31 @@ const levelConfig = {
   [VERIFICATION_LEVEL.ADVANCED]: { text: '高级认证', class: 'bg-violet-100 text-violet-700' }
 }
 
-const requiredDocsByLevel = {
-  [VERIFICATION_LEVEL.BASIC]: [VERIFICATION_DOC_TYPE.ID_CARD],
-  [VERIFICATION_LEVEL.ADVANCED]: [
-    VERIFICATION_DOC_TYPE.ID_CARD,
-    VERIFICATION_DOC_TYPE.ID_CARD_HOLD,
-    VERIFICATION_DOC_TYPE.INCOME_PROOF,
-    VERIFICATION_DOC_TYPE.BANK_STATEMENT,
-    VERIFICATION_DOC_TYPE.ADDRESS_PROOF
-  ]
-}
-
-const getRequiredDocs = (level) => requiredDocsByLevel[level] || []
-const getUploadedDocTypes = (audit) => new Set((audit?.documents || []).map(doc => doc.type))
-const getMissingDocs = (audit) => getRequiredDocs(audit.applyLevel).filter(type => !getUploadedDocTypes(audit).has(type))
 const getDocTypeLabel = (docType) => VERIFICATION_DOC_TYPE_OPTIONS.find(opt => opt.value === docType)?.label || docType
-const getProgress = (audit) => {
-  const required = getRequiredDocs(audit.applyLevel).length
-  if (!required) return { done: 0, total: 0, percent: 100 }
-  const done = required - getMissingDocs(audit).length
-  return { done, total: required, percent: Math.round((done / required) * 100) }
-}
 
-const selectedProgress = computed(() => (selectedAudit.value ? getProgress(selectedAudit.value) : { done: 0, total: 0, percent: 0 }))
-const selectedMissingDocs = computed(() => (selectedAudit.value ? getMissingDocs(selectedAudit.value) : []))
-const selectedRiskHints = computed(() => {
-  if (!selectedAudit.value) return []
-  const hints = []
-  if (selectedMissingDocs.value.length) {
-    hints.push(`缺少必审材料：${selectedMissingDocs.value.map(getDocTypeLabel).join('、')}`)
-  }
-  if (selectedAudit.value.status === VERIFICATION_STATUS.RESUBMIT) {
-    hints.push('该申请有补件历史，建议优先核验历史退回原因是否已修复')
-  }
-  if (selectedAudit.value.status === VERIFICATION_STATUS.REJECTED) {
-    hints.push('该申请曾被拒绝，建议重点检查证件清晰度和信息一致性')
-  }
-  return hints
-})
-
-const groupedDocuments = computed(() => {
-  if (!selectedAudit.value) return { idDocs: [], proofs: [] }
-  const idTypes = new Set([VERIFICATION_DOC_TYPE.ID_CARD, VERIFICATION_DOC_TYPE.ID_CARD_HOLD])
+const selectedSiteInfo = computed(() => {
+  if (!selectedAudit.value) return null
+  const audit = selectedAudit.value
+  const docs = audit.documents || []
+  const imageCount = docs.filter((d) => !String(d.url || '').toLowerCase().endsWith('.pdf')).length
+  const pdfCount = docs.filter((d) => String(d.url || '').toLowerCase().endsWith('.pdf')).length
+  const submitAt = audit.submitTime ? new Date(audit.submitTime).getTime() : 0
+  const auditAt = audit.auditTime ? new Date(audit.auditTime).getTime() : 0
+  const durationHours = submitAt && auditAt ? Math.max(0, Math.round((auditAt - submitAt) / (1000 * 60 * 60))) : null
   return {
-    idDocs: selectedAudit.value.documents.filter(d => idTypes.has(d.type)),
-    proofs: selectedAudit.value.documents.filter(d => !idTypes.has(d.type))
+    uid: audit.userId || '-',
+    username: audit.username || '-',
+    email: audit.email || '-',
+    applyLevel: levelConfig[audit.applyLevel]?.text || audit.applyLevel,
+    currentLevel: levelConfig[audit.currentLevel]?.text || audit.currentLevel,
+    submitTime: formatDate(audit.submitTime),
+    auditTime: formatDate(audit.auditTime),
+    auditor: audit.auditor || '-',
+    rejectReason: audit.rejectReason || '-',
+    docCount: docs.length,
+    imageCount,
+    pdfCount,
+    processHours: durationHours == null ? '-' : `${durationHours} 小时`
   }
 })
 
@@ -217,6 +195,132 @@ const showToast = (message) => {
     <AuditStatsCards :statistics="statistics" />
 
     <div class="relative min-h-[400px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <transition name="audit-drawer">
+        <div v-if="showDetailModal && selectedAudit && selectedSiteInfo" class="fixed inset-0 z-40 bg-slate-900/35" @click.self="closeDetail">
+          <section class="audit-drawer-panel flex h-[88vh] w-full flex-col overflow-hidden rounded-b-2xl border-b border-slate-200 bg-slate-50 shadow-2xl">
+            <div class="border-b border-slate-200 bg-gradient-to-r from-white to-slate-100 px-5 py-4">
+              <div class="flex items-start justify-between gap-4">
+                <div>
+                  <div class="text-xs font-medium tracking-wide text-slate-500">认证审核详情抽屉</div>
+                  <div class="mt-1 text-xl font-semibold text-slate-900">
+                    {{ selectedSiteInfo.username }}（{{ selectedSiteInfo.uid }}）的审核信息
+                  </div>
+                  <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                    <span class="rounded-full bg-slate-900 px-2.5 py-1 text-white">状态：{{ statusConfig[selectedAudit.status]?.text || selectedAudit.status }}</span>
+                    <span class="rounded-full bg-white px-2.5 py-1 text-slate-600 ring-1 ring-slate-200">申请等级：{{ selectedSiteInfo.applyLevel }}</span>
+                    <span class="rounded-full bg-white px-2.5 py-1 text-slate-600 ring-1 ring-slate-200">提交：{{ selectedSiteInfo.submitTime }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="min-h-0 flex-1 overflow-y-auto p-4">
+              <div class="space-y-4">
+                <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                  <section class="rounded-xl border border-slate-200 bg-white p-4">
+                    <div class="text-xs text-slate-500">用户与申请</div>
+                    <div class="mt-3 space-y-2 text-sm">
+                      <div class="flex justify-between"><span class="text-slate-500">用户名</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.username }}</span></div>
+                      <div class="flex justify-between"><span class="text-slate-500">邮箱</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.email }}</span></div>
+                      <div class="flex justify-between"><span class="text-slate-500">当前等级</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.currentLevel }}</span></div>
+                      <div class="flex justify-between"><span class="text-slate-500">申请等级</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.applyLevel }}</span></div>
+                      <div class="flex justify-between"><span class="text-slate-500">提交时间</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.submitTime }}</span></div>
+                    </div>
+                  </section>
+
+                  <section class="rounded-xl border border-slate-200 bg-white p-4">
+                    <div class="text-xs text-slate-500">站内进度</div>
+                    <div class="mt-3 space-y-2 text-sm">
+                      <div class="flex justify-between"><span class="text-slate-500">审核状态</span><span class="font-medium text-slate-900">{{ statusConfig[selectedAudit.status]?.text || selectedAudit.status }}</span></div>
+                      <div class="flex justify-between"><span class="text-slate-500">总材料数</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.docCount }}</span></div>
+                      <div class="flex justify-between"><span class="text-slate-500">图片数</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.imageCount }}</span></div>
+                      <div class="flex justify-between"><span class="text-slate-500">PDF 数</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.pdfCount }}</span></div>
+                    </div>
+                  </section>
+
+                  <section class="rounded-xl border border-slate-200 bg-white p-4">
+                    <div class="text-xs text-slate-500">审核记录</div>
+                    <div class="mt-3 space-y-2 text-sm">
+                      <div class="flex justify-between"><span class="text-slate-500">审核时间</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.auditTime }}</span></div>
+                      <div class="flex justify-between"><span class="text-slate-500">审核人</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.auditor }}</span></div>
+                      <div class="flex justify-between"><span class="text-slate-500">处理时长</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.processHours }}</span></div>
+                    </div>
+                    <div v-if="selectedSiteInfo.rejectReason !== '-'" class="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
+                      驳回/补件原因：{{ selectedSiteInfo.rejectReason }}
+                    </div>
+                  </section>
+                </div>
+
+                <section class="rounded-xl border border-slate-200 bg-white p-4">
+                  <div class="text-xs text-slate-500">初级认证区域</div>
+                  <div class="mt-3 grid grid-cols-1 gap-2 text-sm md:grid-cols-2">
+                    <div class="rounded-lg bg-slate-50 px-3 py-2"><span class="text-slate-500">国家：</span><span class="font-medium text-slate-900">{{ selectedAudit.basicInfo?.nationality || '-' }}</span></div>
+                    <div class="rounded-lg bg-slate-50 px-3 py-2"><span class="text-slate-500">所在城市：</span><span class="font-medium text-slate-900">{{ selectedAudit.basicInfo?.city || '-' }}</span></div>
+                    <div class="rounded-lg bg-slate-50 px-3 py-2"><span class="text-slate-500">姓名：</span><span class="font-medium text-slate-900">{{ selectedAudit.basicInfo?.realName || '-' }}</span></div>
+                    <div class="rounded-lg bg-slate-50 px-3 py-2"><span class="text-slate-500">证件号码：</span><span class="font-medium text-slate-900">{{ selectedAudit.basicInfo?.idNumber || '-' }}</span></div>
+                    <div class="rounded-lg bg-slate-50 px-3 py-2 md:col-span-2"><span class="text-slate-500">邮箱：</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.email || '-' }}</span></div>
+                  </div>
+                </section>
+
+                <section class="rounded-xl border border-slate-200 bg-white p-4">
+                  <div class="mb-3 flex items-center justify-between">
+                    <div class="text-xs text-slate-500">提交材料（站内）</div>
+                  </div>
+                  <div class="space-y-2">
+                    <div
+                      v-for="(doc, index) in selectedAudit.documents"
+                      :key="`${doc.type}-${index}`"
+                      class="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                    >
+                      <div class="min-w-0">
+                        <div class="font-medium text-slate-900">{{ getDocTypeLabel(doc.type) }}</div>
+                        <div class="mt-0.5 truncate text-xs text-slate-500">{{ formatDate(doc.uploadTime) }} · {{ doc.url }}</div>
+                      </div>
+                      <button class="ant-btn shrink-0" @click="previewDocument(doc)">预览</button>
+                    </div>
+                    <div v-if="!selectedAudit.documents?.length" class="rounded-lg border border-dashed border-slate-300 px-3 py-4 text-sm text-slate-500">
+                      暂无上传材料
+                    </div>
+                  </div>
+                </section>
+              </div>
+            </div>
+
+            <section class="shrink-0 border-t border-slate-200 bg-white px-5 py-4">
+              <div class="text-xs text-slate-500">审核操作</div>
+              <div class="mt-3 flex flex-wrap justify-end gap-2">
+                <button class="ant-btn" @click="closeDetail">关闭</button>
+                <button class="ant-btn ant-btn-primary" @click="startAuditAction('approve')">通过</button>
+                <button class="ant-btn" @click="startAuditAction('resubmit')">要求补件</button>
+                <button class="ant-btn ant-btn-danger" @click="startAuditAction('reject')">拒绝</button>
+              </div>
+
+              <div v-if="auditAction" class="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <div class="text-sm font-medium text-slate-900">
+                  {{
+                    auditAction === 'approve'
+                      ? '确认审核通过'
+                      : auditAction === 'resubmit'
+                        ? '填写补件说明'
+                        : '填写拒绝原因'
+                  }}
+                </div>
+                <textarea
+                  v-if="auditAction !== 'approve'"
+                  v-model="auditNote"
+                  rows="3"
+                  class="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                  :placeholder="auditAction === 'reject' ? '请填写拒绝原因' : '请填写补件说明'"
+                />
+                <div class="mt-3 flex justify-end gap-2">
+                  <button class="ant-btn ant-btn-primary" @click="submitAudit">确认提交</button>
+                  <button class="ant-btn" @click="auditAction = null">取消</button>
+                </div>
+              </div>
+            </section>
+          </section>
+        </div>
+      </transition>
+
       <div class="flex items-center justify-between border-b border-slate-200 bg-white p-4">
         <h3 class="text-base font-semibold text-slate-900">审核申请列表</h3>
         <button class="ant-btn inline-flex items-center gap-2" @click="exportData">
@@ -255,35 +359,12 @@ const showToast = (message) => {
         :level-config="levelConfig"
         :total-pages="totalPages"
         :pagination="pagination"
-        :get-progress="getProgress"
         :format-date="formatDate"
         @view-detail="viewDetail"
         @prev-page="pagination.currentPage--"
         @next-page="pagination.currentPage++"
       />
     </div>
-
-    <AuditDetailModal
-      :visible="showDetailModal"
-      :selected-audit="selectedAudit"
-      :status-config="statusConfig"
-      :level-config="levelConfig"
-      :audit-action="auditAction"
-      :audit-note="auditNote"
-      :selected-progress="selectedProgress"
-      :selected-missing-docs="selectedMissingDocs"
-      :selected-risk-hints="selectedRiskHints"
-      :grouped-documents="groupedDocuments"
-      :get-required-docs="getRequiredDocs"
-      :get-doc-type-label="getDocTypeLabel"
-      :format-date="formatDate"
-      @close="closeDetail"
-      @start-action="startAuditAction"
-      @submit="submitAudit"
-      @cancel-action="auditAction = null"
-      @update:note="auditNote = $event"
-      @preview="previewDocument"
-    />
 
     <div v-if="toast.visible" class="animate-slide-in fixed top-4 right-4 z-50 flex items-center gap-3 rounded-lg border border-emerald-200 bg-white px-4 py-3 shadow-lg">
       <div class="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500">
@@ -297,5 +378,29 @@ const showToast = (message) => {
 </template>
 
 <style scoped>
-/* 自定义样式 */
+.audit-drawer-enter-active,
+.audit-drawer-leave-active {
+  transition: opacity 0.25s ease;
+}
+
+.audit-drawer-enter-from,
+.audit-drawer-leave-to {
+  opacity: 0;
+}
+
+.audit-drawer-enter-to,
+.audit-drawer-leave-from {
+  opacity: 1;
+}
+
+.audit-drawer-enter-from > section,
+.audit-drawer-leave-to > section {
+  transform: translateY(-100%);
+}
+
+.audit-drawer-enter-active > section,
+.audit-drawer-leave-active > section {
+  transition: transform 0.25s ease;
+  transform: translateY(0);
+}
 </style>

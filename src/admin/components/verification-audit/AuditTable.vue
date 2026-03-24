@@ -6,7 +6,6 @@ defineProps({
   levelConfig: { type: Object, default: () => ({}) },
   totalPages: { type: Number, default: 0 },
   pagination: { type: Object, default: () => ({ currentPage: 1, total: 0 }) },
-  getProgress: { type: Function, required: true },
   formatDate: { type: Function, required: true }
 })
 
@@ -20,7 +19,7 @@ const emit = defineEmits(['view-detail', 'prev-page', 'next-page'])
         <tr>
           <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">用户信息</th>
           <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">认证等级</th>
-          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">材料完整度</th>
+          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">提交材料</th>
           <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">状态</th>
           <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">提交时间</th>
           <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">审核时间</th>
@@ -48,14 +47,8 @@ const emit = defineEmits(['view-detail', 'prev-page', 'next-page'])
             </div>
           </td>
           <td class="whitespace-nowrap px-6 py-4">
-            <div class="w-40">
-              <div class="flex items-center justify-between text-xs text-slate-600">
-                <span>{{ getProgress(audit).done }}/{{ getProgress(audit).total || 0 }} 已上传</span>
-                <span>{{ getProgress(audit).percent }}%</span>
-              </div>
-              <div class="mt-1 h-1.5 rounded-full bg-slate-100">
-                <div class="h-1.5 rounded-full bg-blue-500" :style="{ width: `${getProgress(audit).percent}%` }"></div>
-              </div>
+            <div class="text-sm text-slate-700">
+              {{ audit.documents?.length || 0 }} 份
             </div>
           </td>
           <td class="whitespace-nowrap px-6 py-4">

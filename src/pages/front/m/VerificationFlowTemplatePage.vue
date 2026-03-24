@@ -580,5 +580,7 @@ form.value.files = Object.fromEntries([
         <pre v-if="showPayload" class="mt-3 overflow-auto text-[11px] text-white/65">{{ JSON.stringify(payloadPreview, null, 2) }}</pre>
       </div>
     </section>
+
   </div>
 </template>
+
