@@ -1,18 +1,18 @@
 export const legacyRoutes = [
   {
     path: 'referral',
-    redirect: '/agent/referral-config'
+    redirect: '/admin/agent/referral-config'
   },
   {
     path: 'referral/config',
-    redirect: '/agent/referral-config'
+    redirect: '/admin/agent/referral-config'
   },
   {
     path: 'referral/commission',
-    redirect: '/agent/referral-commission'
+    redirect: '/admin/agent/referral-commission'
   },
   {
     path: 'referral/statistics',
-    redirect: '/agent/referral-statistics'
+    redirect: '/admin/agent/referral-statistics'
   }
 ]

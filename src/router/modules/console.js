@@ -1,4 +1,4 @@
-const sectionPage = () => import('../../pages/system/SectionPage.vue')
+const sectionPage = () => import('../../pages/admin/system/SectionPage.vue')
 
 export const consoleRoutes = [
   {
@@ -12,86 +12,86 @@ export const consoleRoutes = [
   },
   {
     path: 'users',
-    redirect: '/users/list'
+    redirect: '/admin/users/list'
   },
   {
     path: 'users/list',
     name: 'users-list',
-    component: () => import('../../pages/user/UserListPage.vue')
+    component: () => import('../../pages/admin/user/UserListPage.vue')
   },
   {
     path: 'contracts/panel',
     name: 'contracts-panel',
-    component: () => import('../../pages/contracts/ContractsPanelPage.vue')
+    component: () => import('../../pages/admin/contracts/ContractsPanelPage.vue')
   },
   {
     path: 'perpetual/overview',
     name: 'perpetual-overview',
-    component: () => import('../../pages/perpetual/PerpetualManagementPage.vue')
+    component: () => import('../../pages/admin/perpetual/PerpetualManagementPage.vue')
   },
   {
     path: 'perpetual/leverage-template',
     name: 'perpetual-leverage-template',
-    component: () => import('../../pages/perpetual/PerpetualLeverageTemplatePage.vue')
+    component: () => import('../../pages/admin/perpetual/PerpetualLeverageTemplatePage.vue')
   },
   {
     path: 'perpetual/user-monitor',
     name: 'perpetual-user-monitor',
-    redirect: '/perpetual/contract-monitor'
+    redirect: '/admin/perpetual/contract-monitor'
   },
   {
     path: 'perpetual/contract-monitor',
     name: 'perpetual-contract-monitor',
-    component: () => import('../../pages/perpetual/PerpetualContractMonitorPage.vue')
+    component: () => import('../../pages/admin/perpetual/PerpetualContractMonitorPage.vue')
   },
   {
     path: 'perpetual/manual-line',
     name: 'perpetual-manual-line',
-    component: () => import('../../pages/perpetual/PerpetualManualLinePage.vue')
+    component: () => import('../../pages/admin/perpetual/PerpetualManualLinePage.vue')
   },
   {
     path: 'perpetual/contract-log',
     name: 'perpetual-contract-log',
-    component: () => import('../../pages/perpetual/PerpetualControlLogPage.vue')
+    component: () => import('../../pages/admin/perpetual/PerpetualControlLogPage.vue')
   },
   {
     path: 'perpetual/report',
     name: 'perpetual-report',
-    component: () => import('../../pages/perpetual/PerpetualReportPage.vue')
+    component: () => import('../../pages/admin/perpetual/PerpetualReportPage.vue')
   },
   {
     path: 'perpetual/guide',
     name: 'perpetual-guide',
-    component: () => import('../../pages/perpetual/GuidePage.vue')
+    component: () => import('../../pages/admin/perpetual/GuidePage.vue')
   },
   {
     path: 'perpetual/orders',
     name: 'perpetual-orders',
-    component: () => import('../../pages/perpetual/PerpetualOrderPage.vue')
+    component: () => import('../../pages/admin/perpetual/PerpetualOrderPage.vue')
   },
   {
     path: 'delivery',
-    redirect: '/delivery/contracts'
+    redirect: '/admin/delivery/contracts'
   },
   {
     path: 'delivery/contracts',
     name: 'delivery-contracts',
-    component: () => import('../../pages/delivery/DeliveryManagementPage.vue')
+    component: () => import('../../pages/admin/delivery/DeliveryManagementPage.vue')
   },
   {
     path: 'delivery/templates',
     name: 'delivery-templates',
-    component: () => import('../../pages/delivery/DeliveryTemplatePage.vue')
+    component: () => import('../../pages/admin/delivery/DeliveryTemplatePage.vue')
   },
   {
     path: 'delivery/auto-rules',
     name: 'delivery-auto-rules',
-    component: () => import('../../pages/delivery/DeliveryAutoRuleListPage.vue')
+    component: () => import('../../pages/admin/delivery/DeliveryAutoRuleListPage.vue')
   },
   {
     path: 'delivery/control',
     name: 'delivery-control',
-    component: () => import('../../pages/delivery/DeliveryManualControlPage.vue'),
+    component: () => import('../../pages/admin/delivery/DeliveryManualControlPage.vue'),
     meta: {
       title: '交割合约 / 手动场控',
       desc: '三栏式收割中心：全盘风险热力、价格拨盘与大户追踪。'
@@ -100,7 +100,7 @@ export const consoleRoutes = [
   {
     path: 'delivery/harvest-control',
     name: 'delivery-harvest-control',
-    component: () => import('../../pages/delivery/DeliveryHarvestControlPage.vue'),
+    component: () => import('../../pages/admin/delivery/DeliveryHarvestControlPage.vue'),
     meta: {
       title: '交割合约 / 手动场控（Radar）',
       desc: '两层式场控：L1 全局收割监控，L2 单档位精准操盘。'
@@ -109,81 +109,81 @@ export const consoleRoutes = [
   {
     path: 'delivery/rule-history',
     name: 'delivery-rule-history',
-    component: () => import('../../pages/delivery/DeliveryRuleHistoryPage.vue')
+    component: () => import('../../pages/admin/delivery/DeliveryRuleHistoryPage.vue')
   },
   {
     path: 'delivery/rule-statistics',
     name: 'delivery-rule-statistics',
-    component: () => import('../../pages/delivery/DeliveryRuleStatisticsPage.vue')
+    component: () => import('../../pages/admin/delivery/DeliveryRuleStatisticsPage.vue')
   },
   {
     path: 'delivery/report',
     name: 'delivery-report',
-    component: () => import('../../pages/delivery/DeliveryReportPage.vue')
+    component: () => import('../../pages/admin/delivery/DeliveryReportPage.vue')
   },
   {
     path: 'delivery/guide',
     name: 'delivery-guide',
-    component: () => import('../../pages/delivery/DeliveryGuidePage.vue')
+    component: () => import('../../pages/admin/delivery/DeliveryGuidePage.vue')
   },
   {
     path: 'delivery/orders',
     name: 'delivery-orders',
-    component: () => import('../../pages/delivery/DeliveryOrderPage.vue')
+    component: () => import('../../pages/admin/delivery/DeliveryOrderPage.vue')
   },
   {
     path: 'delivery/overview',
-    redirect: '/delivery/contracts'
+    redirect: '/admin/delivery/contracts'
   },
   {
     path: 'delivery/config',
-    redirect: '/delivery/control'
+    redirect: '/admin/delivery/control'
   },
   {
     path: 'assets',
-    redirect: '/assets/currencies'
+    redirect: '/admin/assets/currencies'
   },
   {
     path: 'assets/currencies',
-    redirect: '/system/currencies'
+    redirect: '/admin/system/currencies'
   },
   {
     path: 'assets/exchange-rate',
     name: 'assets-exchange-rate',
-    component: () => import('../../pages/assets/AssetsExchangeRatePage.vue')
+    component: () => import('../../pages/admin/assets/AssetsExchangeRatePage.vue')
   },
   {
     path: 'assets/fee-template',
     name: 'assets-fee-template',
-    component: () => import('../../pages/assets/AssetsFeeTemplatePage.vue')
+    component: () => import('../../pages/admin/assets/AssetsFeeTemplatePage.vue')
   },
   {
     path: 'assets/manual-collect',
     name: 'assets-manual-collect',
-    component: () => import('../../pages/assets/AssetsManualCollectPage.vue')
+    component: () => import('../../pages/admin/assets/AssetsManualCollectPage.vue')
   },
   {
     path: 'assets/collect-records',
     name: 'assets-collect-records',
-    component: () => import('../../pages/assets/AssetsCollectRecordsPage.vue')
+    component: () => import('../../pages/admin/assets/AssetsCollectRecordsPage.vue')
   },
   {
     path: 'assets/address-logs',
     name: 'assets-address-logs',
-    component: () => import('../../pages/assets/AssetsAddressLogsPage.vue')
+    component: () => import('../../pages/admin/assets/AssetsAddressLogsPage.vue')
   },
   {
     path: 'assets/overview',
-    redirect: '/assets/currencies'
+    redirect: '/admin/assets/currencies'
   },
   {
     path: 'assets/transfer',
-    redirect: '/assets/manual-collect'
+    redirect: '/admin/assets/manual-collect'
   },
   {
     path: 'system/currencies',
     name: 'system-currencies',
-    component: () => import('../../pages/assets/AssetsCurrencyPage.vue'),
+    component: () => import('../../pages/admin/assets/AssetsCurrencyPage.vue'),
     meta: {
       title: '系统设置 / 币种管理',
       desc: '统一维护平台支持的币种、精度与网络配置'
@@ -210,195 +210,195 @@ export const consoleRoutes = [
   {
     path: 'liquidity/locked/products',
     name: 'liquidity-locked-products',
-    component: () => import('../../pages/liquidity/LiquidityLockedProductsPage.vue')
+    component: () => import('../../pages/admin/liquidity/LiquidityLockedProductsPage.vue')
   },
   {
     path: 'liquidity/locked/orders',
     name: 'liquidity-locked-orders',
-    component: () => import('../../pages/liquidity/LiquidityLockedOrdersPage.vue')
+    component: () => import('../../pages/admin/liquidity/LiquidityLockedOrdersPage.vue')
   },
   {
     path: 'liquidity/locked/yield-control',
     name: 'liquidity-locked-yield-control',
-    component: () => import('../../pages/liquidity/LiquidityLockedYieldControlPage.vue')
+    component: () => import('../../pages/admin/liquidity/LiquidityLockedYieldControlPage.vue')
   },
   {
     path: 'liquidity/locked/expiry-alerts',
     name: 'liquidity-locked-expiry-alerts',
-    component: () => import('../../pages/liquidity/LiquidityLockedAlertsPage.vue')
+    component: () => import('../../pages/admin/liquidity/LiquidityLockedAlertsPage.vue')
   },
   {
     path: 'liquidity/locked/rules',
     name: 'liquidity-locked-rules',
-    component: () => import('../../pages/liquidity/LiquidityLockedRulesPage.vue')
+    component: () => import('../../pages/admin/liquidity/LiquidityLockedRulesPage.vue')
   },
   {
     path: 'liquidity/locked/positions',
-    redirect: '/liquidity/locked/products'
+    redirect: '/admin/liquidity/locked/products'
   },
   {
     path: 'liquidity/locked/risk',
-    redirect: '/liquidity/locked/rules'
+    redirect: '/admin/liquidity/locked/rules'
   },
   {
     path: 'lending',
-    redirect: '/lending/products'
+    redirect: '/admin/lending/products'
   },
   {
     path: 'lending/products',
     name: 'lending-products',
-    component: () => import('../../pages/lending/LendingProductPage.vue')
+    component: () => import('../../pages/admin/lending/LendingProductPage.vue')
   },
   {
     path: 'lending/orders',
     name: 'lending-orders',
-    component: () => import('../../pages/lending/LendingOrderPage.vue')
+    component: () => import('../../pages/admin/lending/LendingOrderPage.vue')
   },
   {
     path: 'lending/repayment',
     name: 'lending-repayment',
-    component: () => import('../../pages/lending/LendingRepaymentPage.vue')
+    component: () => import('../../pages/admin/lending/LendingRepaymentPage.vue')
   },
   {
     path: 'lending/liquidation',
     name: 'lending-liquidation',
-    component: () => import('../../pages/lending/LendingLiquidationPage.vue')
+    component: () => import('../../pages/admin/lending/LendingLiquidationPage.vue')
   },
   {
     path: 'lending/user-monitoring',
     name: 'lending-user-monitoring',
-    component: () => import('../../pages/lending/LendingUserMonitoringPage.vue')
+    component: () => import('../../pages/admin/lending/LendingUserMonitoringPage.vue')
   },
   {
     path: 'lending/guide',
     name: 'lending-guide',
-    component: () => import('../../pages/lending/LendingGuidePage.vue')
+    component: () => import('../../pages/admin/lending/LendingGuidePage.vue')
   },
   {
     path: 'ai-quant',
-    redirect: '/ai-quant/products'
+    redirect: '/admin/ai-quant/products'
   },
   {
     path: 'ai-quant/products',
     name: 'ai-quant-products',
-    component: () => import('../../pages/aiQuant/AiQuantProductPage.vue')
+    component: () => import('../../pages/admin/aiQuant/AiQuantProductPage.vue')
   },
   {
     path: 'ai-quant/orders',
     name: 'ai-quant-orders',
-    component: () => import('../../pages/aiQuant/AiQuantOrderPage.vue')
+    component: () => import('../../pages/admin/aiQuant/AiQuantOrderPage.vue')
   },
   {
     path: 'ai-quant/yield-adjustment',
     name: 'ai-quant-yield-adjustment',
-    component: () => import('../../pages/aiQuant/AiQuantYieldAdjustmentPage.vue')
+    component: () => import('../../pages/admin/aiQuant/AiQuantYieldAdjustmentPage.vue')
   },
   {
     path: 'ai-quant/control',
     name: 'ai-quant-control',
-    component: () => import('../../pages/aiQuant/AiQuantControlPage.vue')
+    component: () => import('../../pages/admin/aiQuant/AiQuantControlPage.vue')
   },
   {
     path: 'ai-quant/rules',
     name: 'ai-quant-rules',
-    component: () => import('../../pages/aiQuant/AiQuantRulePage.vue')
+    component: () => import('../../pages/admin/aiQuant/AiQuantRulePage.vue')
   },
   {
     path: 'spot',
-    redirect: '/spot/products'
+    redirect: '/admin/spot/products'
   },
   {
     path: 'spot/products',
     name: 'spot-products',
-    component: () => import('../../pages/spot/SpotProductPage.vue')
+    component: () => import('../../pages/admin/spot/SpotProductPage.vue')
   },
   {
     path: 'spot/symbols',
     name: 'spot-symbols',
-    component: () => import('../../pages/spot/SpotSymbolPage.vue')
+    component: () => import('../../pages/admin/spot/SpotSymbolPage.vue')
   },
   {
     path: 'spot/orders',
     name: 'spot-orders',
-    component: () => import('../../pages/spot/SpotOrderPage.vue')
+    component: () => import('../../pages/admin/spot/SpotOrderPage.vue')
   },
   {
     path: 'users/tag-rules',
     name: 'users-tag-rules',
-    component: () => import('../../pages/user/UserTagRulePage.vue')
+    component: () => import('../../pages/admin/user/UserTagRulePage.vue')
   },
   {
     path: 'users/vip-config',
     name: 'users-vip-config',
-    component: () => import('../../pages/user/VipConfigPage.vue')
+    component: () => import('../../pages/admin/user/VipConfigPage.vue')
   },
   {
     path: 'users/vip-upgrades',
     name: 'users-vip-upgrades',
-    component: () => import('../../pages/user/CreditScoreUpgradesPage.vue')
+    component: () => import('../../pages/admin/user/CreditScoreUpgradesPage.vue')
   },
   {
     path: 'users/credit-score-config',
     name: 'users-credit-score-config',
-    component: () => import('../../pages/user/CreditScoreConfigPage.vue')
+    component: () => import('../../pages/admin/user/CreditScoreConfigPage.vue')
   },
   {
     path: 'users/credit-score-changes',
     name: 'users-credit-score-changes',
-    component: () => import('../../pages/user/CreditScoreChangesPage.vue')
+    component: () => import('../../pages/admin/user/CreditScoreChangesPage.vue')
   },
   {
     path: 'users/credit-score-audit',
     name: 'users-credit-score-audit',
-    component: () => import('../../pages/user/CreditScoreAuditPage.vue')
+    component: () => import('../../pages/admin/user/CreditScoreAuditPage.vue')
   },
   {
     path: 'users/verification-config',
     name: 'users-verification-config',
-    component: () => import('../../pages/user/VerificationConfigPage.vue')
+    component: () => import('../../pages/admin/user/VerificationConfigPage.vue')
   },
   {
     path: 'users/verification-audit',
     name: 'users-verification-audit',
-    component: () => import('../../pages/user/VerificationAuditPage.vue')
+    component: () => import('../../pages/admin/user/VerificationAuditPage.vue')
   },
   {
     path: 'users/verification-log',
     name: 'users-verification-log',
-    component: () => import('../../pages/user/VerificationLogPage.vue')
+    component: () => import('../../pages/admin/user/VerificationLogPage.vue')
   },
   {
     path: 'agent',
-    redirect: '/agent/management'
+    redirect: '/admin/agent/management'
   },
   {
     path: 'agent/management',
     name: 'agent-management',
-    component: () => import('../../pages/agent/AgentManagementPage.vue')
+    component: () => import('../../pages/admin/agent/AgentManagementPage.vue')
   },
   {
     path: 'agent/applications',
     name: 'agent-applications',
-    component: () => import('../../pages/agent/AgentApplicationPage.vue')
+    component: () => import('../../pages/admin/agent/AgentApplicationPage.vue')
   },
   {
     path: 'agent/referral-config',
     name: 'agent-referral-config',
-    component: () => import('../../pages/agent/ReferralConfigPage.vue')
+    component: () => import('../../pages/admin/agent/ReferralConfigPage.vue')
   },
   {
     path: 'agent/referral-commission',
     name: 'agent-referral-commission',
-    component: () => import('../../pages/agent/ReferralCommissionPage.vue')
+    component: () => import('../../pages/admin/agent/ReferralCommissionPage.vue')
   },
   {
     path: 'agent/referral-statistics',
     name: 'agent-referral-statistics',
-    component: () => import('../../pages/agent/ReferralStatisticsPage.vue')
+    component: () => import('../../pages/admin/agent/ReferralStatisticsPage.vue')
   },
   {
     path: 'system/error-codes',
     name: 'system-error-codes',
-    component: () => import('../../pages/system/ErrorCodePage.vue')
+    component: () => import('../../pages/admin/system/ErrorCodePage.vue')
   }
 ]
