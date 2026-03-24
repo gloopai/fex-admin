@@ -223,10 +223,10 @@ const showToast = (message) => {
         </div>
       </div>
 
-      <!-- 普通认证配置 -->
+      <!-- 初级认证配置 -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
-          <h3 class="text-lg font-semibold text-white">普通认证用户</h3>
+          <h3 class="text-lg font-semibold text-white">初级认证用户</h3>
           <p class="text-sm text-blue-100 mt-1">{{ configs[VERIFICATION_LEVEL.BASIC].description }}</p>
         </div>
         
@@ -283,24 +283,6 @@ const showToast = (message) => {
                 >
               </div>
 
-              <div class="pt-3 border-t">
-                <label class="block text-sm text-gray-700 mb-2">需要上传的证件</label>
-                <div class="space-y-2">
-                  <label 
-                    v-for="docType in VERIFICATION_DOC_TYPE_OPTIONS" 
-                    :key="docType.value"
-                    class="flex items-center space-x-2"
-                  >
-                    <input 
-                      type="checkbox" 
-                      :checked="requiresDocument(VERIFICATION_LEVEL.BASIC, docType.value)"
-                      @change="toggleDocument(docType.value)"
-                      class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    >
-                    <span class="text-sm text-gray-700">{{ docType.label }}</span>
-                  </label>
-                </div>
-              </div>
             </div>
 
             <div class="flex space-x-2 pt-4 border-t">
@@ -538,7 +520,7 @@ const showToast = (message) => {
         </li>
         <li class="flex items-start">
           <span class="mr-2">•</span>
-          <span><strong>普通认证：</strong>完成基础身份信息认证的用户，可设置提币限额</span>
+          <span><strong>初级认证：</strong>完成基础身份信息认证的用户，可设置提币限额</span>
         </li>
         <li class="flex items-start">
           <span class="mr-2">•</span>
