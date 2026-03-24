@@ -423,12 +423,12 @@ form.value.files = Object.fromEntries([
                 class="mt-3 block h-[152px] cursor-pointer rounded-2xl border border-dashed border-white/25 bg-white/[0.04] p-5"
               >
                 <div class="flex flex-col items-center justify-center gap-3 text-center">
-                  <div class="grid h-12 w-12 place-items-center rounded-2xl bg-white/10">
+                  <!-- <div class="grid h-12 w-12 place-items-center rounded-2xl bg-white/10">
                     <svg viewBox="0 0 24 24" class="h-6 w-6 text-white/85" fill="none">
                       <path d="M12 16V4M12 12l4-4m-4 4L8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
                       <path d="M4 13.5V18a2 2 0 002 2h12a2 2 0 002-2v-4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
                     </svg>
-                  </div>
+                  </div> -->
                   <div>
                     <div class="text-sm font-semibold text-white">上传{{ getDocLabel(docType) }}</div>
                     <div class="mt-1 text-xs text-white/55">仅支持图片（JPG / PNG）</div>
@@ -471,12 +471,12 @@ form.value.files = Object.fromEntries([
                 class="mt-3 block h-[152px] cursor-pointer rounded-2xl border border-dashed border-white/25 bg-white/[0.04] p-5"
               >
                 <div class="flex flex-col items-center justify-center gap-3 text-center">
-                  <div class="grid h-12 w-12 place-items-center rounded-2xl bg-white/10">
+                  <!-- <div class="grid h-12 w-12 place-items-center rounded-2xl bg-white/10">
                     <svg viewBox="0 0 24 24" class="h-6 w-6 text-white/85" fill="none">
                       <path d="M12 16V4M12 12l4-4m-4 4L8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
                       <path d="M4 13.5V18a2 2 0 002 2h12a2 2 0 002-2v-4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
                     </svg>
-                  </div>
+                  </div> -->
                   <div>
                     <div class="text-sm font-semibold text-white">上传{{ getDocLabel(docType) }}</div>
                     <div class="mt-1 text-xs text-white/55">点击选择文件，支持 JPG / PNG / PDF</div>
