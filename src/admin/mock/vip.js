@@ -1,4 +1,4 @@
-import { VIP_LEVEL_STATUS } from '../constants/vip'
+import { VIP_LEVEL_STATUS } from '../../constants/vip'
 
 export const vipLevels = [
   {

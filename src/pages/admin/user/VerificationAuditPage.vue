@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch, reactive } from 'vue'
-import { getVerificationAudits, verificationAuditList } from '../../../mock/verification'
+import { getVerificationAudits, verificationAuditList } from '../../../admin/mock/verification'
 import { 
   VERIFICATION_LEVEL_OPTIONS, 
   VERIFICATION_STATUS, 

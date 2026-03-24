@@ -6,7 +6,7 @@ import {
 	orderStatusMeta,
 	COMMON_FILTER_ALL
 } from '../../../constants/liquidityLocked'
-import { createLockedOrdersMock } from '../../../mock/liquidityLocked'
+import { createLockedOrdersMock } from '../../../admin/mock/liquidityLocked'
 
 const orders = ref(createLockedOrdersMock())
 const search = ref('')

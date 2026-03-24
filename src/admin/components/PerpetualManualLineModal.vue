@@ -1,6 +1,6 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
-import { PERP_CONTROL_OFFSET_DIRECTION } from '../constants/perpetualControl'
+import { PERP_CONTROL_OFFSET_DIRECTION } from '../../constants/perpetualControl'
 
 defineOptions({ name: 'PerpetualManualLineModal' })
 

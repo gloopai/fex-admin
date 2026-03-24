@@ -1,7 +1,7 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
 import { COMMON_FILTER_ALL, DELIVERY_STATUS } from '../../../constants/delivery'
-import { createDeliveryTemplatesMock } from '../../../mock/delivery'
+import { createDeliveryTemplatesMock } from '../../../admin/mock/delivery'
 
 const statusTab = ref(COMMON_FILTER_ALL)
 const search = ref('')

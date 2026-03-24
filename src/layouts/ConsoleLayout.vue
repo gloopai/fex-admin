@@ -1,8 +1,8 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import AppSidebar from '../components/AppSidebar.vue'
-import AppHeader from '../components/AppHeader.vue'
+import AppSidebar from '../admin/components/AppSidebar.vue'
+import AppHeader from '../admin/components/AppHeader.vue'
 
 const route = useRoute()
 const mobileMenuOpen = ref(false)

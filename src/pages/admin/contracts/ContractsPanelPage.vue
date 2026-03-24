@@ -1,11 +1,11 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { deliveryContractsData, deliveryMarketOverview } from '../../../mock/deliveryReport'
-import { createPerpetualControlContractsMock } from '../../../mock/perpetualControl'
+import { deliveryContractsData, deliveryMarketOverview } from '../../../admin/mock/deliveryReport'
+import { createPerpetualControlContractsMock } from '../../../admin/mock/perpetualControl'
 import { PERP_CONTROL_OFFSET_DIRECTION } from '../../../constants/perpetualControl'
-import PerpetualManualLineModal from '../../../components/PerpetualManualLineModal.vue'
-import HarvestControlPanel from '../../../components/HarvestControlPanel.vue'
+import PerpetualManualLineModal from '../../../admin/components/PerpetualManualLineModal.vue'
+import HarvestControlPanel from '../../../admin/components/HarvestControlPanel.vue'
 
 const router = useRouter()
 

@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { ASSET_ADDRESS_LOG_STATUS, ASSET_ADDRESS_LOG_TYPE, ASSET_COMMON_FILTER_ALL } from '../../../constants/assets'
-import { createAssetsAddressLogsMock } from '../../../mock/assets'
+import { createAssetsAddressLogsMock } from '../../../admin/mock/assets'
 
 const typeTab = ref(ASSET_COMMON_FILTER_ALL)
 const coinFilter = ref(ASSET_COMMON_FILTER_ALL)

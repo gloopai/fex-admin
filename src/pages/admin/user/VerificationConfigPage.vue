@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-import { verificationConfig } from '../../../mock/verification'
+import { verificationConfig } from '../../../admin/mock/verification'
 import { VERIFICATION_LEVEL, VERIFICATION_DOC_TYPE_OPTIONS } from '../../../constants/verification'
 
 // 配置数据

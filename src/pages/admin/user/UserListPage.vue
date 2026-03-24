@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, reactive, watch } from 'vue'
-import UserCard from '../../../components/UserCard.vue'
-import { getUsers, usersList } from '../../../mock/user'
+import UserCard from '../../../admin/components/UserCard.vue'
+import { getUsers, usersList } from '../../../admin/mock/user'
 import { USER_STATUS, USER_ROLE, USER_KYC_STATUS } from '../../../constants/user'
 
 // 搜索关键词

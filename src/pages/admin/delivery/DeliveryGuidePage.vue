@@ -9,7 +9,7 @@ import {
   deliveryOverview,
   deliveryScenarios,
   deliveryTermSections
-} from '../../../mock/deliveryGuide'
+} from '../../../admin/mock/deliveryGuide'
 
 const route = useRoute()
 const router = useRouter()

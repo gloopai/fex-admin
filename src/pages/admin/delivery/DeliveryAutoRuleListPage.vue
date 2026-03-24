@@ -9,8 +9,8 @@ import {
 import {
   createDeliveryAutoRulesMock,
   createRuleStatisticsMock
-} from '../../../mock/deliveryControl'
-import DeliveryRuleModal from '../../../components/DeliveryRuleModal.vue'
+} from '../../../admin/mock/deliveryControl'
+import DeliveryRuleModal from '../../../admin/components/DeliveryRuleModal.vue'
 
 const rules = ref(createDeliveryAutoRulesMock())
 const statistics = ref(createRuleStatisticsMock())

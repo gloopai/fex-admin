@@ -13,6 +13,10 @@ const routes = [
     component: HomeEntryPage
   },
   {
+    path: '/:legacyBase(users|contracts|perpetual|delivery|assets|system|liquidity|lending|ai-quant|spot|agent|referral)/:legacyRest(.*)*',
+    redirect: (to) => `/admin/${to.params.legacyBase}${to.params.legacyRest ? `/${to.params.legacyRest}` : ''}`
+  },
+  {
     path: '/admin',
     component: ConsoleLayout,
     children: [...consoleRoutes, ...legacyRoutes]

@@ -450,7 +450,7 @@ import {
 	adjustmentTypeMeta,
 	SUPPORTED_CURRENCIES
 } from '../../../constants/aiQuant'
-import { createYieldAdjustmentsMock, createAiQuantProductsMock } from '../../../mock/aiQuant'
+import { createYieldAdjustmentsMock, createAiQuantProductsMock } from '../../../admin/mock/aiQuant'
 
 const route = useRoute()
 const adjustments = ref(createYieldAdjustmentsMock())

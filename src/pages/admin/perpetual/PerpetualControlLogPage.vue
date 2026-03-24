@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, onMounted, watch } from 'vue'
-import { createPerpetualControlLogsMock } from '../../../mock/perpetualControl'
+import { createPerpetualControlLogsMock } from '../../../admin/mock/perpetualControl'
 
 const contractFilter = ref('all')
 const actionFilter = ref('all')

@@ -1,4 +1,4 @@
-import { ADJUSTMENT_STATUS, ADJUSTMENT_TYPE, ALERT_LEVEL, ORDER_STATUS, PRODUCT_STATUS, PURCHASE_LIMIT_TYPE } from '../constants/liquidityLocked'
+import { ADJUSTMENT_STATUS, ADJUSTMENT_TYPE, ALERT_LEVEL, ORDER_STATUS, PRODUCT_STATUS, PURCHASE_LIMIT_TYPE } from '../../constants/liquidityLocked'
 
 const clone = (v) => JSON.parse(JSON.stringify(v))
 

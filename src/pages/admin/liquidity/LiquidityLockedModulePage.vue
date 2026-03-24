@@ -1,7 +1,7 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import MfaVerificationModal from '../../../components/MfaVerificationModal.vue'
+import MfaVerificationModal from '../../../admin/components/MfaVerificationModal.vue'
 import {
   ADJUSTMENT_STATUS,
   ADJUSTMENT_TYPE,
@@ -24,7 +24,7 @@ import {
   createLockedOrdersMock,
   createLockedProductsMock,
   createLockedRulesMock
-} from '../../../mock/liquidityLocked'
+} from '../../../admin/mock/liquidityLocked'
 
 const route = useRoute()
 

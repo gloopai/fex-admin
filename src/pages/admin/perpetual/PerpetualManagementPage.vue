@@ -1,7 +1,7 @@
 <script setup>
 import { computed, reactive, ref, watch, onMounted } from 'vue'
-import ControlConfigModal from '../../../components/ControlConfigModal.vue'
-import CurrencyTypeSelect from '../../../components/CurrencyTypeSelect.vue'
+import ControlConfigModal from '../../../admin/components/ControlConfigModal.vue'
+import CurrencyTypeSelect from '../../../admin/components/CurrencyTypeSelect.vue'
 import { ASSET_CURRENCY_TYPE } from '../../../constants/assets'
 import {
   PERPETUAL_COMMON_FILTER_ALL,
@@ -15,9 +15,9 @@ import {
   createPerpetualTemplatesMock,
   perpetualLeverageLevels,
   perpetualProductStatusMeta
-} from '../../../mock/perpetual'
-import { createAssetsCoinsMock } from '../../../mock/assets'
-import { symbolApi } from '../../../mock/spot'
+} from '../../../admin/mock/perpetual'
+import { createAssetsCoinsMock } from '../../../admin/mock/assets'
+import { symbolApi } from '../../../admin/mock/spot'
 
 const statusTab = ref(PERPETUAL_COMMON_FILTER_ALL)
 const searchDraft = ref('')

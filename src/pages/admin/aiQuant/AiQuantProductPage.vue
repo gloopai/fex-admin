@@ -413,7 +413,7 @@ import {
 	OPERATION_MODE,
 	VIP_LEVEL
 } from '../../../constants/aiQuant'
-import { createAiQuantProductsMock } from '../../../mock/aiQuant'
+import { createAiQuantProductsMock } from '../../../admin/mock/aiQuant'
 
 const router = useRouter()
 

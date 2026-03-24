@@ -888,7 +888,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { mockProducts } from '../../../mock/cryptoLending'
+import { mockProducts } from '../../../admin/mock/cryptoLending'
 import {
   PRODUCT_STATUS_LABELS,
   INTEREST_RATE_TYPE_LABELS

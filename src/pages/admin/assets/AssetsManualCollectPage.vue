@@ -1,8 +1,8 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
-import MfaVerificationModal from '../../../components/MfaVerificationModal.vue'
+import MfaVerificationModal from '../../../admin/components/MfaVerificationModal.vue'
 import { ASSET_WALLET_STATUS } from '../../../constants/assets'
-import { createManualCollectConfigMock } from '../../../mock/assets'
+import { createManualCollectConfigMock } from '../../../admin/mock/assets'
 
 const selectedCoin = ref('USDT')
 const selectedNetwork = ref('Ethereum (ERC20)')

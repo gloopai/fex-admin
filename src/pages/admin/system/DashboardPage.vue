@@ -1,8 +1,8 @@
 <script setup>
 import { storeToRefs } from 'pinia'
 import { useConsoleStore } from '../../../stores/console'
-import KpiCard from '../../../components/KpiCard.vue'
-import OrderTable from '../../../components/OrderTable.vue'
+import KpiCard from '../../../admin/components/KpiCard.vue'
+import OrderTable from '../../../admin/components/OrderTable.vue'
 
 const store = useConsoleStore()
 const { summary, orders } = storeToRefs(store)

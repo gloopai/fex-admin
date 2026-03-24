@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch, reactive } from 'vue'
-import { getCreditScoreAudits, creditScoreAuditList } from '../../../mock/creditScore'
+import { getCreditScoreAudits, creditScoreAuditList } from '../../../admin/mock/creditScore'
 import { 
   CREDIT_SCORE_CHANGE_TYPE,
   CREDIT_SCORE_CHANGE_TYPE_OPTIONS,

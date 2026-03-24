@@ -8,7 +8,7 @@ import {
 	adjustmentTypeMeta,
 	COMMON_FILTER_ALL
 } from '../../../constants/liquidityLocked'
-import { createLockedAdjustmentsMock, createLockedOrdersMock } from '../../../mock/liquidityLocked'
+import { createLockedAdjustmentsMock, createLockedOrdersMock } from '../../../admin/mock/liquidityLocked'
 
 const adjustments = ref(createLockedAdjustmentsMock())
 const orders = ref(createLockedOrdersMock())
@@ -189,7 +189,7 @@ import {
 	adjustmentTypeMeta,
 	COMMON_FILTER_ALL
 } from '../../../constants/liquidityLocked'
-import { createLockedAdjustmentsMock, createLockedOrdersMock } from '../../../mock/liquidityLocked'
+import { createLockedAdjustmentsMock, createLockedOrdersMock } from '../../../admin/mock/liquidityLocked'
 
 const adjustments = ref(createLockedAdjustmentsMock())
 const orders = ref(createLockedOrdersMock())

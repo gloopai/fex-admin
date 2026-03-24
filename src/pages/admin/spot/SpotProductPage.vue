@@ -417,7 +417,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { mockSpotProducts, symbolApi } from '../../../mock/spot'
+import { mockSpotProducts, symbolApi } from '../../../admin/mock/spot'
 
 const products = ref([])
 const showModal = ref(false)

@@ -1,4 +1,4 @@
-import { CREDIT_SCORE_CHANGE_TYPE, CREDIT_SCORE_CONFIG_KEYS, CREDIT_SCORE_AUDIT_STATUS } from '../constants/creditScore'
+import { CREDIT_SCORE_CHANGE_TYPE, CREDIT_SCORE_CONFIG_KEYS, CREDIT_SCORE_AUDIT_STATUS } from '../../constants/creditScore'
 
 // 信用分配置
 export const creditScoreConfig = {

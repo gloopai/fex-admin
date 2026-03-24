@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { deliveryContractsData } from '../../../mock/deliveryReport'
-import HarvestControlPanel from '../../../components/HarvestControlPanel.vue'
+import { deliveryContractsData } from '../../../admin/mock/deliveryReport'
+import HarvestControlPanel from '../../../admin/components/HarvestControlPanel.vue'
 
 const clamp = (n, min, max) => Math.min(max, Math.max(min, n))
 

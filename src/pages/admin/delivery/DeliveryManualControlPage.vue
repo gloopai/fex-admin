@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { deliveryContractsData, deliveryWhalesList } from '../../../mock/deliveryReport'
+import { deliveryContractsData, deliveryWhalesList } from '../../../admin/mock/deliveryReport'
 
 const formatCompactNumber = (n, digits) => {
   const str = Number(n).toFixed(digits)

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { createRuleHitHistoryMock } from '../../../mock/deliveryControl'
+import { createRuleHitHistoryMock } from '../../../admin/mock/deliveryControl'
 
 const hitHistory = ref(createRuleHitHistoryMock())
 const keyword = ref('')

@@ -14,7 +14,7 @@ import {
   getUserTagRules,
   previewUserTagRule,
   updateUserTagRuleItem
-} from '../../../mock/user'
+} from '../../../admin/mock/user'
 
 const keyword = ref('')
 const statusFilter = ref('all')

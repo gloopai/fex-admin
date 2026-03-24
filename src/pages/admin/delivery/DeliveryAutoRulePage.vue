@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, nextTick } from 'vue'
-import MfaVerificationModal from '../../../components/MfaVerificationModal.vue'
+import MfaVerificationModal from '../../../admin/components/MfaVerificationModal.vue'
 import {
   DELIVERY_RULE_STATUS,
   DELIVERY_RULE_PRIORITY,
@@ -11,8 +11,8 @@ import {
   createDeliveryAutoRulesMock,
   createRuleHitHistoryMock,
   createRuleStatisticsMock
-} from '../../../mock/deliveryControl'
-import DeliveryRuleModal from '../../../components/DeliveryRuleModal.vue'
+} from '../../../admin/mock/deliveryControl'
+import DeliveryRuleModal from '../../../admin/components/DeliveryRuleModal.vue'
 
 const rules = ref(createDeliveryAutoRulesMock())
 const hitHistory = ref(createRuleHitHistoryMock())

@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { symbolApi } from '../../../mock/spot'
-import { createAssetsCoinsMock } from '../../../mock/assets'
+import { symbolApi } from '../../../admin/mock/spot'
+import { createAssetsCoinsMock } from '../../../admin/mock/assets'
 
 const loading = ref(false)
 const symbols = ref([])

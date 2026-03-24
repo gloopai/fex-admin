@@ -479,7 +479,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { mockSpotOrders } from '../../../mock/spot'
+import { mockSpotOrders } from '../../../admin/mock/spot'
 
 const orders = ref([])
 const currentPage = ref(1)

@@ -880,7 +880,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { mockLiquidations } from '../../../mock/cryptoLending'
+import { mockLiquidations } from '../../../admin/mock/cryptoLending'
 import {
   LIQUIDATION_STATUS_LABELS,
   LIQUIDATION_TRIGGER_LABELS

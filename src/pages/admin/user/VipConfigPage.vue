@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { vipLevels } from '../../../mock/vip'
+import { vipLevels } from '../../../admin/mock/vip'
 import { VIP_LEVEL_STATUS } from '../../../constants/vip'
 
 // 编辑模态框状态

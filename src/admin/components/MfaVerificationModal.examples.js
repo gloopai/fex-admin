@@ -11,7 +11,7 @@
 /*
 <script setup>
 import { ref } from 'vue'
-import MfaVerificationModal from '@/components/MfaVerificationModal.vue'
+import MfaVerificationModal from '@/admin/components/MfaVerificationModal.vue'
 
 const showMfaModal = ref(false)
 const mfaLoading = ref(false)
@@ -63,7 +63,7 @@ const handleMfaVerify = async (code) => {
 /*
 <script setup>
 import { ref, reactive } from 'vue'
-import MfaVerificationModal from '@/components/MfaVerificationModal.vue'
+import MfaVerificationModal from '@/admin/components/MfaVerificationModal.vue'
 
 const showModal = ref(false)
 const showMfaModal = ref(false)
@@ -132,7 +132,7 @@ const handleMfaVerify = async (code) => {
 /*
 <script setup>
 import { ref } from 'vue'
-import MfaVerificationModal from '@/components/MfaVerificationModal.vue'
+import MfaVerificationModal from '@/admin/components/MfaVerificationModal.vue'
 
 const selectedItems = ref([])
 const showMfaModal = ref(false)
@@ -191,7 +191,7 @@ const handleMfaVerify = async (code) => {
 /*
 <script setup>
 import { ref } from 'vue'
-import MfaVerificationModal from '@/components/MfaVerificationModal.vue'
+import MfaVerificationModal from '@/admin/components/MfaVerificationModal.vue'
 
 const withdrawalRequest = ref(null)
 const showMfaModal = ref(false)
@@ -253,7 +253,7 @@ const handleMfaVerify = async (code) => {
 /*
 <script setup>
 import { ref, reactive } from 'vue'
-import MfaVerificationModal from '@/components/MfaVerificationModal.vue'
+import MfaVerificationModal from '@/admin/components/MfaVerificationModal.vue'
 
 const systemConfig = reactive({
   minDeposit: 0,
@@ -345,7 +345,7 @@ const cancelUpdate = () => {
 /*
 <script setup>
 import { ref, reactive } from 'vue'
-import MfaVerificationModal from '@/components/MfaVerificationModal.vue'
+import MfaVerificationModal from '@/admin/components/MfaVerificationModal.vue'
 
 const products = ref([])
 const showProductModal = ref(false)

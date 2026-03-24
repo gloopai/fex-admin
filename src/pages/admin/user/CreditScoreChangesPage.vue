@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch, reactive } from 'vue'
-import { getCreditScoreChanges, creditScoreChanges } from '../../../mock/creditScore'
+import { getCreditScoreChanges, creditScoreChanges } from '../../../admin/mock/creditScore'
 import { CREDIT_SCORE_CHANGE_TYPE, CREDIT_SCORE_CHANGE_TYPE_OPTIONS } from '../../../constants/creditScore'
 
 // 搜索和筛选

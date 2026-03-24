@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { createErrorCode, deleteErrorCode, getErrorCodeLanguages, getErrorCodes, restoreErrorCode, updateErrorCode } from '../../../mock/errorCode'
+import { createErrorCode, deleteErrorCode, getErrorCodeLanguages, getErrorCodes, restoreErrorCode, updateErrorCode } from '../../../admin/mock/errorCode'
 
 const loading = ref(false)
 const list = ref([])

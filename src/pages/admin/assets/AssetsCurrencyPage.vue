@@ -1,9 +1,9 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
-import CurrencyTypeSelect from '../../../components/CurrencyTypeSelect.vue'
-import MfaVerificationModal from '../../../components/MfaVerificationModal.vue'
+import CurrencyTypeSelect from '../../../admin/components/CurrencyTypeSelect.vue'
+import MfaVerificationModal from '../../../admin/components/MfaVerificationModal.vue'
 import { ASSET_COMMON_FILTER_ALL, ASSET_CURRENCY_TYPE, ASSET_MODAL_TAB, ASSET_STATUS } from '../../../constants/assets'
-import { createAssetsCoinsMock } from '../../../mock/assets'
+import { createAssetsCoinsMock } from '../../../admin/mock/assets'
 
 const statusTab = ref(ASSET_COMMON_FILTER_ALL)
 const searchDraft = ref('')

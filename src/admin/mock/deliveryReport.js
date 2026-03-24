@@ -5,11 +5,11 @@ import {
   DELIVERY_CYCLE_TYPE,
   DELIVERY_CONTRACT_STATUS,
   SUGGESTION_PRIORITY
-} from '../constants/deliveryReport'
+} from '../../constants/deliveryReport'
 import { 
   DELIVERY_RULE_ACTION, 
   DELIVERY_RULE_STATUS 
-} from '../constants/deliveryControl'
+} from '../../constants/deliveryControl'
 
 // 市场概览数据
 export const deliveryMarketOverview = {

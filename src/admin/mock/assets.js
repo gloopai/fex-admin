@@ -9,7 +9,7 @@ import {
   EXCHANGE_RATE_SOURCE,
   EXCHANGE_RATE_TYPE,
   FEE_TEMPLATE_TYPE
-} from '../constants/assets'
+} from '../../constants/assets'
 
 const clone = (value) => JSON.parse(JSON.stringify(value))
 

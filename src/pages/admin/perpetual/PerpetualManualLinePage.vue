@@ -1,11 +1,11 @@
 <script setup>
 import { computed, reactive, ref, watch, onBeforeUnmount, onMounted } from 'vue'
-import MfaVerificationModal from '../../../components/MfaVerificationModal.vue'
-import ControlConfigModal from '../../../components/ControlConfigModal.vue'
-import PerpetualManualLineModal from '../../../components/PerpetualManualLineModal.vue'
+import MfaVerificationModal from '../../../admin/components/MfaVerificationModal.vue'
+import ControlConfigModal from '../../../admin/components/ControlConfigModal.vue'
+import PerpetualManualLineModal from '../../../admin/components/PerpetualManualLineModal.vue'
 import { PERP_CONTROL_CONTRACT_STATUS, PERP_CONTROL_OFFSET_DIRECTION } from '../../../constants/perpetualControl'
-import { createPerpetualControlContractsMock } from '../../../mock/perpetualControl'
-import { createDefaultPerpetualControlConfig } from '../../../mock/perpetual'
+import { createPerpetualControlContractsMock } from '../../../admin/mock/perpetualControl'
+import { createDefaultPerpetualControlConfig } from '../../../admin/mock/perpetual'
 
 const clone = (value) => JSON.parse(JSON.stringify(value))
 

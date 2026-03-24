@@ -8,7 +8,7 @@ import {
   DELIVERY_RULE_TIME_PERIOD,
   USER_RISK_LEVEL,
   PROFIT_CONTROL_STRATEGY,
-} from "../constants/deliveryControl";
+} from "../../constants/deliveryControl";
 
 const props = defineProps({
   open: {

@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-import { createRuleStatisticsMock } from '../../../mock/deliveryControl'
+import { createRuleStatisticsMock } from '../../../admin/mock/deliveryControl'
 
 const statistics = ref(createRuleStatisticsMock())
 </script>

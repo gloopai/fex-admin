@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { ASSET_COLLECT_MODE, ASSET_COLLECT_RECORD_STATUS, ASSET_COMMON_FILTER_ALL } from '../../../constants/assets'
-import { createAssetsCollectRecordsMock } from '../../../mock/assets'
+import { createAssetsCollectRecordsMock } from '../../../admin/mock/assets'
 
 const statusTab = ref(ASSET_COMMON_FILTER_ALL)
 const statusFilter = ref(ASSET_COMMON_FILTER_ALL)

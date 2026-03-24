@@ -18,7 +18,7 @@ import {
   positionControls,
   positionTerms,
   triggerTerms
-} from '../../../mock/guide'
+} from '../../../admin/mock/guide'
 
 const route = useRoute()
 const router = useRouter()

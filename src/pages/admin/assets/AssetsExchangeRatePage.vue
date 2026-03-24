@@ -1,12 +1,12 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
-import MfaVerificationModal from '../../../components/MfaVerificationModal.vue'
+import MfaVerificationModal from '../../../admin/components/MfaVerificationModal.vue'
 import {
   EXCHANGE_RATE_SOURCE,
   EXCHANGE_RATE_TYPE
 } from '../../../constants/assets'
-import { createExchangeRatePairsMock, createFeeTemplatesMock } from '../../../mock/assets'
-import { getActiveVipLevels } from '../../../mock/vip'
+import { createExchangeRatePairsMock, createFeeTemplatesMock } from '../../../admin/mock/assets'
+import { getActiveVipLevels } from '../../../admin/mock/vip'
 
 const statusTab = ref('all')
 const search = ref('')

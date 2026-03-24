@@ -821,7 +821,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { mockRepayments } from '../../../mock/cryptoLending'
+import { mockRepayments } from '../../../admin/mock/cryptoLending'
 import {
   REPAYMENT_STATUS_LABELS,
   REPAYMENT_TYPE_LABELS

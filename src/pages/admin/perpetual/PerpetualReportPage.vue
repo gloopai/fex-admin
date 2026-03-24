@@ -18,10 +18,10 @@ import {
   volumeTrendData,
   riskAlerts,
   actionSuggestions
-} from '../../../mock/perpetualReport'
+} from '../../../admin/mock/perpetualReport'
 import {
   createPerpetualControlContractsMock,
-} from '../../../mock/perpetualControl'
+} from '../../../admin/mock/perpetualControl'
 
 // 时间范围
 const timeRange = ref(REPORT_TIME_RANGE.TODAY)

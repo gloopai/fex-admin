@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, reactive, watch } from 'vue'
-import { agentApi } from '../../../mock/agent'
+import { agentApi } from '../../../admin/mock/agent'
 import { AGENT_APPLICATION_STATUS, AGENT_APPLICATION_STATUS_OPTIONS, AGENT_LEVEL, AGENT_LEVEL_OPTIONS } from '../../../constants/agent'
 
 // 搜索和筛选

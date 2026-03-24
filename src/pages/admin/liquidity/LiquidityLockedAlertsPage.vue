@@ -6,7 +6,7 @@ import {
 	alertLevelMeta,
 	COMMON_FILTER_ALL
 } from '../../../constants/liquidityLocked'
-import { createLockedAlertsMock } from '../../../mock/liquidityLocked'
+import { createLockedAlertsMock } from '../../../admin/mock/liquidityLocked'
 
 const alerts = ref(createLockedAlertsMock())
 const search = ref('')

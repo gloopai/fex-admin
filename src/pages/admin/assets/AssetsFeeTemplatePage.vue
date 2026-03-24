@@ -1,11 +1,11 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
-import MfaVerificationModal from '../../../components/MfaVerificationModal.vue'
+import MfaVerificationModal from '../../../admin/components/MfaVerificationModal.vue'
 import {
   FEE_TEMPLATE_TYPE
 } from '../../../constants/assets'
-import { createFeeTemplatesMock } from '../../../mock/assets'
-import { getActiveVipLevels } from '../../../mock/vip'
+import { createFeeTemplatesMock } from '../../../admin/mock/assets'
+import { getActiveVipLevels } from '../../../admin/mock/vip'
 
 const statusTab = ref('all')
 const search = ref('')

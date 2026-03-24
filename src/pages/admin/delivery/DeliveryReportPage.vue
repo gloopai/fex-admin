@@ -19,7 +19,7 @@ import {
   deliveryWhalesList,
   deliveryAutoRuleStats,
   deliveryAutoRuleEffectComparison
-} from '../../../mock/deliveryReport'
+} from '../../../admin/mock/deliveryReport'
 
 // 时间范围
 const timeRange = ref(DELIVERY_REPORT_TIME_RANGE.TODAY)

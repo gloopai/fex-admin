@@ -8,7 +8,7 @@ import {
 	COMMON_FILTER_ALL,
 	SUPPORTED_CURRENCIES
 } from '../../../constants/liquidityLocked'
-import { createLockedProductsMock } from '../../../mock/liquidityLocked'
+import { createLockedProductsMock } from '../../../admin/mock/liquidityLocked'
 
 const products = ref(createLockedProductsMock())
 const search = ref('')

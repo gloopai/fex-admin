@@ -2,10 +2,10 @@
 import { computed, reactive, ref, watch, onMounted } from 'vue'
 import { COMMON_FILTER_ALL, DELIVERY_CONTRACT_TAB, DELIVERY_STATUS } from '../../../constants/delivery'
 import { ASSET_CURRENCY_TYPE } from '../../../constants/assets'
-import CurrencyTypeSelect from '../../../components/CurrencyTypeSelect.vue'
-import { createDeliveryProductsMock, createDeliveryTemplatesMock } from '../../../mock/delivery'
-import { createAssetsCoinsMock } from '../../../mock/assets'
-import { symbolApi } from '../../../mock/spot'
+import CurrencyTypeSelect from '../../../admin/components/CurrencyTypeSelect.vue'
+import { createDeliveryProductsMock, createDeliveryTemplatesMock } from '../../../admin/mock/delivery'
+import { createAssetsCoinsMock } from '../../../admin/mock/assets'
+import { symbolApi } from '../../../admin/mock/spot'
 
 const statusTab = ref(COMMON_FILTER_ALL)
 const searchDraft = ref('')

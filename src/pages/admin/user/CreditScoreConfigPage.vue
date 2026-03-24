@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { getAllCreditScoreConfig, updateCreditScoreConfigs } from '../../../mock/creditScore'
+import { getAllCreditScoreConfig, updateCreditScoreConfigs } from '../../../admin/mock/creditScore'
 import { CREDIT_SCORE_CONFIG_KEYS, CREDIT_SCORE_CHANGE_TYPE, CREDIT_SCORE_CHANGE_TYPE_OPTIONS } from '../../../constants/creditScore'
 
 // 当前激活的标签

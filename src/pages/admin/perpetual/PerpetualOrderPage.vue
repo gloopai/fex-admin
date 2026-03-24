@@ -600,7 +600,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { createPerpetualOrdersMock, PERPETUAL_ORDER_STATUS, PERPETUAL_ORDER_SIDE, perpetualOrderStatusMeta, perpetualOrderSideMeta } from '../../../mock/perpetualOrder'
+import { createPerpetualOrdersMock, PERPETUAL_ORDER_STATUS, PERPETUAL_ORDER_SIDE, perpetualOrderStatusMeta, perpetualOrderSideMeta } from '../../../admin/mock/perpetualOrder'
 
 const orders = ref([])
 const currentPage = ref(1)

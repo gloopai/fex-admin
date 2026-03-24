@@ -655,7 +655,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { mockOrders } from '../../../mock/cryptoLending'
+import { mockOrders } from '../../../admin/mock/cryptoLending'
 import { LOAN_ORDER_STATUS_LABELS } from '../../../constants/cryptoLending'
 
 const orders = ref([])

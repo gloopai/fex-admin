@@ -8,7 +8,7 @@ import {
   createPerpetualProductsMock,
   createPerpetualTemplatesMock,
   perpetualLeverageLevels
-} from '../../../mock/perpetual'
+} from '../../../admin/mock/perpetual'
 
 const statusTab = ref(PERPETUAL_COMMON_FILTER_ALL)
 const search = ref('')

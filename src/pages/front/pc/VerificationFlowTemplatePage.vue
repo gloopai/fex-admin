@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { verificationConfig } from '../../../mock/verification'
+import { verificationConfig } from '../../../admin/mock/verification'
 import { VERIFICATION_DOC_TYPE, VERIFICATION_DOC_TYPE_OPTIONS, VERIFICATION_LEVEL } from '../../../constants/verification'
 
 const basicStatus = ref('unsubmitted') // unsubmitted | reviewing | approved | rejected

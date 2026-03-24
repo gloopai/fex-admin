@@ -1,4 +1,4 @@
-import { AGENT_STATUS, AGENT_LEVEL, AGENT_APPLICATION_STATUS } from '../constants/agent'
+import { AGENT_STATUS, AGENT_LEVEL, AGENT_APPLICATION_STATUS } from '../../constants/agent'
 
 // 模拟代理列表数据
 export const mockAgentList = [

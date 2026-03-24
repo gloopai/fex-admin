@@ -7,7 +7,7 @@ import {
   deliveryOrderStatusMeta,
   deliveryOrderResultMeta,
   deliveryOrderDirectionMeta
-} from '../../../mock/deliveryOrder'
+} from '../../../admin/mock/deliveryOrder'
 
 const orders = ref([])
 const currentPage = ref(1)

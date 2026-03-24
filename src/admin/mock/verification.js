@@ -3,7 +3,7 @@ import {
   VERIFICATION_STATUS, 
   VERIFICATION_DOC_TYPE,
   LOG_ACTION_TYPE
-} from '../constants/verification'
+} from '../../constants/verification'
 
 // 认证权限配置
 export const verificationConfig = {
