@@ -22,7 +22,6 @@ const emit = defineEmits(['view-detail', 'prev-page', 'next-page'])
           <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">提交材料</th>
           <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">状态</th>
           <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">提交时间</th>
-          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">审核时间</th>
           <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">操作</th>
         </tr>
       </thead>
@@ -55,7 +54,6 @@ const emit = defineEmits(['view-detail', 'prev-page', 'next-page'])
             <span :class="statusConfig[audit.status].class" class="rounded-full px-2 py-1 text-xs font-semibold">{{ statusConfig[audit.status].text }}</span>
           </td>
           <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{{ formatDate(audit.submitTime) }}</td>
-          <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{{ formatDate(audit.auditTime) }}</td>
           <td class="whitespace-nowrap px-6 py-4 text-sm font-medium">
             <button class="text-blue-600 hover:text-blue-900" @click="emit('view-detail', audit)">查看详情</button>
           </td>

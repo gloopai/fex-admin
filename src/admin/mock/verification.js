@@ -77,6 +77,28 @@ const generateVerificationAudit = (id, overrides = {}) => ({
   ...overrides
 })
 
+const buildAdvancedDocuments = (seed = 0) => {
+  const now = Date.now()
+  const baseTs = now - (seed + 1) * 60 * 60 * 1000
+  return [
+    {
+      type: VERIFICATION_DOC_TYPE.ID_CARD,
+      url: '/mock/id_card_front.jpg',
+      uploadTime: new Date(baseTs).toISOString()
+    },
+    {
+      type: VERIFICATION_DOC_TYPE.ID_CARD_HOLD,
+      url: '/mock/id_card_hold.jpg',
+      uploadTime: new Date(baseTs + 5 * 60 * 1000).toISOString()
+    },
+    {
+      type: VERIFICATION_DOC_TYPE.INCOME_PROOF,
+      url: '/mock/income_proof.pdf',
+      uploadTime: new Date(baseTs + 10 * 60 * 1000).toISOString()
+    }
+  ]
+}
+
 export const verificationAuditList = [
   generateVerificationAudit(1, {
     username: 'alice_wang',
@@ -90,13 +112,7 @@ export const verificationAuditList = [
       address: '北京市海淀区中关村大街1号',
       occupation: '产品经理'
     },
-    documents: [
-      {
-        type: VERIFICATION_DOC_TYPE.ID_CARD,
-        url: '/mock/id_card_front.jpg',
-        uploadTime: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-      }
-    ]
+    documents: []
   }),
   generateVerificationAudit(2, {
     username: 'bob_li',
@@ -111,18 +127,7 @@ export const verificationAuditList = [
       address: '上海市浦东新区陆家嘴环路1000号',
       occupation: '投资顾问'
     },
-    documents: [
-      {
-        type: VERIFICATION_DOC_TYPE.ID_CARD,
-        url: '/mock/id_card_front.jpg',
-        uploadTime: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString()
-      },
-      {
-        type: VERIFICATION_DOC_TYPE.ID_CARD_HOLD,
-        url: '/mock/id_card_hold.jpg',
-        uploadTime: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString()
-      }
-    ]
+    documents: buildAdvancedDocuments(2)
   }),
   generateVerificationAudit(3, {
     username: 'carol_zhang',
@@ -140,18 +145,7 @@ export const verificationAuditList = [
       address: '深圳市南山区科技园南区',
       occupation: '企业主'
     },
-    documents: [
-      {
-        type: VERIFICATION_DOC_TYPE.ID_CARD,
-        url: '/mock/id_card_front.jpg',
-        uploadTime: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
-      },
-      {
-        type: VERIFICATION_DOC_TYPE.INCOME_PROOF,
-        url: '/mock/income_proof.pdf',
-        uploadTime: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
-      }
-    ]
+    documents: buildAdvancedDocuments(3)
   }),
   generateVerificationAudit(4, {
     username: 'david_chen',
@@ -169,13 +163,7 @@ export const verificationAuditList = [
       address: '广州市天河区珠江新城',
       occupation: '销售经理'
     },
-    documents: [
-      {
-        type: VERIFICATION_DOC_TYPE.ID_CARD,
-        url: '/mock/id_card_blurry.jpg',
-        uploadTime: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
-      }
-    ]
+    documents: []
   }),
   generateVerificationAudit(5, {
     username: 'emma_liu',
@@ -193,13 +181,7 @@ export const verificationAuditList = [
       address: '杭州市西湖区文一西路',
       occupation: '设计师'
     },
-    documents: [
-      {
-        type: VERIFICATION_DOC_TYPE.ID_CARD,
-        url: '/mock/id_card_front.jpg',
-        uploadTime: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString()
-      }
-    ]
+    documents: []
   })
 ]
 
@@ -226,7 +208,8 @@ for (let i = 6; i <= 50; i++) {
       nationality: '中国',
       address: '某省某市某区某街道',
       occupation: '自由职业'
-    }
+    },
+    documents: applyLevel === VERIFICATION_LEVEL.ADVANCED ? buildAdvancedDocuments(i) : []
   }))
 }
 

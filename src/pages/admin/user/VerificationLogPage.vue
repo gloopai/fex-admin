@@ -162,6 +162,38 @@ const formatDate = (dateString) => {
 const showDetailModal = ref(false)
 const selectedLog = ref(null)
 
+const selectedSiteInfo = computed(() => {
+  if (!selectedLog.value) return null
+  const log = selectedLog.value
+  const details = log.details || {}
+  const docList = Array.isArray(details.documents) ? details.documents : []
+  const imageCount = docList.filter((d) => !String(d.url || '').toLowerCase().endsWith('.pdf')).length
+  const pdfCount = docList.filter((d) => String(d.url || '').toLowerCase().endsWith('.pdf')).length
+  return {
+    uid: log.userId || '-',
+    username: log.username || '-',
+    operator: log.operator || '-',
+    actionTypeText: actionTypeConfig[log.actionType]?.text || log.actionType,
+    beforeLevel: levelConfig[log.beforeLevel]?.text || '-',
+    afterLevel: levelConfig[log.afterLevel]?.text || '-',
+    actionTime: formatDate(log.actionTime),
+    ipAddress: log.ipAddress || '-',
+    description: log.description || '-',
+    auditId: details.auditId || '-',
+    processTime: details.processTime || '-',
+    reason: details.reason || '-',
+    docCount: docList.length,
+    imageCount,
+    pdfCount,
+    country: details.nationality || '-',
+    city: details.city || '-',
+    realName: details.realName || '-',
+    idNumber: details.idNumber || '-',
+    email: details.email || '-',
+    documents: docList
+  }
+})
+
 // Toast提示
 const toast = ref({
   visible: false,
@@ -399,121 +431,105 @@ const showToast = (message) => {
       </div>
     </div>
 
-    <!-- 详情模态框 -->
-    <div v-if="showDetailModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <h3 class="text-lg font-semibold text-gray-900">日志详情</h3>
-          <button @click="closeDetail" class="text-gray-400 hover:text-gray-600">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-          </button>
-        </div>
-
-        <div v-if="selectedLog" class="p-6 space-y-4">
-          <!-- 基本信息 -->
-          <div class="bg-gray-50 rounded-lg p-4 space-y-3">
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-600">操作时间</span>
-              <span class="text-sm font-medium text-gray-900">{{ formatDate(selectedLog.actionTime) }}</span>
-            </div>
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-600">操作类型</span>
-              <span :class="actionTypeConfig[selectedLog.actionType].class" class="px-2 py-1 text-xs font-semibold rounded-full">
-                {{ actionTypeConfig[selectedLog.actionType].text }}
-              </span>
-            </div>
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-600">操作人</span>
-              <span class="text-sm font-medium text-gray-900">{{ selectedLog.operator }}</span>
-            </div>
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-600">IP地址</span>
-              <span class="text-sm font-medium text-gray-900">{{ selectedLog.ipAddress }}</span>
-            </div>
-          </div>
-
-          <!-- 用户信息 -->
-          <div class="bg-gray-50 rounded-lg p-4 space-y-3">
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-600">用户名</span>
-              <span class="text-sm font-medium text-gray-900">{{ selectedLog.username }}</span>
-            </div>
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-600">用户ID</span>
-              <span class="text-sm font-medium text-gray-900">{{ selectedLog.userId }}</span>
-            </div>
-          </div>
-
-          <!-- 等级变更 -->
-          <div v-if="selectedLog.beforeLevel && selectedLog.afterLevel" class="bg-gray-50 rounded-lg p-4">
-            <div class="text-sm text-gray-600 mb-3">等级变更</div>
-            <div class="flex items-center justify-center space-x-4">
-              <div class="text-center">
-                <div class="text-xs text-gray-500 mb-2">变更前</div>
-                <span :class="levelConfig[selectedLog.beforeLevel].class" class="px-3 py-2 text-sm font-semibold rounded-lg">
-                  {{ levelConfig[selectedLog.beforeLevel].text }}
-                </span>
-              </div>
-              <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
-              </svg>
-              <div class="text-center">
-                <div class="text-xs text-gray-500 mb-2">变更后</div>
-                <span :class="levelConfig[selectedLog.afterLevel].class" class="px-3 py-2 text-sm font-semibold rounded-lg">
-                  {{ levelConfig[selectedLog.afterLevel].text }}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <!-- 描述 -->
-          <div class="bg-gray-50 rounded-lg p-4">
-            <div class="text-sm text-gray-600 mb-2">操作描述</div>
-            <div class="text-sm text-gray-900">{{ selectedLog.description }}</div>
-          </div>
-
-          <!-- 详细信息 -->
-          <div v-if="selectedLog.details && Object.keys(selectedLog.details).length > 0" class="bg-gray-50 rounded-lg p-4">
-            <div class="text-sm text-gray-600 mb-3">详细信息</div>
-            <div class="space-y-2">
-              <!-- 配置变更详情 -->
-              <div v-if="selectedLog.details.changes" class="space-y-2">
-                <div 
-                  v-for="(change, index) in selectedLog.details.changes" 
-                  :key="index"
-                  class="bg-white rounded p-3 border border-gray-200"
-                >
-                  <div class="text-xs font-medium text-gray-700 mb-2">{{ change.field }}</div>
-                  <div class="flex items-center space-x-2 text-xs">
-                    <span class="text-gray-500">{{ change.before }}</span>
-                    <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                    </svg>
-                    <span class="text-gray-900 font-medium">{{ change.after }}</span>
-                  </div>
+    <transition name="audit-drawer">
+      <div v-if="showDetailModal && selectedLog && selectedSiteInfo" class="fixed inset-0 z-40 bg-slate-900/35" @click.self="closeDetail">
+        <section class="audit-drawer-panel flex h-[88vh] w-full flex-col overflow-hidden rounded-b-2xl border-b border-slate-200 bg-slate-50 shadow-2xl">
+          <div class="border-b border-slate-200 bg-gradient-to-r from-white to-slate-100 px-5 py-4">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <div class="text-xs font-medium tracking-wide text-slate-500">认证日志详情抽屉</div>
+                <div class="mt-1 text-xl font-semibold text-slate-900">
+                  {{ selectedSiteInfo.username }}（{{ selectedSiteInfo.uid }}）的日志详情
+                </div>
+                <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                  <span class="rounded-full bg-slate-900 px-2.5 py-1 text-white">类型：{{ selectedSiteInfo.actionTypeText }}</span>
+                  <span class="rounded-full bg-white px-2.5 py-1 text-slate-600 ring-1 ring-slate-200">时间：{{ selectedSiteInfo.actionTime }}</span>
+                  <span class="rounded-full bg-white px-2.5 py-1 text-slate-600 ring-1 ring-slate-200">操作人：{{ selectedSiteInfo.operator }}</span>
                 </div>
               </div>
-
-              <!-- 其他详情 -->
-              <div v-else class="text-sm text-gray-700">
-                <pre class="whitespace-pre-wrap">{{ JSON.stringify(selectedLog.details, null, 2) }}</pre>
-              </div>
             </div>
           </div>
 
-          <div class="pt-4">
-            <button 
-              @click="closeDetail"
-              class="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-            >
-              关闭
-            </button>
+          <div class="min-h-0 flex-1 overflow-y-auto p-4">
+            <div class="space-y-4">
+              <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                <section class="rounded-xl border border-slate-200 bg-white p-4">
+                  <div class="text-xs text-slate-500">用户与申请</div>
+                  <div class="mt-3 space-y-2 text-sm">
+                    <div class="flex justify-between"><span class="text-slate-500">用户名</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.username }}</span></div>
+                    <div class="flex justify-between"><span class="text-slate-500">用户ID</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.uid }}</span></div>
+                    <div class="flex justify-between"><span class="text-slate-500">变更前等级</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.beforeLevel }}</span></div>
+                    <div class="flex justify-between"><span class="text-slate-500">变更后等级</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.afterLevel }}</span></div>
+                    <div class="flex justify-between"><span class="text-slate-500">审核ID</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.auditId }}</span></div>
+                  </div>
+                </section>
+
+                <section class="rounded-xl border border-slate-200 bg-white p-4">
+                  <div class="text-xs text-slate-500">站内进度</div>
+                  <div class="mt-3 space-y-2 text-sm">
+                    <div class="flex justify-between"><span class="text-slate-500">日志类型</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.actionTypeText }}</span></div>
+                    <div class="flex justify-between"><span class="text-slate-500">总材料数</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.docCount }}</span></div>
+                    <div class="flex justify-between"><span class="text-slate-500">图片数</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.imageCount }}</span></div>
+                    <div class="flex justify-between"><span class="text-slate-500">PDF 数</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.pdfCount }}</span></div>
+                    <div class="flex justify-between"><span class="text-slate-500">处理时长</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.processTime }}</span></div>
+                  </div>
+                </section>
+
+                <section class="rounded-xl border border-slate-200 bg-white p-4">
+                  <div class="text-xs text-slate-500">审核记录</div>
+                  <div class="mt-3 space-y-2 text-sm">
+                    <div class="flex justify-between"><span class="text-slate-500">操作时间</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.actionTime }}</span></div>
+                    <div class="flex justify-between"><span class="text-slate-500">操作人</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.operator }}</span></div>
+                    <div class="flex justify-between"><span class="text-slate-500">IP</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.ipAddress }}</span></div>
+                  </div>
+                  <div v-if="selectedSiteInfo.reason !== '-'" class="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
+                    原因：{{ selectedSiteInfo.reason }}
+                  </div>
+                </section>
+              </div>
+
+              <section class="rounded-xl border border-slate-200 bg-white p-4">
+                <div class="text-xs text-slate-500">初级认证区域</div>
+                <div class="mt-3 grid grid-cols-1 gap-2 text-sm md:grid-cols-2">
+                  <div class="rounded-lg bg-slate-50 px-3 py-2"><span class="text-slate-500">国家：</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.country }}</span></div>
+                  <div class="rounded-lg bg-slate-50 px-3 py-2"><span class="text-slate-500">所在城市：</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.city }}</span></div>
+                  <div class="rounded-lg bg-slate-50 px-3 py-2"><span class="text-slate-500">姓名：</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.realName }}</span></div>
+                  <div class="rounded-lg bg-slate-50 px-3 py-2"><span class="text-slate-500">证件号码：</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.idNumber }}</span></div>
+                  <div class="rounded-lg bg-slate-50 px-3 py-2 md:col-span-2"><span class="text-slate-500">邮箱：</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.email }}</span></div>
+                </div>
+              </section>
+
+              <section class="rounded-xl border border-slate-200 bg-white p-4">
+                <div class="mb-3 flex items-center justify-between">
+                  <div class="text-xs text-slate-500">提交材料（站内）</div>
+                </div>
+                <div class="space-y-2">
+                  <div
+                    v-for="(doc, index) in selectedSiteInfo.documents"
+                    :key="`${doc.type}-${index}`"
+                    class="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  >
+                    <div class="min-w-0">
+                      <div class="font-medium text-slate-900">{{ doc.type || '-' }}</div>
+                      <div class="mt-0.5 truncate text-xs text-slate-500">{{ doc.url || '-' }}</div>
+                    </div>
+                  </div>
+                  <div v-if="!selectedSiteInfo.documents.length" class="rounded-lg border border-dashed border-slate-300 px-3 py-4 text-sm text-slate-500">
+                    暂无材料记录
+                  </div>
+                </div>
+              </section>
+            </div>
           </div>
-        </div>
+
+          <section class="shrink-0 border-t border-slate-200 bg-white px-5 py-4">
+            <div class="mt-1 flex justify-end">
+              <button class="ant-btn" @click="closeDetail">关闭</button>
+            </div>
+          </section>
+        </section>
       </div>
-    </div>
+    </transition>
 
     <!-- 成功提示 Toast -->
     <div 
@@ -531,5 +547,24 @@ const showToast = (message) => {
 </template>
 
 <style scoped>
-/* 自定义样式 */
+.audit-drawer-enter-active,
+.audit-drawer-leave-active {
+  transition: opacity 0.25s ease;
+}
+
+.audit-drawer-enter-from,
+.audit-drawer-leave-to {
+  opacity: 0;
+}
+
+.audit-drawer-enter-from > section,
+.audit-drawer-leave-to > section {
+  transform: translateY(-100%);
+}
+
+.audit-drawer-enter-active > section,
+.audit-drawer-leave-active > section {
+  transition: transform 0.25s ease;
+  transform: translateY(0);
+}
 </style>

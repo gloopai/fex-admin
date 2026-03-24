@@ -2,16 +2,13 @@
 defineProps({
   searchKeyword: { type: String, default: '' },
   filterLevel: { type: String, default: 'all' },
-  filterStatus: { type: String, default: 'all' },
   dateRange: { type: Object, default: () => ({ start: '', end: '' }) },
-  levelOptions: { type: Array, default: () => [] },
-  statusOptions: { type: Array, default: () => [] }
+  levelOptions: { type: Array, default: () => [] }
 })
 
 const emit = defineEmits([
   'update:search-keyword',
   'update:filter-level',
-  'update:filter-status',
   'update:date-range',
   'reset'
 ])
@@ -19,7 +16,7 @@ const emit = defineEmits([
 
 <template>
   <div class="border-b border-slate-100 bg-slate-50/30 p-4">
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <div>
         <label class="mb-1.5 block text-sm font-medium text-slate-700">搜索</label>
         <input
@@ -40,18 +37,6 @@ const emit = defineEmits([
         >
           <option value="all">全部等级</option>
           <option v-for="option in levelOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-        </select>
-      </div>
-
-      <div>
-        <label class="mb-1.5 block text-sm font-medium text-slate-700">审核状态</label>
-        <select
-          :value="filterStatus"
-          class="ant-select !py-1.5"
-          @change="emit('update:filter-status', $event.target.value)"
-        >
-          <option value="all">全部状态</option>
-          <option v-for="option in statusOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
         </select>
       </div>
 

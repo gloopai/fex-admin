@@ -8,7 +8,6 @@ import {
   VERIFICATION_LEVEL,
   VERIFICATION_LEVEL_OPTIONS,
   VERIFICATION_STATUS,
-  VERIFICATION_STATUS_OPTIONS,
   VERIFICATION_DOC_TYPE_OPTIONS
 } from '../../../constants/verification'
 
@@ -16,7 +15,6 @@ const auditList = ref([])
 const loading = ref(false)
 const searchKeyword = ref('')
 const filterLevel = ref('all')
-const filterStatus = ref('all')
 const dateRange = ref({ start: '', end: '' })
 const pagination = reactive({ currentPage: 1, pageSize: 10, total: 0 })
 const totalPages = computed(() => Math.ceil(pagination.total / pagination.pageSize))
@@ -76,7 +74,7 @@ const fetchAudits = async () => {
       pageSize: pagination.pageSize,
       searchKeyword: searchKeyword.value,
       applyLevel: filterLevel.value,
-      status: filterStatus.value,
+      status: VERIFICATION_STATUS.PENDING,
       dateRange: dateRange.value
     })
     auditList.value = list
@@ -88,8 +86,8 @@ const fetchAudits = async () => {
   }
 }
 
-watch([searchKeyword, filterLevel, filterStatus, dateRange, () => pagination.currentPage], (newVal, oldVal) => {
-  const isPaginationChange = newVal[4] !== oldVal[4]
+watch([searchKeyword, filterLevel, dateRange, () => pagination.currentPage], (newVal, oldVal) => {
+  const isPaginationChange = newVal[3] !== oldVal[3]
   if (!isPaginationChange && pagination.currentPage !== 1) {
     pagination.currentPage = 1
   } else {
@@ -170,7 +168,6 @@ const previewDocument = (doc) => {
 const resetFilters = () => {
   searchKeyword.value = ''
   filterLevel.value = 'all'
-  filterStatus.value = 'all'
   dateRange.value = { start: '', end: '' }
   pagination.currentPage = 1
 }
@@ -215,7 +212,7 @@ const showToast = (message) => {
             </div>
             <div class="min-h-0 flex-1 overflow-y-auto p-4">
               <div class="space-y-4">
-                <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
                   <section class="rounded-xl border border-slate-200 bg-white p-4">
                     <div class="text-xs text-slate-500">用户与申请</div>
                     <div class="mt-3 space-y-2 text-sm">
@@ -237,17 +234,6 @@ const showToast = (message) => {
                     </div>
                   </section>
 
-                  <section class="rounded-xl border border-slate-200 bg-white p-4">
-                    <div class="text-xs text-slate-500">审核记录</div>
-                    <div class="mt-3 space-y-2 text-sm">
-                      <div class="flex justify-between"><span class="text-slate-500">审核时间</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.auditTime }}</span></div>
-                      <div class="flex justify-between"><span class="text-slate-500">审核人</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.auditor }}</span></div>
-                      <div class="flex justify-between"><span class="text-slate-500">处理时长</span><span class="font-medium text-slate-900">{{ selectedSiteInfo.processHours }}</span></div>
-                    </div>
-                    <div v-if="selectedSiteInfo.rejectReason !== '-'" class="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
-                      驳回/补件原因：{{ selectedSiteInfo.rejectReason }}
-                    </div>
-                  </section>
                 </div>
 
                 <section class="rounded-xl border border-slate-200 bg-white p-4">
@@ -334,13 +320,10 @@ const showToast = (message) => {
       <AuditFilters
         :search-keyword="searchKeyword"
         :filter-level="filterLevel"
-        :filter-status="filterStatus"
         :date-range="dateRange"
         :level-options="VERIFICATION_LEVEL_OPTIONS"
-        :status-options="VERIFICATION_STATUS_OPTIONS"
         @update:search-keyword="searchKeyword = $event"
         @update:filter-level="filterLevel = $event"
-        @update:filter-status="filterStatus = $event"
         @update:date-range="dateRange = $event"
         @reset="resetFilters"
       />
