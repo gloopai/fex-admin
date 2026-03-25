@@ -14,7 +14,10 @@ const props = defineProps({
   verifyHref: { type: String, default: '/front/verification-flow' },
   /** PC：居中弹窗；移动端由样式改为底部抽屉 */
   dark: { type: Boolean, default: true },
-  /** 是否仅在未满足等级时展示实质内容（否则点关闭即可） */
+  /**
+   * true（默认）：仅未满足等级时展示；已满足时打开会立即关闭（生产拦截场景）。
+   * false：已满足时仍可打开，展示「认证已满足」说明（演示器、或需明确告知用户无需补认证时）。
+   */
   onlyWhenBlocked: { type: Boolean, default: true }
 })
 
@@ -27,10 +30,16 @@ const requiredLabel = computed(() => getVerificationLevelLabel(props.requiredLev
 const bodyText = computed(() => {
   const detail = getVerificationUpgradeDetailLine(props.userLevel, props.requiredLevel)
   if (!detail) {
-    return '当前认证状态异常，如需使用本功能请联系客服。'
+    return `如需使用「${props.featureName}」，请联系客服或确认账户认证状态。`
   }
-  return `${detail}完成后即可使用「${props.featureName}」。`
+  const lead = detail.trim().replace(/。$/, '')
+  return `${lead}后，即可使用「${props.featureName}」。`
 })
+
+/** 外层是否渲染（含遮罩）：演示模式下已满足也要能打开 */
+const overlayVisible = computed(
+  () => props.modelValue && (!props.onlyWhenBlocked || blocked.value)
+)
 
 function close() {
   emit('update:modelValue', false)
@@ -56,7 +65,7 @@ watch(
   <Teleport to="body">
     <Transition name="vreq-dlg">
       <div
-        v-if="modelValue && (!onlyWhenBlocked || blocked)"
+        v-if="overlayVisible"
         class="fixed inset-0 z-[100] flex items-end justify-center px-4 pb-4 sm:items-center sm:p-4"
         role="dialog"
         aria-modal="true"
@@ -73,8 +82,18 @@ watch(
           <div class="mx-auto mb-4 hidden h-1 w-10 rounded-full bg-white/20 sm:hidden" aria-hidden="true" />
 
           <div class="flex items-start justify-between gap-3">
-            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-emerald-400/30 bg-emerald-400/15 text-xl text-lime-200">
+            <div
+              v-if="blocked"
+              class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-emerald-400/30 bg-emerald-400/15 text-xl text-lime-200"
+            >
               🔐
+            </div>
+            <div
+              v-else
+              class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-emerald-400/35 bg-emerald-500/20 text-xl font-semibold text-emerald-200"
+              aria-hidden="true"
+            >
+              ✓
             </div>
             <button
               type="button"
@@ -88,29 +107,51 @@ watch(
             </button>
           </div>
 
-          <h2 id="vreq-dialog-title" class="mt-2 text-lg font-semibold leading-snug text-emerald-50">
-            需完成「{{ requiredLabel }}」
-          </h2>
-          <p class="mt-2 text-sm leading-relaxed text-emerald-100/85">
-            您当前为「{{ getVerificationLevelLabel(userLevel) }}」。{{ bodyText }}
-          </p>
+          <!-- 未满足：需升级 -->
+          <template v-if="blocked">
+            <h2 id="vreq-dialog-title" class="mt-2 text-lg font-semibold leading-snug text-emerald-50">
+              需完成「{{ requiredLabel }}」
+            </h2>
+            <p class="mt-2 text-sm leading-relaxed text-emerald-100/85">
+              您当前为「{{ getVerificationLevelLabel(userLevel) }}」。{{ bodyText }}
+            </p>
 
-          <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <button
-              type="button"
-              class="rounded-lg border border-white/20 px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/10"
-              @click="close"
-            >
-              知道了
-            </button>
-            <a
-              :href="verifyHref"
-              class="inline-flex items-center justify-center rounded-lg bg-lime-400 px-4 py-2.5 text-sm font-semibold text-black hover:bg-lime-300"
-              @click="onVerifyClick"
-            >
-              前往身份认证
-            </a>
-          </div>
+            <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                class="rounded-lg border border-white/20 px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/10"
+                @click="close"
+              >
+                知道了
+              </button>
+              <a
+                :href="verifyHref"
+                class="inline-flex items-center justify-center rounded-lg bg-lime-400 px-4 py-2.5 text-sm font-semibold text-black hover:bg-lime-300"
+                @click="onVerifyClick"
+              >
+                前往身份认证
+              </a>
+            </div>
+          </template>
+
+          <!-- 已满足：说明不会拦截（仅 onlyWhenBlocked=false 时可见） -->
+          <template v-else>
+            <h2 id="vreq-dialog-title" class="mt-2 text-lg font-semibold leading-snug text-emerald-50">
+              认证已满足
+            </h2>
+            <p class="mt-2 text-sm leading-relaxed text-emerald-100/85">
+              您当前为「{{ getVerificationLevelLabel(userLevel) }}」，已满足使用「{{ featureName }}」所需的「{{ requiredLabel }}」，无需额外认证，业务不会弹出拦截。
+            </p>
+            <div class="mt-6 flex justify-end">
+              <button
+                type="button"
+                class="rounded-lg bg-lime-400 px-5 py-2.5 text-sm font-semibold text-black hover:bg-lime-300"
+                @click="close"
+              >
+                知道了
+              </button>
+            </div>
+          </template>
         </div>
       </div>
     </Transition>

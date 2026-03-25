@@ -46,17 +46,25 @@ const configDerivedLevelLabel = computed(() => getVerificationLevelLabel(configD
 
 const targetLevelLabel = computed(() => getVerificationLevelLabel(simulatedTargetLevel.value))
 
-/** 切换业务模块时，将目标等级同步为配置推导值，便于再手动微调 */
+/**
+ * 配置推导为「未认证即可」时，若仍把目标设为未认证，则 userLevel 恒满足、弹窗会被 onlyWhenBlocked 立即关掉。
+ * 演示页将目标提升为「初级认证」，便于预览入金等场景的弹窗与拦截（可自行改回「未认证」体验无门槛）。
+ */
+function effectiveTargetFromConfig(level) {
+  return level === VERIFICATION_LEVEL.NONE ? VERIFICATION_LEVEL.BASIC : level
+}
+
+/** 切换业务模块时，将目标等级同步为配置推导值（未认证即可时按上条规则处理） */
 watch(
   configDerivedLevel,
   (level) => {
-    simulatedTargetLevel.value = level
+    simulatedTargetLevel.value = effectiveTargetFromConfig(level)
   },
   { immediate: true }
 )
 
 function syncTargetToConfig() {
-  simulatedTargetLevel.value = configDerivedLevel.value
+  simulatedTargetLevel.value = effectiveTargetFromConfig(configDerivedLevel.value)
 }
 
 const permissionOptions = computed(() =>
@@ -155,13 +163,13 @@ const levelOptions = [
           v-if="simulatedTargetLevel === VERIFICATION_LEVEL.NONE"
           class="mt-2 border-t border-white/10 pt-2 text-amber-200/90"
         >
-          目标等级为「未认证」时，判定为无额外门槛，下方拦截类组件均不展示。
+          目标等级为「未认证」时，判定为无额外门槛，弹窗与拦截类组件均不展示。
         </p>
         <p
-          v-else-if="moduleBundle.alwaysOpen && simulatedTargetLevel === configDerivedLevel"
+          v-else-if="moduleBundle.alwaysOpen"
           class="mt-2 border-t border-white/10 pt-2 text-amber-200/90"
         >
-          当前 mock 配置下该权限从「未认证」起已开放，且目标与配置一致时，下方拦截类组件在任意等级下均不展示，仅作文案结构参考。
+          配置为未认证即可使用本权限；演示已默认将目标设为「初级认证」以便查看弹窗与拦截。若改回「未认证」，将无拦截。
         </p>
       </div>
     </section>
@@ -245,7 +253,9 @@ const levelOptions = [
         打开权限提示
       </button>
       <p class="mt-3 text-xs text-white/45">
-        适用于用户点击「下单」「提币」等按钮时拦截；当前模块：{{ moduleBundle.dialogFeature }}。
+        适用于用户点击「下单」「提币」等按钮时拦截；当前模块：{{ moduleBundle.dialogFeature }}。本演示将
+        <code class="rounded bg-white/10 px-1 py-0.5 text-[11px] text-lime-200/90">only-when-blocked</code>
+        设为 false：当前等级与目标一致时弹窗展示「认证已满足」；未满足时仍为升级提示。生产拦截场景可保持默认 true。
       </p>
     </section>
 
@@ -255,6 +265,7 @@ const levelOptions = [
       :required-level="simulatedTargetLevel"
       :feature-name="moduleBundle.dialogFeature"
       :verify-href="verifyHref"
+      :only-when-blocked="false"
     />
   </div>
 </template>
