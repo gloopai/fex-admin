@@ -1,7 +1,8 @@
 <script setup>
 import { ref, computed, onMounted, watch, reactive } from 'vue'
 import { getCreditScoreAudits, creditScoreAuditList } from '../../../admin/mock/creditScore'
-import { 
+import CreditScoreAuditDrawer from '../../../admin/components/credit-score-audit/CreditScoreAuditDrawer.vue'
+import {
   CREDIT_SCORE_CHANGE_TYPE,
   CREDIT_SCORE_CHANGE_TYPE_OPTIONS,
   CREDIT_SCORE_AUDIT_STATUS
@@ -64,11 +65,9 @@ watch(
 
 onMounted(fetchAudits)
 
-// 模态框
+// 审核抽屉
 const showDetailModal = ref(false)
 const selectedAudit = ref(null)
-const auditAction = ref(null) // 'approve', 'reject'
-const auditNote = ref('')
 
 // Toast提示
 const toast = ref({
@@ -130,33 +129,6 @@ const changeTypeConfig = {
   [CREDIT_SCORE_CHANGE_TYPE.REWARD]: { text: '奖励', class: 'bg-teal-100 text-teal-700' }
 }
 
-const noteTemplates = {
-  approve: [
-    '理由充分，积分变动符合策略阈值，审核通过',
-    '结合近30天行为记录，风险可控，予以通过',
-    '申请人与原因一致，证据链完整，允许生效'
-  ],
-  reject: [
-    '变动幅度过大且缺少补充说明，暂不通过',
-    '当前风控信号偏高，不满足通过条件',
-    '依据不足，建议补充业务凭证后重新申请'
-  ]
-}
-
-const selectedAuditContext = computed(() => {
-  if (!selectedAudit.value) return null
-
-  const audit = selectedAudit.value
-  const absAmount = Math.abs(audit.changeAmount || 0)
-  const beforeScore = Number(audit.beforeScore || 0)
-  const changeRate = beforeScore > 0 ? ((absAmount / beforeScore) * 100) : 0
-
-  return {
-    absAmount,
-    changeRate: changeRate.toFixed(1)
-  }
-})
-
 // 格式化日期
 const formatDate = (dateString) => {
   if (!dateString) return '-'
@@ -173,44 +145,31 @@ const formatDate = (dateString) => {
 const viewDetail = (audit) => {
   selectedAudit.value = audit
   showDetailModal.value = true
-  auditAction.value = null
-  auditNote.value = ''
 }
 
 // 关闭详情
 const closeDetail = () => {
   showDetailModal.value = false
   selectedAudit.value = null
-  auditAction.value = null
-  auditNote.value = ''
 }
 
-// 开始审核操作
-const startAuditAction = (action) => {
-  auditAction.value = action
-}
+// 提交审核（由 CreditScoreAuditDrawer 触发）
+const submitAudit = ({ action, note }) => {
+  if (!selectedAudit.value || !action) return
 
-const useNoteTemplate = (text) => {
-  auditNote.value = text
-}
-
-// 提交审核
-const submitAudit = () => {
-  if (!selectedAudit.value || !auditAction.value) return
-  
   const auditIndex = creditScoreAuditList.findIndex(a => a.id === selectedAudit.value.id)
   if (auditIndex === -1) return
-  
+
   const now = new Date().toISOString()
   const audit = creditScoreAuditList[auditIndex]
-  
-  switch (auditAction.value) {
+
+  switch (action) {
     case 'approve':
       audit.auditStatus = CREDIT_SCORE_AUDIT_STATUS.APPROVED
       audit.auditTime = now
       audit.auditorId = 'admin_current'
       audit.auditorName = '当前管理员'
-      audit.auditNote = auditNote.value || null
+      audit.auditNote = note || null
       closeDetail()
       showToast('审核通过，积分变动已生效！')
       fetchAudits()
@@ -220,7 +179,7 @@ const submitAudit = () => {
       audit.auditTime = now
       audit.auditorId = 'admin_current'
       audit.auditorName = '当前管理员'
-      audit.auditNote = auditNote.value || '审核未通过'
+      audit.auditNote = note || '审核未通过'
       closeDetail()
       showToast('已拒绝申请，积分变动不生效！')
       fetchAudits()
@@ -478,146 +437,12 @@ const exportData = () => {
       </div>
     </div>
 
-    <!-- 详情模态框 -->
-    <Transition name="audit-drawer">
-      <div
-        v-if="showDetailModal && selectedAudit && selectedAuditContext"
-        class="fixed inset-0 z-40 bg-slate-900/35"
-        @click.self="closeDetail"
-      >
-        <section class="audit-drawer-panel flex h-[88vh] w-full flex-col overflow-hidden rounded-b-2xl border-b border-slate-200 bg-slate-50 shadow-2xl">
-          <div class="border-b border-slate-200 bg-gradient-to-r from-white to-slate-100 px-5 py-4">
-            <div class="flex items-start justify-between gap-4">
-              <div>
-                <div class="text-xs font-medium tracking-wide text-slate-500">信用分审核详情抽屉</div>
-                <div class="mt-1 text-xl font-semibold text-slate-900">
-                  {{ selectedAudit.username }}（{{ selectedAudit.userId }}）的信用分审核
-                </div>
-                <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                  <span class="rounded-full bg-slate-900 px-2.5 py-1 text-white">
-                    状态：{{ statusConfig[selectedAudit.auditStatus]?.text || selectedAudit.auditStatus }}
-                  </span>
-                  <span :class="changeTypeConfig[selectedAudit.changeType].class" class="rounded-full px-2.5 py-1 ring-1 ring-slate-200">
-                    类型：{{ changeTypeConfig[selectedAudit.changeType].text }}
-                  </span>
-                  <span class="rounded-full bg-white px-2.5 py-1 text-slate-600 ring-1 ring-slate-200">
-                    申请时间：{{ formatDate(selectedAudit.applyTime) }}
-                  </span>
-                </div>
-              </div>
-              <button @click="closeDetail" class="text-slate-400 hover:text-slate-600 transition-colors">
-                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          <div class="min-h-0 flex-1 overflow-y-auto p-4">
-            <div class="space-y-4">
-              <section class="rounded-xl border border-slate-200 bg-white p-4">
-                <div class="grid grid-cols-1 gap-3 lg:grid-cols-4">
-                  <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 lg:col-span-2">
-                    <div class="text-xs text-slate-500">积分变动路径</div>
-                    <div class="mt-2 flex items-center gap-2 text-lg font-semibold text-slate-900">
-                      <span>{{ selectedAudit.beforeScore }}</span>
-                      <span class="text-slate-400">-></span>
-                      <span>{{ selectedAudit.afterScore }}</span>
-                      <span
-                        :class="selectedAudit.changeAmount > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'"
-                        class="ml-2 rounded-full px-2.5 py-0.5 text-sm"
-                      >
-                        {{ selectedAudit.changeAmount > 0 ? '+' : '' }}{{ selectedAudit.changeAmount }}
-                      </span>
-                    </div>
-                  </div>
-                  <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                    <div class="text-xs text-slate-500">变动绝对值</div>
-                    <div class="mt-2 text-lg font-semibold text-slate-900">{{ selectedAuditContext.absAmount }}</div>
-                  </div>
-                  <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                    <div class="text-xs text-slate-500">相对变化</div>
-                    <div class="mt-2 text-lg font-semibold text-slate-900">{{ selectedAuditContext.changeRate }}%</div>
-                  </div>
-                </div>
-              </section>
-
-              <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <section class="rounded-xl border border-slate-200 bg-white p-4">
-                  <div class="text-xs text-slate-500">审核判断信息</div>
-                  <div class="mt-3 space-y-2 text-sm">
-                    <div class="flex justify-between rounded-lg bg-slate-50 px-3 py-2"><span class="text-slate-500">变动类型</span><span :class="changeTypeConfig[selectedAudit.changeType].class" class="rounded-full px-2 py-0.5 text-xs font-medium">{{ changeTypeConfig[selectedAudit.changeType].text }}</span></div>
-                    <div class="rounded-lg bg-slate-50 px-3 py-2">
-                      <div class="text-slate-500">申请原因</div>
-                      <p class="mt-1 text-slate-900 leading-6">{{ selectedAudit.reason || '-' }}</p>
-                    </div>
-                  </div>
-                </section>
-
-                <section class="rounded-xl border border-slate-200 bg-white p-4">
-                  <div class="text-xs text-slate-500">用户与申请信息</div>
-                  <div class="mt-3 space-y-2 text-sm">
-                    <div class="flex justify-between"><span class="text-slate-500">用户名</span><span class="font-medium text-slate-900">{{ selectedAudit.username }}</span></div>
-                    <div class="flex justify-between"><span class="text-slate-500">用户ID</span><span class="font-medium text-slate-900">{{ selectedAudit.userId }}</span></div>
-                    <div class="flex justify-between"><span class="text-slate-500">邮箱</span><span class="font-medium text-slate-900">{{ selectedAudit.email }}</span></div>
-                    <div class="flex justify-between"><span class="text-slate-500">申请人</span><span class="font-medium text-slate-900">{{ selectedAudit.applyOperatorName }}</span></div>
-                    <div class="flex justify-between"><span class="text-slate-500">申请时间</span><span class="font-medium text-slate-900">{{ formatDate(selectedAudit.applyTime) }}</span></div>
-                  </div>
-                </section>
-              </div>
-
-              <section class="rounded-xl border border-slate-200 bg-white p-4">
-                <div class="text-xs text-slate-500">历史审核信息</div>
-                <div class="mt-3 grid grid-cols-1 gap-2 text-sm md:grid-cols-2">
-                  <div class="rounded-lg bg-slate-50 px-3 py-2"><span class="text-slate-500">审核状态：</span><span class="font-medium text-slate-900">{{ statusConfig[selectedAudit.auditStatus].text }}</span></div>
-                  <div class="rounded-lg bg-slate-50 px-3 py-2"><span class="text-slate-500">审核人：</span><span class="font-medium text-slate-900">{{ selectedAudit.auditorName || '-' }}</span></div>
-                  <div class="rounded-lg bg-slate-50 px-3 py-2"><span class="text-slate-500">审核时间：</span><span class="font-medium text-slate-900">{{ formatDate(selectedAudit.auditTime) }}</span></div>
-                  <div class="rounded-lg bg-slate-50 px-3 py-2"><span class="text-slate-500">审核备注：</span><span class="font-medium text-slate-900">{{ selectedAudit.auditNote || '-' }}</span></div>
-                </div>
-              </section>
-            </div>
-          </div>
-
-          <section class="shrink-0 border-t border-slate-200 bg-white px-5 py-4">
-            <div class="text-xs text-slate-500">审核操作</div>
-            <div class="mt-3 flex flex-wrap justify-end gap-2">
-              <button class="ant-btn" @click="closeDetail">关闭</button>
-              <button class="ant-btn ant-btn-primary" @click="startAuditAction('approve')">通过</button>
-              <button class="ant-btn ant-btn-danger" @click="startAuditAction('reject')">拒绝</button>
-            </div>
-
-            <div v-if="auditAction" class="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-              <div class="text-sm font-medium text-slate-900">
-                {{ auditAction === 'approve' ? '确认通过本次信用分变动' : '请填写拒绝原因' }}
-              </div>
-
-              <div class="mt-2 flex flex-wrap gap-2">
-                <button
-                  v-for="tpl in noteTemplates[auditAction]"
-                  :key="tpl"
-                  class="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs text-slate-700 hover:bg-slate-100"
-                  @click="useNoteTemplate(tpl)"
-                >
-                  快捷填充
-                </button>
-              </div>
-
-              <textarea
-                v-model="auditNote"
-                rows="3"
-                class="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
-                :placeholder="auditAction === 'approve' ? '请输入通过备注（可选）...' : '请输入拒绝原因...'"
-              />
-
-              <div class="mt-3 flex justify-end gap-2">
-                <button class="ant-btn ant-btn-primary" @click="submitAudit">确认提交</button>
-                <button class="ant-btn" @click="auditAction = null">取消</button>
-              </div>
-            </div>
-          </section>
-        </section>
-      </div>
-    </Transition>
+    <CreditScoreAuditDrawer
+      :visible="showDetailModal"
+      :audit="selectedAudit"
+      @close="closeDetail"
+      @submit="submitAudit"
+    />
 
     <!-- Toast 提示 -->
     <Transition
@@ -637,31 +462,3 @@ const exportData = () => {
     </Transition>
   </section>
 </template>
-
-<style scoped>
-.audit-drawer-enter-active,
-.audit-drawer-leave-active {
-  transition: opacity 0.25s ease;
-}
-
-.audit-drawer-enter-from,
-.audit-drawer-leave-to {
-  opacity: 0;
-}
-
-.audit-drawer-enter-to,
-.audit-drawer-leave-from {
-  opacity: 1;
-}
-
-.audit-drawer-enter-from > section,
-.audit-drawer-leave-to > section {
-  transform: translateY(-100%);
-}
-
-.audit-drawer-enter-active > section,
-.audit-drawer-leave-active > section {
-  transition: transform 0.25s ease;
-  transform: translateY(0);
-}
-</style>

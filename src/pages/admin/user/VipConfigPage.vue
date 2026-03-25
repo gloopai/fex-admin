@@ -16,7 +16,6 @@ const formData = ref({
   iconUrl: '',
   status: VIP_LEVEL_STATUS.ENABLED,
   minCreditScore: 0,
-  benefits: [''],
   description: ''
 })
 
@@ -84,7 +83,6 @@ const openAddModal = () => {
     iconUrl: '',
     status: VIP_LEVEL_STATUS.ENABLED,
     minCreditScore: 0,
-    benefits: [''],
     description: ''
   }
   iconPreview.value = ''
@@ -102,7 +100,6 @@ const openEditModal = (vip) => {
     iconUrl: vip.iconUrl || '',
     status: vip.status,
     minCreditScore: vip.minCreditScore,
-    benefits: [...vip.benefits],
     description: vip.description
   }
   iconPreview.value = vip.iconUrl || ''
@@ -115,16 +112,6 @@ const closeModal = () => {
   editingVip.value = null
 }
 
-// 添加权益
-const addBenefit = () => {
-  formData.value.benefits.push('')
-}
-
-// 删除权益
-const removeBenefit = (index) => {
-  formData.value.benefits.splice(index, 1)
-}
-
 // 保存VIP配置
 const saveVip = () => {
   if (!formData.value.displayName.trim()) {
@@ -133,13 +120,13 @@ const saveVip = () => {
   }
 
   if (isEditing.value) {
-    // 编辑
+    // 编辑（会员权益不在此页维护，沿用原数据）
     const index = localVipLevels.value.findIndex(v => v.id === editingVip.value.id)
     if (index !== -1) {
       localVipLevels.value[index] = {
         ...editingVip.value,
         ...formData.value,
-        benefits: formData.value.benefits.filter(b => b.trim()),
+        benefits: editingVip.value.benefits,
         updatedAt: new Date().toISOString()
       }
     }
@@ -148,7 +135,7 @@ const saveVip = () => {
     const newVip = {
       id: `vip_${Date.now()}`,
       ...formData.value,
-      benefits: formData.value.benefits.filter(b => b.trim()),
+      benefits: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
@@ -201,7 +188,7 @@ const sortedVipLevels = computed(() => {
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-2xl font-bold text-slate-900">VIP等级配置</h1>
-        <p class="text-sm text-slate-500 mt-1">配置平台VIP等级、图标、权益等信息</p>
+        <p class="text-sm text-slate-500 mt-1">配置平台VIP等级、图标等信息</p>
       </div>
     </div>
 
@@ -226,7 +213,6 @@ const sortedVipLevels = computed(() => {
               <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">图标</th>
               <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">最低信用分</th>
               <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">状态</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">权益数量</th>
               <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">操作</th>
             </tr>
           </thead>
@@ -279,11 +265,6 @@ const sortedVipLevels = computed(() => {
                 >
                   {{ statusConfig[vip.status].text }}
                 </button>
-              </td>
-
-              <!-- 权益数量 -->
-              <td class="px-4 py-3">
-                <span class="text-sm text-slate-600">{{ vip.benefits.length }} 项</span>
               </td>
 
               <!-- 操作 -->
@@ -520,55 +501,6 @@ const sortedVipLevels = computed(() => {
                           placeholder="简要描述该VIP等级的特点和优势..."
                           class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all"
                         ></textarea>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- 会员权益 - 全宽区域 -->
-                  <div class="mt-6 bg-slate-50 rounded-xl p-4 border border-slate-200">
-                    <div class="flex items-center justify-between mb-4">
-                      <h3 class="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                        <svg class="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        会员权益
-                      </h3>
-                      <button
-                        type="button"
-                        @click="addBenefit"
-                        class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-                      >
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                        </svg>
-                        添加权益
-                      </button>
-                    </div>
-                    <div class="space-y-2.5 max-h-64 overflow-y-auto pr-2">
-                      <div
-                        v-for="(benefit, index) in formData.benefits"
-                        :key="index"
-                        class="flex items-center gap-3 group bg-white rounded-lg p-2 hover:shadow-sm transition-all"
-                      >
-                        <div class="shrink-0 w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white text-xs font-bold flex items-center justify-center shadow-sm">
-                          {{ index + 1 }}
-                        </div>
-                        <input
-                          v-model="formData.benefits[index]"
-                          type="text"
-                          placeholder="例如：95折手续费"
-                          class="flex-1 px-4 py-2.5 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                        />
-                        <button
-                          v-if="formData.benefits.length > 1"
-                          type="button"
-                          @click="removeBenefit(index)"
-                          class="shrink-0 p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
-                        >
-                          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                          </svg>
-                        </button>
                       </div>
                     </div>
                   </div>
