@@ -23,6 +23,17 @@ export const creditScoreConfig = {
   [CREDIT_SCORE_CONFIG_KEYS.MALICIOUS_SCORE]: 20,
   [CREDIT_SCORE_CONFIG_KEYS.RISK_ALERT_SCORE]: 5,
   [CREDIT_SCORE_CONFIG_KEYS.MIN_SCORE]: 0,
+
+  // 扣除规则扩展：可自定义添加
+  [CREDIT_SCORE_CONFIG_KEYS.DEDUCTION_CUSTOM_RULES]: [
+    { id: 'violation', name: '违规行为', score: 10 },
+    { id: 'abnormal_trade', name: '异常交易', score: 5 },
+    { id: 'inactive', name: '长期不活跃', score: 3 },
+    { id: 'withdraw_fail', name: '提现失败', score: 2 },
+    { id: 'dispute', name: '交易纠纷', score: 8 },
+    { id: 'malicious', name: '恶意行为', score: 20 },
+    { id: 'risk_alert', name: '风控预警', score: 5 }
+  ],
   
   // 人工审核配置
   [CREDIT_SCORE_CONFIG_KEYS.MANUAL_AUDIT_ENABLED]: true,

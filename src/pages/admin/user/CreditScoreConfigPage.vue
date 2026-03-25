@@ -28,6 +28,9 @@ const formData = ref({
   maliciousScore: 20,
   riskAlertScore: 5,
   minScore: 0,
+
+  // 自定义扣分行为（扩展规则）
+  deductionCustomRules: [],
   
   // 人工审核
   manualAuditEnabled: true,
@@ -60,11 +63,25 @@ const calculatorInputs = ref({
   // 扣除场景
   hasViolation: false,
   hasAbnormalTrade: false,
-  hasDispute: false
+  hasDispute: false,
+
+  // 自定义扣分行为勾选
+  customDeductionSelected: {}
 })
 
+// 自定义扣分行为表单
+const customDeductionDraft = ref({
+  name: '',
+  score: 1
+})
+
+const customDeductionError = ref('')
+
+// 自定义扣分表的 draft：编辑时不影响右侧预览，直到保存配置才生效
+const deductionCustomRulesDraft = ref([])
+
 // 配置模板
-const configTemplates = [
+const configTemplates = [/*
   {
     name: '保守型',
     description: '严格的信用分规则，重惩罚',
@@ -140,7 +157,7 @@ const configTemplates = [
       minScore: 20
     }
   }
-]
+*/]
 
 // 计算总信用分
 const calculatedScore = computed(() => {
@@ -160,16 +177,12 @@ const calculatedScore = computed(() => {
     score += formData.value.advancedKycScore
   }
   
-  // 扣除场景（如果启用扣除规则）
-  if (formData.value.deductionEnabled) {
-    if (calculatorInputs.value.hasViolation) {
-      score -= formData.value.violationScore
-    }
-    if (calculatorInputs.value.hasAbnormalTrade) {
-      score -= formData.value.abnormalTradeScore
-    }
-    if (calculatorInputs.value.hasDispute) {
-      score -= formData.value.disputeScore
+  // 扣除场景（扣除规则默认始终启用）
+  const selected = calculatorInputs.value.customDeductionSelected || {}
+  const customRules = formData.value.deductionCustomRules || []
+  for (const rule of customRules) {
+    if (selected[rule.id]) {
+      score -= Number(rule.score || 0)
     }
   }
   
@@ -196,8 +209,8 @@ onMounted(() => {
     autoUpgradeVip1Score: config[CREDIT_SCORE_CONFIG_KEYS.AUTO_UPGRADE_VIP1_SCORE],
     vipUpgradeRechargeAmount: config[CREDIT_SCORE_CONFIG_KEYS.VIP_UPGRADE_RECHARGE_AMOUNT],
     
-    // 扣除规则
-    deductionEnabled: config[CREDIT_SCORE_CONFIG_KEYS.DEDUCTION_ENABLED],
+    // UI 删除“启用扣除规则”开关：扣除规则始终启用
+    deductionEnabled: true,
     violationScore: config[CREDIT_SCORE_CONFIG_KEYS.VIOLATION_SCORE],
     abnormalTradeScore: config[CREDIT_SCORE_CONFIG_KEYS.ABNORMAL_TRADE_SCORE],
     inactiveDays: config[CREDIT_SCORE_CONFIG_KEYS.INACTIVE_DAYS],
@@ -207,6 +220,8 @@ onMounted(() => {
     maliciousScore: config[CREDIT_SCORE_CONFIG_KEYS.MALICIOUS_SCORE],
     riskAlertScore: config[CREDIT_SCORE_CONFIG_KEYS.RISK_ALERT_SCORE],
     minScore: config[CREDIT_SCORE_CONFIG_KEYS.MIN_SCORE],
+
+    deductionCustomRules: config[CREDIT_SCORE_CONFIG_KEYS.DEDUCTION_CUSTOM_RULES] || [],
     
     // 人工审核
     manualAuditEnabled: config[CREDIT_SCORE_CONFIG_KEYS.MANUAL_AUDIT_ENABLED] || false,
@@ -216,6 +231,15 @@ onMounted(() => {
       CREDIT_SCORE_CHANGE_TYPE.PENALTY,
       CREDIT_SCORE_CHANGE_TYPE.REWARD
     ]
+  }
+
+  // 初始化自定义扣分表 draft（编辑时不影响预览）
+  deductionCustomRulesDraft.value = JSON.parse(JSON.stringify(formData.value.deductionCustomRules || []))
+
+  // 初始化自定义扣分勾选状态
+  calculatorInputs.value.customDeductionSelected = {}
+  for (const rule of formData.value.deductionCustomRules || []) {
+    calculatorInputs.value.customDeductionSelected[rule.id] = false
   }
   // 初始加载时没有未保存的变化
   hasUnsavedChanges.value = false
@@ -233,12 +257,15 @@ watch(() => formData.value, () => {
   }
 }, { deep: true })
 
-// 应用模板
-const applyTemplate = (template) => {
-  Object.assign(formData.value, template.config)
-  saveSuccess.value = false
-  hasUnsavedChanges.value = true
-}
+// draft 编辑自定义扣分项时：标记为未保存，但不影响右侧预览
+watch(
+  () => deductionCustomRulesDraft.value,
+  () => {
+    hasUnsavedChanges.value = true
+    saveSuccess.value = false
+  },
+  { deep: true }
+)
 
 // 表单验证
 const validateForm = () => {
@@ -267,6 +294,47 @@ const validateForm = () => {
   return isValid
 }
 
+const createCustomRuleId = () => {
+  return `deduction_custom_${Date.now()}_${Math.random().toString(16).slice(2)}`
+}
+
+const addCustomDeductionRule = () => {
+  customDeductionError.value = ''
+
+  const name = String(customDeductionDraft.value.name || '').trim()
+  const score = Number(customDeductionDraft.value.score)
+
+  if (!name) {
+    customDeductionError.value = '请填写行为名称'
+    return
+  }
+  if (!Number.isFinite(score) || score < 0) {
+    customDeductionError.value = '扣分必须是 >= 0 的数字'
+    return
+  }
+  if (score > formData.value.maxScore) {
+    customDeductionError.value = `扣分不能超过最大分数（${formData.value.maxScore}）`
+    return
+  }
+
+  const id = createCustomRuleId()
+  deductionCustomRulesDraft.value.push({
+    id,
+    name,
+    score
+  })
+
+  calculatorInputs.value.customDeductionSelected[id] = false
+  customDeductionDraft.value = { name: '', score: 1 }
+}
+
+const removeCustomDeductionRule = (id) => {
+  deductionCustomRulesDraft.value = (deductionCustomRulesDraft.value || []).filter(
+    (r) => r.id !== id
+  )
+  delete calculatorInputs.value.customDeductionSelected?.[id]
+}
+
 // 保存配置
 const saveConfig = () => {
   // 验证
@@ -278,6 +346,15 @@ const saveConfig = () => {
 
   // 模拟保存
   setTimeout(() => {
+    // 将“自定义扣分表 draft”提交到正式配置里，更新右侧预览
+    formData.value.deductionCustomRules = deductionCustomRulesDraft.value
+
+    // 重新初始化新扣分项的勾选状态（默认未勾选）
+    calculatorInputs.value.customDeductionSelected = {}
+    for (const rule of formData.value.deductionCustomRules || []) {
+      calculatorInputs.value.customDeductionSelected[rule.id] = false
+    }
+
     updateCreditScoreConfigs({
       [CREDIT_SCORE_CONFIG_KEYS.ENABLED]: true,
       [CREDIT_SCORE_CONFIG_KEYS.MAX_SCORE]: formData.value.maxScore,
@@ -290,7 +367,7 @@ const saveConfig = () => {
       [CREDIT_SCORE_CONFIG_KEYS.VIP_UPGRADE_RECHARGE_AMOUNT]: formData.value.vipUpgradeRechargeAmount,
       
       // 扣除规则
-      [CREDIT_SCORE_CONFIG_KEYS.DEDUCTION_ENABLED]: formData.value.deductionEnabled,
+      [CREDIT_SCORE_CONFIG_KEYS.DEDUCTION_ENABLED]: true,
       [CREDIT_SCORE_CONFIG_KEYS.VIOLATION_SCORE]: formData.value.violationScore,
       [CREDIT_SCORE_CONFIG_KEYS.ABNORMAL_TRADE_SCORE]: formData.value.abnormalTradeScore,
       [CREDIT_SCORE_CONFIG_KEYS.INACTIVE_DAYS]: formData.value.inactiveDays,
@@ -300,6 +377,7 @@ const saveConfig = () => {
       [CREDIT_SCORE_CONFIG_KEYS.MALICIOUS_SCORE]: formData.value.maliciousScore,
       [CREDIT_SCORE_CONFIG_KEYS.RISK_ALERT_SCORE]: formData.value.riskAlertScore,
       [CREDIT_SCORE_CONFIG_KEYS.MIN_SCORE]: formData.value.minScore,
+      [CREDIT_SCORE_CONFIG_KEYS.DEDUCTION_CUSTOM_RULES]: formData.value.deductionCustomRules,
       
       // 人工审核
       [CREDIT_SCORE_CONFIG_KEYS.MANUAL_AUDIT_ENABLED]: formData.value.manualAuditEnabled,
@@ -565,134 +643,104 @@ const tabs = [
 
             <!-- 扣除规则 -->
             <div v-show="activeTab === 'deduct'" class="space-y-4">
-              <div class="flex items-center justify-between mb-4 pb-4 border-b border-slate-200">
-                <div>
-                  <h4 class="text-sm font-semibold text-slate-900">启用扣除规则</h4>
-                  <p class="text-xs text-slate-500 mt-1">开启后将对违规行为进行扣分</p>
-                </div>
-                <button
-                  @click="formData.deductionEnabled = !formData.deductionEnabled"
-                  :class="formData.deductionEnabled ? 'bg-rose-600' : 'bg-slate-300'"
-                  class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2"
-                >
-                  <span
-                    :class="formData.deductionEnabled ? 'translate-x-6' : 'translate-x-1'"
-                    class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
-                  />
-                </button>
-              </div>
+              <div class="space-y-4">
+                  <!-- 自定义扣分行为 -->
+                  <div class="pt-4 border-t border-slate-200">
+                    <div class="flex items-center justify-between mb-3">
+                      <h5 class="text-sm font-semibold text-slate-900">自定义扣分行为</h5>
+                      <span class="text-xs text-slate-500">可添加更多扣分项</span>
+                    </div>
 
-              <div v-if="formData.deductionEnabled" class="space-y-4">
-                <!-- 扣分场景 -->
-                <div class="grid grid-cols-2 gap-4">
-                  <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">违规行为</label>
-                    <div class="flex items-center gap-2">
-                      <span class="text-rose-600">-</span>
-                      <input
-                        v-model.number="formData.violationScore"
-                        type="number"
-                        min="0"
-                        :max="formData.maxScore"
-                        class="ant-input !w-24"
-                      />
-                      <span class="text-sm text-slate-600">分</span>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">行为名称</label>
+                        <input
+                          v-model="customDeductionDraft.name"
+                          type="text"
+                          class="ant-input"
+                          placeholder="例如：违规退款"
+                        />
+                      </div>
+                      <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">扣分</label>
+                        <div class="flex items-center gap-2">
+                          <span class="text-rose-600">-</span>
+                          <input
+                            v-model.number="customDeductionDraft.score"
+                            type="number"
+                            min="0"
+                            :max="formData.maxScore"
+                            class="ant-input !w-24"
+                          />
+                          <span class="text-sm text-slate-600">分</span>
+                        </div>
+                      </div>
+                      <div class="flex items-end">
+                        <button
+                          type="button"
+                          class="ant-btn ant-btn-primary !h-9 w-full"
+                          @click="addCustomDeductionRule"
+                        >
+                          添加
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">异常交易</label>
-                    <div class="flex items-center gap-2">
-                      <span class="text-rose-600">-</span>
-                      <input
-                        v-model.number="formData.abnormalTradeScore"
-                        type="number"
-                        min="0"
-                        :max="formData.maxScore"
-                        class="ant-input !w-24"
-                      />
-                      <span class="text-sm text-slate-600">分</span>
-                    </div>
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">交易纠纷</label>
-                    <div class="flex items-center gap-2">
-                      <span class="text-rose-600">-</span>
-                      <input
-                        v-model.number="formData.disputeScore"
-                        type="number"
-                        min="0"
-                        :max="formData.maxScore"
-                        class="ant-input !w-24"
-                      />
-                      <span class="text-sm text-slate-600">分</span>
-                    </div>
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">提现失败</label>
-                    <div class="flex items-center gap-2">
-                      <span class="text-rose-600">-</span>
-                      <input
-                        v-model.number="formData.withdrawFailScore"
-                        type="number"
-                        min="0"
-                        :max="formData.maxScore"
-                        class="ant-input !w-24"
-                      />
-                      <span class="text-sm text-slate-600">分</span>
-                    </div>
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">恶意行为</label>
-                    <div class="flex items-center gap-2">
-                      <span class="text-rose-600">-</span>
-                      <input
-                        v-model.number="formData.maliciousScore"
-                        type="number"
-                        min="0"
-                        :max="formData.maxScore"
-                        class="ant-input !w-24"
-                      />
-                      <span class="text-sm text-slate-600">分</span>
-                    </div>
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">风控预警</label>
-                    <div class="flex items-center gap-2">
-                      <span class="text-rose-600">-</span>
-                      <input
-                        v-model.number="formData.riskAlertScore"
-                        type="number"
-                        min="0"
-                        :max="formData.maxScore"
-                        class="ant-input !w-24"
-                      />
-                      <span class="text-sm text-slate-600">分</span>
-                    </div>
-                  </div>
-                </div>
 
-                <!-- 不活跃扣分 -->
-                <div class="pt-4 border-t border-slate-200">
-                  <label class="block text-sm font-medium text-slate-700 mb-2">长期不活跃</label>
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <span class="text-sm text-slate-600">连续</span>
-                    <input
-                      v-model.number="formData.inactiveDays"
-                      type="number"
-                      min="0"
-                      class="ant-input !w-24"
-                    />
-                    <span class="text-sm text-slate-600">天不登录，扣</span>
-                    <input
-                      v-model.number="formData.inactiveScore"
-                      type="number"
-                      min="0"
-                      :max="formData.maxScore"
-                      class="ant-input !w-24"
-                    />
-                    <span class="text-sm text-slate-600">信用分</span>
+                    <p v-if="customDeductionError" class="text-xs text-rose-600 mt-2">
+                      {{ customDeductionError }}
+                    </p>
+
+                    <div v-if="deductionCustomRulesDraft?.length" class="mt-4">
+                      <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                          <thead>
+                            <tr class="text-xs text-slate-500">
+                              <th class="text-left font-medium py-2 pr-2 whitespace-nowrap">行为名称</th>
+                              <th class="text-left font-medium py-2 pr-2 whitespace-nowrap">扣分</th>
+                              <th class="text-right font-medium py-2 whitespace-nowrap">操作</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr
+                            v-for="rule in deductionCustomRulesDraft"
+                              :key="rule.id"
+                              class="border-t border-slate-200"
+                            >
+                              <td class="py-2 pr-2">
+                                <input v-model="rule.name" type="text" class="ant-input w-full" />
+                              </td>
+                              <td class="py-2 pr-2 w-44">
+                                <div class="flex items-center gap-2">
+                                  <span class="text-rose-600">-</span>
+                                  <input
+                                    v-model.number="rule.score"
+                                    type="number"
+                                    min="0"
+                                  :max="formData.maxScore"
+                                    class="ant-input w-24"
+                                  />
+                                  <span class="text-slate-500">分</span>
+                                </div>
+                              </td>
+                              <td class="py-2 text-right whitespace-nowrap">
+                                <button
+                                  type="button"
+                                  class="ant-btn !bg-slate-100 !border-slate-200 !text-slate-700 !h-9 !px-3"
+                                  @click="removeCustomDeductionRule(rule.id)"
+                                >
+                                  删除
+                                </button>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    <div v-else class="text-xs text-slate-500 mt-3 bg-slate-50 rounded-lg p-3">
+                      暂无自定义扣分项
+                    </div>
                   </div>
-                </div>
 
                 <!-- 最低分数 -->
                 <div class="pt-4 border-t border-slate-200">
@@ -714,9 +762,7 @@ const tabs = [
                 </div>
               </div>
 
-              <div v-else class="text-sm text-slate-500 text-center py-8 bg-slate-50 rounded-lg">
-                扣除规则已关闭，不会对用户进行扣分
-              </div>
+              <!-- （启用扣除规则开关已移除，这里不再保留 v-else 分支） -->
             </div>
 
             <!-- 人工审核配置 -->
@@ -880,32 +926,23 @@ const tabs = [
             </div>
 
             <!-- 扣除场景 -->
-            <div v-if="formData.deductionEnabled" class="space-y-2 pt-2 border-t border-blue-200">
+            <div class="space-y-2 pt-2 border-t border-blue-200">
               <p class="text-xs font-medium text-slate-600 mb-1">⚠️ 扣分项</p>
-              <label class="flex items-center gap-2 cursor-pointer">
-                <input
-                  v-model="calculatorInputs.hasViolation"
-                  type="checkbox"
-                  class="rounded border-slate-300 text-rose-600 focus:ring-rose-500"
-                />
-                <span class="text-sm text-slate-700">存在违规行为</span>
-              </label>
-              <label class="flex items-center gap-2 cursor-pointer">
-                <input
-                  v-model="calculatorInputs.hasAbnormalTrade"
-                  type="checkbox"
-                  class="rounded border-slate-300 text-rose-600 focus:ring-rose-500"
-                />
-                <span class="text-sm text-slate-700">有异常交易</span>
-              </label>
-              <label class="flex items-center gap-2 cursor-pointer">
-                <input
-                  v-model="calculatorInputs.hasDispute"
-                  type="checkbox"
-                  class="rounded border-slate-300 text-rose-600 focus:ring-rose-500"
-                />
-                <span class="text-sm text-slate-700">发生交易纠纷</span>
-              </label>
+              <div v-if="formData.deductionCustomRules?.length" class="pt-2 border-t border-rose-100">
+                <p class="text-xs font-medium text-rose-600 mb-1">自定义扣分行为</p>
+                <label
+                  v-for="rule in formData.deductionCustomRules"
+                  :key="rule.id"
+                  class="flex items-center gap-2 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    v-model="calculatorInputs.customDeductionSelected[rule.id]"
+                    class="rounded border-slate-300 text-rose-600 focus:ring-rose-500"
+                  />
+                  <span class="text-sm text-slate-700">{{ rule.name }}（-{{ rule.score }}分）</span>
+                </label>
+              </div>
             </div>
 
             <!-- 计算结果 -->
@@ -938,33 +975,6 @@ const tabs = [
           </div>
         </div>
 
-        <!-- 配置模板 -->
-        <div class="rounded-xl border border-slate-200 bg-white p-6">
-          <h3 class="text-base font-semibold text-slate-900 mb-4 flex items-center gap-2">
-            <svg class="h-5 w-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-            </svg>
-            快速模板
-          </h3>
-
-          <div class="space-y-3">
-            <button
-              v-for="template in configTemplates"
-              :key="template.name"
-              @click="applyTemplate(template)"
-              class="w-full text-left p-4 border border-slate-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors group"
-            >
-              <div class="flex items-start gap-3">
-                <span class="text-2xl">{{ template.icon }}</span>
-                <div class="flex-1">
-                  <h4 class="font-semibold text-slate-900 group-hover:text-blue-700">{{ template.name }}</h4>
-                  <p class="text-xs text-slate-500 mt-1">{{ template.description }}</p>
-                </div>
-              </div>
-            </button>
-          </div>
-        </div>
-
         <!-- 配置说明 -->
         <div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
           <div class="flex gap-3">
@@ -975,7 +985,6 @@ const tabs = [
               <p class="font-semibold">提示</p>
               <ul class="list-disc list-inside space-y-0.5 text-amber-700 text-xs">
                 <li>使用右侧计算器测试配置效果</li>
-                <li>可选择快速模板一键应用</li>
                 <li>修改后记得点击保存按钮</li>
               </ul>
             </div>

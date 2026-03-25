@@ -17,6 +17,10 @@ const manualAuditEnabled = computed(() => Boolean(config.value[CREDIT_SCORE_CONF
 const manualAuditThreshold = computed(() => Number(config.value[CREDIT_SCORE_CONFIG_KEYS.MANUAL_AUDIT_THRESHOLD] ?? 10))
 const manualAuditTypes = computed(() => config.value[CREDIT_SCORE_CONFIG_KEYS.MANUAL_AUDIT_TYPES] || [])
 
+const deductionCustomRules = computed(() => {
+  return config.value[CREDIT_SCORE_CONFIG_KEYS.DEDUCTION_CUSTOM_RULES] || []
+})
+
 const activeVipOptions = computed(() => {
   return [...vipLevels]
     .filter((v) => v.status === 'enabled')
@@ -38,6 +42,7 @@ const form = ref({
   vipTargetLevel: null,
   scoreDirection: 'increase', // increase | decrease
   scoreDelta: '',
+  deductionRuleId: '',
   remark: ''
 })
 
@@ -58,6 +63,7 @@ const open = () => {
     vipTargetLevel: currentVipLevel.value,
     scoreDirection: 'increase',
     scoreDelta: '',
+    deductionRuleId: deductionCustomRules.value?.[0]?.id || '',
     remark: ''
   }
   showModal.value = true
@@ -68,10 +74,20 @@ const close = () => {
 }
 
 const parsedDelta = computed(() => {
-  const n = Number(form.value.scoreDelta)
-  if (!Number.isFinite(n)) return null
-  if (n <= 0) return null
-  return Math.floor(n)
+  // increase：使用输入数量
+  if (form.value.scoreDirection === 'increase') {
+    const n = Number(form.value.scoreDelta)
+    if (!Number.isFinite(n)) return null
+    if (n <= 0) return null
+    return Math.floor(n)
+  }
+
+  // decrease：从自定义扣分项选择
+  const rule = deductionCustomRules.value.find((r) => r.id === form.value.deductionRuleId)
+  const s = Number(rule?.score)
+  if (!Number.isFinite(s)) return null
+  if (s <= 0) return null
+  return Math.floor(s)
 })
 
 const scoreBefore = computed(() => Number(props.user?.creditScore ?? 0))
@@ -110,7 +126,11 @@ const confirm = () => {
   }
 
   if (willChangeScore.value && parsedDelta.value === null) {
-    showToast('请输入有效的信用分调整数量')
+    if (form.value.scoreDirection === 'decrease') {
+      showToast('请选择要扣分的行为')
+    } else {
+      showToast('请输入有效的信用分调整数量')
+    }
     return
   }
 
@@ -242,14 +262,28 @@ const confirm = () => {
 
                 <div>
                   <div class="text-sm font-medium text-slate-700 mb-2">数量</div>
-                  <input
-                    v-model="form.scoreDelta"
-                    type="number"
-                    min="1"
-                    step="1"
-                    class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
-                    placeholder="例如 5"
-                  />
+                  <div v-if="form.scoreDirection === 'increase'">
+                    <input
+                      v-model="form.scoreDelta"
+                      type="number"
+                      min="1"
+                      step="1"
+                      class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
+                      placeholder="例如 5"
+                    />
+                  </div>
+
+                  <div v-else>
+                    <select
+                      v-model="form.deductionRuleId"
+                      class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
+                    >
+                      <option disabled value="">请选择扣分行为</option>
+                      <option v-for="r in deductionCustomRules" :key="r.id" :value="r.id">
+                        {{ r.name }}（-{{ r.score }}）
+                      </option>
+                    </select>
+                  </div>
                 </div>
               </div>
 

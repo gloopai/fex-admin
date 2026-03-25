@@ -81,6 +81,9 @@ export const CREDIT_SCORE_CONFIG_KEYS = {
   MALICIOUS_SCORE: 'creditScore.maliciousScore',           // 恶意行为扣分
   RISK_ALERT_SCORE: 'creditScore.riskAlertScore',          // 风控预警扣分
   MIN_SCORE: 'creditScore.minScore',                       // 最低分数（扣分不低于此值）
+
+  // 自定义扣分行为（扩展规则）
+  DEDUCTION_CUSTOM_RULES: 'creditScore.deductionCustomRules',
   
   // 人工审核配置
   MANUAL_AUDIT_ENABLED: 'creditScore.manualAuditEnabled',  // 人工审核开关
