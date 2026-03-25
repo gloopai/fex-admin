@@ -1,4 +1,11 @@
 <script setup>
+import { computed, ref } from 'vue'
+import { getVipLevelByLevel } from '../../../admin/mock/vip'
+
+/** 当前用户 VIP 等级数字，与后台 VIP 配置中的 level 对应 */
+const userVipLevel = ref(1)
+const currentVipMeta = computed(() => getVipLevelByLevel(userVipLevel.value))
+
 const sideMenus = [
   '模拟交易',
   '偏好设置',
@@ -68,8 +75,17 @@ const verificationLevels = ['未认证', '初级认证', '高级认证']
               <div class="mt-1 text-sm text-white/65">ID: 143</div>
               <!-- <div class="mt-2 inline-flex rounded-md border border-white/20 px-2 py-1 text-xs text-white/80">未认证</div> -->
               <div class="mt-2 flex flex-wrap gap-2">
-                <div class="inline-flex rounded-md border border-amber-300/50 bg-amber-300/10 px-2 py-1 text-xs text-amber-200">
-                   VIP 1
+                <div
+                  class="inline-flex items-center gap-1.5 rounded-md border border-amber-300/50 bg-amber-300/10 px-2 py-1 text-xs text-amber-200"
+                >
+                  <img
+                    v-if="currentVipMeta?.iconUrl"
+                    :src="currentVipMeta.iconUrl"
+                    alt=""
+                    class="h-4 w-4 shrink-0 object-contain"
+                    loading="lazy"
+                  />
+                  <span>VIP {{ userVipLevel }}</span>
                 </div>
                 <div
                   class="inline-flex rounded-md border px-2 py-1 text-xs"

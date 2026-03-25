@@ -1,4 +1,10 @@
 <script setup>
+import { computed, ref } from 'vue'
+import { getVipLevelByLevel } from '../../../admin/mock/vip'
+
+const userVipLevel = ref(1)
+const currentVipMeta = computed(() => getVipLevelByLevel(userVipLevel.value))
+
 const accountMenus = ['偏好设置', '安全中心', '身份认证', '账变记录', '账户资产']
 const serviceMenus = ['邀请好友', '在线客服', '平台介绍', '监管报告']
 
@@ -25,8 +31,17 @@ const verificationLevels = ['未认证', '初级认证', '高级认证']
           <div class="truncate text-lg font-semibold">acheqi@qq.com</div>
           <div class="text-base text-white/80">ID: 143</div>
           <div class="mt-2 flex flex-wrap gap-1.5">
-            <div class="inline-flex rounded-md border border-amber-300/50 bg-amber-300/10 px-2 py-0.5 text-xs text-amber-200">
-               VIP 1
+            <div
+              class="inline-flex items-center gap-1 rounded-md border border-amber-300/50 bg-amber-300/10 px-2 py-0.5 text-xs text-amber-200"
+            >
+              <img
+                v-if="currentVipMeta?.iconUrl"
+                :src="currentVipMeta.iconUrl"
+                alt=""
+                class="h-3.5 w-3.5 shrink-0 object-contain"
+                loading="lazy"
+              />
+              <span>VIP {{ userVipLevel }}</span>
             </div>
             <div
               class="inline-flex rounded-md border px-2 py-0.5 text-xs"
