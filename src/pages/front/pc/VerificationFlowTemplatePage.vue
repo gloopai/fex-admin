@@ -283,8 +283,8 @@ const resetFlow = () => {
         <div class="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
           <button type="button" class="flex w-full items-center justify-between text-left" @click="showDevTools = !showDevTools">
             <div>
-              <div class="text-sm font-semibold">联调工具（模拟审批）</div>
-              <div class="mt-1 text-xs text-white/55">用于演示审批流，不影响真实接口</div>
+              <div class="text-sm font-semibold">联调工具（审批状态调试）</div>
+              <div class="mt-1 text-xs text-white/55">仅用于联调排查，不影响线上接口</div>
             </div>
             <span class="text-white/60">{{ showDevTools ? '收起' : '展开' }}</span>
           </button>
@@ -298,28 +298,28 @@ const resetFlow = () => {
               class="w-full rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-left text-emerald-100 hover:bg-emerald-400/15"
               @click="basicStatus = 'approved'"
             >
-              模拟：初级审核通过
+              联调：初级审核通过
             </button>
             <button
               v-if="basicStatus === 'reviewing'"
               class="w-full rounded-lg border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-left text-rose-100 hover:bg-rose-400/15"
               @click="basicStatus = 'rejected'"
             >
-              模拟：初级审核驳回
+              联调：初级审核驳回
             </button>
             <button
               v-if="advancedStatus === 'reviewing'"
               class="w-full rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-left text-emerald-100 hover:bg-emerald-400/15"
               @click="advancedStatus = 'approved'"
             >
-              模拟：高级审核通过
+              联调：高级审核通过
             </button>
             <button
               v-if="advancedStatus === 'reviewing'"
               class="w-full rounded-lg border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-left text-rose-100 hover:bg-rose-400/15"
               @click="advancedStatus = 'rejected'"
             >
-              模拟：高级审核驳回
+              联调：高级审核驳回
             </button>
           </div>
         </div>
@@ -359,7 +359,7 @@ const resetFlow = () => {
           </div>
 
           <div v-if="basicStatus === 'reviewing'" class="mt-4 rounded-xl border border-amber-300/40 bg-amber-300/10 p-4 text-sm text-amber-100">
-            已提交初级资料，平台审核中。你可以继续留在页面等待结果（演示环境可用左侧“联调工具”模拟通过）。
+            已提交初级资料，平台审核中。请耐心等待审核结果。
           </div>
           <div v-if="basicStatus === 'rejected'" class="mt-4 rounded-xl border border-rose-300/40 bg-rose-300/10 p-4 text-sm text-rose-100">
             初级审核未通过：请根据提示修改资料后重新提交。
@@ -437,7 +437,7 @@ const resetFlow = () => {
           </div>
 
           <div v-if="showBasicForm" class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div class="text-xs text-white/55">提交后进入审核队列（演示）</div>
+            <div class="text-xs text-white/55">提交后进入审核队列</div>
             <button
               class="w-full rounded-lg bg-lime-400 px-5 py-3 text-sm font-semibold text-black sm:w-auto"
               @click="submitBasic"
@@ -640,7 +640,7 @@ const resetFlow = () => {
                       <div v-if="isImageFile(f)" class="mt-3 overflow-hidden rounded-lg border border-white/10">
                         <img :src="previewUrl(f)" alt="preview" class="h-40 w-full object-cover" />
                       </div>
-                      <div v-else class="mt-3 text-xs text-white/55">PDF 文件（真实系统可在线预览）</div>
+                      <div v-else class="mt-3 text-xs text-white/55">PDF 文件（可在线预览）</div>
                     </div>
                   </template>
                   <div v-else class="mt-3 text-xs text-white/45">未上传</div>

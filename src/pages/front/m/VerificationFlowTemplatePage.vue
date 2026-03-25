@@ -225,8 +225,8 @@ form.value.files = Object.fromEntries([
     >
       <div class="flex items-center justify-between">
         <div>
-          <div class="text-sm font-semibold">联调工具（模拟审批）</div>
-          <div class="mt-1 text-xs text-white/55">演示审批流，不影响真实接口</div>
+          <div class="text-sm font-semibold">联调工具（审批状态调试）</div>
+          <div class="mt-1 text-xs text-white/55">仅用于联调排查，不影响线上接口</div>
         </div>
         <span class="text-white/60">{{ showDevTools ? '收起' : '展开' }}</span>
       </div>
@@ -237,28 +237,28 @@ form.value.files = Object.fromEntries([
           class="w-full rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-left text-emerald-100"
           @click="basicStatus = 'approved'"
         >
-          模拟：初级审核通过
+          联调：初级审核通过
         </button>
         <button
           v-if="basicStatus === 'reviewing'"
           class="w-full rounded-xl border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-left text-rose-100"
           @click="basicStatus = 'rejected'"
         >
-          模拟：初级审核驳回
+          联调：初级审核驳回
         </button>
         <button
           v-if="advancedStatus === 'reviewing'"
           class="w-full rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-left text-emerald-100"
           @click="advancedStatus = 'approved'"
         >
-          模拟：高级审核通过
+          联调：高级审核通过
         </button>
         <button
           v-if="advancedStatus === 'reviewing'"
           class="w-full rounded-xl border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-left text-rose-100"
           @click="advancedStatus = 'rejected'"
         >
-          模拟：高级审核驳回
+          联调：高级审核驳回
         </button>
       </div>
     </button>
