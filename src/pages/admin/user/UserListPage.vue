@@ -1,8 +1,8 @@
 <script setup>
 import { ref, computed, onMounted, reactive, watch } from 'vue'
-import UserCard from '../../../admin/components/UserCard.vue'
 import { getUsers, usersList } from '../../../admin/mock/user'
 import { USER_STATUS, USER_ROLE, USER_KYC_STATUS } from '../../../admin/constants/user'
+import UserDetailDrawer from '../../../admin/components/user/UserDetailDrawer.vue'
 
 // 搜索关键词
 const searchKeyword = ref('')
@@ -52,7 +52,7 @@ watch([searchKeyword, () => pagination.currentPage], () => {
 onMounted(fetchUsers)
 
 // 模态弹窗状态
-const showModal = ref(false)
+const showDetailDrawer = ref(false)
 const selectedUser = ref(null)
 
 // 统计信息
@@ -132,12 +132,12 @@ const formatDate = (dateString) => {
 // 打开用户详情
 const openUserDetail = (user) => {
   selectedUser.value = user
-  showModal.value = true
+  showDetailDrawer.value = true
 }
 
 // 关闭弹窗
-const closeModal = () => {
-  showModal.value = false
+const closeDetailDrawer = () => {
+  showDetailDrawer.value = false
   selectedUser.value = null
 }
 </script>
@@ -340,49 +340,11 @@ const closeModal = () => {
       </button>
     </div>
 
-    <!-- 用户详情弹窗 -->
-    <Teleport to="body">
-      <Transition
-        enter-active-class="transition ease-out duration-200"
-        enter-from-class="opacity-0"
-        enter-to-class="opacity-100"
-        leave-active-class="transition ease-in duration-150"
-        leave-from-class="opacity-100"
-        leave-to-class="opacity-0"
-      >
-        <div
-          v-if="showModal"
-          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          @click.self="closeModal"
-        >
-          <Transition
-            enter-active-class="transition ease-out duration-200"
-            enter-from-class="opacity-0 scale-95"
-            enter-to-class="opacity-100 scale-100"
-            leave-active-class="transition ease-in duration-150"
-            leave-from-class="opacity-100 scale-100"
-            leave-to-class="opacity-0 scale-95"
-          >
-            <div
-              v-if="showModal"
-              class="relative max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-            >
-              <!-- 关闭按钮 -->
-              <button
-                @click="closeModal"
-                class="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/90 hover:bg-white text-slate-600 hover:text-slate-900 transition-colors shadow-lg"
-              >
-                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-              </button>
-
-              <!-- 用户详情卡片 -->
-              <UserCard v-if="selectedUser" :user="selectedUser" />
-            </div>
-          </Transition>
-        </div>
-      </Transition>
-    </Teleport>
+    <!-- 用户详情抽屉 -->
+    <UserDetailDrawer
+      :visible="showDetailDrawer"
+      :user="selectedUser"
+      @close="closeDetailDrawer"
+    />
   </section>
 </template>
