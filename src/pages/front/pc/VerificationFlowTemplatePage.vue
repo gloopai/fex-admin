@@ -242,7 +242,7 @@ const resetFlow = () => {
     <section class="mb-6 rounded-2xl border border-white/10 bg-white/[0.04] p-5">
       <div class="flex items-start justify-between gap-3">
         <div class="text-sm font-semibold">流程进度</div>
-        <div class="text-xs text-white/55">已完成 {{ uploadedAdvancedCount }}/{{ requiredUploadCount }} 项高级资料上传（未进入高级阶段不计）</div>
+        <!-- <div class="text-xs text-white/55">已完成 {{ uploadedAdvancedCount }}/{{ requiredUploadCount }} 项</div> -->
       </div>
 
       <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
