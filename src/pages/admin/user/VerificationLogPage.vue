@@ -178,7 +178,7 @@ const actionTypeConfig = {
 // 等级配置
 const levelConfig = {
   'none': { text: '未认证', class: 'bg-gray-100 text-gray-700' },
-  'basic': { text: '普通认证', class: 'bg-blue-100 text-blue-700' },
+  'basic': { text: '初级认证', class: 'bg-blue-100 text-blue-700' },
   'advanced': { text: '高级认证', class: 'bg-purple-100 text-purple-700' }
 }
 

@@ -8,7 +8,7 @@ export const VERIFICATION_LEVEL = {
 // 认证等级选项
 export const VERIFICATION_LEVEL_OPTIONS = [
   { value: VERIFICATION_LEVEL.NONE, label: '未认证' },
-  { value: VERIFICATION_LEVEL.BASIC, label: '普通认证' },
+  { value: VERIFICATION_LEVEL.BASIC, label: '初级认证' },
   { value: VERIFICATION_LEVEL.ADVANCED, label: '高级认证' }
 ]
 

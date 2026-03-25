@@ -300,6 +300,7 @@ export const updateCreditScoreConfig = (key, value) => {
 // 批量更新配置
 export const updateCreditScoreConfigs = (configs) => {
   Object.assign(creditScoreConfig, configs)
+  creditScoreConfig[CREDIT_SCORE_CONFIG_KEYS.ENABLED] = true
 }
 
 // 生成更多模拟日志

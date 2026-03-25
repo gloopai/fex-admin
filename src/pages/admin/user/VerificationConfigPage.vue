@@ -3,6 +3,15 @@ import { ref } from 'vue'
 import { verificationConfig } from '../../../admin/mock/verification'
 import { VERIFICATION_LEVEL, VERIFICATION_DOC_TYPE_OPTIONS } from '../../../constants/verification'
 
+/** 认证等级上的资金与交易品种权限（出金限额在「出金策略」配置） */
+const PERMISSION_FIELDS = [
+  { key: 'canDeposit', label: '允许入金' },
+  { key: 'canWithdraw', label: '允许出金' },
+  { key: 'canSpotTrade', label: '允许现货交易' },
+  { key: 'canDeliveryContract', label: '允许交割合约' },
+  { key: 'canPerpetualContract', label: '允许永续合约' }
+]
+
 // 配置数据
 const configs = ref({
   [VERIFICATION_LEVEL.NONE]: { ...verificationConfig[VERIFICATION_LEVEL.NONE] },
@@ -23,10 +32,15 @@ const toast = ref({
 // 开始编辑
 const startEdit = (level) => {
   editingLevel.value = level
-  tempConfig.value = JSON.parse(JSON.stringify(configs.value[level]))
-  if (typeof tempConfig.value.withdrawMinAmount !== 'number') {
-    tempConfig.value.withdrawMinAmount = 0
+  const raw = JSON.parse(JSON.stringify(configs.value[level]))
+  const base = verificationConfig[level]
+  for (const { key } of PERMISSION_FIELDS) {
+    if (typeof raw[key] !== 'boolean') {
+      raw[key] = typeof base[key] === 'boolean' ? base[key] : false
+    }
   }
+  if ('canTrade' in raw) delete raw.canTrade
+  tempConfig.value = raw
 }
 
 // 取消编辑
@@ -38,8 +52,9 @@ const cancelEdit = () => {
 // 保存配置
 const saveConfig = () => {
   if (editingLevel.value && tempConfig.value) {
-    tempConfig.value.withdrawMinAmount = Number(tempConfig.value.withdrawMinAmount) || 0
-    configs.value[editingLevel.value] = { ...tempConfig.value }
+    const next = { ...tempConfig.value }
+    if ('canTrade' in next) delete next.canTrade
+    configs.value[editingLevel.value] = next
     editingLevel.value = null
     tempConfig.value = null
     // 这里可以添加API调用保存到后端
@@ -101,54 +116,19 @@ const showToast = (message) => {
           <template v-if="editingLevel === VERIFICATION_LEVEL.NONE">
             <!-- 编辑模式 -->
             <div class="space-y-3">
-              <label class="flex items-center space-x-2">
-                <input 
-                  type="checkbox" 
-                  v-model="tempConfig.canDeposit"
-                  class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                >
-                <span class="text-sm text-gray-700">允许入金</span>
-              </label>
-              
-              <label class="flex items-center space-x-2">
-                <input 
-                  type="checkbox" 
-                  v-model="tempConfig.canTrade"
-                  class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                >
-                <span class="text-sm text-gray-700">允许交易</span>
-              </label>
-              
-              <label class="flex items-center space-x-2">
-                <input 
-                  type="checkbox" 
-                  v-model="tempConfig.canWithdraw"
-                  class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                >
-                <span class="text-sm text-gray-700">允许提币</span>
-              </label>
-
-              <div>
-                <label class="block text-sm text-gray-700 mb-1">每日提币限额（USDT）</label>
-                <input 
-                  type="number" 
-                  v-model.number="tempConfig.withdrawLimit"
-                  placeholder="留空表示无限制"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-              </div>
-
-              <div>
-                <label class="block text-sm text-gray-700 mb-1">单笔最小出金金额（U）</label>
+              <p class="text-xs font-medium text-gray-500">资金与交易权限</p>
+              <label
+                v-for="row in PERMISSION_FIELDS"
+                :key="row.key"
+                class="flex items-center space-x-2"
+              >
                 <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  v-model.number="tempConfig.withdrawMinAmount"
-                  placeholder="例如：10"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  v-model="tempConfig[row.key]"
+                  type="checkbox"
+                  class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 >
-              </div>
+                <span class="text-sm text-gray-700">{{ row.label }}</span>
+              </label>
             </div>
 
             <div class="flex space-x-2 pt-4 border-t">
@@ -170,38 +150,18 @@ const showToast = (message) => {
           <template v-else>
             <!-- 展示模式 -->
             <div class="space-y-3">
-              <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">入金权限</span>
-                <span :class="configs[VERIFICATION_LEVEL.NONE].canDeposit ? 'text-emerald-600' : 'text-rose-600'" class="text-sm font-medium">
-                  {{ configs[VERIFICATION_LEVEL.NONE].canDeposit ? '✓ 允许' : '✗ 禁止' }}
-                </span>
-              </div>
-              
-              <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">交易权限</span>
-                <span :class="configs[VERIFICATION_LEVEL.NONE].canTrade ? 'text-emerald-600' : 'text-rose-600'" class="text-sm font-medium">
-                  {{ configs[VERIFICATION_LEVEL.NONE].canTrade ? '✓ 允许' : '✗ 禁止' }}
-                </span>
-              </div>
-              
-              <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">提币权限</span>
-                <span :class="configs[VERIFICATION_LEVEL.NONE].canWithdraw ? 'text-emerald-600' : 'text-rose-600'" class="text-sm font-medium">
-                  {{ configs[VERIFICATION_LEVEL.NONE].canWithdraw ? '✓ 允许' : '✗ 禁止' }}
-                </span>
-              </div>
-
-              <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">提币限额</span>
-                <span class="text-sm font-medium text-gray-900">
-                  {{ configs[VERIFICATION_LEVEL.NONE].withdrawLimit ? `${configs[VERIFICATION_LEVEL.NONE].withdrawLimit.toLocaleString()} USDT/日` : '无限制' }}
-                </span>
-              </div>
-
-              <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">最小出金金额</span>
-                <span class="text-sm font-medium text-gray-900">
-                  {{ Number(configs[VERIFICATION_LEVEL.NONE].withdrawMinAmount || 0).toLocaleString() }} U
+              <p class="text-xs font-medium text-gray-500">资金与交易权限</p>
+              <div
+                v-for="row in PERMISSION_FIELDS"
+                :key="row.key"
+                class="flex items-center justify-between"
+              >
+                <span class="text-sm text-gray-600">{{ row.label }}</span>
+                <span
+                  :class="configs[VERIFICATION_LEVEL.NONE][row.key] ? 'text-emerald-600' : 'text-rose-600'"
+                  class="text-sm font-medium"
+                >
+                  {{ configs[VERIFICATION_LEVEL.NONE][row.key] ? '✓ 允许' : '✗ 禁止' }}
                 </span>
               </div>
 
@@ -234,55 +194,19 @@ const showToast = (message) => {
           <template v-if="editingLevel === VERIFICATION_LEVEL.BASIC">
             <!-- 编辑模式 -->
             <div class="space-y-3">
-              <label class="flex items-center space-x-2">
-                <input 
-                  type="checkbox" 
-                  v-model="tempConfig.canDeposit"
-                  class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                >
-                <span class="text-sm text-gray-700">允许入金</span>
-              </label>
-              
-              <label class="flex items-center space-x-2">
-                <input 
-                  type="checkbox" 
-                  v-model="tempConfig.canTrade"
-                  class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                >
-                <span class="text-sm text-gray-700">允许交易</span>
-              </label>
-              
-              <label class="flex items-center space-x-2">
-                <input 
-                  type="checkbox" 
-                  v-model="tempConfig.canWithdraw"
-                  class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                >
-                <span class="text-sm text-gray-700">允许提币</span>
-              </label>
-
-              <div>
-                <label class="block text-sm text-gray-700 mb-1">每日提币限额（USDT）</label>
-                <input 
-                  type="number" 
-                  v-model.number="tempConfig.withdrawLimit"
-                  placeholder="留空表示无限制"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-              </div>
-
-              <div>
-                <label class="block text-sm text-gray-700 mb-1">单笔最小出金金额（U）</label>
+              <p class="text-xs font-medium text-gray-500">资金与交易权限</p>
+              <label
+                v-for="row in PERMISSION_FIELDS"
+                :key="row.key"
+                class="flex items-center space-x-2"
+              >
                 <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  v-model.number="tempConfig.withdrawMinAmount"
-                  placeholder="例如：10"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  v-model="tempConfig[row.key]"
+                  type="checkbox"
+                  class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 >
-              </div>
-
+                <span class="text-sm text-gray-700">{{ row.label }}</span>
+              </label>
             </div>
 
             <div class="flex space-x-2 pt-4 border-t">
@@ -304,38 +228,18 @@ const showToast = (message) => {
           <template v-else>
             <!-- 展示模式 -->
             <div class="space-y-3">
-              <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">入金权限</span>
-                <span :class="configs[VERIFICATION_LEVEL.BASIC].canDeposit ? 'text-emerald-600' : 'text-rose-600'" class="text-sm font-medium">
-                  {{ configs[VERIFICATION_LEVEL.BASIC].canDeposit ? '✓ 允许' : '✗ 禁止' }}
-                </span>
-              </div>
-              
-              <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">交易权限</span>
-                <span :class="configs[VERIFICATION_LEVEL.BASIC].canTrade ? 'text-emerald-600' : 'text-rose-600'" class="text-sm font-medium">
-                  {{ configs[VERIFICATION_LEVEL.BASIC].canTrade ? '✓ 允许' : '✗ 禁止' }}
-                </span>
-              </div>
-              
-              <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">提币权限</span>
-                <span :class="configs[VERIFICATION_LEVEL.BASIC].canWithdraw ? 'text-emerald-600' : 'text-rose-600'" class="text-sm font-medium">
-                  {{ configs[VERIFICATION_LEVEL.BASIC].canWithdraw ? '✓ 允许' : '✗ 禁止' }}
-                </span>
-              </div>
-
-              <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">提币限额</span>
-                <span class="text-sm font-medium text-gray-900">
-                  {{ configs[VERIFICATION_LEVEL.BASIC].withdrawLimit ? `${configs[VERIFICATION_LEVEL.BASIC].withdrawLimit.toLocaleString()} USDT/日` : '无限制' }}
-                </span>
-              </div>
-
-              <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">最小出金金额</span>
-                <span class="text-sm font-medium text-gray-900">
-                  {{ Number(configs[VERIFICATION_LEVEL.BASIC].withdrawMinAmount || 0).toLocaleString() }} U
+              <p class="text-xs font-medium text-gray-500">资金与交易权限</p>
+              <div
+                v-for="row in PERMISSION_FIELDS"
+                :key="row.key"
+                class="flex items-center justify-between"
+              >
+                <span class="text-sm text-gray-600">{{ row.label }}</span>
+                <span
+                  :class="configs[VERIFICATION_LEVEL.BASIC][row.key] ? 'text-emerald-600' : 'text-rose-600'"
+                  class="text-sm font-medium"
+                >
+                  {{ configs[VERIFICATION_LEVEL.BASIC][row.key] ? '✓ 允许' : '✗ 禁止' }}
                 </span>
               </div>
 
@@ -368,54 +272,19 @@ const showToast = (message) => {
           <template v-if="editingLevel === VERIFICATION_LEVEL.ADVANCED">
             <!-- 编辑模式 -->
             <div class="space-y-3">
-              <label class="flex items-center space-x-2">
-                <input 
-                  type="checkbox" 
-                  v-model="tempConfig.canDeposit"
-                  class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                >
-                <span class="text-sm text-gray-700">允许入金</span>
-              </label>
-              
-              <label class="flex items-center space-x-2">
-                <input 
-                  type="checkbox" 
-                  v-model="tempConfig.canTrade"
-                  class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                >
-                <span class="text-sm text-gray-700">允许交易</span>
-              </label>
-              
-              <label class="flex items-center space-x-2">
-                <input 
-                  type="checkbox" 
-                  v-model="tempConfig.canWithdraw"
-                  class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                >
-                <span class="text-sm text-gray-700">允许提币</span>
-              </label>
-
-              <div>
-                <label class="block text-sm text-gray-700 mb-1">每日提币限额（USDT）</label>
-                <input 
-                  type="number" 
-                  v-model.number="tempConfig.withdrawLimit"
-                  placeholder="留空表示无限制"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-              </div>
-
-              <div>
-                <label class="block text-sm text-gray-700 mb-1">单笔最小出金金额（U）</label>
+              <p class="text-xs font-medium text-gray-500">资金与交易权限</p>
+              <label
+                v-for="row in PERMISSION_FIELDS"
+                :key="row.key"
+                class="flex items-center space-x-2"
+              >
                 <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  v-model.number="tempConfig.withdrawMinAmount"
-                  placeholder="例如：10"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  v-model="tempConfig[row.key]"
+                  type="checkbox"
+                  class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 >
-              </div>
+                <span class="text-sm text-gray-700">{{ row.label }}</span>
+              </label>
 
               <div class="pt-3 border-t">
                 <label class="block text-sm text-gray-700 mb-2">需要上传的证件</label>
@@ -456,38 +325,18 @@ const showToast = (message) => {
           <template v-else>
             <!-- 展示模式 -->
             <div class="space-y-3">
-              <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">入金权限</span>
-                <span :class="configs[VERIFICATION_LEVEL.ADVANCED].canDeposit ? 'text-emerald-600' : 'text-rose-600'" class="text-sm font-medium">
-                  {{ configs[VERIFICATION_LEVEL.ADVANCED].canDeposit ? '✓ 允许' : '✗ 禁止' }}
-                </span>
-              </div>
-              
-              <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">交易权限</span>
-                <span :class="configs[VERIFICATION_LEVEL.ADVANCED].canTrade ? 'text-emerald-600' : 'text-rose-600'" class="text-sm font-medium">
-                  {{ configs[VERIFICATION_LEVEL.ADVANCED].canTrade ? '✓ 允许' : '✗ 禁止' }}
-                </span>
-              </div>
-              
-              <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">提币权限</span>
-                <span :class="configs[VERIFICATION_LEVEL.ADVANCED].canWithdraw ? 'text-emerald-600' : 'text-rose-600'" class="text-sm font-medium">
-                  {{ configs[VERIFICATION_LEVEL.ADVANCED].canWithdraw ? '✓ 允许' : '✗ 禁止' }}
-                </span>
-              </div>
-
-              <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">提币限额</span>
-                <span class="text-sm font-medium text-gray-900">
-                  {{ configs[VERIFICATION_LEVEL.ADVANCED].withdrawLimit ? `${configs[VERIFICATION_LEVEL.ADVANCED].withdrawLimit.toLocaleString()} USDT/日` : '无限制' }}
-                </span>
-              </div>
-
-              <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">最小出金金额</span>
-                <span class="text-sm font-medium text-gray-900">
-                  {{ Number(configs[VERIFICATION_LEVEL.ADVANCED].withdrawMinAmount || 0).toLocaleString() }} U
+              <p class="text-xs font-medium text-gray-500">资金与交易权限</p>
+              <div
+                v-for="row in PERMISSION_FIELDS"
+                :key="row.key"
+                class="flex items-center justify-between"
+              >
+                <span class="text-sm text-gray-600">{{ row.label }}</span>
+                <span
+                  :class="configs[VERIFICATION_LEVEL.ADVANCED][row.key] ? 'text-emerald-600' : 'text-rose-600'"
+                  class="text-sm font-medium"
+                >
+                  {{ configs[VERIFICATION_LEVEL.ADVANCED][row.key] ? '✓ 允许' : '✗ 禁止' }}
                 </span>
               </div>
 
@@ -516,19 +365,19 @@ const showToast = (message) => {
       <ul class="space-y-2 text-sm text-blue-800">
         <li class="flex items-start">
           <span class="mr-2">•</span>
-          <span><strong>未认证用户：</strong>未完成任何身份认证的用户，可以根据需求开放部分功能</span>
+          <span><strong>资金与交易权限：</strong>可分别配置入金、出金，以及现货、交割合约、永续合约；单笔/每日出金限额在「出金策略」中维护</span>
         </li>
         <li class="flex items-start">
           <span class="mr-2">•</span>
-          <span><strong>初级认证：</strong>完成基础身份信息认证的用户，可设置提币限额</span>
+          <span><strong>初级认证：</strong>完成基础身份信息认证的用户，可配置所需证件类型</span>
         </li>
         <li class="flex items-start">
           <span class="mr-2">•</span>
-          <span><strong>高级认证：</strong>完成完整身份认证的用户，通常给予最高权限和无限额度</span>
+          <span><strong>高级认证：</strong>完成完整身份认证的用户，可勾选需要上传的证件清单</span>
         </li>
         <li class="flex items-start">
           <span class="mr-2">•</span>
-          <span><strong>最小出金金额：</strong>按 U 本位配置，为单笔出金下限（不是每日限额）</span>
+          <span><strong>未认证用户：</strong>未完成任何身份认证的用户，可按业务需要收紧入金、出金与各交易品种</span>
         </li>
         <li class="flex items-start">
           <span class="mr-2">•</span>

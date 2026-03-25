@@ -8,7 +8,6 @@ const activeTab = ref('basic')
 
 // 表单数据
 const formData = ref({
-  enabled: true,
   maxScore: 100,
   initialScore: 60,
   rechargeAmount: 100000,
@@ -188,7 +187,6 @@ const canUpgradeToVip1 = computed(() => {
 onMounted(() => {
   const config = getAllCreditScoreConfig()
   formData.value = {
-    enabled: config[CREDIT_SCORE_CONFIG_KEYS.ENABLED],
     maxScore: config[CREDIT_SCORE_CONFIG_KEYS.MAX_SCORE],
     initialScore: config[CREDIT_SCORE_CONFIG_KEYS.INITIAL_SCORE],
     rechargeAmount: config[CREDIT_SCORE_CONFIG_KEYS.RECHARGE_AMOUNT],
@@ -281,7 +279,7 @@ const saveConfig = () => {
   // 模拟保存
   setTimeout(() => {
     updateCreditScoreConfigs({
-      [CREDIT_SCORE_CONFIG_KEYS.ENABLED]: formData.value.enabled,
+      [CREDIT_SCORE_CONFIG_KEYS.ENABLED]: true,
       [CREDIT_SCORE_CONFIG_KEYS.MAX_SCORE]: formData.value.maxScore,
       [CREDIT_SCORE_CONFIG_KEYS.INITIAL_SCORE]: formData.value.initialScore,
       [CREDIT_SCORE_CONFIG_KEYS.RECHARGE_AMOUNT]: formData.value.rechargeAmount,
@@ -391,31 +389,6 @@ const tabs = [
             </svg>
             {{ isSaving ? '保存中...' : '保存配置' }}
           </button>
-        </div>
-
-        <!-- 系统开关 -->
-        <div class="rounded-xl border border-slate-200 bg-white p-6">
-          <div class="flex items-center justify-between">
-            <div>
-              <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                <svg class="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" />
-                </svg>
-                信用分系统
-              </h2>
-              <p class="text-sm text-slate-500 mt-1">开启后，平台将启用信用分功能</p>
-            </div>
-            <button
-              @click="formData.enabled = !formData.enabled"
-              :class="formData.enabled ? 'bg-blue-600' : 'bg-slate-300'"
-              class="relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            >
-              <span
-                :class="formData.enabled ? 'translate-x-6' : 'translate-x-1'"
-                class="inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-sm"
-              />
-            </button>
-          </div>
         </div>
 
         <!-- 标签页导航 -->

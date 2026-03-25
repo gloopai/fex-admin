@@ -12,22 +12,22 @@ export const verificationConfig = {
     level: VERIFICATION_LEVEL.NONE,
     levelName: '未认证',
     canDeposit: true,
-    canTrade: true,
-    canWithdraw: true,
-    withdrawMinAmount: 100, // 单笔最小出金金额（U）
-    withdrawLimit: null, // null表示无限制
+    canWithdraw: false,
+    canSpotTrade: false,
+    canDeliveryContract: false,
+    canPerpetualContract: false,
     requireDocuments: [],
     description: '未完成身份认证的用户'
   },
-  // 普通认证权限
+  // 初级认证权限
   [VERIFICATION_LEVEL.BASIC]: {
     level: VERIFICATION_LEVEL.BASIC,
-    levelName: '普通认证',
+    levelName: '初级认证',
     canDeposit: true,
-    canTrade: true,
     canWithdraw: true,
-    withdrawMinAmount: 50, // 单笔最小出金金额（U）
-    withdrawLimit: 10000, // 每日提币限额（USDT）
+    canSpotTrade: true,
+    canDeliveryContract: false,
+    canPerpetualContract: false,
     requireDocuments: [
       // VERIFICATION_DOC_TYPE.ID_CARD  // 当前配置不需要上传证件
     ],
@@ -38,10 +38,10 @@ export const verificationConfig = {
     level: VERIFICATION_LEVEL.ADVANCED,
     levelName: '高级认证',
     canDeposit: true,
-    canTrade: true,
     canWithdraw: true,
-    withdrawMinAmount: 10, // 单笔最小出金金额（U）
-    withdrawLimit: null, // 无限制
+    canSpotTrade: true,
+    canDeliveryContract: true,
+    canPerpetualContract: true,
     requireDocuments: [
       VERIFICATION_DOC_TYPE.ID_CARD,
       VERIFICATION_DOC_TYPE.ID_CARD_HOLD,
@@ -298,7 +298,7 @@ export const verificationLogList = [
     operator: 'admin_01',
     beforeLevel: VERIFICATION_LEVEL.NONE,
     afterLevel: VERIFICATION_LEVEL.BASIC,
-    description: '普通认证审核通过',
+    description: '初级认证审核通过',
     details: {
       auditId: 'audit_1',
       processTime: '2小时15分钟'
@@ -366,7 +366,7 @@ export const verificationLogList = [
     description: '更新认证配置规则',
     details: {
       changes: [
-        { field: '普通认证提币限额', before: '5000 USDT', after: '10000 USDT' },
+        { field: '初级认证提币限额', before: '5000 USDT', after: '10000 USDT' },
         { field: '高级认证需要手持身份证', before: '是', after: '否' }
       ]
     }
@@ -390,7 +390,7 @@ export const verificationLogList = [
     operator: 'admin_01',
     beforeLevel: VERIFICATION_LEVEL.NONE,
     afterLevel: VERIFICATION_LEVEL.BASIC,
-    description: '普通认证审核通过',
+    description: '初级认证审核通过',
     details: {
       auditId: 'audit_8',
       processTime: '3小时42分钟'

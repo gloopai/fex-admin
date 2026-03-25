@@ -333,6 +333,11 @@ export const consoleRoutes = [
     component: () => import('../../pages/admin/user/VipConfigPage.vue')
   },
   {
+    path: 'users/withdraw-policy',
+    name: 'users-withdraw-policy',
+    component: () => import('../../pages/admin/user/WithdrawPolicyPage.vue')
+  },
+  {
     path: 'users/vip-upgrades',
     name: 'users-vip-upgrades',
     component: () => import('../../pages/admin/user/CreditScoreUpgradesPage.vue')
