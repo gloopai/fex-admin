@@ -12,10 +12,10 @@ const emit = defineEmits(['close'])
 const close = () => emit('close')
 
 const statusConfig = {
-  [USER_STATUS.ACTIVE]: { text: '正常', class: 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200' },
+  [USER_STATUS.ACTIVE]: { text: '正常', class: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' },
   [USER_STATUS.INACTIVE]: { text: '不活跃', class: 'bg-slate-100 text-slate-700 ring-1 ring-slate-200' },
-  [USER_STATUS.SUSPENDED]: { text: '暂停', class: 'bg-amber-100 text-amber-700 ring-1 ring-amber-200' },
-  [USER_STATUS.BANNED]: { text: '禁用', class: 'bg-rose-100 text-rose-700 ring-1 ring-rose-200' }
+  [USER_STATUS.SUSPENDED]: { text: '暂停', class: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
+  [USER_STATUS.BANNED]: { text: '禁用', class: 'bg-rose-50 text-rose-700 ring-1 ring-rose-200' }
 }
 
 const roleConfig = {
@@ -53,14 +53,9 @@ const formatDateTime = (dateString) => {
   if (!dateString) return '-'
   const d = new Date(dateString)
   if (Number.isNaN(d.getTime())) return '-'
-  return d.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  })
+
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
 }
 
 const formatAddress = (addr) => {
@@ -136,11 +131,17 @@ const incomeList = computed(() => {
 })
 
 const tabs = [
-  { id: 'assets', label: '账户资产' },
-  { id: 'income', label: '入金' },
-  { id: 'trades', label: '交易记录' },
-  { id: 'perp', label: '永久合约' },
-  { id: 'freeze', label: '冻结' }
+  { id: 'assets', label: '资产' },
+  { id: 'favorites', label: '自选' },
+  { id: 'withdrawAddress', label: '出金地址' },
+  { id: 'opsLog', label: '操作日志' },
+  { id: 'income', label: '入金记录' },
+  { id: 'withdrawRecords', label: '出金记录' },
+  { id: 'swap', label: '兑换' },
+  { id: 'stake', label: '质押' },
+  { id: 'contracts', label: '交易合约' },
+  { id: 'perp', label: '永续合约' },
+  { id: 'spot', label: '现货' }
 ]
 
 const activeTab = ref('assets')
@@ -178,11 +179,185 @@ const computedAssets = computed(() => {
   }
 })
 
+const depositAccountOptions = computed(() => {
+  const a = computedAssets.value
+  if (!a) return []
+  return [
+    { key: 'market', label: '市币账户', value: a.marketAccount },
+    { key: 'wealth', label: '理财账户', value: a.wealthAccount },
+    { key: 'trading', label: '交易合约', value: a.tradingContract },
+    { key: 'perp', label: '永续合约', value: a.perpetualContract }
+  ]
+})
+
+const transferAccountOptions = computed(() => {
+  const a = computedAssets.value
+  if (!a) return []
+  return [
+    { key: 'market', label: '市币' },
+    { key: 'wealth', label: '理财' },
+    { key: 'trading', label: '交易合约' },
+    { key: 'perp', label: '永续合约' }
+  ]
+})
+
+const coinOptions = [
+  { key: 'USDT', label: 'USDT' },
+  { key: 'USDC', label: 'USDC' },
+  { key: 'ETH', label: 'ETH' }
+]
+
+const transferFromBalance = computed(() => {
+  const a = computedAssets.value
+  if (!a) return null
+  const fromKey = actionForm.value.transferFromAccountKey
+  if (fromKey === 'market') return a.marketAccount
+  if (fromKey === 'wealth') return a.wealthAccount
+  if (fromKey === 'trading') return a.tradingContract
+  if (fromKey === 'perp') return a.perpetualContract
+  return null
+})
+
+const setTransferAll = () => {
+  const v = transferFromBalance.value
+  if (v === null) return
+  actionForm.value.transferAmount = String(v.toFixed(2))
+}
+
+// 操作区：封户 / 入金 / 划转（当前先做前端交互占位）
+const actionType = ref(null)
+const showActionModal = ref(false)
+
+const actionForm = ref({
+  reason: '',
+  depositAmount: '',
+  depositAccountKey: 'market',
+  remark: '',
+  transferFromAccountKey: 'market',
+  transferToAccountKey: 'trading',
+  transferCoinKey: '',
+  transferAmount: ''
+})
+
+const toast = ref({ visible: false, message: '' })
+let toastTimer = null
+
+const openAction = (type) => {
+  actionType.value = type
+  actionForm.value = {
+    reason: '',
+    depositAmount: '',
+    depositAccountKey: 'market',
+    remark: '',
+    transferFromAccountKey: 'market',
+    transferToAccountKey: 'trading',
+    transferCoinKey: '',
+    transferAmount: ''
+  }
+  showActionModal.value = true
+}
+
+const closeActionModal = () => {
+  showActionModal.value = false
+  actionType.value = null
+}
+
+const freezeDialog = computed(() => {
+  const current = props.user?.status
+  const isUnfreeze = [USER_STATUS.SUSPENDED, USER_STATUS.BANNED].includes(current)
+  const targetStatus = isUnfreeze ? USER_STATUS.ACTIVE : USER_STATUS.SUSPENDED
+  const targetText = statusConfig[targetStatus]?.text || (isUnfreeze ? '正常' : '暂停')
+
+  return {
+    isUnfreeze,
+    targetStatus,
+    targetText,
+    confirmText: isUnfreeze ? '确认解锁' : '确认封户',
+    confirmButtonClass: isUnfreeze
+      ? 'bg-emerald-600 hover:bg-emerald-700'
+      : 'bg-rose-600 hover:bg-rose-700'
+  }
+})
+
+const actionConfirmText = computed(() => {
+  if (actionType.value === 'deposit') return '确认入金操作'
+  if (actionType.value === 'transfer') return '划转'
+  if (actionType.value === 'freeze') return freezeDialog.value.confirmText
+  return '确认'
+})
+
+const actionConfirmButtonClass = computed(() => {
+  if (actionType.value === 'freeze') return freezeDialog.value.confirmButtonClass
+  return 'bg-blue-600 hover:bg-blue-700'
+})
+
+const showToast = (message) => {
+  toast.value.message = message
+  toast.value.visible = true
+  if (toastTimer) clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => {
+    toast.value.visible = false
+  }, 2500)
+}
+
+const submitAction = () => {
+  if (!props.user) return
+
+  if (actionType.value === 'freeze') {
+    const meta = freezeDialog.value
+    showToast(`已提交${meta.confirmText}`)
+    closeActionModal()
+    return
+  }
+
+  if (actionType.value === 'deposit') {
+    const amount = String(actionForm.value.depositAmount || '').trim()
+    if (!amount || Number.isNaN(Number(amount))) {
+      showToast('请输入有效的入金金额')
+      return
+    }
+    if (!actionForm.value.depositAccountKey) {
+      showToast('请选择入金账户')
+      return
+    }
+    showToast(`已提交入金：${amount}`)
+    closeActionModal()
+    return
+  }
+
+  if (actionType.value === 'transfer') {
+    const amount = String(actionForm.value.transferAmount || '').trim()
+    const fromKey = String(actionForm.value.transferFromAccountKey || '').trim()
+    const toKey = String(actionForm.value.transferToAccountKey || '').trim()
+    const coinKey = String(actionForm.value.transferCoinKey || '').trim()
+
+    if (!fromKey) {
+      showToast('请选择“从”账户')
+      return
+    }
+    if (!amount || Number.isNaN(Number(amount))) {
+      showToast('请输入有效的划转数量')
+      return
+    }
+    if (!toKey) {
+      showToast('请选择“到”账户')
+      return
+    }
+    if (!coinKey) {
+      showToast('请选择币种')
+      return
+    }
+
+    showToast(`已提交划转：${amount} ${coinOptions.find((c) => c.key === coinKey)?.label || coinKey}`)
+    closeActionModal()
+  }
+}
+
 const tabButtonClass = (id) => {
   const active = activeTab.value === id
   return active
-    ? 'text-blue-600 border-blue-500 font-semibold'
-    : 'text-slate-500 border-transparent hover:text-slate-700'
+    ? 'text-blue-600 border-blue-500 bg-white'
+    : 'text-slate-500 border-transparent hover:text-slate-700 bg-transparent'
 }
 </script>
 
@@ -198,100 +373,118 @@ const tabButtonClass = (id) => {
           class="user-detail-drawer-panel absolute left-0 right-0 top-0 flex h-[92vh] w-full flex-col overflow-hidden rounded-b-2xl border-b border-slate-200 bg-slate-50 shadow-2xl"
         >
           <!-- Header -->
-          <div class="border-b border-slate-200 bg-gradient-to-r from-white to-slate-100 px-6 py-4">
-            <div class="flex items-start justify-between gap-6">
-              <div class="flex items-start gap-4 min-w-0">
-                <div class="relative shrink-0 h-12 w-12 rounded-full bg-gradient-to-br from-slate-900 to-indigo-700">
-                  <div class="absolute inset-0 rounded-full ring-2 ring-white/60" />
-                  <div class="h-full w-full flex items-center justify-center text-white font-semibold">
+          <div class="border-b border-slate-200 bg-white px-6 py-4 relative">
+            <button
+              type="button"
+              class="absolute right-6 top-4 z-10 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+              @click="close"
+              aria-label="关闭"
+            >
+              <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+              <div class="flex items-start justify-between gap-6 w-full">
+              <div class="flex items-start gap-4 pr-4">
+                <div class="shrink-0 h-16 w-16 rounded-full overflow-hidden bg-slate-200">
+                  <div
+                    class="h-full w-full flex items-center justify-center text-white font-semibold bg-gradient-to-br from-slate-900 to-indigo-700"
+                  >
                     {{ String(user.username || 'U').slice(0, 1).toUpperCase() }}
                   </div>
                 </div>
 
-                <div class="min-w-0">
-                  <div class="flex flex-wrap items-center gap-2">
-                    <div class="text-xl font-bold text-slate-900 truncate max-w-[220px]">
-                      {{ user.username }}
-                    </div>
+                <div class="pt-1 space-y-4">
+                  <div class="flex items-center gap-3">
+                    <span class="w-[56px] text-xs text-slate-500 font-medium">UID:</span>
+                    <span class="text-sm font-semibold text-slate-900 font-mono">{{ uidNumber }}</span>
+                  </div>
 
+                  <div class="flex items-center gap-3">
+                    <span class="w-[56px] text-xs text-slate-500 font-medium">状态:</span>
                     <span
                       :class="statusConfig[user.status]?.class || 'bg-slate-100 text-slate-700 ring-1 ring-slate-200'"
-                      class="px-3 py-1 text-xs font-medium rounded-full"
+                      class="inline-flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-full"
                     >
+                      <span class="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                       {{ statusConfig[user.status]?.text || user.status }}
-                    </span>
-
-                    <span
-                      :class="roleConfig[user.role]?.class || 'bg-slate-100 text-slate-700 ring-1 ring-slate-200'"
-                      class="px-3 py-1 text-xs font-medium rounded-full"
-                    >
-                      {{ roleConfig[user.role]?.text || user.role }}
-                    </span>
-
-                    <span
-                      v-if="user.isVip"
-                      class="px-3 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-700 ring-1 ring-amber-200"
-                    >
-                      VIP
                     </span>
                   </div>
 
-                  <div class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
-                    <span class="font-mono text-slate-600">UID: {{ uidNumber }}</span>
-                    <span class="truncate max-w-[320px]">{{ user.email }}</span>
-                    <span class="font-mono">{{ user.phone }}</span>
+                  <div class="flex items-center gap-3">
+                    <span class="w-[56px] text-xs text-slate-500 font-medium">账号:</span>
+                    <span class="text-sm font-semibold text-slate-900">{{ user.username }}</span>
+                  </div>
+
+                  <div class="flex items-center gap-3">
+                    <span class="w-[56px] text-xs text-slate-500 font-medium">邮箱:</span>
+                    <span class="text-sm font-semibold text-slate-900">{{ user.email }}</span>
                   </div>
                 </div>
               </div>
 
-              <div class="flex items-start gap-4">
-                <div class="mt-1 hidden sm:flex items-center gap-2">
-                  <button type="button" class="px-3 py-1.5 text-sm font-medium text-slate-700 bg-white rounded-lg ring-1 ring-slate-200 hover:bg-slate-50">
-                    冻结
-                  </button>
-                  <button type="button" class="px-3 py-1.5 text-sm font-medium text-slate-700 bg-white rounded-lg ring-1 ring-slate-200 hover:bg-slate-50">
-                    更新
-                  </button>
-                  <button type="button" class="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-                    入金
-                  </button>
+              <div class="space-y-4 pt-1 flex-shrink-0">
+                <div class="flex items-center gap-3">
+                  <span class="w-[140px] text-xs text-slate-500 font-medium">最后登录时间:</span>
+                  <span class="text-sm font-semibold text-slate-900">{{ formatDateTime(user.lastLoginTime) }}</span>
                 </div>
+                <div class="flex items-center gap-3">
+                  <span class="w-[140px] text-xs text-slate-500 font-medium">最后登录IP:</span>
+                  <span class="text-sm font-semibold text-slate-900 font-mono">{{ user.lastLoginIp || '-' }}</span>
+                </div>
+                <div class="flex items-center gap-3">
+                  <span class="w-[140px] text-xs text-slate-500 font-medium">最后登录地址:</span>
+                  <span class="text-sm font-semibold text-slate-900">Beijing, China</span>
+                </div>
+              </div>
 
+              <!-- 操作按钮列：放到用户信息右侧 -->
+              <div class="pt-1 flex flex-col gap-2 flex-shrink-0 mr-12">
                 <button
                   type="button"
-                  class="shrink-0 text-slate-400 hover:text-slate-600 transition-colors"
-                  @click="close"
-                  aria-label="关闭"
+                  class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg ring-1 bg-white transition-colors"
+                  :class="freezeDialog.isUnfreeze ? 'ring-emerald-200 text-emerald-700 hover:bg-emerald-50' : 'ring-rose-200 text-rose-700 hover:bg-rose-50'"
+                  @click="openAction('freeze')"
                 >
-                  <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
+                  {{ freezeDialog.isUnfreeze ? '解封' : '封户' }}
+                </button>
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg ring-1 ring-slate-200 text-slate-700 bg-white hover:bg-slate-50 transition-colors"
+                  @click="openAction('deposit')"
+                >
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 1v22" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 5l-5-4-5 4" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 19l5 4 5-4" />
+                  </svg>
+                  入金
+                </button>
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                  @click="openAction('transfer')"
+                >
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 17L17 7" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h10v10" />
+                  </svg>
+                  划转
                 </button>
               </div>
             </div>
 
-            <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-              <section class="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                <div class="text-xs text-slate-500">最后登录时间</div>
-                <div class="mt-1 text-sm font-medium text-slate-900">{{ formatDateTime(user.lastLoginTime) }}</div>
-              </section>
-              <section class="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                <div class="text-xs text-slate-500">最后登录IP</div>
-                <div class="mt-1 text-sm font-mono text-slate-900">{{ user.lastLoginIp || '-' }}</div>
-              </section>
-              <section class="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                <div class="text-xs text-slate-500">最后登录地区</div>
-                <div class="mt-1 text-sm font-medium text-slate-900">Beijing, China</div>
-              </section>
-            </div>
-
             <!-- Tabs -->
-            <nav class="mt-4 flex items-center gap-2 overflow-x-auto border-b border-slate-200">
+            <nav class="mt-3 flex items-center gap-0 overflow-x-auto bg-slate-50 border-b border-slate-200">
               <button
                 v-for="t in tabs"
                 :key="t.id"
                 type="button"
-                class="shrink-0 px-3 py-2 text-sm font-medium border-b-2 transition-colors"
+                class="shrink-0 px-3 py-3 text-sm font-medium border-b-2 border-transparent transition-colors whitespace-nowrap"
                 :class="tabButtonClass(t.id)"
                 @click="activeTab = t.id"
               >
@@ -367,29 +560,29 @@ const tabButtonClass = (id) => {
 
               <section class="mt-6 rounded-xl border border-slate-200 bg-white p-5">
                 <div class="flex items-center justify-between gap-4">
-                  <div class="text-sm font-semibold text-slate-900">概览信息</div>
-                  <div class="text-xs text-slate-500">可快速查看用户基础与关系</div>
+                  <div class="text-sm font-semibold text-slate-900">入金区块链地址</div>
+                  <div class="text-xs text-slate-500">最近三条（模拟数据）</div>
                 </div>
 
-                <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-                  <div class="rounded-lg bg-slate-50 px-3 py-2">
-                    <div class="text-xs text-slate-500">上级</div>
-                    <div class="mt-1 text-sm font-medium text-slate-900">
-                      {{ user.parentUsername || '-' }}
-                    </div>
-                  </div>
-                  <div class="rounded-lg bg-slate-50 px-3 py-2">
-                    <div class="text-xs text-slate-500">注册时间</div>
-                    <div class="mt-1 text-sm font-medium text-slate-900">
-                      {{ formatDateTime(user.registerTime) }}
-                    </div>
-                  </div>
-                  <div class="rounded-lg bg-slate-50 px-3 py-2">
-                    <div class="text-xs text-slate-500">备注</div>
-                    <div class="mt-1 text-sm font-medium text-slate-900">
-                      {{ user.remark || '-' }}
-                    </div>
-                  </div>
+                <div class="mt-4 overflow-x-auto">
+                  <table class="min-w-[520px] w-full">
+                    <thead class="bg-slate-50 border-b border-slate-200">
+                      <tr>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">公链</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">地址</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">创建时间</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200">
+                      <tr v-for="row in incomeList" :key="row.address + row.createdAt" class="hover:bg-slate-50 transition-colors">
+                        <td class="px-4 py-3 text-sm text-slate-700">{{ row.chain }}</td>
+                        <td class="px-4 py-3 text-sm">
+                          <span class="font-mono text-slate-800">{{ formatAddress(row.address) }}</span>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-slate-700">{{ formatDateTime(row.createdAt) }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </section>
             </template>
@@ -428,13 +621,13 @@ const tabButtonClass = (id) => {
               </section>
             </template>
 
-            <!-- Trades -->
-            <template v-else-if="activeTab === 'trades'">
+            <!-- Contracts / placeholders -->
+            <template v-else-if="activeTab === 'contracts'">
               <section class="rounded-xl border border-slate-200 bg-white p-5">
-                <div class="text-sm font-semibold text-slate-900">交易记录</div>
-                <div class="mt-1 text-xs text-slate-500">当前页面仅展示入金表格样式；其余标签页用于预留结构。</div>
+                <div class="text-sm font-semibold text-slate-900">交易合约</div>
+                <div class="mt-1 text-xs text-slate-500">预留结构（可后续接入真实接口）</div>
                 <div class="mt-4 rounded-lg bg-slate-50 px-4 py-4 text-sm text-slate-600">
-                  暂无数据（可后续接入真实交易接口）
+                  暂无数据
                 </div>
               </section>
             </template>
@@ -442,36 +635,259 @@ const tabButtonClass = (id) => {
             <!-- Perp -->
             <template v-else-if="activeTab === 'perp'">
               <section class="rounded-xl border border-slate-200 bg-white p-5">
-                <div class="text-sm font-semibold text-slate-900">永久合约</div>
-                <div class="mt-1 text-xs text-slate-500">预留结构</div>
+                <div class="text-sm font-semibold text-slate-900">永续合约</div>
+                <div class="mt-1 text-xs text-slate-500">预留结构（可后续接入真实接口）</div>
                 <div class="mt-4 rounded-lg bg-slate-50 px-4 py-4 text-sm text-slate-600">
                   暂无数据
                 </div>
               </section>
             </template>
 
-            <!-- Freeze -->
-            <template v-else-if="activeTab === 'freeze'">
+            <!-- Other tabs placeholders -->
+            <template v-else>
               <section class="rounded-xl border border-slate-200 bg-white p-5">
-                <div class="text-sm font-semibold text-slate-900">冻结资金</div>
-                <div class="mt-1 text-xs text-slate-500">可快速查看冻结余额与影响</div>
-                <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-                  <div class="rounded-lg bg-slate-50 px-4 py-3">
-                    <div class="text-xs text-slate-500">冻结金额</div>
-                    <div class="mt-1 text-2xl font-semibold text-slate-900">
-                      {{ formatMoney(user.frozenBalance) }}
-                    </div>
-                  </div>
-                  <div class="rounded-lg bg-slate-50 px-4 py-3">
-                    <div class="text-xs text-slate-500">备注</div>
-                    <div class="mt-1 text-sm font-medium text-slate-900">
-                      {{ user.remark || '-' }}
-                    </div>
-                  </div>
+                <div class="text-sm font-semibold text-slate-900">
+                  {{
+                    tabs.find((t) => t.id === activeTab)?.label || '详情'
+                  }}
+                </div>
+                <div class="mt-1 text-xs text-slate-500">预留结构（可后续接入真实接口）</div>
+                <div class="mt-4 rounded-lg bg-slate-50 px-4 py-4 text-sm text-slate-600">
+                  暂无数据
                 </div>
               </section>
             </template>
           </div>
+
+          <!-- 操作弹窗与 Toast -->
+          <Teleport to="body">
+            <Transition
+              enter-active-class="transition ease-out duration-200"
+              enter-from-class="opacity-0"
+              enter-to-class="opacity-100"
+              leave-active-class="transition ease-in duration-150"
+              leave-from-class="opacity-100"
+              leave-to-class="opacity-0"
+            >
+              <div
+                v-if="showActionModal"
+                class="fixed inset-0 z-[60] bg-black/40 grid place-items-center p-4"
+                @click.self="closeActionModal"
+              >
+                <section class="w-full max-w-md rounded-xl border border-slate-200 bg-white shadow-lg overflow-hidden">
+                  <header class="px-5 py-3 border-b border-slate-100 bg-white">
+                    <div class="flex items-start justify-between gap-4">
+                      <div>
+                        <div class="text-xs font-medium tracking-wide text-slate-500">操作</div>
+                        <div class="mt-1 text-base font-semibold text-slate-900">
+                          {{
+                            actionType === 'freeze'
+                              ? '确认操作'
+                              : actionType === 'deposit'
+                                ? '入金'
+                                : actionType === 'transfer'
+                                  ? '划转'
+                                  : '操作'
+                          }}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-colors"
+                        @click="closeActionModal"
+                        aria-label="关闭弹窗"
+                      >
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  </header>
+
+                  <form class="px-5 py-4" @submit.prevent="submitAction">
+                    <div v-if="actionType === 'freeze'" class="space-y-3">
+                      <div class="text-sm text-slate-700 leading-6">
+                        您确定要将账户
+                        <span class="font-semibold text-slate-900">{{ user.username }}</span>
+                        的状态更改为
+                        <span class="font-semibold text-slate-900">{{ freezeDialog.targetText }}</span>
+                        吗？
+                      </div>
+                    </div>
+
+                    <div v-else-if="actionType === 'deposit'" class="space-y-3">
+                      <section class="rounded-xl bg-slate-100 p-5">
+                        <div class="flex items-start justify-between gap-4">
+                          <div>
+                            <div class="text-base font-semibold text-slate-900">
+                              {{ user.username }} 账户资产
+                            </div>
+                            <div class="mt-4 grid grid-cols-2 gap-y-3">
+                              <div class="flex items-center gap-2">
+                                <div class="text-sm text-slate-600 whitespace-nowrap">市币账户：</div>
+                                <div class="text-sm font-semibold text-slate-900">
+                                  {{ computedAssets ? formatMoney(computedAssets.marketAccount, { min: 2, max: 2 }) : '-' }}
+                                </div>
+                              </div>
+                              <div class="flex items-center gap-2">
+                                <div class="text-sm text-slate-600 whitespace-nowrap">理财账户：</div>
+                                <div class="text-sm font-semibold text-slate-900">
+                                  {{ computedAssets ? formatMoney(computedAssets.wealthAccount, { min: 2, max: 2 }) : '-' }}
+                                </div>
+                              </div>
+                              <div class="flex items-center gap-2">
+                                <div class="text-sm text-slate-600 whitespace-nowrap">交易合约：</div>
+                                <div class="text-sm font-semibold text-slate-900">
+                                  {{ computedAssets ? formatMoney(computedAssets.tradingContract, { min: 2, max: 2 }) : '-' }}
+                                </div>
+                              </div>
+                              <div class="flex items-center gap-2">
+                                <div class="text-sm text-slate-600 whitespace-nowrap">永续合约：</div>
+                                <div class="text-sm font-semibold text-slate-900">
+                                  {{ computedAssets ? formatMoney(computedAssets.perpetualContract, { min: 2, max: 2 }) : '-' }}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </section>
+
+                      <div>
+                        <div class="text-sm font-medium text-slate-700 mb-2">选择入金账户：</div>
+                        <select
+                          v-model="actionForm.depositAccountKey"
+                          class="w-full rounded-xl border-2 border-blue-600 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                        >
+                          <option v-for="opt in depositAccountOptions" :key="opt.key" :value="opt.key">
+                            {{ opt.label }}
+                          </option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <div class="text-sm font-medium text-slate-700 mb-2">操作入金数量：</div>
+                        <input
+                          v-model="actionForm.depositAmount"
+                          type="number"
+                          step="0.01"
+                          class="w-full rounded-xl bg-slate-100 px-4 py-3 text-sm outline-none focus:bg-white border border-slate-100"
+                          placeholder="请输入入金数量"
+                        />
+                      </div>
+
+                      <div>
+                        <div class="text-sm font-medium text-slate-700 mb-2">备注：</div>
+                        <textarea
+                          v-model="actionForm.remark"
+                          rows="4"
+                          class="w-full rounded-xl bg-slate-100 px-4 py-3 text-sm outline-none focus:bg-white border border-slate-100"
+                          placeholder="请输入备注信息（可选）"
+                        />
+                      </div>
+                    </div>
+
+                    <div v-else-if="actionType === 'transfer'" class="space-y-4">
+                      <div>
+                        <div class="text-sm font-medium text-slate-700 mb-2">从</div>
+                        <select
+                          v-model="actionForm.transferFromAccountKey"
+                          class="w-full rounded-xl border-2 border-blue-600 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                        >
+                          <option v-for="opt in transferAccountOptions" :key="opt.key" :value="opt.key">
+                            {{ opt.label }}
+                          </option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <div class="text-sm font-medium text-slate-700 mb-2">到</div>
+                        <select
+                          v-model="actionForm.transferToAccountKey"
+                          class="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none"
+                        >
+                          <option v-for="opt in transferAccountOptions" :key="opt.key" :value="opt.key">
+                            {{ opt.label }}
+                          </option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <div class="text-sm font-medium text-slate-700 mb-2">币种</div>
+                        <select
+                          v-model="actionForm.transferCoinKey"
+                          class="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none"
+                        >
+                          <option disabled value="">请选择</option>
+                          <option v-for="c in coinOptions" :key="c.key" :value="c.key">
+                            {{ c.label }}
+                          </option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-sm font-medium text-slate-700">划转数量</div>
+                        </div>
+
+                        <div class="relative">
+                          <input
+                            v-model="actionForm.transferAmount"
+                            type="number"
+                            step="0.01"
+                            class="w-full rounded-xl bg-slate-100 px-4 py-3 text-sm outline-none border border-slate-100 pr-28"
+                            placeholder="请输入划转的数量"
+                          />
+                          <button
+                            type="button"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-blue-600 hover:text-blue-700"
+                            @click="setTransferAll"
+                          >
+                            全部
+                          </button>
+                        </div>
+
+                        <div class="mt-2 text-sm text-slate-600">
+                          余额: {{ transferFromBalance !== null ? formatMoney(transferFromBalance, { min: 2, max: 2 }) : '-' }}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="mt-5" :class="actionType === 'transfer' ? '' : 'flex justify-end gap-3'">
+                      <button
+                        v-if="actionType !== 'transfer'"
+                        type="button"
+                        class="px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+                        @click="closeActionModal"
+                      >
+                        取消
+                      </button>
+                      <button
+                        type="submit"
+                        class="px-5 py-2.5 text-sm font-medium text-white rounded-lg transition-colors"
+                        :class="actionType === 'transfer'
+                          ? 'w-full px-6 py-4 rounded-xl text-base'
+                          : actionConfirmButtonClass"
+                      >
+                        {{ actionConfirmText }}
+                      </button>
+                    </div>
+                  </form>
+                </section>
+              </div>
+            </Transition>
+
+            <div
+              v-if="toast.visible"
+              class="fixed top-4 right-4 z-[70] bg-white border border-blue-200 rounded-lg shadow-lg px-4 py-3 flex items-center gap-3"
+            >
+              <div class="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <span class="text-sm font-medium text-slate-900">{{ toast.message }}</span>
+            </div>
+          </Teleport>
 
           <!-- Footer -->
           <div class="shrink-0 border-t border-slate-200 bg-white px-6 py-4">
