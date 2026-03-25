@@ -11,11 +11,18 @@ const showPayload = ref(false)
 /** 初级已通过后默认收起，避免高级区块被挤到视口外 */
 const expandBasicPrimary = ref(false)
 
+const BASIC_DOC_TYPE_OPTIONS = [
+  { value: 'national_id', label: 'National ID / 身份证' },
+  { value: 'passport', label: 'Passport / 护照' },
+  { value: 'driver_license', label: "Driver's License / 驾驶证" },
+  { value: 'residence_permit', label: 'Residence Permit / 居留许可' }
+]
+
 const basicForm = ref({
   country: '',
   city: '',
   name: '',
-  docType: '身份证',
+  docType: BASIC_DOC_TYPE_OPTIONS[0].value,
   docNumber: '',
   email: ''
 })
@@ -103,6 +110,11 @@ const getDocLabel = (docType) => {
   const single = singleImageDocs.find((it) => it.key === docType)
   if (single) return single.label
   const found = VERIFICATION_DOC_TYPE_OPTIONS.find((it) => it.value === docType)
+  return found ? found.label : docType
+}
+
+const getBasicDocTypeLabel = (docType) => {
+  const found = BASIC_DOC_TYPE_OPTIONS.find((it) => it.value === docType)
   return found ? found.label : docType
 }
 
@@ -360,7 +372,11 @@ const resetFlow = () => {
             <input v-model="basicForm.country" class="rounded-lg border border-white/20 bg-white/5 px-4 py-3 text-sm" placeholder="国家" />
             <input v-model="basicForm.city" class="rounded-lg border border-white/20 bg-white/5 px-4 py-3 text-sm" placeholder="所在城市" />
             <input v-model="basicForm.name" class="rounded-lg border border-white/20 bg-white/5 px-4 py-3 text-sm" placeholder="姓名" />
-            <input v-model="basicForm.docType" class="rounded-lg border border-white/20 bg-white/5 px-4 py-3 text-sm" placeholder="证件类型" />
+            <select v-model="basicForm.docType" class="rounded-lg border border-white/20 bg-white/5 px-4 py-3 text-sm">
+              <option v-for="option in BASIC_DOC_TYPE_OPTIONS" :key="option.value" :value="option.value" class="bg-[#111]">
+                {{ option.label }}
+              </option>
+            </select>
             <input v-model="basicForm.docNumber" class="rounded-lg border border-white/20 bg-white/5 px-4 py-3 text-sm" placeholder="证件号码" />
             <input v-model="basicForm.email" class="rounded-lg border border-white/20 bg-white/5 px-4 py-3 text-sm" placeholder="邮箱" />
           </div>
@@ -369,7 +385,11 @@ const resetFlow = () => {
             <input v-model="basicForm.country" class="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/45" disabled />
             <input v-model="basicForm.city" class="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/45" disabled />
             <input v-model="basicForm.name" class="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/45" disabled />
-            <input v-model="basicForm.docType" class="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/45" disabled />
+            <select v-model="basicForm.docType" class="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/45" disabled>
+              <option v-for="option in BASIC_DOC_TYPE_OPTIONS" :key="option.value" :value="option.value" class="bg-[#111]">
+                {{ option.label }}
+              </option>
+            </select>
             <input v-model="basicForm.docNumber" class="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/45" disabled />
             <input v-model="basicForm.email" class="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/45" disabled />
           </div>
@@ -407,7 +427,7 @@ const resetFlow = () => {
               <div class="text-white/55">姓名</div>
               <div class="text-white/90">{{ basicForm.name || '-' }}</div>
               <div class="text-white/55">证件类型</div>
-              <div class="text-white/90">{{ basicForm.docType || '-' }}</div>
+              <div class="text-white/90">{{ getBasicDocTypeLabel(basicForm.docType) || '-' }}</div>
               <div class="text-white/55">证件号码</div>
               <div class="text-white/90">{{ basicForm.docNumber || '-' }}</div>
               <div class="text-white/55">邮箱</div>
