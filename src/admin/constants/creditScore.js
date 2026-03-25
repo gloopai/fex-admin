@@ -84,6 +84,9 @@ export const CREDIT_SCORE_CONFIG_KEYS = {
 
   // 自定义扣分行为（扩展规则）
   DEDUCTION_CUSTOM_RULES: 'creditScore.deductionCustomRules',
+
+  // 自定义加分行为（扩展规则）
+  EARN_CUSTOM_RULES: 'creditScore.earnCustomRules',
   
   // 人工审核配置
   MANUAL_AUDIT_ENABLED: 'creditScore.manualAuditEnabled',  // 人工审核开关

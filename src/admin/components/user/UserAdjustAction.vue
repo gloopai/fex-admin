@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { vipLevels, getVipLevelByCreditScore } from '../../mock/vip'
 import { getAllCreditScoreConfig } from '../../mock/creditScore'
 import { CREDIT_SCORE_CONFIG_KEYS, CREDIT_SCORE_CHANGE_TYPE } from '../../constants/creditScore'
@@ -12,13 +12,17 @@ const emit = defineEmits(['submit'])
 
 const config = computed(() => getAllCreditScoreConfig())
 const minScore = computed(() => Number(config.value[CREDIT_SCORE_CONFIG_KEYS.MIN_SCORE] ?? 0))
-const maxScore = computed(() => Number(config.value[CREDIT_SCORE_CONFIG_KEYS.MAX_SCORE] ?? 100))
+const maxScore = computed(() => Number(config.value[CREDIT_SCORE_CONFIG_KEYS.MAX_SCORE] ?? 800))
 const manualAuditEnabled = computed(() => Boolean(config.value[CREDIT_SCORE_CONFIG_KEYS.MANUAL_AUDIT_ENABLED]))
 const manualAuditThreshold = computed(() => Number(config.value[CREDIT_SCORE_CONFIG_KEYS.MANUAL_AUDIT_THRESHOLD] ?? 10))
 const manualAuditTypes = computed(() => config.value[CREDIT_SCORE_CONFIG_KEYS.MANUAL_AUDIT_TYPES] || [])
 
 const deductionCustomRules = computed(() => {
   return config.value[CREDIT_SCORE_CONFIG_KEYS.DEDUCTION_CUSTOM_RULES] || []
+})
+
+const earnCustomRules = computed(() => {
+  return config.value[CREDIT_SCORE_CONFIG_KEYS.EARN_CUSTOM_RULES] || []
 })
 
 const activeVipOptions = computed(() => {
@@ -41,7 +45,7 @@ const showModal = ref(false)
 const form = ref({
   vipTargetLevel: null,
   scoreDirection: 'increase', // increase | decrease
-  scoreDelta: '',
+  earnRuleId: '',
   deductionRuleId: '',
   remark: ''
 })
@@ -62,7 +66,7 @@ const open = () => {
   form.value = {
     vipTargetLevel: currentVipLevel.value,
     scoreDirection: 'increase',
-    scoreDelta: '',
+    earnRuleId: earnCustomRules.value?.[0]?.id || '',
     deductionRuleId: deductionCustomRules.value?.[0]?.id || '',
     remark: ''
   }
@@ -73,13 +77,31 @@ const close = () => {
   showModal.value = false
 }
 
-const parsedDelta = computed(() => {
-  // increase：使用输入数量
+const ensureRuleSelection = () => {
   if (form.value.scoreDirection === 'increase') {
-    const n = Number(form.value.scoreDelta)
-    if (!Number.isFinite(n)) return null
-    if (n <= 0) return null
-    return Math.floor(n)
+    const exists = earnCustomRules.value.some((r) => r.id === form.value.earnRuleId)
+    if (!exists) form.value.earnRuleId = earnCustomRules.value?.[0]?.id || ''
+  } else {
+    const exists = deductionCustomRules.value.some((r) => r.id === form.value.deductionRuleId)
+    if (!exists) form.value.deductionRuleId = deductionCustomRules.value?.[0]?.id || ''
+  }
+}
+
+watch(
+  () => [showModal.value, form.value.scoreDirection, earnCustomRules.value.length, deductionCustomRules.value.length],
+  () => {
+    if (!showModal.value) return
+    ensureRuleSelection()
+  }
+)
+
+const parsedDelta = computed(() => {
+  if (form.value.scoreDirection === 'increase') {
+    const rule = earnCustomRules.value.find((r) => r.id === form.value.earnRuleId)
+    const s = Number(rule?.score)
+    if (!Number.isFinite(s)) return null
+    if (s <= 0) return null
+    return Math.floor(s)
   }
 
   // decrease：从自定义扣分项选择
@@ -93,12 +115,12 @@ const parsedDelta = computed(() => {
 const scoreBefore = computed(() => Number(props.user?.creditScore ?? 0))
 const scoreDeltaSigned = computed(() => {
   const d = parsedDelta.value
-  if (d === null) return 0
+  if (d === null) return null
   return form.value.scoreDirection === 'decrease' ? -d : d
 })
 
 const scoreAfter = computed(() => {
-  const after = scoreBefore.value + scoreDeltaSigned.value
+  const after = scoreBefore.value + (scoreDeltaSigned.value ?? 0)
   return Math.max(minScore.value, Math.min(maxScore.value, after))
 })
 
@@ -112,7 +134,7 @@ const willChangeScore = computed(() => parsedDelta.value !== null)
 const auditHint = computed(() => {
   if (!manualAuditEnabled.value) return null
   if (!willChangeScore.value) return null
-  const absDelta = Math.abs(scoreDeltaSigned.value)
+  const absDelta = Math.abs(scoreDeltaSigned.value ?? 0)
   const needsByThreshold = absDelta >= manualAuditThreshold.value
   const allowedType = manualAuditTypes.value.includes(CREDIT_SCORE_CHANGE_TYPE.MANUAL_ADJUST)
   if (needsByThreshold && allowedType) return `提示：本次信用分变动绝对值为 ${absDelta}，达到审核阈值 ${manualAuditThreshold.value}，可能需要进入人工审核流程。`
@@ -129,10 +151,13 @@ const confirm = () => {
     if (form.value.scoreDirection === 'decrease') {
       showToast('请选择要扣分的行为')
     } else {
-      showToast('请输入有效的信用分调整数量')
+      showToast('请选择要加分的行为')
     }
     return
   }
+
+  const earnRule = earnCustomRules.value.find((r) => r.id === form.value.earnRuleId) || null
+  const deductionRule = deductionCustomRules.value.find((r) => r.id === form.value.deductionRuleId) || null
 
   const payload = {
     type: 'adjust',
@@ -144,8 +169,11 @@ const confirm = () => {
       ? {
           changeType: CREDIT_SCORE_CHANGE_TYPE.MANUAL_ADJUST,
           before: scoreBefore.value,
-          delta: scoreDeltaSigned.value,
-          after: scoreAfter.value
+          delta: scoreDeltaSigned.value ?? 0,
+          after: scoreAfter.value,
+          rule: form.value.scoreDirection === 'increase'
+            ? (earnRule ? { id: earnRule.id, name: earnRule.name, score: earnRule.score } : null)
+            : (deductionRule ? { id: deductionRule.id, name: deductionRule.name, score: deductionRule.score } : null)
         }
       : null,
     remark: String(form.value.remark || '').trim()
@@ -263,14 +291,15 @@ const confirm = () => {
                 <div>
                   <div class="text-sm font-medium text-slate-700 mb-2">数量</div>
                   <div v-if="form.scoreDirection === 'increase'">
-                    <input
-                      v-model="form.scoreDelta"
-                      type="number"
-                      min="1"
-                      step="1"
+                    <select
+                      v-model="form.earnRuleId"
                       class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
-                      placeholder="例如 5"
-                    />
+                    >
+                      <option disabled value="">请选择加分行为</option>
+                      <option v-for="r in earnCustomRules" :key="r.id" :value="r.id">
+                        {{ r.name }}（+{{ r.score }}）
+                      </option>
+                    </select>
                   </div>
 
                   <div v-else>
@@ -288,7 +317,12 @@ const confirm = () => {
               </div>
 
               <div class="mt-3 rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm text-slate-700">
-                预览：{{ scoreBefore }} {{ scoreDeltaSigned >= 0 ? '+' : '' }}{{ scoreDeltaSigned }} = <span class="font-semibold text-slate-900">{{ scoreAfter }}</span>
+                <template v-if="scoreDeltaSigned === null">
+                  预览：请选择规则
+                </template>
+                <template v-else>
+                  预览：{{ scoreBefore }} {{ scoreDeltaSigned >= 0 ? '+' : '' }}{{ scoreDeltaSigned }} = <span class="font-semibold text-slate-900">{{ scoreAfter }}</span>
+                </template>
               </div>
 
               <div v-if="auditHint" class="mt-3 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">

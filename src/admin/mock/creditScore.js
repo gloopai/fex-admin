@@ -3,7 +3,7 @@ import { CREDIT_SCORE_CHANGE_TYPE, CREDIT_SCORE_CONFIG_KEYS, CREDIT_SCORE_AUDIT_
 // 信用分配置
 export const creditScoreConfig = {
   [CREDIT_SCORE_CONFIG_KEYS.ENABLED]: true,
-  [CREDIT_SCORE_CONFIG_KEYS.MAX_SCORE]: 100,
+  [CREDIT_SCORE_CONFIG_KEYS.MAX_SCORE]: 800,
   [CREDIT_SCORE_CONFIG_KEYS.INITIAL_SCORE]: 60,
   [CREDIT_SCORE_CONFIG_KEYS.RECHARGE_AMOUNT]: 100000,
   [CREDIT_SCORE_CONFIG_KEYS.PRIMARY_KYC_SCORE]: 0,
@@ -33,6 +33,14 @@ export const creditScoreConfig = {
     { id: 'dispute', name: '交易纠纷', score: 8 },
     { id: 'malicious', name: '恶意行为', score: 20 },
     { id: 'risk_alert', name: '风控预警', score: 5 }
+  ],
+
+  // 获取规则扩展：可自定义添加
+  [CREDIT_SCORE_CONFIG_KEYS.EARN_CUSTOM_RULES]: [
+    { id: 'earn_activity', name: '活动奖励', score: 3 },
+    { id: 'earn_referral', name: '推荐奖励', score: 5 },
+    { id: 'earn_trade_volume', name: '交易量达标', score: 2 },
+    { id: 'earn_monthly_bonus', name: '月度活跃奖励', score: 1 }
   ],
   
   // 人工审核配置

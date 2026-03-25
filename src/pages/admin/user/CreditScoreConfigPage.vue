@@ -8,7 +8,7 @@ const activeTab = ref('basic')
 
 // 表单数据
 const formData = ref({
-  maxScore: 100,
+  maxScore: 800,
   initialScore: 60,
   rechargeAmount: 100000,
   primaryKycScore: 0,
@@ -31,6 +31,9 @@ const formData = ref({
 
   // 自定义扣分行为（扩展规则）
   deductionCustomRules: [],
+
+  // 自定义加分行为（扩展规则）
+  earnCustomRules: [],
   
   // 人工审核
   manualAuditEnabled: true,
@@ -66,7 +69,10 @@ const calculatorInputs = ref({
   hasDispute: false,
 
   // 自定义扣分行为勾选
-  customDeductionSelected: {}
+  customDeductionSelected: {},
+
+  // 自定义加分行为勾选
+  customEarnSelected: {}
 })
 
 // 自定义扣分行为表单
@@ -79,6 +85,17 @@ const customDeductionError = ref('')
 
 // 自定义扣分表的 draft：编辑时不影响右侧预览，直到保存配置才生效
 const deductionCustomRulesDraft = ref([])
+
+// 自定义加分行为表单（draft）
+const customEarnDraft = ref({
+  name: '',
+  score: 1
+})
+
+const customEarnError = ref('')
+
+// 自定义加分表的 draft：编辑时不影响右侧预览，直到保存配置才生效
+const earnCustomRulesDraft = ref([])
 
 // 配置模板
 const configTemplates = [/*
@@ -176,6 +193,17 @@ const calculatedScore = computed(() => {
   if (calculatorInputs.value.hasAdvancedKyc) {
     score += formData.value.advancedKycScore
   }
+
+  // 自定义加分行为（基于已保存配置进行预览）
+  {
+    const selected = calculatorInputs.value.customEarnSelected || {}
+    const rules = formData.value.earnCustomRules || []
+    for (const rule of rules) {
+      if (selected[rule.id]) {
+        score += Number(rule.score || 0)
+      }
+    }
+  }
   
   // 扣除场景（扣除规则默认始终启用）
   const selected = calculatorInputs.value.customDeductionSelected || {}
@@ -222,6 +250,9 @@ onMounted(() => {
     minScore: config[CREDIT_SCORE_CONFIG_KEYS.MIN_SCORE],
 
     deductionCustomRules: config[CREDIT_SCORE_CONFIG_KEYS.DEDUCTION_CUSTOM_RULES] || [],
+
+    // 自定义加分行为
+    earnCustomRules: config[CREDIT_SCORE_CONFIG_KEYS.EARN_CUSTOM_RULES] || [],
     
     // 人工审核
     manualAuditEnabled: config[CREDIT_SCORE_CONFIG_KEYS.MANUAL_AUDIT_ENABLED] || false,
@@ -236,10 +267,19 @@ onMounted(() => {
   // 初始化自定义扣分表 draft（编辑时不影响预览）
   deductionCustomRulesDraft.value = JSON.parse(JSON.stringify(formData.value.deductionCustomRules || []))
 
+  // 初始化自定义加分表 draft（编辑时不影响预览）
+  earnCustomRulesDraft.value = JSON.parse(JSON.stringify(formData.value.earnCustomRules || []))
+
   // 初始化自定义扣分勾选状态
   calculatorInputs.value.customDeductionSelected = {}
   for (const rule of formData.value.deductionCustomRules || []) {
     calculatorInputs.value.customDeductionSelected[rule.id] = false
+  }
+
+  // 初始化自定义加分勾选状态
+  calculatorInputs.value.customEarnSelected = {}
+  for (const rule of formData.value.earnCustomRules || []) {
+    calculatorInputs.value.customEarnSelected[rule.id] = false
   }
   // 初始加载时没有未保存的变化
   hasUnsavedChanges.value = false
@@ -260,6 +300,15 @@ watch(() => formData.value, () => {
 // draft 编辑自定义扣分项时：标记为未保存，但不影响右侧预览
 watch(
   () => deductionCustomRulesDraft.value,
+  () => {
+    hasUnsavedChanges.value = true
+    saveSuccess.value = false
+  },
+  { deep: true }
+)
+
+watch(
+  () => earnCustomRulesDraft.value,
   () => {
     hasUnsavedChanges.value = true
     saveSuccess.value = false
@@ -335,6 +384,41 @@ const removeCustomDeductionRule = (id) => {
   delete calculatorInputs.value.customDeductionSelected?.[id]
 }
 
+const addCustomEarnRule = () => {
+  customEarnError.value = ''
+
+  const name = String(customEarnDraft.value.name || '').trim()
+  const score = Number(customEarnDraft.value.score)
+
+  if (!name) {
+    customEarnError.value = '请填写行为名称'
+    return
+  }
+  if (!Number.isFinite(score) || score < 0) {
+    customEarnError.value = '加分必须是 >= 0 的数字'
+    return
+  }
+  if (score > formData.value.maxScore) {
+    customEarnError.value = `加分不能超过最大分数（${formData.value.maxScore}）`
+    return
+  }
+
+  const id = createCustomRuleId()
+  earnCustomRulesDraft.value.push({
+    id,
+    name,
+    score
+  })
+
+  calculatorInputs.value.customEarnSelected[id] = false
+  customEarnDraft.value = { name: '', score: 1 }
+}
+
+const removeCustomEarnRule = (id) => {
+  earnCustomRulesDraft.value = (earnCustomRulesDraft.value || []).filter((r) => r.id !== id)
+  delete calculatorInputs.value.customEarnSelected?.[id]
+}
+
 // 保存配置
 const saveConfig = () => {
   // 验证
@@ -353,6 +437,15 @@ const saveConfig = () => {
     calculatorInputs.value.customDeductionSelected = {}
     for (const rule of formData.value.deductionCustomRules || []) {
       calculatorInputs.value.customDeductionSelected[rule.id] = false
+    }
+
+    // 将“自定义加分表 draft”提交到正式配置里，更新右侧预览
+    formData.value.earnCustomRules = earnCustomRulesDraft.value
+
+    // 重新初始化新加分项的勾选状态（默认未勾选）
+    calculatorInputs.value.customEarnSelected = {}
+    for (const rule of formData.value.earnCustomRules || []) {
+      calculatorInputs.value.customEarnSelected[rule.id] = false
     }
 
     updateCreditScoreConfigs({
@@ -378,6 +471,7 @@ const saveConfig = () => {
       [CREDIT_SCORE_CONFIG_KEYS.RISK_ALERT_SCORE]: formData.value.riskAlertScore,
       [CREDIT_SCORE_CONFIG_KEYS.MIN_SCORE]: formData.value.minScore,
       [CREDIT_SCORE_CONFIG_KEYS.DEDUCTION_CUSTOM_RULES]: formData.value.deductionCustomRules,
+      [CREDIT_SCORE_CONFIG_KEYS.EARN_CUSTOM_RULES]: formData.value.earnCustomRules,
       
       // 人工审核
       [CREDIT_SCORE_CONFIG_KEYS.MANUAL_AUDIT_ENABLED]: formData.value.manualAuditEnabled,
@@ -637,6 +731,104 @@ const tabs = [
                     />
                     <span class="text-sm text-slate-600">信用分</span>
                   </div>
+                </div>
+              </div>
+
+              <!-- 自定义加分行为 -->
+              <div class="pt-4 border-t border-slate-200">
+                <div class="flex items-center justify-between mb-3">
+                  <h5 class="text-sm font-semibold text-slate-900">自定义加分行为</h5>
+                  <span class="text-xs text-slate-500">可添加更多加分项</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">行为名称</label>
+                    <input
+                      v-model="customEarnDraft.name"
+                      type="text"
+                      class="ant-input"
+                      placeholder="例如：活动奖励"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">加分</label>
+                    <div class="flex items-center gap-2">
+                      <span class="text-emerald-600">+</span>
+                      <input
+                        v-model.number="customEarnDraft.score"
+                        type="number"
+                        min="0"
+                        :max="formData.maxScore"
+                        class="ant-input !w-24"
+                      />
+                      <span class="text-sm text-slate-600">分</span>
+                    </div>
+                  </div>
+                  <div class="flex items-end">
+                    <button
+                      type="button"
+                      class="ant-btn ant-btn-primary !h-9 w-full"
+                      @click="addCustomEarnRule"
+                    >
+                      添加
+                    </button>
+                  </div>
+                </div>
+
+                <p v-if="customEarnError" class="text-xs text-rose-600 mt-2">
+                  {{ customEarnError }}
+                </p>
+
+                <div v-if="earnCustomRulesDraft?.length" class="mt-4">
+                  <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                      <thead>
+                        <tr class="text-xs text-slate-500">
+                          <th class="text-left font-medium py-2 pr-2 whitespace-nowrap">行为名称</th>
+                          <th class="text-left font-medium py-2 pr-2 whitespace-nowrap">加分</th>
+                          <th class="text-right font-medium py-2 whitespace-nowrap">操作</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr
+                          v-for="rule in earnCustomRulesDraft"
+                          :key="rule.id"
+                          class="border-t border-slate-200"
+                        >
+                          <td class="py-2 pr-2">
+                            <input v-model="rule.name" type="text" class="ant-input w-full" />
+                          </td>
+                          <td class="py-2 pr-2 w-44">
+                            <div class="flex items-center gap-2">
+                              <span class="text-emerald-600">+</span>
+                              <input
+                                v-model.number="rule.score"
+                                type="number"
+                                min="0"
+                                :max="formData.maxScore"
+                                class="ant-input w-24"
+                              />
+                              <span class="text-slate-500">分</span>
+                            </div>
+                          </td>
+                          <td class="py-2 text-right whitespace-nowrap">
+                            <button
+                              type="button"
+                              class="ant-btn !bg-slate-100 !border-slate-200 !text-slate-700 !h-9 !px-3"
+                              @click="removeCustomEarnRule(rule.id)"
+                            >
+                              删除
+                            </button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div v-else class="text-xs text-slate-500 mt-3 bg-slate-50 rounded-lg p-3">
+                  暂无自定义加分项
                 </div>
               </div>
             </div>
@@ -923,6 +1115,22 @@ const tabs = [
                 />
                 <span class="text-sm text-slate-700">已完成高级认证</span>
               </label>
+
+              <div v-if="formData.earnCustomRules?.length" class="pt-2 border-t border-emerald-100">
+                <p class="text-xs font-medium text-emerald-700 mb-1">自定义加分行为</p>
+                <label
+                  v-for="rule in formData.earnCustomRules"
+                  :key="rule.id"
+                  class="flex items-center gap-2 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    v-model="calculatorInputs.customEarnSelected[rule.id]"
+                    class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span class="text-sm text-slate-700">{{ rule.name }}（+{{ rule.score }}分）</span>
+                </label>
+              </div>
             </div>
 
             <!-- 扣除场景 -->
