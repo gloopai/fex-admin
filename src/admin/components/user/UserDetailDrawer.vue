@@ -254,11 +254,6 @@ const tabButtonClass = (id) => {
                   </div>
 
                   <div class="flex items-center gap-3">
-                    <span class="w-[56px] text-xs text-slate-500 font-medium">VIP:</span>
-                    <span class="text-sm font-semibold text-slate-900">{{ vipLabel }}</span>
-                  </div>
-
-                  <div class="flex items-center gap-3">
                     <span class="w-[56px] text-xs text-slate-500 font-medium">账号:</span>
                     <span class="text-sm font-semibold text-slate-900">{{ user.username }}</span>
                   </div>
@@ -270,7 +265,7 @@ const tabButtonClass = (id) => {
                 </div>
               </div>
 
-              <div class="space-y-4 pt-1 flex-shrink-0">
+              <div class="space-y-1 pt-1 flex-shrink-0">
                 <div class="flex items-center gap-3">
                   <span class="w-[140px] text-xs text-slate-500 font-medium">最后登录时间:</span>
                   <span class="text-sm font-semibold text-slate-900">{{ formatDateTime(user.lastLoginTime) }}</span>
@@ -371,7 +366,7 @@ const tabButtonClass = (id) => {
                 <!-- 新框：KYC 状态 + 信用分 -->
                 <section class="rounded-xl border border-slate-200 bg-white p-5">
                   <div class="text-sm font-semibold text-slate-900">KYC 状态与信用分</div>
-                  <div class="mt-4 grid grid-cols-1 gap-2">
+                  <div class="mt-4 grid grid-cols-2 gap-2">
                     <div class="rounded-lg bg-white px-3 py-2 border border-slate-100">
                       <div class="text-xs text-slate-500">KYC状态</div>
                       <div class="mt-1">
@@ -384,6 +379,12 @@ const tabButtonClass = (id) => {
                       </div>
                     </div>
                     <div class="rounded-lg bg-white px-3 py-2 border border-slate-100">
+                      <div class="text-xs text-slate-500">VIP 等级</div>
+                      <div class="mt-1 text-sm font-semibold text-slate-900">
+                        {{ vipLabel }}
+                      </div>
+                    </div>
+                    <div class="rounded-lg bg-white px-3 py-2 border border-slate-100 col-span-2">
                       <div class="text-xs text-slate-500">信用分</div>
                       <div class="mt-1 text-lg font-semibold text-slate-900">
                         {{ user.creditScore }} / 800
