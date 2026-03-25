@@ -64,7 +64,7 @@ const confirm = () => {
 <template>
   <button
     type="button"
-    class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg ring-1 bg-white transition-colors"
+    class="inline-flex items-center justify-center gap-2 h-8 px-3 text-sm font-medium rounded-lg ring-1 bg-white transition-colors"
     :class="freezeDialog.isUnfreeze ? 'ring-emerald-200 text-emerald-700 hover:bg-emerald-50' : 'ring-rose-200 text-rose-700 hover:bg-rose-50'"
     @click="open"
   >

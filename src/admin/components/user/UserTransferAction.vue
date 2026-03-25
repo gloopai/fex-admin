@@ -109,7 +109,7 @@ const confirm = () => {
 <template>
   <button
     type="button"
-    class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+    class="inline-flex items-center justify-center gap-2 h-8 px-3 text-sm font-medium rounded-lg ring-1 ring-blue-200 text-blue-700 bg-white hover:bg-blue-50 transition-colors"
     @click="open"
   >
     <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
