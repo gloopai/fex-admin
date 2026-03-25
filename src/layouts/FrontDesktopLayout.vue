@@ -6,7 +6,8 @@ const route = useRoute()
 
 const menus = [
   { key: 'personal', label: '个人中心', to: '/front/personal-center' },
-  { key: 'verify', label: '认证流程', to: '/front/verification-flow' }
+  { key: 'verify', label: '认证流程', to: '/front/verification-flow' },
+  { key: 'perm', label: '权限提示', to: '/front/verification-permission-demo' }
 ]
 
 const isActive = (to) => route.path.startsWith(to)
