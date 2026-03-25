@@ -487,7 +487,7 @@ const tabs = [
                   <div>
                     <label class="block text-sm font-medium text-slate-700 mb-2">VIP升级充值金额</label>
                     <div class="flex items-center gap-2 flex-wrap">
-                      <span class="text-sm text-slate-600">VIP1+用户每充值</span>
+                      <span class="text-sm text-slate-600">VIP + 用户每充值</span>
                       <input
                         v-model.number="formData.vipUpgradeRechargeAmount"
                         type="number"
