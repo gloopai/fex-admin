@@ -213,7 +213,7 @@ const tabButtonClass = (id) => {
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-              <div class="flex items-start justify-between gap-6 w-full">
+              <div class="flex items-start justify-between gap-6 w-full pr-16">
               <div class="flex items-start gap-4 pr-4">
                 <div class="shrink-0 h-16 w-16 rounded-full overflow-hidden bg-slate-200">
                   <div
@@ -268,7 +268,7 @@ const tabButtonClass = (id) => {
               </div>
 
               <!-- 操作按钮列：放到用户信息右侧 -->
-              <UserOperations :user="user" :assets="computedAssets" class="mr-20" />
+              <UserOperations :user="user" :assets="computedAssets" />
             </div>
 
             <!-- Tabs -->
