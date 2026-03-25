@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { USER_STATUS, USER_ROLE, USER_KYC_STATUS } from '../../constants/user'
+import UserOperations from './UserOperations.vue'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -179,179 +180,7 @@ const computedAssets = computed(() => {
   }
 })
 
-const depositAccountOptions = computed(() => {
-  const a = computedAssets.value
-  if (!a) return []
-  return [
-    { key: 'market', label: '市币账户', value: a.marketAccount },
-    { key: 'wealth', label: '理财账户', value: a.wealthAccount },
-    { key: 'trading', label: '交易合约', value: a.tradingContract },
-    { key: 'perp', label: '永续合约', value: a.perpetualContract }
-  ]
-})
-
-const transferAccountOptions = computed(() => {
-  const a = computedAssets.value
-  if (!a) return []
-  return [
-    { key: 'market', label: '市币' },
-    { key: 'wealth', label: '理财' },
-    { key: 'trading', label: '交易合约' },
-    { key: 'perp', label: '永续合约' }
-  ]
-})
-
-const coinOptions = [
-  { key: 'USDT', label: 'USDT' },
-  { key: 'USDC', label: 'USDC' },
-  { key: 'ETH', label: 'ETH' }
-]
-
-const transferFromBalance = computed(() => {
-  const a = computedAssets.value
-  if (!a) return null
-  const fromKey = actionForm.value.transferFromAccountKey
-  if (fromKey === 'market') return a.marketAccount
-  if (fromKey === 'wealth') return a.wealthAccount
-  if (fromKey === 'trading') return a.tradingContract
-  if (fromKey === 'perp') return a.perpetualContract
-  return null
-})
-
-const setTransferAll = () => {
-  const v = transferFromBalance.value
-  if (v === null) return
-  actionForm.value.transferAmount = String(v.toFixed(2))
-}
-
-// 操作区：封户 / 入金 / 划转（当前先做前端交互占位）
-const actionType = ref(null)
-const showActionModal = ref(false)
-
-const actionForm = ref({
-  reason: '',
-  depositAmount: '',
-  depositAccountKey: 'market',
-  remark: '',
-  transferFromAccountKey: 'market',
-  transferToAccountKey: 'trading',
-  transferCoinKey: '',
-  transferAmount: ''
-})
-
-const toast = ref({ visible: false, message: '' })
-let toastTimer = null
-
-const openAction = (type) => {
-  actionType.value = type
-  actionForm.value = {
-    reason: '',
-    depositAmount: '',
-    depositAccountKey: 'market',
-    remark: '',
-    transferFromAccountKey: 'market',
-    transferToAccountKey: 'trading',
-    transferCoinKey: '',
-    transferAmount: ''
-  }
-  showActionModal.value = true
-}
-
-const closeActionModal = () => {
-  showActionModal.value = false
-  actionType.value = null
-}
-
-const freezeDialog = computed(() => {
-  const current = props.user?.status
-  const isUnfreeze = [USER_STATUS.SUSPENDED, USER_STATUS.BANNED].includes(current)
-  const targetStatus = isUnfreeze ? USER_STATUS.ACTIVE : USER_STATUS.SUSPENDED
-  const targetText = statusConfig[targetStatus]?.text || (isUnfreeze ? '正常' : '暂停')
-
-  return {
-    isUnfreeze,
-    targetStatus,
-    targetText,
-    confirmText: isUnfreeze ? '确认解锁' : '确认封户',
-    confirmButtonClass: isUnfreeze
-      ? 'bg-emerald-600 hover:bg-emerald-700'
-      : 'bg-rose-600 hover:bg-rose-700'
-  }
-})
-
-const actionConfirmText = computed(() => {
-  if (actionType.value === 'deposit') return '确认入金操作'
-  if (actionType.value === 'transfer') return '划转'
-  if (actionType.value === 'freeze') return freezeDialog.value.confirmText
-  return '确认'
-})
-
-const actionConfirmButtonClass = computed(() => {
-  if (actionType.value === 'freeze') return freezeDialog.value.confirmButtonClass
-  return 'bg-blue-600 hover:bg-blue-700'
-})
-
-const showToast = (message) => {
-  toast.value.message = message
-  toast.value.visible = true
-  if (toastTimer) clearTimeout(toastTimer)
-  toastTimer = setTimeout(() => {
-    toast.value.visible = false
-  }, 2500)
-}
-
-const submitAction = () => {
-  if (!props.user) return
-
-  if (actionType.value === 'freeze') {
-    const meta = freezeDialog.value
-    showToast(`已提交${meta.confirmText}`)
-    closeActionModal()
-    return
-  }
-
-  if (actionType.value === 'deposit') {
-    const amount = String(actionForm.value.depositAmount || '').trim()
-    if (!amount || Number.isNaN(Number(amount))) {
-      showToast('请输入有效的入金金额')
-      return
-    }
-    if (!actionForm.value.depositAccountKey) {
-      showToast('请选择入金账户')
-      return
-    }
-    showToast(`已提交入金：${amount}`)
-    closeActionModal()
-    return
-  }
-
-  if (actionType.value === 'transfer') {
-    const amount = String(actionForm.value.transferAmount || '').trim()
-    const fromKey = String(actionForm.value.transferFromAccountKey || '').trim()
-    const toKey = String(actionForm.value.transferToAccountKey || '').trim()
-    const coinKey = String(actionForm.value.transferCoinKey || '').trim()
-
-    if (!fromKey) {
-      showToast('请选择“从”账户')
-      return
-    }
-    if (!amount || Number.isNaN(Number(amount))) {
-      showToast('请输入有效的划转数量')
-      return
-    }
-    if (!toKey) {
-      showToast('请选择“到”账户')
-      return
-    }
-    if (!coinKey) {
-      showToast('请选择币种')
-      return
-    }
-
-    showToast(`已提交划转：${amount} ${coinOptions.find((c) => c.key === coinKey)?.label || coinKey}`)
-    closeActionModal()
-  }
-}
+// 用户操作（封户/入金/划转）已抽出到 `UserOperations.vue`，这里不再维护弹窗与表单逻辑
 
 const tabButtonClass = (id) => {
   const active = activeTab.value === id
@@ -439,43 +268,7 @@ const tabButtonClass = (id) => {
               </div>
 
               <!-- 操作按钮列：放到用户信息右侧 -->
-              <div class="pt-1 flex flex-col gap-2 flex-shrink-0 mr-12">
-                <button
-                  type="button"
-                  class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg ring-1 bg-white transition-colors"
-                  :class="freezeDialog.isUnfreeze ? 'ring-emerald-200 text-emerald-700 hover:bg-emerald-50' : 'ring-rose-200 text-rose-700 hover:bg-rose-50'"
-                  @click="openAction('freeze')"
-                >
-                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  {{ freezeDialog.isUnfreeze ? '解封' : '封户' }}
-                </button>
-                <button
-                  type="button"
-                  class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg ring-1 ring-slate-200 text-slate-700 bg-white hover:bg-slate-50 transition-colors"
-                  @click="openAction('deposit')"
-                >
-                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 1v22" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 5l-5-4-5 4" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 19l5 4 5-4" />
-                  </svg>
-                  入金
-                </button>
-                <button
-                  type="button"
-                  class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-                  @click="openAction('transfer')"
-                >
-                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 17L17 7" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h10v10" />
-                  </svg>
-                  划转
-                </button>
-              </div>
+              <UserOperations :user="user" :assets="computedAssets" class="mr-20" />
             </div>
 
             <!-- Tabs -->
@@ -561,7 +354,7 @@ const tabButtonClass = (id) => {
               <section class="mt-6 rounded-xl border border-slate-200 bg-white p-5">
                 <div class="flex items-center justify-between gap-4">
                   <div class="text-sm font-semibold text-slate-900">入金区块链地址</div>
-                  <div class="text-xs text-slate-500">最近三条（模拟数据）</div>
+                  <!-- <div class="text-xs text-slate-500">最近三条（模拟数据）</div> -->
                 </div>
 
                 <div class="mt-4 overflow-x-auto">
@@ -660,7 +453,7 @@ const tabButtonClass = (id) => {
           </div>
 
           <!-- 操作弹窗与 Toast -->
-          <Teleport to="body">
+          <!-- <Teleport to="body">
             <Transition
               enter-active-class="transition ease-out duration-200"
               enter-from-class="opacity-0"
@@ -887,7 +680,7 @@ const tabButtonClass = (id) => {
               </div>
               <span class="text-sm font-medium text-slate-900">{{ toast.message }}</span>
             </div>
-          </Teleport>
+          </Teleport> -->
 
           <!-- Footer -->
           <div class="shrink-0 border-t border-slate-200 bg-white px-6 py-4">
