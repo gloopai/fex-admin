@@ -18,14 +18,14 @@ export const navTree = [
     icon: 'vip',
     children: [
       { title: 'VIP等级配置', path: '/admin/users/vip-config' },
-      { title: '出金策略', path: '/admin/users/withdraw-policy' },
       { title: 'VIP升级日志', path: '/admin/users/vip-upgrades' },
       { title: '信用分配置', path: '/admin/users/credit-score-config' },
       { title: '信用分变动审核', path: '/admin/users/credit-score-audit' },
       { title: '信用分变动日志', path: '/admin/users/credit-score-changes' },
       { title: '认证等级配置', path: '/admin/users/verification-config' },
       { title: '认证身份审核', path: '/admin/users/verification-audit' },
-      { title: '认证审核日志', path: '/admin/users/verification-log' }
+      { title: '认证审核日志', path: '/admin/users/verification-log' },
+      { title: '出金策略', path: '/admin/users/withdraw-policy' },
     ]
   },
   {

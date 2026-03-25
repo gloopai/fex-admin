@@ -190,8 +190,8 @@ function verificationLevelLabel(lvl) {
 }
 
 /**
- * 根据用户画像与「当前 policy 对象」试算有效出金限额（仅按 dimensionPriority 首条命中）。
- * 应对表单输入为字符串等情况，内部会做数值规范化。
+ * 根据用户画像与「当前 policy 对象」试算有效出金限额。
+ * 多维度：对每个已启用且命中的维度各取一条规则后，按最严格模式合并——单笔最低取各维度最大值，每日上限取各维度中的最小值（无限制不参与「取最小」比较，若全部无限制则为无限制）。
  */
 export function computeEffectiveWithdrawPolicy(user, policy) {
   if (!policy || !policy.defaultPolicy) {
@@ -269,38 +269,47 @@ export function computeEffectiveWithdrawPolicy(user, policy) {
     }
   }
 
+  const dimLabel = (dim) =>
+    ({ vip: 'VIP', verification: '认证', credit_score: '信用分' }[dim] || dim)
+
+  const candidates = []
   for (const dim of policy.dimensionPriority ?? []) {
     if (!isOn(dim)) continue
     const rule = pickers[dim]?.() ?? null
-    if (rule) {
-      const minW = num(rule.minWithdrawUsdt, 0)
-      const daily = effectiveDailyCap(rule.dailyCapUsdt)
-      const dimLabel = { vip: 'VIP', verification: '认证', credit_score: '信用分' }[dim] || dim
+    if (!rule) continue
+    const minW = num(rule.minWithdrawUsdt, 0)
+    const daily = effectiveDailyCap(rule.dailyCapUsdt)
+    let detail = ''
+    if (dim === WITHDRAW_POLICY_DIMENSION.VIP) {
+      detail = `${vipLevelLabel(vipLevel)} → 单笔最低 ${minW} / 每日 ${formatCapText(daily)}`
+    } else if (dim === WITHDRAW_POLICY_DIMENSION.VERIFICATION) {
+      detail = `${verificationLevelLabel(verificationLevel)} → 单笔最低 ${minW} / 每日 ${formatCapText(daily)}`
+    } else {
+      detail = `信用分 ${creditScore}，区间 [${rule.minScore}, ${rule.maxScore}] → 单笔最低 ${minW} / 每日 ${formatCapText(daily)}`
+    }
+    candidates.push({ dim, rule, minW, daily, detail })
+  }
 
-      let detail = ''
-      if (dim === WITHDRAW_POLICY_DIMENSION.VIP) {
-        detail = `试算用户 VIP：${vipLevelLabel(vipLevel)}，对应当前表格中该等级一行（单笔最低 ${minW} / 每日 ${formatCapText(daily)}）。`
-      } else if (dim === WITHDRAW_POLICY_DIMENSION.VERIFICATION) {
-        detail = `试算用户认证：${verificationLevelLabel(verificationLevel)}，对应当前表格中该等级一行（单笔最低 ${minW} / 每日 ${formatCapText(daily)}）。`
-      } else {
-        detail = `试算用户信用分 ${creditScore}，落入区间 [${rule.minScore}, ${rule.maxScore}]（单笔最低 ${minW} / 每日 ${formatCapText(daily)}）。`
-      }
-
-      return {
-        minWithdrawUsdt: minW,
-        dailyCapUsdt: daily,
-        mode: 'first_match',
-        dimension: dim,
-        rule,
-        explain: `按维度优先级，在已启用维度中首条命中「${dimLabel}」：${detail}`
-      }
+  if (candidates.length === 0) {
+    return {
+      minWithdrawUsdt: defMin,
+      dailyCapUsdt: effectiveDailyCap(defDaily),
+      mode: 'default',
+      explain: `已启用维度均未匹配到规则（请检查试算用户的 VIP / 认证 / 信用分是否在表格中有对应行或区间），使用「全局默认」：单笔最低 ${defMin} USDT，每日上限 ${formatCapText(defDaily)}。`
     }
   }
 
+  const strictMin = Math.max(...candidates.map((c) => c.minW))
+  const finiteDailies = candidates.map((c) => c.daily).filter((d) => d !== null && d !== undefined)
+  const strictDaily = finiteDailies.length === 0 ? null : Math.min(...finiteDailies)
+
+  const parts = candidates.map((c) => `${dimLabel(c.dim)}：${c.detail}`)
+  const explain = `最严格模式：在已启用且命中的各维度上分别取值后合并——单笔最低取各维度要求中的最大值 ${strictMin} USDT；每日上限取各维度上限中的最小值${strictDaily === null ? '（均为无限制则无上限）' : `（${strictDaily} USDT）`}。分项：${parts.join('；')}。`
+
   return {
-    minWithdrawUsdt: defMin,
-    dailyCapUsdt: effectiveDailyCap(defDaily),
-    mode: 'default',
-    explain: `已启用维度均未匹配到规则（请检查试算用户的 VIP / 认证 / 信用分是否在表格中有对应行或区间），使用「全局默认」：单笔最低 ${defMin} USDT，每日上限 ${formatCapText(defDaily)}。`
+    minWithdrawUsdt: strictMin,
+    dailyCapUsdt: strictDaily,
+    mode: 'strictest',
+    explain
   }
 }

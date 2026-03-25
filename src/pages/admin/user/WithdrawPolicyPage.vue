@@ -148,7 +148,7 @@ function toggleDimensionEnabled(dim) {
           <span class="text-slate-700">VIP 等级配置</span>
           mock 同步；按认证等级的出金规则与
           <span class="text-slate-700">认证等级配置</span>
-          中的等级名称一致（未认证 / 初级 / 高级），具体限额仅在此页维护。多条件同时存在时仅按下方「维度优先级」依次匹配，命中第一条规则即生效。
+          中的等级名称一致（未认证 / 初级 / 高级），具体限额仅在此页维护。多维度同时启用且均命中规则时，按<strong class="font-semibold text-slate-700">最严格模式</strong>合并：单笔最低取各维度要求中的<strong class="font-semibold text-slate-700">最大值</strong>，每日上限取各维度中的<strong class="font-semibold text-slate-700">最小值</strong>（无限制视为较宽松，不参与与数值比较时的收紧）。
         </p>
       </div>
       <div class="flex flex-wrap gap-2">
@@ -195,9 +195,9 @@ function toggleDimensionEnabled(dim) {
     <!-- 维度优先级 -->
     <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
       <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-3">
-        <h2 class="text-base font-semibold text-slate-900">维度优先级</h2>
+        <h2 class="text-base font-semibold text-slate-900">参与维度</h2>
         <p class="text-xs text-slate-500 mt-0.5">
-          仅「启用」的维度参与判断，且按顺序从上到下；在某一已启用维度上命中规则后，采用该条规则，不再参考后续维度。
+          仅「启用」的维度参与试算。多维度命中时合并为最严格结果（单笔最低取 max、每日上限取 min）；下列顺序仅影响展示，不影响合并计算。
         </p>
       </div>
       <div class="p-4">
@@ -376,7 +376,7 @@ function toggleDimensionEnabled(dim) {
           <div class="border-b border-blue-100/80 px-4 py-3">
             <h2 class="text-base font-semibold text-slate-900">策略试算</h2>
             <p class="text-xs text-slate-500 mt-0.5">
-              按左侧当前表单中的规则与维度优先级实时计算，无需先点保存。
+              按左侧当前表单实时试算（无需先保存）；多维度命中时以最严格模式合并，见页顶说明。
             </p>
           </div>
           <div class="p-4 flex flex-col gap-5">
