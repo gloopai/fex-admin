@@ -48,7 +48,7 @@ const targetLevelLabel = computed(() => getVerificationLevelLabel(simulatedTarge
 
 /**
  * 配置推导为「未认证即可」时，若仍把目标设为未认证，则 userLevel 恒满足、弹窗会被 onlyWhenBlocked 立即关掉。
- * 演示页将目标提升为「初级认证」，便于预览入金等场景的弹窗与拦截（可自行改回「未认证」体验无门槛）。
+ * 演示页将目标提升为「初级认证」，便于预览充币等场景的弹窗与拦截（可自行改回「未认证」体验无门槛）。
  */
 function effectiveTargetFromConfig(level) {
   return level === VERIFICATION_LEVEL.NONE ? VERIFICATION_LEVEL.BASIC : level

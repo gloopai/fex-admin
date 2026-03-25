@@ -21,21 +21,21 @@ export const VERIFICATION_PERMISSION_ADMIN_LABEL = {
 /** 各权限在前台不同组件中的短文案（按模块区分场景） */
 export const VERIFICATION_MODULE_PROMPTS = {
   canDeposit: {
-    bannerFeature: '入金',
-    inlineFeature: '发起入金',
-    emptyFeature: '充值与入金',
-    dialogFeature: '入金',
-    contextHint: '资产 · 充值与入账',
+    bannerFeature: '充币',
+    inlineFeature: '发起充币',
+    emptyFeature: '充值与充币',
+    dialogFeature: '充币',
+    contextHint: '资产 · 充币与入账',
     /** 空状态 fill 示例副标题：模拟列表场景名 */
-    emptyListDemoTitle: '入金记录'
+    emptyListDemoTitle: '充币记录'
   },
   canWithdraw: {
-    bannerFeature: '出金',
-    inlineFeature: '提交出金申请',
-    emptyFeature: '出金',
-    dialogFeature: '出金',
-    contextHint: '资产 · 提币与出金',
-    emptyListDemoTitle: '出金记录'
+    bannerFeature: '提币',
+    inlineFeature: '提交提币申请',
+    emptyFeature: '提币',
+    dialogFeature: '提币',
+    contextHint: '资产 · 提币',
+    emptyListDemoTitle: '提币记录'
   },
   canSpotTrade: {
     bannerFeature: '现货交易',
