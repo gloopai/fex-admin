@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { USER_STATUS, USER_ROLE, USER_KYC_STATUS } from '../../constants/user'
 import UserOperations from './UserOperations.vue'
+import { getVipLevelByCreditScore } from '../../mock/vip'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -26,10 +27,24 @@ const roleConfig = {
 
 const kycConfig = {
   [USER_KYC_STATUS.NOT_VERIFIED]: { text: '未认证', class: 'bg-slate-100 text-slate-700 ring-1 ring-slate-200' },
-  [USER_KYC_STATUS.PENDING]: { text: '审核中', class: 'bg-blue-100 text-blue-700 ring-1 ring-blue-200' },
-  [USER_KYC_STATUS.VERIFIED]: { text: '已认证', class: 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200' },
-  [USER_KYC_STATUS.REJECTED]: { text: '已拒绝', class: 'bg-rose-100 text-rose-700 ring-1 ring-rose-200' }
+  // 兼容现有 mock 枚举：用 pending 映射“初级认证”
+  [USER_KYC_STATUS.PENDING]: { text: '初级认证', class: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' },
+  // 兼容现有 mock 枚举：用 verified 映射“高级认证”
+  [USER_KYC_STATUS.VERIFIED]: { text: '高级认证', class: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' },
+  // UI 只展示三态时，将 rejected 视为“未认证”
+  [USER_KYC_STATUS.REJECTED]: { text: '未认证', class: 'bg-slate-100 text-slate-700 ring-1 ring-slate-200' }
 }
+
+const vipLevel = computed(() => {
+  const score = Number(props.user?.creditScore ?? 0)
+  const v = getVipLevelByCreditScore(score)
+  return v?.level ?? 0
+})
+
+const vipLabel = computed(() => {
+  if (vipLevel.value === 0) return '普通用户'
+  return `VIP${vipLevel.value}`
+})
 
 const uidNumber = computed(() => {
   const raw = props.user?.id || ''
@@ -180,6 +195,9 @@ const computedAssets = computed(() => {
   }
 })
 
+const usableBalance = computed(() => Number(props.user?.balance || 0))
+const totalBalance = computed(() => usableBalance.value + Number(props.user?.frozenBalance || 0))
+
 // 用户操作（封户/入金/划转）已抽出到 `UserOperations.vue`，这里不再维护弹窗与表单逻辑
 
 const tabButtonClass = (id) => {
@@ -223,21 +241,21 @@ const tabButtonClass = (id) => {
                   </div>
                 </div>
 
-                <div class="pt-1 space-y-4">
+                <div class="pt-1 space-y-1">
                   <div class="flex items-center gap-3">
                     <span class="w-[56px] text-xs text-slate-500 font-medium">UID:</span>
                     <span class="text-sm font-semibold text-slate-900 font-mono">{{ uidNumber }}</span>
+                    <span
+                      :class="statusConfig[user.status]?.class || 'bg-slate-100 text-slate-700 ring-1 ring-slate-200'"
+                      class="inline-flex items-center px-2 py-0.5 text-[11px] font-medium rounded-md"
+                    >
+                      {{ statusConfig[user.status]?.text || user.status }}
+                    </span>
                   </div>
 
                   <div class="flex items-center gap-3">
-                    <span class="w-[56px] text-xs text-slate-500 font-medium">状态:</span>
-                    <span
-                      :class="statusConfig[user.status]?.class || 'bg-slate-100 text-slate-700 ring-1 ring-slate-200'"
-                      class="inline-flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-full"
-                    >
-                      <span class="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                      {{ statusConfig[user.status]?.text || user.status }}
-                    </span>
+                    <span class="w-[56px] text-xs text-slate-500 font-medium">VIP:</span>
+                    <span class="text-sm font-semibold text-slate-900">{{ vipLabel }}</span>
                   </div>
 
                   <div class="flex items-center gap-3">
@@ -290,58 +308,82 @@ const tabButtonClass = (id) => {
           <div class="min-h-0 flex-1 overflow-y-auto p-6">
             <!-- Account assets -->
             <template v-if="activeTab === 'assets'">
-              <div class="grid gap-4 lg:grid-cols-2">
-                <section class="rounded-xl border border-slate-200 bg-white p-5">
-                  <div class="text-sm font-semibold text-slate-900">账户资产</div>
-                  <div class="mt-3 grid grid-cols-2 gap-4 text-sm">
-                    <div class="rounded-lg bg-slate-50 px-4 py-3">
-                      <div class="text-xs text-slate-500">市值账户</div>
-                      <div class="mt-2 font-semibold text-slate-900 text-lg">
-                        {{ computedAssets ? formatMoney(computedAssets.marketAccount, { min: 2, max: 2 }) : '-' }}
+              <div class="grid gap-4 lg:grid-cols-3">
+                <!-- 大框：盈利 + 账户余额 -->
+                <section class="rounded-xl border border-slate-200 bg-white p-5 lg:col-span-2">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="p-4">
+                      <div class="text-sm font-semibold text-slate-900">账户资产</div>
+                      <div class="mt-3 text-[11px] text-slate-500">总资产</div>
+                      <div class="mt-2 text-4xl font-extrabold text-slate-900 leading-none">
+                        {{ computedAssets ? formatMoney(computedAssets.totalProfit, { min: 2, max: 2 }) : '-' }}
+                      </div>
+
+                      <div class="mt-4 grid grid-cols-2 gap-3">
+                        <div class="rounded-lg bg-white px-3 py-2 border border-slate-100">
+                          <div class="text-[11px] text-slate-500">交易量</div>
+                          <div class="mt-1 text-sm font-semibold text-slate-900">
+                            {{ computedAssets ? formatMoney(computedAssets.tradingVolume, { min: 2, max: 2 }) : '-' }}
+                          </div>
+                        </div>
+
+                        <div class="rounded-lg bg-white px-3 py-2 border border-slate-100">
+                          <div class="text-[11px] text-slate-500">总盈利</div>
+                          <div class="mt-1 text-sm font-semibold text-slate-900">
+                            {{ formatMoney(totalBalance, { min: 2, max: 2 }) }}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <div class="rounded-lg bg-slate-50 px-4 py-3">
-                      <div class="text-xs text-slate-500">理财账户</div>
-                      <div class="mt-2 font-semibold text-slate-900 text-lg">
-                        {{ computedAssets ? formatMoney(computedAssets.wealthAccount, { min: 2, max: 2 }) : '-' }}
-                      </div>
-                    </div>
-                    <div class="rounded-lg bg-slate-50 px-4 py-3">
-                      <div class="text-xs text-slate-500">交易合约</div>
-                      <div class="mt-2 font-semibold text-slate-900 text-lg">
-                        {{ computedAssets ? formatMoney(computedAssets.tradingContract, { min: 2, max: 2 }) : '-' }}
-                      </div>
-                    </div>
-                    <div class="rounded-lg bg-slate-50 px-4 py-3">
-                      <div class="text-xs text-slate-500">永续合约</div>
-                      <div class="mt-2 font-semibold text-slate-900 text-lg">
-                        {{ computedAssets ? formatMoney(computedAssets.perpetualContract, { min: 2, max: 2 }) : '-' }}
+
+                    <div>
+                      <!-- <div class="text-sm font-semibold text-slate-900">账户资产</div> -->
+                      <div class="mt-3 grid grid-cols-2 gap-4 text-sm">
+                        <div class="rounded-lg bg-white border border-slate-100 px-4 py-3">
+                          <div class="text-xs text-slate-500">市值账户</div>
+                          <div class="mt-2 font-semibold text-slate-900 text-lg">
+                            {{ computedAssets ? formatMoney(computedAssets.marketAccount, { min: 2, max: 2 }) : '-' }}
+                          </div>
+                        </div>
+                        <div class="rounded-lg bg-white border border-slate-100 px-4 py-3">
+                          <div class="text-xs text-slate-500">理财账户</div>
+                          <div class="mt-2 font-semibold text-slate-900 text-lg">
+                            {{ computedAssets ? formatMoney(computedAssets.wealthAccount, { min: 2, max: 2 }) : '-' }}
+                          </div>
+                        </div>
+                        <div class="rounded-lg bg-white border border-slate-100 px-4 py-3">
+                          <div class="text-xs text-slate-500">交易合约</div>
+                          <div class="mt-2 font-semibold text-slate-900 text-lg">
+                            {{ computedAssets ? formatMoney(computedAssets.tradingContract, { min: 2, max: 2 }) : '-' }}
+                          </div>
+                        </div>
+                        <div class="rounded-lg bg-white border border-slate-100 px-4 py-3">
+                          <div class="text-xs text-slate-500">永续合约</div>
+                          <div class="mt-2 font-semibold text-slate-900 text-lg">
+                            {{ computedAssets ? formatMoney(computedAssets.perpetualContract, { min: 2, max: 2 }) : '-' }}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </section>
 
+                <!-- 新框：KYC 状态 + 信用分 -->
                 <section class="rounded-xl border border-slate-200 bg-white p-5">
-                  <div class="text-sm font-semibold text-slate-900">账户盈利</div>
-                  <div class="mt-2 flex items-end justify-between gap-4">
-                    <div class="text-4xl font-extrabold text-slate-900 leading-none">
-                      {{ computedAssets ? formatMoney(computedAssets.totalProfit, { min: 2, max: 2 }) : '-' }}
-                    </div>
-                  </div>
-
+                  <div class="text-sm font-semibold text-slate-900">KYC 状态与信用分</div>
                   <div class="mt-4 grid grid-cols-1 gap-2">
-                    <div class="rounded-lg bg-slate-50 px-3 py-2">
+                    <div class="rounded-lg bg-white px-3 py-2 border border-slate-100">
                       <div class="text-xs text-slate-500">KYC状态</div>
                       <div class="mt-1">
                         <span
                           :class="kycConfig[user.kycStatus]?.class || 'bg-slate-100 text-slate-700 ring-1 ring-slate-200'"
-                          class="inline-flex px-3 py-1 text-xs font-medium rounded-full"
+                          class="inline-flex px-2.5 py-1 text-[11px] font-medium rounded-md"
                         >
                           {{ kycConfig[user.kycStatus]?.text || user.kycStatus }}
                         </span>
                       </div>
                     </div>
-                    <div class="rounded-lg bg-slate-50 px-3 py-2">
+                    <div class="rounded-lg bg-white px-3 py-2 border border-slate-100">
                       <div class="text-xs text-slate-500">信用分</div>
                       <div class="mt-1 text-lg font-semibold text-slate-900">
                         {{ user.creditScore }} / 800
