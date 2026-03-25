@@ -316,7 +316,7 @@ const sortedVipLevels = computed(() => {
           >
             <div
               v-if="showModal"
-              class="relative max-w-4xl w-full max-h-[90vh] overflow-hidden bg-white rounded-2xl shadow-2xl"
+              class="relative max-w-2xl w-full max-h-[90vh] overflow-hidden bg-white rounded-2xl shadow-2xl"
             >
               <!-- 标题栏 -->
               <div class="border-b border-slate-200 px-6 py-4 flex items-center justify-between">
@@ -338,171 +338,148 @@ const sortedVipLevels = computed(() => {
                 </button>
               </div>
 
-              <!-- 表单内容 - 滚动区域 -->
+              <!-- 表单内容 - 滚动区域（单列：上基础字段，下等级说明） -->
               <div class="overflow-y-auto" style="max-height: calc(90vh - 180px);">
-                <div class="p-6">
-                  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- 左侧列 - 基本信息 -->
-                    <div class="space-y-5">
-                      <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                        <h3 class="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                          <svg class="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                          </svg>
-                          基本信息
-                        </h3>
-                        
-                        <div class="space-y-4">
-                          <!-- 等级 -->
-                          <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">
-                              等级编号
-                              <span v-if="isEditing" class="text-xs font-normal text-slate-500 ml-1">(不可修改)</span>
-                            </label>
-                            <input
-                              v-model.number="formData.level"
-                              type="number"
-                              min="0"
-                              :disabled="isEditing"
-                              class="w-full px-4 py-2.5 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-slate-100 disabled:cursor-not-allowed transition-all"
-                            />
-                          </div>
+                <div class="p-6 space-y-5">
+                  <!-- 基本信息 -->
+                  <div class="rounded-xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5">
+                    <h3 class="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                      <svg class="h-5 w-5 shrink-0 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                      </svg>
+                      基本信息
+                    </h3>
 
-                          <!-- 名称 -->
-                          <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">系统名称</label>
-                            <input
-                              v-model="formData.name"
-                              type="text"
-                              placeholder="例如：VIP1"
-                              class="w-full px-4 py-2.5 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                            />
-                          </div>
-
-                          <!-- 显示名称 -->
-                          <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">
-                              显示名称 
-                              <span class="text-rose-500">*</span>
-                            </label>
-                            <input
-                              v-model="formData.displayName"
-                              type="text"
-                              placeholder="例如：黄金会员"
-                              required
-                              class="w-full px-4 py-2.5 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                            />
-                          </div>
-
-                          <!-- 最低信用分 -->
-                          <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">最低信用分要求</label>
-                            <div class="relative">
-                              <input
-                                v-model.number="formData.minCreditScore"
-                                type="number"
-                                min="0"
-                                max="800"
-                                class="w-full px-4 py-2.5 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                              />
-                              <span class="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-400">分</span>
-                            </div>
-                          </div>
-
-                          <!-- 状态 -->
-                          <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">状态</label>
-                            <select
-                              v-model="formData.status"
-                              class="w-full px-4 py-2.5 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white transition-all"
-                            >
-                              <option value="enabled">✓ 启用</option>
-                              <option value="disabled">✕ 禁用</option>
-                            </select>
-                          </div>
-                        </div>
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <!-- 等级 -->
+                      <div class="sm:col-span-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                          等级编号
+                          <span v-if="isEditing" class="text-xs font-normal text-slate-500">（不可改）</span>
+                        </label>
+                        <input
+                          v-model.number="formData.level"
+                          type="number"
+                          min="0"
+                          :disabled="isEditing"
+                          class="ant-input w-full !py-2 disabled:bg-slate-100 disabled:cursor-not-allowed"
+                        />
                       </div>
-                    </div>
 
-                    <!-- 右侧列 - 图标和描述 -->
-                    <div class="space-y-5">
-                      <!-- 图标上传 -->
-                      <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                        <h3 class="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                          <svg class="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                          </svg>
-                          VIP图标
-                        </h3>
-                        
-                        <div class="bg-white border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:border-blue-400 transition-colors">
-                          <!-- 预览区域 -->
-                          <div class="mb-4">
-                            <div v-if="iconPreview" class="inline-flex items-center justify-center w-32 h-32 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 shadow-lg">
-                              <img 
-                                :src="iconPreview" 
-                                alt="图标预览" 
-                                class="w-24 h-24 object-contain"
-                              />
-                            </div>
-                            <div v-else class="inline-flex items-center justify-center w-32 h-32 rounded-2xl bg-slate-100 border-2 border-slate-200">
-                              <svg class="h-16 w-16 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                              </svg>
-                            </div>
+                      <!-- 系统名称 -->
+                      <div class="sm:col-span-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-1.5">系统名称</label>
+                        <input
+                          v-model="formData.name"
+                          type="text"
+                          placeholder="例如：VIP1"
+                          class="ant-input w-full !py-2"
+                        />
+                      </div>
+
+                      <!-- 显示名称 整行 -->
+                      <div class="sm:col-span-2">
+                        <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                          显示名称 <span class="text-rose-500">*</span>
+                        </label>
+                        <input
+                          v-model="formData.displayName"
+                          type="text"
+                          placeholder="例如：黄金会员"
+                          required
+                          class="ant-input w-full !py-2"
+                        />
+                      </div>
+
+                      <!-- 前台徽章 -->
+                      <div class="sm:col-span-2">
+                        <label class="block text-sm font-medium text-slate-700 mb-1.5">前台徽章图标</label>
+                        <input
+                          ref="fileInput"
+                          type="file"
+                          accept="image/*"
+                          class="hidden"
+                          @change="handleIconUpload"
+                        />
+                        <div class="flex flex-wrap items-center gap-4 rounded-lg border border-slate-200 bg-white px-3 py-2.5">
+                          <div
+                            class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50"
+                            title="接近前台展示尺寸"
+                          >
+                            <img
+                              v-if="iconPreview"
+                              :src="iconPreview"
+                              alt=""
+                              class="h-full w-full object-contain"
+                            />
+                            <svg
+                              v-else
+                              class="h-5 w-5 text-slate-300"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
                           </div>
-
-                          <!-- 上传按钮 -->
-                          <input
-                            ref="fileInput"
-                            type="file"
-                            accept="image/*"
-                            @change="handleIconUpload"
-                            class="hidden"
-                          />
-                          <div class="space-y-3">
-                            <div class="flex gap-2 justify-center">
-                              <button
-                                type="button"
-                                @click="triggerFileSelect"
-                                class="px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all"
-                              >
-                                {{ iconPreview ? '更换图标' : '上传图标' }}
+                          <div class="flex min-w-0 flex-1 flex-col gap-1.5">
+                            <div class="flex flex-wrap gap-2">
+                              <button type="button" class="ant-btn ant-btn-primary !h-8 !px-3 !text-xs" @click="triggerFileSelect">
+                                {{ iconPreview ? '更换' : '上传' }}
                               </button>
                               <button
                                 v-if="iconPreview"
                                 type="button"
+                                class="ant-btn !h-8 !px-3 !text-xs"
                                 @click="clearIcon"
-                                class="px-5 py-2.5 text-sm font-medium text-rose-600 bg-rose-50 rounded-lg hover:bg-rose-100 transition-colors"
                               >
                                 清除
                               </button>
                             </div>
-                            <p class="text-xs text-slate-500 leading-relaxed">
-                              支持 JPG、PNG、GIF 格式<br>
-                              建议尺寸 256×256，大小不超过 1MB
-                            </p>
+                            <p class="text-xs text-slate-500">小徽章图，建议 48×48～64×64，≤1MB，PNG。</p>
                           </div>
                         </div>
                       </div>
 
-                      <!-- 描述 -->
-                      <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                        <h3 class="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                          <svg class="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                          </svg>
-                          等级描述
-                        </h3>
-                        
-                        <textarea
-                          v-model="formData.description"
-                          rows="5"
-                          placeholder="简要描述该VIP等级的特点和优势..."
-                          class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all"
-                        ></textarea>
+                      <!-- 最低信用分 | 状态 -->
+                      <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1.5">最低信用分</label>
+                        <div class="relative">
+                          <input
+                            v-model.number="formData.minCreditScore"
+                            type="number"
+                            min="0"
+                            max="800"
+                            class="ant-input w-full !py-2 pr-10"
+                          />
+                          <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">分</span>
+                        </div>
+                      </div>
+                      <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1.5">状态</label>
+                        <select v-model="formData.status" class="ant-select w-full !py-2">
+                          <option value="enabled">启用</option>
+                          <option value="disabled">禁用</option>
+                        </select>
                       </div>
                     </div>
+                  </div>
+
+                  <!-- 等级说明（全宽，独立区块） -->
+                  <div class="rounded-xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5">
+                    <h3 class="text-sm font-semibold text-slate-900 mb-1 flex items-center gap-2">
+                      <svg class="h-5 w-5 shrink-0 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                      </svg>
+                      等级说明
+                    </h3>
+                    <p class="text-xs text-slate-500 mb-3">面向用户或运营展示的文案，可选填。</p>
+                    <textarea
+                      v-model="formData.description"
+                      rows="5"
+                      placeholder="简要说明该等级的权益亮点、适用人群或升级提示等…"
+                      class="ant-input w-full min-h-[7.5rem] resize-y py-3 leading-relaxed"
+                    ></textarea>
                   </div>
                 </div>
               </div>
