@@ -26,6 +26,14 @@ export const frontDesktopRoutes = [
     meta: {
       title: '认证权限提示（PC）'
     }
+  },
+  {
+    path: 'verification-popup-demo',
+    name: 'front-verification-popup-demo-desktop',
+    component: () => import('../../pages/front/VerificationPopupDemoPage.vue'),
+    meta: {
+      title: '弹窗演示（PC）'
+    }
   }
 ]
 
@@ -56,6 +64,14 @@ export const frontMobileRoutes = [
     component: () => import('../../pages/front/VerificationPermissionDemoPage.vue'),
     meta: {
       title: '认证权限提示（移动）'
+    }
+  },
+  {
+    path: 'verification-popup-demo',
+    name: 'front-verification-popup-demo-mobile',
+    component: () => import('../../pages/front/VerificationPopupDemoPage.vue'),
+    meta: {
+      title: '弹窗演示（移动）'
     }
   }
 ]

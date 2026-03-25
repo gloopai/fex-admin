@@ -81,6 +81,7 @@ const levelOptions = [
   { value: VERIFICATION_LEVEL.BASIC, label: '初级认证' },
   { value: VERIFICATION_LEVEL.ADVANCED, label: '高级认证' }
 ]
+
 </script>
 
 <template>
@@ -169,7 +170,7 @@ const levelOptions = [
           v-else-if="moduleBundle.alwaysOpen"
           class="mt-2 border-t border-white/10 pt-2 text-amber-200/90"
         >
-          配置为未认证即可使用本权限；演示已默认将目标设为「初级认证」以便查看弹窗与拦截。若改回「未认证」，将无拦截。
+          配置为未认证即可使用本权限；当前页面默认将目标设为「初级认证」以便查看弹窗与拦截。若改回「未认证」，将无拦截。
         </p>
       </div>
     </section>
@@ -253,7 +254,7 @@ const levelOptions = [
         打开权限提示
       </button>
       <p class="mt-3 text-xs text-white/45">
-        适用于用户点击「下单」「提币」等按钮时拦截；当前模块：{{ moduleBundle.dialogFeature }}。本演示将
+        适用于用户点击「下单」「提币」等按钮时拦截；当前模块：{{ moduleBundle.dialogFeature }}。当
         <code class="rounded bg-white/10 px-1 py-0.5 text-[11px] text-lime-200/90">only-when-blocked</code>
         设为 false：当前等级与目标一致时弹窗展示「认证已满足」；未满足时仍为升级提示。生产拦截场景可保持默认 true。
       </p>
@@ -267,5 +268,6 @@ const levelOptions = [
       :verify-href="verifyHref"
       :only-when-blocked="false"
     />
-  </div>
+
+</div>
 </template>
