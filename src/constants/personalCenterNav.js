@@ -1,23 +1,25 @@
 /**
- * 窄屏壳层「快捷入口」仅展示这些（其余入口保留在 PC 侧栏或总览页内链）。
+ * 窄屏个人中心首页：3×3 快捷入口顺序（与 {@link getPersonalCenterNavItems} 的 key 对应）。
  */
-export const PERSONAL_CENTER_SHELL_MOBILE_PRIMARY_KEYS = new Set([
+export const PERSONAL_CENTER_SHELL_MOBILE_KEYS_ORDER = [
   'assets',
   'ledger',
   'security',
   'verify',
   'withdraw-addresses',
+  'notifications',
+  'fees-vip',
   'referral',
   'preferences'
-])
+]
 
 /**
  * @param {'/front'} prefix
  */
 export function getPersonalCenterShellMobileNavItems(prefix) {
-  return getPersonalCenterNavItems(prefix).filter((item) =>
-    PERSONAL_CENTER_SHELL_MOBILE_PRIMARY_KEYS.has(item.key)
-  )
+  const items = getPersonalCenterNavItems(prefix)
+  const byKey = Object.fromEntries(items.map((it) => [it.key, it]))
+  return PERSONAL_CENTER_SHELL_MOBILE_KEYS_ORDER.map((k) => byKey[k]).filter(Boolean)
 }
 
 /**

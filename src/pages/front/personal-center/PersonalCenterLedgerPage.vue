@@ -248,7 +248,7 @@ function nextPage() {
 
 <template>
   <div class="pb-3">
-    <header class="mb-4 md:mb-8">
+    <header class="mb-5 md:mb-6">
       <h1 class="text-xl font-bold tracking-tight text-white md:text-2xl lg:text-3xl">账变记录</h1>
       <p class="mt-1 hidden text-sm text-white/55 sm:block">
         选好条件后点击「应用筛选」查询；当前为示例数据，接入接口后替换。
@@ -258,9 +258,10 @@ function nextPage() {
       </p>
     </header>
 
+    <div class="flex flex-col gap-5 md:gap-6">
     <!-- 移动端：摘要 + 打开筛选面板（top 对齐 FrontTopNav 高度，避免 sticky 盖住品牌栏） -->
     <div
-      class="sticky top-14 z-10 mb-3 flex items-center gap-2 rounded-xl border border-white/[0.08] bg-[#0b0e11]/92 px-2.5 py-2 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)] backdrop-blur-md lg:hidden"
+      class="sticky top-14 z-10 flex items-center gap-2 rounded-xl border border-white/[0.08] bg-[#0b0e11]/92 px-2.5 py-2 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)] backdrop-blur-md lg:hidden"
     >
       <p class="min-w-0 flex-1 truncate text-[11px] leading-relaxed text-white/55">
         <span class="tabular-nums text-white/40">{{ filteredRows.length }} 条</span>
@@ -293,7 +294,7 @@ function nextPage() {
 
     <!-- 桌面：筛选在正文流内 -->
     <section
-      class="mb-4 hidden rounded-xl border border-white/[0.06] bg-white/[0.02] p-2.5 sm:mb-5 sm:border-0 sm:bg-transparent sm:p-0 lg:block"
+      class="hidden rounded-xl border border-white/[0.06] bg-white/[0.02] p-2.5 sm:border-0 sm:bg-transparent sm:p-0 lg:block"
       aria-label="筛选条件"
     >
       <div class="flex flex-row items-end gap-3">
@@ -491,6 +492,31 @@ function nextPage() {
       </div>
     </div>
 
+    <div
+      class="flex justify-center pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:hidden"
+    >
+      <RouterLink
+        :to="`${prefix}/personal-center`"
+        class="group inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-[#848e9c] transition [-webkit-tap-highlight-color:transparent] hover:bg-white/[0.04] hover:text-lime-300/95 active:bg-white/[0.06]"
+      >
+        <svg
+          class="h-4 w-4 shrink-0 text-[#848e9c]/90 transition group-hover:text-lime-400/90"
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.75"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="m15 18-6-6 6-6" />
+        </svg>
+        返回个人中心
+      </RouterLink>
+    </div>
+    </div>
+
     <Teleport to="body">
       <Transition name="ledger-sheet">
         <div
@@ -579,30 +605,6 @@ function nextPage() {
         </div>
       </Transition>
     </Teleport>
-
-    <div
-      class="mt-6 flex justify-center pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:hidden"
-    >
-      <RouterLink
-        :to="`${prefix}/personal-center`"
-        class="group inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-[#848e9c] transition [-webkit-tap-highlight-color:transparent] hover:bg-white/[0.04] hover:text-lime-300/95 active:bg-white/[0.06]"
-      >
-        <svg
-          class="h-4 w-4 shrink-0 text-[#848e9c]/90 transition group-hover:text-lime-400/90"
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.75"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <path d="m15 18-6-6 6-6" />
-        </svg>
-        返回个人中心
-      </RouterLink>
-    </div>
   </div>
 </template>
 

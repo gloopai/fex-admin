@@ -86,15 +86,16 @@ function onMfaCompleted() {
 
 <template>
   <div>
-    <header class="mb-6 md:mb-8">
+    <header class="mb-5 md:mb-6">
       <h1 class="text-2xl font-bold tracking-tight text-white md:text-3xl">安全中心</h1>
       <p class="mt-1 text-sm text-white/55">
         管理登录方式与二次验证，保护账户与资金安全。
       </p>
     </header>
 
+    <div class="flex flex-col gap-5 md:gap-6">
     <section
-      class="mb-6 flex flex-col gap-4 rounded-2xl border border-white/10 bg-gradient-to-r from-violet-950/40 to-[#121212] p-4 md:flex-row md:items-center md:justify-between md:p-6"
+      class="flex flex-col gap-4 rounded-2xl border border-white/10 bg-gradient-to-r from-violet-950/40 to-[#121212] p-4 md:flex-row md:items-center md:justify-between md:p-6"
     >
       <div>
         <p class="text-xs font-medium uppercase tracking-wider text-violet-200/70">安全评分</p>
@@ -117,7 +118,7 @@ function onMfaCompleted() {
       </div>
     </section>
 
-    <section class="mb-4 rounded-2xl border border-white/10 bg-white/[0.04] p-3 md:p-5">
+    <section class="rounded-2xl border border-white/10 bg-white/[0.04] p-3 md:p-5">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-start gap-3">
           <div
@@ -160,7 +161,7 @@ function onMfaCompleted() {
       </div>
     </section>
 
-    <section class="space-y-3">
+    <section class="flex flex-col gap-5 md:gap-6">
       <h2 class="text-sm font-semibold uppercase tracking-wider text-white/45">验证方式</h2>
       <div
         v-for="row in items"
@@ -204,12 +205,13 @@ function onMfaCompleted() {
       </div>
     </section>
 
-    <section class="mt-8 rounded-2xl border border-white/[0.08] bg-black/30 px-3 py-3 text-xs leading-relaxed text-white/50 md:px-5 md:py-4">
+    <section class="rounded-2xl border border-white/[0.08] bg-black/30 px-3 py-3 text-xs leading-relaxed text-white/50 md:px-5 md:py-4">
       <p class="font-medium text-white/65">提示</p>
       <p class="mt-2">
         手机、邮箱与验证器可分别打开对应绑定流程；安全评分卡片中的「安全检测总览」为一步到位的引导，在其中完成绑定后会与此页状态保持一致。
       </p>
     </section>
+    </div>
 
     <SecurityCheckDialog
       v-model="securityOverviewOpen"
