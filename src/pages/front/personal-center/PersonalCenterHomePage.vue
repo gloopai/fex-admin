@@ -1,12 +1,8 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { useRoute } from 'vue-router'
 import { getVipLevelByLevel } from '../../../admin/mock/vip'
-import { getPersonalCenterNavItems } from '../../../constants/personalCenterNav'
 
-const route = useRoute()
-const prefix = computed(() => (route.path.startsWith('/m') ? '/m' : '/front'))
-const isMobile = computed(() => route.path.startsWith('/m'))
+const prefix = '/front'
 
 const userVipLevel = ref(2)
 const currentVipMeta = computed(() => getVipLevelByLevel(userVipLevel.value))
@@ -16,8 +12,6 @@ const displayUid = '143'
 const creditScore = 72
 const securityScore = 78
 const kycLabel = '初级认证'
-
-const primaryNav = computed(() => getPersonalCenterNavItems(prefix.value))
 
 /** 首页安全项摘要（示例，可与安全中心同源） */
 const securityBrief = ref([
@@ -54,7 +48,7 @@ const recentItems = ref([
 ])
 
 function feedTo(pathKey) {
-  const base = `${prefix.value}/personal-center`
+  const base = `${prefix}/personal-center`
   const map = {
     notifications: `${base}/notifications`,
     'fees-vip': `${base}/fees-vip`,
@@ -65,18 +59,18 @@ function feedTo(pathKey) {
 
 /** 高频功能：小链接即可，完整列表在侧栏 / 账户菜单 */
 const compactLinks = computed(() => [
-  { label: '提币地址', to: `${prefix.value}/personal-center/withdraw-addresses` },
-  { label: '邀请返佣', to: `${prefix.value}/personal-center/referral` },
-  { label: '账户设置', to: `${prefix.value}/personal-center/preferences` }
+  { label: '提币地址', to: `${prefix}/personal-center/withdraw-addresses` },
+  { label: '邀请返佣', to: `${prefix}/personal-center/referral` },
+  { label: '账户设置', to: `${prefix}/personal-center/preferences` }
 ])
 </script>
 
 <template>
   <div>
-    <header class="mb-6 md:mb-8">
+    <header class="mb-5 md:mb-8">
       <h1 class="text-2xl font-bold tracking-tight text-white md:text-3xl">账户总览</h1>
-      <p class="mt-1 text-sm text-white/55">
-        查看信用、安全与最近动态；完整功能列表在侧栏或移动端的「全部功能」中。
+      <p class="mt-1 hidden text-sm text-white/55 md:block">
+        查看信用、安全与最近动态；更多功能见侧栏导航。
       </p>
     </header>
 
@@ -119,7 +113,8 @@ const compactLinks = computed(() => [
                 {{ kycLabel }}
               </span>
             </div>
-            <div class="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs">
+            <!-- 大屏侧栏无此区域时保留；窄屏由壳层快捷入口覆盖 -->
+            <div class="mt-4 hidden flex-wrap gap-x-4 gap-y-2 text-xs lg:flex">
               <RouterLink
                 :to="`${prefix}/personal-center/security`"
                 class="text-lime-300/90 hover:text-lime-200"
@@ -142,16 +137,18 @@ const compactLinks = computed(() => [
           </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-3 sm:shrink-0 sm:text-right">
-          <div class="rounded-xl border border-white/10 bg-black/30 px-4 py-3">
+        <div
+          class="grid grid-cols-2 gap-2 sm:gap-3 sm:shrink-0 sm:text-right md:gap-3"
+        >
+          <div class="rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 sm:px-4 sm:py-3">
             <p class="text-[10px] uppercase tracking-wider text-white/40">信用分</p>
-            <p class="mt-1 text-2xl font-semibold tabular-nums text-lime-200">
+            <p class="mt-1 text-xl font-semibold tabular-nums text-lime-200 sm:text-2xl">
               {{ creditScore }}
             </p>
           </div>
-          <div class="rounded-xl border border-white/10 bg-black/30 px-4 py-3">
+          <div class="rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 sm:px-4 sm:py-3">
             <p class="text-[10px] uppercase tracking-wider text-white/40">安全评分</p>
-            <p class="mt-1 text-2xl font-semibold tabular-nums text-violet-200">
+            <p class="mt-1 text-xl font-semibold tabular-nums text-violet-200 sm:text-2xl">
               {{ securityScore }}
             </p>
           </div>
@@ -172,7 +169,7 @@ const compactLinks = computed(() => [
       <span class="text-sm font-medium text-lime-300/90 sm:shrink-0">查看资产 →</span>
     </RouterLink>
 
-    <div class="mt-6 grid gap-6 lg:grid-cols-2 lg:items-start">
+    <div class="mt-5 grid gap-5 md:mt-6 md:gap-6 lg:grid-cols-2 lg:items-start">
       <!-- 安全项摘要 -->
       <section class="rounded-2xl border border-white/10 bg-white/[0.04] p-4 md:p-5">
         <div class="flex items-center justify-between gap-3">
@@ -205,7 +202,7 @@ const compactLinks = computed(() => [
         </ul>
       </section>
 
-      <!-- 最近动态（与大屏安全项并排，避免单栏留白） -->
+      <!-- 最近动态：窄屏仅保留前 2 条，减轻滚动 -->
       <section class="rounded-2xl border border-white/10 bg-white/[0.04] p-4 md:p-5">
         <div class="flex items-center justify-between gap-3">
           <h2 class="text-sm font-semibold text-white/90">最近动态</h2>
@@ -217,7 +214,11 @@ const compactLinks = computed(() => [
           </RouterLink>
         </div>
         <ul class="mt-3 divide-y divide-white/[0.06]">
-          <li v-for="row in recentItems" :key="row.key">
+          <li
+            v-for="row in recentItems"
+            :key="row.key"
+            class="max-lg:[&:nth-child(n+3)]:hidden"
+          >
             <RouterLink
               :to="feedTo(row.to)"
               class="flex gap-3 py-3 text-left transition hover:bg-white/[0.03]"
@@ -244,8 +245,10 @@ const compactLinks = computed(() => [
       </section>
     </div>
 
-    <!-- 常用功能：紧凑文字链接 -->
-    <section class="mt-6 rounded-2xl border border-white/[0.08] bg-black/25 px-4 py-4 md:px-5">
+    <!-- 常用功能：窄屏与上方快捷入口重复，隐藏 -->
+    <section
+      class="mt-6 hidden rounded-2xl border border-white/[0.08] bg-black/25 px-4 py-4 md:block md:px-5"
+    >
       <h2 class="text-xs font-medium uppercase tracking-wider text-white/40">常用功能</h2>
       <div class="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm">
         <RouterLink
@@ -259,9 +262,9 @@ const compactLinks = computed(() => [
       </div>
     </section>
 
-    <!-- 提示条 -->
+    <!-- 提示条：窄屏隐藏，减少干扰 -->
     <section
-      class="mt-6 rounded-2xl border border-lime-400/20 bg-lime-400/[0.07] px-4 py-4 md:flex md:items-center md:justify-between md:px-5"
+      class="mt-6 hidden rounded-2xl border border-lime-400/20 bg-lime-400/[0.07] px-4 py-4 md:flex md:items-center md:justify-between md:px-5"
     >
       <div class="flex gap-3">
         <span class="text-xl" aria-hidden="true">💡</span>
@@ -280,23 +283,5 @@ const compactLinks = computed(() => [
       </RouterLink>
     </section>
 
-    <!-- 移动：完整菜单（主要导航入口） -->
-    <section v-if="isMobile" class="mt-8 rounded-2xl border border-white/10 bg-white/[0.04]">
-      <p class="border-b border-white/10 px-4 py-3 text-xs font-medium uppercase tracking-wider text-white/45">
-        全部功能
-      </p>
-      <RouterLink
-        v-for="item in primaryNav"
-        :key="item.key"
-        :to="item.to"
-        class="flex items-center justify-between border-b border-white/[0.06] px-4 py-3.5 last:border-b-0 active:bg-white/[0.04]"
-      >
-        <div>
-          <p class="text-sm font-medium text-white/90">{{ item.label }}</p>
-          <p class="mt-0.5 text-xs text-white/45">{{ item.description }}</p>
-        </div>
-        <span class="text-white/35" aria-hidden="true">›</span>
-      </RouterLink>
-    </section>
   </div>
 </template>

@@ -1,35 +1,128 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { getFrontMoreDemoLinks } from '../constants/frontNav'
 
 const route = useRoute()
 
-const entries = [
+const menuOpen = ref(false)
+const rootRef = ref(null)
+
+const platformEntries = [
   { key: 'admin', label: '管理台', to: '/admin' },
-  { key: 'pc', label: 'PC 端', to: '/front/personal-center' },
-  { key: 'mobile', label: '移动端', to: '/m/personal-center' }
+  { key: 'front', label: '前台', to: '/front/home' }
 ]
+
+const moreLinks = computed(() => getFrontMoreDemoLinks('/front'))
 
 const currentEntry = computed(() => {
   if (route.path.startsWith('/admin')) return 'admin'
-  if (route.path.startsWith('/front')) return 'pc'
-  if (route.path.startsWith('/m')) return 'mobile'
+  if (route.path.startsWith('/front')) return 'front'
   return ''
 })
+
+/** 前台窄屏有底部 Tab，抬高快捷菜单避免遮挡 */
+const liftAboveTabBar = computed(() => currentEntry.value === 'front')
+
+function isMoreLinkActive(to) {
+  const p = route.path
+  return p === to || p.startsWith(`${to}/`)
+}
+
+function closeMenu() {
+  menuOpen.value = false
+}
+
+watch(() => route.fullPath, closeMenu)
+
+function onDocPointerDown(ev) {
+  if (rootRef.value?.contains(ev.target)) return
+  closeMenu()
+}
+
+watch(menuOpen, (open) => {
+  if (open) {
+    document.addEventListener('pointerdown', onDocPointerDown, true)
+  } else {
+    document.removeEventListener('pointerdown', onDocPointerDown, true)
+  }
+})
+
+onUnmounted(() => {
+  document.removeEventListener('pointerdown', onDocPointerDown, true)
+})
+
+function platformRowClass(key) {
+  return currentEntry.value === key
+    ? 'bg-lime-300/12 text-lime-200'
+    : 'text-white/85 hover:bg-white/[0.06]'
+}
 </script>
 
 <template>
-  <div class="fixed right-4 bottom-4 z-50">
-    <div class="rounded-2xl border border-white/20 bg-black/70 p-2 shadow-2xl backdrop-blur">
-      <div class="flex items-center gap-2">
+  <div
+    ref="rootRef"
+    class="fixed right-4 z-50 bottom-4"
+    :class="
+      liftAboveTabBar
+        ? 'max-lg:[bottom:calc(1rem+3.5rem+env(safe-area-inset-bottom,0px))]'
+        : ''
+    "
+  >
+    <div class="relative">
+      <button
+        type="button"
+        class="flex items-center gap-1.5 rounded-2xl border border-white/20 bg-black/80 px-3 py-2 text-xs font-medium shadow-2xl backdrop-blur transition"
+        :class="
+          menuOpen
+            ? 'border-lime-300/50 bg-lime-300/15 text-lime-200'
+            : 'text-white/90 hover:bg-white/10'
+        "
+        :aria-expanded="menuOpen"
+        aria-haspopup="true"
+        aria-controls="cross-platform-float-menu"
+        @click="menuOpen = !menuOpen"
+      >
+        快捷菜单
+        <span class="text-[10px] opacity-70" aria-hidden="true">{{ menuOpen ? '▼' : '▲' }}</span>
+      </button>
+
+      <div
+        v-show="menuOpen"
+        id="cross-platform-float-menu"
+        class="absolute right-0 bottom-full z-50 mb-2 max-h-[min(70vh,26rem)] w-[min(17rem,calc(100vw-2rem))] overflow-y-auto rounded-xl border border-white/15 bg-[#0d0d0d] py-2 shadow-2xl"
+        role="menu"
+      >
+        <div class="px-3 pb-1 text-[10px] font-semibold tracking-wide text-white/40">平台入口</div>
         <RouterLink
-          v-for="entry in entries"
+          v-for="entry in platformEntries"
           :key="entry.key"
           :to="entry.to"
-          class="rounded-lg border px-3 py-1.5 text-xs transition"
-          :class="currentEntry === entry.key ? 'border-lime-300/50 bg-lime-300/20 text-lime-200' : 'border-white/20 bg-white/5 text-white/80 hover:bg-white/10'"
+          role="menuitem"
+          class="mx-1 block rounded-lg px-3 py-2.5 text-sm transition"
+          :class="platformRowClass(entry.key)"
+          @click="closeMenu"
         >
           {{ entry.label }}
+        </RouterLink>
+
+        <div class="mx-2 my-2 border-t border-white/10" role="separator" />
+
+        <div class="px-3 pb-1 text-[10px] font-semibold tracking-wide text-white/40">更多（演示）</div>
+        <RouterLink
+          v-for="item in moreLinks"
+          :key="item.key"
+          :to="item.to"
+          role="menuitem"
+          class="mx-1 block rounded-lg px-3 py-2.5 text-sm transition"
+          :class="
+            isMoreLinkActive(item.to)
+              ? 'bg-lime-300/12 text-lime-200'
+              : 'text-white/85 hover:bg-white/[0.06]'
+          "
+          @click="closeMenu"
+        >
+          {{ item.label }}
         </RouterLink>
       </div>
     </div>

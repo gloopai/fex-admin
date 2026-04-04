@@ -1,6 +1,27 @@
 /**
+ * 窄屏壳层「快捷入口」仅展示这些（其余入口保留在 PC 侧栏或总览页内链）。
+ */
+export const PERSONAL_CENTER_SHELL_MOBILE_PRIMARY_KEYS = new Set([
+  'assets',
+  'security',
+  'verify',
+  'withdraw-addresses',
+  'referral',
+  'preferences'
+])
+
+/**
+ * @param {'/front'} prefix
+ */
+export function getPersonalCenterShellMobileNavItems(prefix) {
+  return getPersonalCenterNavItems(prefix).filter((item) =>
+    PERSONAL_CENTER_SHELL_MOBILE_PRIMARY_KEYS.has(item.key)
+  )
+}
+
+/**
  * 个人中心侧栏（PC）与快捷入口（移动）共用配置。
- * @param {'/front' | '/m'} prefix
+ * @param {'/front'} prefix
  */
 export function getPersonalCenterNavItems(prefix) {
   return [

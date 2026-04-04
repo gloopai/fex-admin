@@ -2,10 +2,9 @@
 /**
  * 账户权限说明页：横幅、内联条、空状态、弹窗等形态。
  * 与后台「认证权限配置」中的权限项对应；支持切换当前等级与目标等级以查看文案。
- * PC：/front/verification-permission-demo · 移动：/m/verification-permission-demo
+ * /front/verification-permission-demo
  */
 import { ref, computed, watch } from 'vue'
-import { useRoute } from 'vue-router'
 import { VERIFICATION_LEVEL } from '../../constants/verification'
 import { verificationConfig } from '../../admin/mock/verification'
 import {
@@ -19,12 +18,7 @@ import VerificationRequiredInline from '../../components/verification/Verificati
 import VerificationRequiredDialog from '../../components/verification/VerificationRequiredDialog.vue'
 import VerificationRequiredEmpty from '../../components/verification/VerificationRequiredEmpty.vue'
 
-const route = useRoute()
-const isMobileRoute = computed(() => route.path.startsWith('/m'))
-
-const verifyHref = computed(() =>
-  isMobileRoute.value ? '/m/personal-center/verification' : '/front/personal-center/verification'
-)
+const verifyHref = '/front/personal-center/verification'
 
 /** 模拟当前用户认证等级 */
 const simulatedUserLevel = ref(VERIFICATION_LEVEL.NONE)
@@ -94,7 +88,7 @@ const levelOptions = [
         与后台「认证权限配置」一致。可选择<strong class="font-medium text-white/80">当前用户等级</strong>与<strong class="font-medium text-white/80">目标认证等级</strong>（业务要求），查看各场景下的提示文案。
       </p>
       <p class="mt-1 text-xs text-white/45">
-        当前环境：{{ isMobileRoute ? '移动端 /m' : 'PC /front' }} · 去认证跳转 {{ verifyHref }}
+        去认证跳转：{{ verifyHref }}
       </p>
     </header>
 

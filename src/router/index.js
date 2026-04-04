@@ -1,11 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import ConsoleLayout from '../layouts/ConsoleLayout.vue'
 import FrontDesktopLayout from '../layouts/FrontDesktopLayout.vue'
-import FrontMobileLayout from '../layouts/FrontMobileLayout.vue'
 import HomeEntryPage from '../pages/HomeEntryPage.vue'
 import { consoleRoutes } from './modules/console'
 import { legacyRoutes } from './modules/legacy'
-import { frontDesktopRoutes, frontMobileRoutes } from './modules/front'
+import { frontDesktopRoutes } from './modules/front'
 
 const routes = [
   {
@@ -26,10 +25,18 @@ const routes = [
     component: FrontDesktopLayout,
     children: frontDesktopRoutes
   },
+  /** 旧 /m 路径重定向到统一响应式前台 */
   {
     path: '/m',
-    component: FrontMobileLayout,
-    children: frontMobileRoutes
+    redirect: '/front/home'
+  },
+  {
+    path: '/m/:pathMatch(.*)*',
+    redirect: (to) => {
+      const m = to.params.pathMatch
+      const tail = Array.isArray(m) ? m.filter(Boolean).join('/') : (m ? String(m) : '')
+      return tail ? `/front/${tail.replace(/^\/+/, '')}` : '/front/home'
+    }
   }
 ]
 
