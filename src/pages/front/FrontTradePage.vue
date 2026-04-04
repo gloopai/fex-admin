@@ -310,6 +310,12 @@ function selectPair(i) {
   closePairDrawer()
 }
 
+/** 抽屉内左侧角标（与主导航图标格统一尺度） */
+function pairListBadge(base) {
+  const b = String(base || '')
+  return b.length <= 4 ? b : `${b.slice(0, 3)}…`
+}
+
 function goMode(path) {
   closeModeSheet()
   if (route.path !== path) router.push(path)
@@ -2029,36 +2035,76 @@ const pcBottomEmptyText = computed(() => {
       <Transition name="fade">
         <div
           v-if="pairDrawerOpen"
-          class="fixed inset-0 z-[60] bg-black/55 lg:hidden"
+          class="fixed inset-0 z-[60] bg-black/55 backdrop-blur-[1px] lg:hidden"
           aria-hidden="true"
           @click="closePairDrawer"
         />
       </Transition>
       <Transition name="slide-left">
-        <div
+        <aside
           v-if="pairDrawerOpen"
-          class="fixed bottom-0 left-0 top-0 z-[61] flex w-[min(100%,20rem)] flex-col border-r border-[#2b3139] bg-[#1a1a1a] shadow-2xl lg:hidden"
+          class="trade-pair-drawer-panel fixed bottom-0 left-0 top-0 z-[61] flex h-full w-[min(18rem,86vw)] max-w-[100vw] flex-col border-r border-[#2b3139] bg-[#0b0e11] shadow-2xl shadow-black/50 lg:hidden"
           role="dialog"
+          aria-modal="true"
           aria-labelledby="trade-pair-drawer-title"
+          @click.stop
         >
-          <div class="border-b border-white/[0.06] px-4 py-3">
-            <h2 id="trade-pair-drawer-title" class="text-sm font-semibold text-white">区块链</h2>
-            <p class="mt-0.5 text-[11px] text-white/40">选择交易对</p>
+          <div
+            class="flex shrink-0 items-center justify-between gap-2 border-b border-[#2b3139] bg-[#0b0e11]/95 px-2 py-2 pt-[max(0.5rem,env(safe-area-inset-top,0px))]"
+          >
+            <div class="min-w-0 px-2">
+              <h2 id="trade-pair-drawer-title" class="text-sm font-semibold text-lime-300">
+                交易对
+              </h2>
+              <p class="mt-0.5 text-[11px] text-[#848e9c]">选择市场</p>
+            </div>
+            <button
+              type="button"
+              class="rounded-lg p-2 text-[#848e9c] transition hover:bg-white/[0.08] hover:text-white"
+              aria-label="关闭"
+              @click="closePairDrawer"
+            >
+              <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="m6 6 12 12M18 6 6 18"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </button>
           </div>
-          <ul class="flex-1 overflow-y-auto">
-            <li v-for="(p, i) in pairs" :key="p.base + p.quote" class="border-b border-white/[0.05]">
+          <ul
+            class="pair-drawer-scroll min-h-0 flex-1 space-y-0.5 overflow-y-auto overscroll-contain px-2 py-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]"
+            role="listbox"
+            aria-label="交易对列表"
+          >
+            <li v-for="(p, i) in pairs" :key="p.base + p.quote">
               <button
                 type="button"
-                class="flex w-full items-center justify-between px-4 py-3.5 text-left text-sm transition hover:bg-white/[0.04]"
-                :class="i === activePairIdx ? 'text-lime-300' : 'text-white'"
+                role="option"
+                :aria-selected="i === activePairIdx"
+                class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[14px] font-medium transition"
+                :class="
+                  i === activePairIdx
+                    ? 'bg-lime-400/10 text-lime-200'
+                    : 'text-[#eaecef] hover:bg-white/[0.06]'
+                "
                 @click="selectPair(i)"
               >
-                {{ p.base }} / {{ p.quote }}
+                <span
+                  class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#2b3139] text-[11px] font-bold uppercase tracking-tight text-lime-400/90"
+                  aria-hidden="true"
+                >
+                  {{ pairListBadge(p.base) }}
+                </span>
+                <span class="min-w-0 flex-1 truncate font-mono tabular-nums">{{ p.base }} / {{ p.quote }}</span>
                 <svg
                   v-if="i === activePairIdx"
-                  class="h-5 w-5 text-lime-400"
+                  class="h-5 w-5 shrink-0 text-lime-400"
                   viewBox="0 0 24 24"
                   fill="none"
+                  aria-hidden="true"
                 >
                   <path
                     d="M20 6 9 17l-5-5"
@@ -2071,7 +2117,7 @@ const pcBottomEmptyText = computed(() => {
               </button>
             </li>
           </ul>
-        </div>
+        </aside>
       </Transition>
     </Teleport>
 
@@ -2199,6 +2245,16 @@ const pcBottomEmptyText = computed(() => {
 </template>
 
 <style scoped>
+/* 与主导航抽屉一致：可滚动、无滚动条轨 */
+.pair-drawer-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.pair-drawer-scroll::-webkit-scrollbar {
+  display: none;
+}
+
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.2s ease;

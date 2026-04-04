@@ -586,17 +586,13 @@ function drawerRowClass(item) {
   }
 }
 
+/* 可滚动但不显示滚动条（触摸 / 滚轮 / 触控板仍可用） */
 .drawer-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(163, 230, 53, 0.25) transparent;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .drawer-scroll::-webkit-scrollbar {
-  width: 5px;
-}
-
-.drawer-scroll::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: rgba(163, 230, 53, 0.22);
+  display: none;
 }
 </style>
