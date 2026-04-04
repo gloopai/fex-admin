@@ -140,7 +140,7 @@ function isTradeSectionActive() {
 
 function linkNavClass(active) {
   return [
-    'inline-flex items-center gap-1 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150',
+    'inline-flex items-center gap-1 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150 lg:px-3.5 lg:text-[0.9375rem]',
     'focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b0e11]',
     active ? 'text-lime-300' : 'text-[#eaecef] hover:text-lime-300'
   ]
@@ -244,7 +244,7 @@ function drawerRowActive(item) {
 function drawerRowClass(item) {
   const on = drawerRowActive(item)
   return [
-    'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium transition',
+    'flex w-full min-h-[3rem] items-center gap-3 rounded-xl px-3 py-3 text-[15px] leading-snug font-medium transition sm:min-h-0 sm:py-2.5 sm:text-[14px]',
     on ? 'bg-lime-400/10 text-lime-200' : 'text-[#eaecef] hover:bg-white/[0.06]'
   ]
 }
@@ -254,7 +254,7 @@ function drawerRowClass(item) {
 <template>
   <div ref="navRoot" class="sticky top-0 z-20 w-full border-b border-[#2b3139] bg-[#0b0e11]">
     <div
-      class="mx-auto flex h-14 w-full items-center justify-between gap-3 px-3 sm:px-4 lg:gap-6 lg:px-6 xl:px-8"
+      class="mx-auto flex min-h-[3.5rem] w-full items-center justify-between gap-2.5 px-3 sm:min-h-14 sm:gap-3 sm:px-4 lg:gap-6 lg:px-6 xl:px-8"
     >
       <!-- 左：品牌 + 大屏主导航 -->
       <div class="flex min-w-0 flex-1 items-center gap-4 lg:gap-10">
@@ -269,7 +269,9 @@ function drawerRowClass(item) {
             />
             <span class="relative text-[13px] font-black leading-none text-[#0b0e11] -rotate-45">X</span>
           </span>
-          <span class="truncate text-base font-semibold tracking-tight text-lime-300 lg:text-lg">
+          <span
+            class="truncate text-[0.9375rem] font-semibold tracking-tight text-lime-300 sm:text-base lg:text-lg"
+          >
             CryptoX Pro
           </span>
         </RouterLink>
@@ -333,7 +335,7 @@ function drawerRowClass(item) {
                   :key="item.key"
                   :to="item.to"
                   role="menuitem"
-                  class="block px-4 py-2.5 text-sm transition-colors"
+                  class="block px-4 py-2.5 text-sm transition-colors lg:text-[0.9375rem] lg:leading-snug"
                   :class="dropdownItemClass(item.to)"
                   @click="tradeOpen = false"
                 >
@@ -484,7 +486,7 @@ function drawerRowClass(item) {
               class="drawer-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]"
               role="menu"
             >
-              <p class="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-[#848e9c]">
+              <p class="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#848e9c] sm:tracking-wider">
                 主导航
               </p>
               <div class="space-y-0.5">
@@ -516,7 +518,7 @@ function drawerRowClass(item) {
                 </RouterLink>
               </div>
               <p
-                class="mb-2 mt-5 border-t border-[#2b3139] px-3 pt-4 text-[11px] font-semibold uppercase tracking-wider text-[#848e9c]"
+                class="mb-2 mt-5 border-t border-[#2b3139] px-3 pt-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#848e9c] sm:tracking-wider"
               >
                 个人中心
               </p>
