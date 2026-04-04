@@ -12,7 +12,7 @@ export const frontDesktopRoutes = [
   {
     path: 'market',
     name: 'front-market-desktop',
-    component: () => import('../../pages/front/FrontPlaceholderPage.vue'),
+    component: () => import('../../pages/front/FrontMarketPage.vue'),
     meta: { title: '行情' }
   },
   {
