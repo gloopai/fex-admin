@@ -258,9 +258,9 @@ function nextPage() {
       </p>
     </header>
 
-    <!-- 移动端：摘要 + 打开筛选面板 -->
+    <!-- 移动端：摘要 + 打开筛选面板（top 对齐 FrontTopNav 高度，避免 sticky 盖住品牌栏） -->
     <div
-      class="sticky top-0 z-30 mb-3 flex items-center gap-2 rounded-xl border border-white/[0.08] bg-[#0b0e11]/92 px-2.5 py-2 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)] backdrop-blur-md lg:hidden"
+      class="sticky top-14 z-10 mb-3 flex items-center gap-2 rounded-xl border border-white/[0.08] bg-[#0b0e11]/92 px-2.5 py-2 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)] backdrop-blur-md lg:hidden"
     >
       <p class="min-w-0 flex-1 truncate text-[11px] leading-relaxed text-white/55">
         <span class="tabular-nums text-white/40">{{ filteredRows.length }} 条</span>

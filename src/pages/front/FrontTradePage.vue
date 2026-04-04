@@ -59,9 +59,32 @@ const isContract = computed(() => tradeMode.value === 'perpetual' || tradeMode.v
 
 const PAIRS_BY_CLASS = {
   crypto: [
-    { base: 'ETH', quote: 'USDT' },
     { base: 'BTC', quote: 'USDT' },
-    { base: 'SOL', quote: 'USDT' }
+    { base: 'ETH', quote: 'USDT' },
+    { base: 'SOL', quote: 'USDT' },
+    { base: 'BNB', quote: 'USDT' },
+    { base: 'XRP', quote: 'USDT' },
+    { base: 'DOGE', quote: 'USDT' },
+    { base: 'ADA', quote: 'USDT' },
+    { base: 'AVAX', quote: 'USDT' },
+    { base: 'DOT', quote: 'USDT' },
+    { base: 'MATIC', quote: 'USDT' },
+    { base: 'LINK', quote: 'USDT' },
+    { base: 'UNI', quote: 'USDT' },
+    { base: 'ATOM', quote: 'USDT' },
+    { base: 'LTC', quote: 'USDT' },
+    { base: 'ETC', quote: 'USDT' },
+    { base: 'FIL', quote: 'USDT' },
+    { base: 'APT', quote: 'USDT' },
+    { base: 'ARB', quote: 'USDT' },
+    { base: 'OP', quote: 'USDT' },
+    { base: 'SUI', quote: 'USDT' },
+    { base: 'INJ', quote: 'USDT' },
+    { base: 'TIA', quote: 'USDT' },
+    { base: 'SEI', quote: 'USDT' },
+    { base: 'WLD', quote: 'USDT' },
+    { base: 'PEPE', quote: 'USDT' },
+    { base: 'SHIB', quote: 'USDT' }
   ],
   forex: [
     { base: 'EUR', quote: 'USD' },
@@ -76,9 +99,32 @@ const PAIRS_BY_CLASS = {
 }
 
 const PAIR_MARKET_TABLE = {
-  'ETH-USDT': [2050.43, -0.358],
   'BTC-USDT': [98420.5, 1.24],
+  'ETH-USDT': [2050.43, -0.358],
   'SOL-USDT': [188.35, 2.91],
+  'BNB-USDT': [712.8, 0.62],
+  'XRP-USDT': [2.084, 1.05],
+  'DOGE-USDT': [0.3842, -0.91],
+  'ADA-USDT': [0.872, 0.44],
+  'AVAX-USDT': [39.55, -0.27],
+  'DOT-USDT': [7.82, 0.18],
+  'MATIC-USDT': [0.5234, -1.12],
+  'LINK-USDT': [24.16, 0.73],
+  'UNI-USDT': [13.05, -0.45],
+  'ATOM-USDT': [9.94, 0.29],
+  'LTC-USDT': [108.3, 0.51],
+  'ETC-USDT': [28.4, -0.62],
+  'FIL-USDT': [8.12, 1.88],
+  'APT-USDT': [9.65, -0.34],
+  'ARB-USDT': [0.721, 0.92],
+  'OP-USDT': [2.08, -0.71],
+  'SUI-USDT': [3.42, 2.15],
+  'INJ-USDT': [24.88, 0.38],
+  'TIA-USDT': [4.95, -1.05],
+  'SEI-USDT': [0.412, 0.67],
+  'WLD-USDT': [1.856, -0.89],
+  'PEPE-USDT': [0.00001234, 3.2],
+  'SHIB-USDT': [0.00002418, -0.55],
   'EUR-USD': [1.0856, 0.042],
   'GBP-USD': [1.265, -0.08],
   'USD-JPY': [149.82, 0.15],
@@ -90,9 +136,14 @@ const PAIR_MARKET_TABLE = {
 const pairs = computed(() => PAIRS_BY_CLASS[tradeAssetClass.value] || PAIRS_BY_CLASS.crypto)
 
 const activePairIdx = ref(0)
+const pcPairPickerOpen = ref(false)
+const pcPairSearch = ref('')
+const pcPairPickerRoot = ref(null)
 
 watch(tradeAssetClass, () => {
   activePairIdx.value = 0
+  pcPairPickerOpen.value = false
+  pcPairSearch.value = ''
 })
 
 watch(pairs, (list) => {
@@ -120,10 +171,16 @@ function syncPairMarket() {
 
 watch([activePairIdx, tradeAssetClass], syncPairMarket, { immediate: true })
 
-const decimals = computed(() => {
-  const m = midNumeric.value
-  return m >= 1000 ? 2 : m >= 1 ? 2 : 4
-})
+function marketRowDecimals(mid) {
+  if (mid >= 10_000) return 2
+  if (mid >= 100) return 2
+  if (mid >= 1) return mid >= 10 ? 4 : 5
+  if (mid >= 0.01) return 5
+  if (mid >= 0.0001) return 6
+  return 8
+}
+
+const decimals = computed(() => marketRowDecimals(midNumeric.value))
 
 function fmtPriceNum(price, dec) {
   return price.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec })
@@ -257,13 +314,6 @@ const stats24h = computed(() => {
   }
 })
 
-function marketRowDecimals(mid) {
-  if (mid >= 10_000) return 2
-  if (mid >= 100) return 2
-  if (mid >= 1) return mid >= 10 ? 4 : 5
-  return 4
-}
-
 const marketMiniRows = computed(() =>
   pairs.value.map((p, idx) => {
     const key = `${p.base}-${p.quote}`
@@ -278,6 +328,52 @@ const marketMiniRows = computed(() =>
     }
   })
 )
+
+/** PC：自定义交易对选择（搜索 + 演示价 / 涨跌幅） */
+const pcPairPickerRows = computed(() => {
+  const q = pcPairSearch.value.trim().toLowerCase()
+  const list = pairs.value
+  const rows = []
+  for (let i = 0; i < list.length; i++) {
+    const p = list[i]
+    const hay = `${p.base} ${p.quote} ${p.base}/${p.quote}`.toLowerCase()
+    if (q && !hay.includes(q)) continue
+    const key = `${p.base}-${p.quote}`
+    const [mid, pct] = PAIR_MARKET_TABLE[key] || [100, 0]
+    const dec = marketRowDecimals(mid)
+    rows.push({
+      i,
+      p,
+      price: fmtPriceNum(mid, dec),
+      pct
+    })
+  }
+  return rows
+})
+
+function togglePcPairPicker() {
+  pcPairPickerOpen.value = !pcPairPickerOpen.value
+  if (pcPairPickerOpen.value) {
+    pcPairSearch.value = ''
+    nextTick(() => {
+      document.getElementById('pc-trade-pair-search')?.focus()
+    })
+  }
+}
+
+function selectPcPair(idx) {
+  activePairIdx.value = idx
+  pcPairPickerOpen.value = false
+  pcPairSearch.value = ''
+}
+
+function onDocPointerDownPcPair(e) {
+  if (!pcPairPickerOpen.value) return
+  const root = pcPairPickerRoot.value
+  if (root && !root.contains(e.target)) {
+    pcPairPickerOpen.value = false
+  }
+}
 
 const pairDrawerOpen = ref(false)
 const modeSheetOpen = ref(false)
@@ -327,6 +423,7 @@ watch(
     chartExpanded.value = false
     chartMarketTab.value = 'depth'
     orderPrice.value = ''
+    pcPairPickerOpen.value = false
   }
 )
 
@@ -679,6 +776,10 @@ function submitDemoOrder(forcedSide) {
 
 function onBodyKeydown(e) {
   if (e.key === 'Escape') {
+    if (pcPairPickerOpen.value) {
+      pcPairPickerOpen.value = false
+      return
+    }
     if (mobilePickerOpen.value) {
       closeMobilePicker()
       return
@@ -702,12 +803,14 @@ function tickClock() {
 
 onMounted(() => {
   document.body.addEventListener('keydown', onBodyKeydown)
+  document.addEventListener('pointerdown', onDocPointerDownPcPair, true)
   tickClock()
   clockTimer = setInterval(tickClock, 1000)
 })
 
 onUnmounted(() => {
   document.body.removeEventListener('keydown', onBodyKeydown)
+  document.removeEventListener('pointerdown', onDocPointerDownPcPair, true)
   if (clockTimer) clearInterval(clockTimer)
   if (orderToastTimer) clearTimeout(orderToastTimer)
 })
@@ -728,52 +831,132 @@ const pcBottomEmptyText = computed(() => {
     <div
       class="hidden border-b border-[#1f2429] bg-[#0b0e11] lg:block lg:px-4 lg:py-2 xl:px-6"
     >
-      <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
-        <div class="flex items-center gap-2">
-          <label class="sr-only" for="pc-trade-pair">交易对</label>
-          <select
-            id="pc-trade-pair"
-            v-model.number="activePairIdx"
-            class="rounded-lg border border-[#1f2429] bg-[#1e2329] py-1.5 pl-2 pr-8 text-sm font-semibold text-white focus:border-[#00b464]/50 focus:outline-none"
+      <!-- 整行不换行：统计区可横向滑览，右侧品种/类型/时间固定同一行并对齐 -->
+      <div class="flex min-h-[2.75rem] flex-nowrap items-center gap-3 xl:gap-4">
+        <div ref="pcPairPickerRoot" class="relative shrink-0">
+          <label class="sr-only" for="pc-trade-pair-trigger">交易对</label>
+          <button
+            id="pc-trade-pair-trigger"
+            type="button"
+            class="flex min-w-[9.5rem] items-center gap-2 rounded-lg border border-[#1f2429] bg-[#1e2329] py-1.5 pl-2.5 pr-2 text-left text-sm font-semibold text-white transition hover:border-[#00b464]/35 hover:bg-[#232a31] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00b464]/40"
+            :aria-expanded="pcPairPickerOpen"
+            aria-haspopup="listbox"
+            aria-controls="pc-trade-pair-listbox"
+            @click="togglePcPairPicker"
           >
-            <option v-for="(p, i) in pairs" :key="p.base + p.quote" :value="i">
-              {{ p.base }} / {{ p.quote }}
-            </option>
-          </select>
-        </div>
-
-        <div class="flex flex-wrap items-baseline gap-x-8 gap-y-1">
-          <div>
-            <p class="font-mono text-xl font-bold tabular-nums" :class="changeClass(changePct)">
-              {{ lastPrice }}
+            <span class="min-w-0 flex-1 truncate font-mono tabular-nums">{{ symbol }}</span>
+            <svg
+              class="h-4 w-4 shrink-0 text-white/45 transition duration-200"
+              :class="pcPairPickerOpen ? 'rotate-180' : ''"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="m6 9 6 6 6-6"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+          <div
+            v-show="pcPairPickerOpen"
+            id="pc-trade-pair-panel"
+            class="absolute left-0 top-[calc(100%+0.375rem)] z-[60] w-[min(20rem,calc(100vw-2rem))] rounded-lg border border-[#1f2429] bg-[#1e2329] py-2 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.65)]"
+            role="presentation"
+            @click.stop
+          >
+            <p class="border-b border-white/[0.06] px-3 pb-2 text-[11px] text-[#848e9c]">
+              {{ tradeAssetClassLabel }} · 当前市场可交易对
             </p>
-            <p class="text-[11px] text-white/45">≈ $ {{ lastPrice }}</p>
-          </div>
-          <div class="text-xs">
-            <span class="text-white/40">24H 涨跌</span>
-            <span class="ml-2 font-mono tabular-nums" :class="changeClass(changePct)">
-              {{ changePct >= 0 ? '+' : '' }}{{ changePct.toFixed(3) }}%
-            </span>
-          </div>
-          <div class="text-xs">
-            <span class="text-white/40">24H 高</span>
-            <span class="ml-2 font-mono tabular-nums text-white/85">{{ stats24h.high }}</span>
-          </div>
-          <div class="text-xs">
-            <span class="text-white/40">24H 低</span>
-            <span class="ml-2 font-mono tabular-nums text-white/85">{{ stats24h.low }}</span>
-          </div>
-          <div class="text-xs">
-            <span class="text-white/40">24H 成交量</span>
-            <span class="ml-2 font-mono text-white/85">{{ stats24h.volBase }}</span>
-          </div>
-          <div class="text-xs">
-            <span class="text-white/40">24H 交易额</span>
-            <span class="ml-2 font-mono text-white/85">{{ stats24h.turnover }}</span>
+            <div class="px-2 pt-2">
+              <input
+                id="pc-trade-pair-search"
+                v-model="pcPairSearch"
+                type="search"
+                autocomplete="off"
+                placeholder="搜索代码，如 ETH、USD…"
+                class="w-full rounded-md border border-[#2b3139] bg-[#0b0e11] px-2.5 py-2 text-xs text-white placeholder:text-[#5e6673] focus:border-[#00b464]/45 focus:outline-none focus:ring-1 focus:ring-[#00b464]/25"
+                @keydown.escape.stop="pcPairPickerOpen = false"
+              />
+            </div>
+            <ul
+              id="pc-trade-pair-listbox"
+              class="trade-pair-scroll mt-1 max-h-60 overflow-y-auto overscroll-contain px-1 pb-1 pr-1.5"
+              role="listbox"
+            >
+              <template v-if="pcPairPickerRows.length">
+                <li v-for="row in pcPairPickerRows" :key="row.p.base + row.p.quote + row.i" role="none">
+                  <button
+                    type="button"
+                    role="option"
+                    class="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm transition"
+                    :class="
+                      row.i === activePairIdx
+                        ? 'bg-[#00b464]/15 text-lime-200 ring-1 ring-[#00b464]/25'
+                        : 'text-[#eaecef] hover:bg-white/[0.06]'
+                    "
+                    :aria-selected="row.i === activePairIdx"
+                    @click="selectPcPair(row.i)"
+                  >
+                    <span class="min-w-0 flex-1 truncate font-mono font-semibold tabular-nums">
+                      {{ row.p.base }}
+                      <span class="font-normal text-white/40">/</span>
+                      {{ row.p.quote }}
+                    </span>
+                    <span class="shrink-0 font-mono text-xs tabular-nums text-white/80">{{ row.price }}</span>
+                    <span
+                      class="w-[3.25rem] shrink-0 text-right font-mono text-[11px] tabular-nums"
+                      :class="changeClass(row.pct)"
+                    >
+                      {{ row.pct >= 0 ? '+' : '' }}{{ row.pct.toFixed(2) }}%
+                    </span>
+                  </button>
+                </li>
+              </template>
+              <li v-else class="px-3 py-6 text-center text-xs text-white/40">无匹配交易对</li>
+            </ul>
           </div>
         </div>
 
-        <div class="ml-auto flex flex-wrap items-center justify-end gap-3">
+        <div
+          class="min-w-0 flex-1 overflow-x-auto overflow-y-hidden overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          <div class="flex w-max max-w-none flex-nowrap items-center gap-x-6 pr-1 lg:gap-x-7 xl:gap-x-8">
+            <div class="shrink-0">
+              <p class="font-mono text-xl font-bold leading-tight tabular-nums" :class="changeClass(changePct)">
+                {{ lastPrice }}
+              </p>
+              <p class="mt-0.5 whitespace-nowrap text-[11px] text-white/45">≈ $ {{ lastPrice }}</p>
+            </div>
+            <div class="shrink-0 whitespace-nowrap text-xs">
+              <span class="text-white/40">24H 涨跌</span>
+              <span class="ml-2 font-mono tabular-nums" :class="changeClass(changePct)">
+                {{ changePct >= 0 ? '+' : '' }}{{ changePct.toFixed(3) }}%
+              </span>
+            </div>
+            <div class="shrink-0 whitespace-nowrap text-xs">
+              <span class="text-white/40">24H 高</span>
+              <span class="ml-2 font-mono tabular-nums text-white/85">{{ stats24h.high }}</span>
+            </div>
+            <div class="shrink-0 whitespace-nowrap text-xs">
+              <span class="text-white/40">24H 低</span>
+              <span class="ml-2 font-mono tabular-nums text-white/85">{{ stats24h.low }}</span>
+            </div>
+            <div class="shrink-0 whitespace-nowrap text-xs">
+              <span class="text-white/40">24H 成交量</span>
+              <span class="ml-2 font-mono text-white/85">{{ stats24h.volBase }}</span>
+            </div>
+            <div class="shrink-0 whitespace-nowrap text-xs">
+              <span class="text-white/40">24H 交易额</span>
+              <span class="ml-2 font-mono text-white/85">{{ stats24h.turnover }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex shrink-0 flex-nowrap items-center justify-end gap-2.5 sm:gap-3">
           <nav
             class="flex rounded-lg border border-white/[0.06] bg-white/[0.04] p-0.5"
             aria-label="交易品种"
@@ -1371,7 +1554,9 @@ const pcBottomEmptyText = computed(() => {
           </template>
         </div>
 
-        <div class="max-h-[220px] shrink-0 overflow-y-auto border-b border-[#1a1c21] bg-[#121214]">
+        <div
+          class="trade-pair-scroll max-h-[220px] shrink-0 overflow-y-auto border-b border-[#1a1c21] bg-[#121214]"
+        >
           <div
             class="sticky top-0 flex items-center justify-between border-b border-[#1a1c21] bg-[#121214] px-3 py-2 text-[11px] font-medium text-[#8e8e93]"
           >
@@ -2223,7 +2408,7 @@ const pcBottomEmptyText = computed(() => {
             </div>
           </div>
           <ul
-            class="pair-drawer-scroll min-h-0 flex-1 space-y-0.5 overflow-y-auto overscroll-contain px-2 py-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]"
+            class="trade-pair-scroll min-h-0 flex-1 space-y-0.5 overflow-y-auto overscroll-contain px-2 py-3 pr-2.5 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]"
             role="listbox"
             aria-label="交易对列表"
           >
@@ -2288,7 +2473,7 @@ const pcBottomEmptyText = computed(() => {
           <p class="shrink-0 px-4 pb-2 text-center text-sm font-semibold text-white">
             {{ mobilePickerTitle }}
           </p>
-          <ul class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2">
+          <ul class="trade-pair-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pr-2.5">
             <li
               v-for="opt in mobilePickerOptionList"
               :key="String(opt.value)"
@@ -2393,16 +2578,6 @@ const pcBottomEmptyText = computed(() => {
 </template>
 
 <style scoped>
-/* 与主导航抽屉一致：可滚动、无滚动条轨 */
-.pair-drawer-scroll {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.pair-drawer-scroll::-webkit-scrollbar {
-  display: none;
-}
-
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.2s ease;
