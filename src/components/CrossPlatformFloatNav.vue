@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import FrontStrokeIcon from './front/FrontStrokeIcon.vue'
 import { getFrontMoreDemoLinks } from '../constants/frontNav'
 
 const route = useRoute()
@@ -84,7 +85,10 @@ function platformRowClass(key) {
         @click="menuOpen = !menuOpen"
       >
         快捷菜单
-        <span class="text-[10px] opacity-70" aria-hidden="true">{{ menuOpen ? '▼' : '▲' }}</span>
+        <FrontStrokeIcon
+          :name="menuOpen ? 'chevron-down' : 'chevron-up'"
+          size-class="h-3.5 w-3.5 shrink-0 opacity-70"
+        />
       </button>
 
       <div

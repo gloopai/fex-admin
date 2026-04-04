@@ -1,5 +1,6 @@
 <script setup>
 import { computed, watch } from 'vue'
+import FrontStrokeIcon from '../front/FrontStrokeIcon.vue'
 import {
   userMeetsVerificationLevel,
   getVerificationLevelLabel,
@@ -84,16 +85,17 @@ watch(
           <div class="flex items-start justify-between gap-3">
             <div
               v-if="blocked"
-              class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-emerald-400/30 bg-emerald-400/15 text-xl text-lime-200"
+              class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-emerald-400/30 bg-emerald-400/15 text-lime-200"
+              aria-hidden="true"
             >
-              🔐
+              <FrontStrokeIcon name="lock" size-class="h-5 w-5" />
             </div>
             <div
               v-else
-              class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-emerald-400/35 bg-emerald-500/20 text-xl font-semibold text-emerald-200"
+              class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-emerald-400/35 bg-emerald-500/20 text-emerald-200"
               aria-hidden="true"
             >
-              ✓
+              <FrontStrokeIcon name="check" size-class="h-5 w-5" />
             </div>
             <button
               type="button"

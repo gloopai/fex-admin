@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
+import FrontStrokeIcon from '../../components/front/FrontStrokeIcon.vue'
 
 /** 示例估值，对接接口后替换 */
 const hideBalance = ref(false)
@@ -65,7 +66,10 @@ function displayVal(val) {
               :aria-label="hideBalance ? '显示余额' : '隐藏余额'"
               @click="toggleEye"
             >
-              <span class="text-base">{{ hideBalance ? '👁‍🗨' : '👁' }}</span>
+              <FrontStrokeIcon
+                :name="masked ? 'eye-off' : 'eye'"
+                size-class="h-[18px] w-[18px]"
+              />
             </button>
           </div>
           <p class="mt-3 font-mono text-3xl font-semibold tracking-tight text-white md:text-4xl">
@@ -79,7 +83,7 @@ function displayVal(val) {
               class="rounded p-1 text-white/40 hover:text-lime-300/90"
               aria-label="刷新估值"
             >
-              ↻
+              <FrontStrokeIcon name="refresh" size-class="h-[18px] w-[18px]" />
             </button>
           </div>
         </div>

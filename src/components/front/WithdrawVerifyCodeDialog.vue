@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import FrontPopupShell from './FrontPopupShell.vue'
+import FrontStrokeIcon from './FrontStrokeIcon.vue'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -56,10 +57,10 @@ function onCancel() {
     >
       <div class="flex items-start gap-3">
         <div
-          class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-400/35 bg-amber-400/12 text-lg text-amber-100"
+          class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-400/35 bg-amber-400/12 text-amber-100"
           aria-hidden="true"
         >
-          ✓
+          <FrontStrokeIcon name="check" size-class="h-5 w-5" />
         </div>
         <div class="min-w-0 flex-1">
           <h3 id="withdraw-verify-dialog-title" class="text-lg font-semibold leading-snug">

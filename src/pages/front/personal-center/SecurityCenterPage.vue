@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
+import FrontStrokeIcon from '../../../components/front/FrontStrokeIcon.vue'
 import BindEmailDialog from '../../../components/front/BindEmailDialog.vue'
 import BindPhoneDialog from '../../../components/front/BindPhoneDialog.vue'
 import ChangePasswordDialog from '../../../components/front/ChangePasswordDialog.vue'
@@ -120,10 +121,10 @@ function onMfaCompleted() {
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-start gap-3">
           <div
-            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-lg"
+            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-lime-300/90"
             aria-hidden="true"
           >
-            🔑
+            <FrontStrokeIcon name="key" size-class="h-5 w-5" />
           </div>
           <div>
             <h2 class="text-sm font-semibold text-white/95">登录密码</h2>
@@ -168,10 +169,13 @@ function onMfaCompleted() {
       >
         <div class="flex items-start gap-3">
           <div
-            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/25 text-lg"
+            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/25 text-lime-300/90"
             aria-hidden="true"
           >
-            {{ row.key === 'phone' ? '📱' : row.key === 'email' ? '✉️' : '🔐' }}
+            <FrontStrokeIcon
+              :name="row.key === 'phone' ? 'smartphone' : row.key === 'email' ? 'mail' : 'lock'"
+              size-class="h-5 w-5"
+            />
           </div>
           <div>
             <h3 class="text-sm font-semibold text-white/92">{{ row.title }}</h3>

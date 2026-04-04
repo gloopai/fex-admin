@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import FrontPopupShell from './FrontPopupShell.vue'
+import FrontStrokeIcon from './FrontStrokeIcon.vue'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -116,10 +117,10 @@ function finishMfaBind() {
           <div class="shrink-0 border-b border-white/10 px-4 pb-3 pt-4">
             <div class="flex items-start gap-3">
               <div
-                class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-sky-400/30 bg-sky-400/15 text-lg"
+                class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-sky-400/30 bg-sky-400/15 text-sky-200/90"
                 aria-hidden="true"
               >
-                🔐
+                <FrontStrokeIcon name="lock" size-class="h-5 w-5" />
               </div>
               <div class="min-w-0 flex-1">
                 <p v-if="mfaPhase === 'bind'" class="text-[10px] font-medium uppercase tracking-wider text-white/45">

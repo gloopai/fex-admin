@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { getVipLevelByLevel } from '../../../admin/mock/vip'
+import FrontStrokeIcon from '../../../components/front/FrontStrokeIcon.vue'
 
 const prefix = '/front'
 
@@ -267,7 +268,7 @@ const compactLinks = computed(() => [
       class="mt-6 hidden rounded-2xl border border-lime-400/20 bg-lime-400/[0.07] px-4 py-4 md:flex md:items-center md:justify-between md:px-5"
     >
       <div class="flex gap-3">
-        <span class="text-xl" aria-hidden="true">💡</span>
+        <FrontStrokeIcon name="lightbulb" size-class="h-6 w-6 shrink-0 text-lime-200/90" />
         <div>
           <p class="text-sm font-medium text-lime-100/95">降低账户风险</p>
           <p class="mt-1 text-xs leading-relaxed text-white/55">

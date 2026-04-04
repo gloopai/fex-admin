@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, ref, watch } from 'vue'
 import FrontPopupShell from './FrontPopupShell.vue'
+import FrontStrokeIcon from './FrontStrokeIcon.vue'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false }
@@ -16,7 +17,7 @@ const initialSessions = () => [
     sub: 'Windows 11 · 北京市',
     lastActive: '当前会话 · 刚刚',
     current: true,
-    icon: '💻'
+    icon: 'monitor'
   },
   {
     id: 's2',
@@ -24,7 +25,7 @@ const initialSessions = () => [
     sub: 'iOS 18 · 上海市',
     lastActive: '2026-04-03 22:18',
     current: false,
-    icon: '📱'
+    icon: 'smartphone'
   },
   {
     id: 's3',
@@ -32,7 +33,7 @@ const initialSessions = () => [
     sub: 'macOS · 广东省深圳市',
     lastActive: '2026-03-28 09:42',
     current: false,
-    icon: '💻'
+    icon: 'monitor'
   }
 ]
 
@@ -116,7 +117,7 @@ function revokeAllOthers() {
           aria-label="关闭"
           @click="close"
         >
-          ✕
+          <FrontStrokeIcon name="x" size-class="h-5 w-5" />
         </button>
       </div>
 
@@ -137,10 +138,10 @@ function revokeAllOthers() {
           >
             <div class="flex gap-3">
               <div
-                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-black/30 text-lg"
+                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-black/30 text-sky-300/90"
                 aria-hidden="true"
               >
-                {{ row.icon }}
+                <FrontStrokeIcon :name="row.icon" size-class="h-5 w-5" />
               </div>
               <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-center gap-2">

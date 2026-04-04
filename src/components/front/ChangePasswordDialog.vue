@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, ref, watch } from 'vue'
 import FrontPopupShell from './FrontPopupShell.vue'
+import FrontStrokeIcon from './FrontStrokeIcon.vue'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false }
@@ -105,7 +106,7 @@ defineExpose({ reset })
           aria-label="关闭"
           @click="close"
         >
-          ✕
+          <FrontStrokeIcon name="x" size-class="h-5 w-5" />
         </button>
       </div>
 
@@ -114,7 +115,9 @@ defineExpose({ reset })
           <div
             class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-5 text-center"
           >
-            <p class="text-lg" aria-hidden="true">✓</p>
+            <div class="flex justify-center" aria-hidden="true">
+              <FrontStrokeIcon name="check" size-class="h-8 w-8 text-emerald-300" />
+            </div>
             <p class="mt-2 text-sm font-medium text-emerald-100/95">登录密码已更新</p>
             <p class="mt-1 text-xs leading-relaxed text-white/50">
               请使用新密码登录。如在其他设备保存了旧密码，需重新登录。

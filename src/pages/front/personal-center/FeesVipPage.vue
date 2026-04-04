@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { getVipLevelByLevel } from '../../../admin/mock/vip'
+import FrontStrokeIcon from '../../../components/front/FrontStrokeIcon.vue'
 
 const vipLevel = ref(2)
 const vipMeta = computed(() => getVipLevelByLevel(vipLevel.value))
@@ -34,7 +35,7 @@ const tiers = [
     >
       <div class="flex items-start gap-4">
         <div
-          class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-amber-400/35 bg-amber-400/15 text-2xl"
+          class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-amber-400/35 bg-amber-400/15 text-amber-200/90"
           aria-hidden="true"
         >
           <img
@@ -44,7 +45,7 @@ const tiers = [
             class="h-9 w-9 object-contain"
             loading="lazy"
           />
-          <span v-else>★</span>
+          <FrontStrokeIcon v-else name="star" size-class="h-7 w-7 text-amber-200/90" />
         </div>
         <div>
           <p class="text-xs uppercase tracking-wider text-amber-200/70">当前等级</p>

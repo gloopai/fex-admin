@@ -3,6 +3,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import BindEmailFlow from './BindEmailFlow.vue'
 import BindPhoneFlow from './BindPhoneFlow.vue'
 import FrontPopupShell from './FrontPopupShell.vue'
+import FrontStrokeIcon from './FrontStrokeIcon.vue'
 import MfaBindFlow from './MfaBindFlow.vue'
 
 const props = defineProps({
@@ -104,10 +105,10 @@ function onMfaDone() {
             <div class="shrink-0 border-b border-white/10 px-4 pb-4 pt-5">
               <div class="flex items-start gap-3">
                 <div
-                  class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-violet-400/30 bg-violet-400/15 text-lg"
+                  class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-violet-400/30 bg-violet-400/15 text-violet-200/90"
                   aria-hidden="true"
                 >
-                  🛡
+                  <FrontStrokeIcon name="shield" size-class="h-5 w-5" />
                 </div>
                 <div class="min-w-0 flex-1">
                   <h2 id="security-check-title" class="text-lg font-semibold leading-snug">账号安全检测</h2>
