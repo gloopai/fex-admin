@@ -1,8 +1,10 @@
 <script setup>
 import { computed, ref } from 'vue'
 import FrontStrokeIcon from '../../components/front/FrontStrokeIcon.vue'
+import { FRONT_DEPOSIT_DEFAULT_SYMBOL_LOWER } from '../../constants/frontAssetCenterDemo'
 
 const prefix = '/front'
+const depositDetailPath = `${prefix}/personal-center/assets/deposit/${FRONT_DEPOSIT_DEFAULT_SYMBOL_LOWER}`
 
 /** 示例估值，对接接口后替换 */
 const hideBalance = ref(false)
@@ -16,13 +18,13 @@ const assetQuickActions = [
     key: 'withdraw',
     label: '提币',
     icon: 'arrow-right',
-    to: `${prefix}/personal-center/withdraw-addresses`
+    to: `${prefix}/personal-center/assets/withdraw`
   },
   {
     key: 'deposit',
     label: '充币',
     icon: 'arrow-left',
-    to: `${prefix}/personal-center/assets`
+    to: depositDetailPath
   },
   {
     key: 'transfer',
@@ -175,17 +177,17 @@ function displayVal(val) {
         </div>
         <div class="flex flex-wrap gap-2 md:shrink-0 md:justify-end">
           <RouterLink
-            :to="`${prefix}/personal-center/withdraw-addresses`"
+            :to="`${prefix}/personal-center/assets/withdraw`"
             class="rounded-xl border border-white/[0.11] px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/[0.06]"
           >
             提币
           </RouterLink>
-          <button
-            type="button"
-            class="rounded-xl border border-white/[0.11] px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/[0.06]"
+          <RouterLink
+            :to="depositDetailPath"
+            class="rounded-xl border border-white/[0.11] px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/[0.06]"
           >
             充币
-          </button>
+          </RouterLink>
           <button
             type="button"
             class="rounded-xl bg-lime-400 px-4 py-2.5 text-sm font-semibold text-black hover:bg-lime-300"

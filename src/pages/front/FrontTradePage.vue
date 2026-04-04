@@ -7,6 +7,7 @@ import {
   TRADE_PRODUCT_MODE_KEYS,
   TRADE_PRODUCT_MODE_META
 } from '../../constants/frontNav'
+import { FRONT_DEPOSIT_DEFAULT_SYMBOL_LOWER } from '../../constants/frontAssetCenterDemo'
 import { useRequireFrontAuth } from '../../composables/useRequireFrontAuth'
 
 const route = useRoute()
@@ -18,6 +19,10 @@ const prefix = computed(() => {
   const i = p.indexOf('/trade')
   return i > 0 ? p.slice(0, i) : '/front'
 })
+
+const depositDetailPath = computed(
+  () => `${prefix.value}/personal-center/assets/deposit/${FRONT_DEPOSIT_DEFAULT_SYMBOL_LOWER}`
+)
 
 const tradeAssetClass = computed(() => {
   const a = route.params.assetClass
@@ -1629,13 +1634,13 @@ const pcBottomEmptyText = computed(() => {
 
         <div class="flex gap-2 border-t border-[#1a1c21] bg-[#121214] p-3">
           <RouterLink
-            :to="`${prefix}/personal-center/assets`"
+            :to="depositDetailPath"
             class="flex-1 rounded-lg border border-[#2a2b31] py-2 text-center text-xs text-[#a1a1a6] transition hover:border-[#4d7c59]/35 hover:bg-white/[0.03] hover:text-white"
           >
             充币
           </RouterLink>
           <RouterLink
-            :to="`${prefix}/personal-center/assets`"
+            :to="`${prefix}/personal-center/assets/withdraw`"
             class="flex-1 rounded-lg border border-[#2a2b31] py-2 text-center text-xs text-[#a1a1a6] transition hover:border-[#4d7c59]/35 hover:bg-white/[0.03] hover:text-white"
           >
             提币

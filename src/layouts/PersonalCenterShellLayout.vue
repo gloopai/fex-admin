@@ -80,14 +80,14 @@ function navActive(item) {
                 "
               >
                 <span
-                  class="text-sm font-medium"
-                  :class="navActive(item) ? 'text-lime-100' : 'text-white/85'"
+                  class="text-[15px] font-semibold leading-snug tracking-tight"
+                  :class="navActive(item) ? 'text-lime-50' : 'text-white/92'"
                 >
                   {{ item.label }}
                 </span>
                 <span
-                  class="mt-0.5 text-xs"
-                  :class="navActive(item) ? 'text-lime-100/50' : 'text-white/42'"
+                  class="mt-1 text-[11px] font-normal leading-relaxed"
+                  :class="navActive(item) ? 'text-lime-300/50' : 'text-[#848e9c]'"
                 >
                   {{ item.description }}
                 </span>

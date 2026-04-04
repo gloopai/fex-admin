@@ -1,6 +1,6 @@
 <script setup>
 defineProps({
-  /** eye | eye-off | refresh | key | smartphone | mail | shield | lightbulb | star | monitor | lock | check | chevron-down | chevron-up | x | wallet | clipboard | id-card | link | bell | cog | gift | arrow-right | arrow-left | arrows-swap | bolt */
+  /** eye | eye-off | refresh | key | smartphone | mail | shield | lightbulb | star | monitor | lock | check | chevron-down | chevron-up | chevron-right | x | wallet | clipboard | id-card | link | bell | cog | gift | arrow-right | arrow-left | arrows-swap | bolt */
   name: { type: String, required: true },
   sizeClass: { type: String, default: 'h-5 w-5' }
 })
@@ -73,6 +73,7 @@ defineProps({
     />
     <path v-else-if="name === 'chevron-down'" d="m6 9 6 6 6-6" />
     <path v-else-if="name === 'chevron-up'" d="m18 15-6-6-6 6" />
+    <path v-else-if="name === 'chevron-right'" d="M9 6l6 6-6 6" />
     <path v-else-if="name === 'x'" d="M6 18 18 6M6 6l12 12" />
     <path
       v-else-if="name === 'wallet'"
