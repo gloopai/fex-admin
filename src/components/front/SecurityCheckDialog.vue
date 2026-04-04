@@ -2,6 +2,7 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import BindEmailFlow from './BindEmailFlow.vue'
 import BindPhoneFlow from './BindPhoneFlow.vue'
+import FrontPopupCloseButton from './FrontPopupCloseButton.vue'
 import FrontPopupShell from './FrontPopupShell.vue'
 import FrontStrokeIcon from './FrontStrokeIcon.vue'
 import MfaBindFlow from './MfaBindFlow.vue'
@@ -97,9 +98,10 @@ function onMfaDone() {
       <Transition :name="slideName" mode="out-in">
         <div
           :key="viewKey"
-          class="flex max-h-[min(92vh,720px)] min-h-0 w-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#121212] text-white shadow-2xl"
+          class="relative flex max-h-[min(92vh,720px)] min-h-0 w-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#121212] text-white shadow-2xl"
           @click.stop
         >
+          <FrontPopupCloseButton @click="closeOut" />
           <!-- 总览 -->
           <template v-if="view === 'hub'">
             <div class="shrink-0 border-b border-white/10 px-4 pb-4 pt-5">
@@ -110,7 +112,7 @@ function onMfaDone() {
                 >
                   <FrontStrokeIcon name="shield" size-class="h-5 w-5" />
                 </div>
-                <div class="min-w-0 flex-1">
+                <div class="min-w-0 flex-1 pr-10 sm:pr-11">
                   <h2 id="security-check-title" class="text-lg font-semibold leading-snug">账号安全检测</h2>
                   <p class="mt-1.5 text-xs leading-relaxed text-white/55">
                     建议完成手机、邮箱与两步验证，以提高账户与资金安全。点击下方项目分别进入绑定流程。

@@ -39,19 +39,22 @@ function isTabActive(key) {
 
 <template>
   <nav
-    class="fixed bottom-0 left-0 right-0 z-40 border-t border-[#2b3139] bg-[#0b0e11]/95 pb-[env(safe-area-inset-bottom,0px)] backdrop-blur-md lg:hidden"
+    class="fixed bottom-0 left-0 right-0 z-40 px-3 pb-[calc(0.6rem+env(safe-area-inset-bottom,0px))] pt-2 pointer-events-none lg:hidden"
     aria-label="底部导航"
   >
-    <div class="flex h-14 items-stretch justify-around">
+    <div
+      class="pointer-events-auto rounded-2xl border border-white/[0.05] bg-[#0b0e11]/82 shadow-[0_-4px_32px_rgba(0,0,0,0.35),0_8px_24px_-8px_rgba(0,0,0,0.25)] backdrop-blur-xl supports-[backdrop-filter]:bg-[#0b0e11]/70"
+    >
+      <div class="flex h-[3.35rem] items-stretch justify-around sm:h-14">
       <RouterLink
         v-for="tab in tabs"
         :key="tab.key"
         :to="tab.to"
-        class="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[10px] font-medium transition-colors sm:text-[11px]"
+        class="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1 text-[10px] font-medium transition-colors duration-200 [-webkit-tap-highlight-color:transparent] sm:text-[11px]"
         :class="
           isTabActive(tab.key)
             ? 'text-lime-300'
-            : 'text-[#848e9c] active:bg-white/[0.04]'
+            : 'text-[#848e9c]/90 hover:text-white/70 active:bg-white/[0.04]'
         "
       >
         <!-- 首页 -->
@@ -146,6 +149,7 @@ function isTabActive(key) {
         </svg>
         <span class="max-w-[4.25rem] truncate text-center leading-tight">{{ tab.label }}</span>
       </RouterLink>
+      </div>
     </div>
   </nav>
 </template>

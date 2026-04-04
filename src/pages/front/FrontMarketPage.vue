@@ -93,7 +93,7 @@ function formatChange(pct) {
   <div
     class="mx-auto min-h-[calc(100vh-8rem)] max-w-[1400px] px-3 pb-10 pt-4 text-white sm:px-4 lg:px-6 lg:pt-6"
   >
-    <header class="border-b border-white/[0.08] pb-4 lg:pb-5">
+    <header class="border-b border-white/[0.05] pb-4 lg:pb-5">
       <h1 class="text-xl font-bold tracking-tight text-white md:text-2xl">行情</h1>
       <p class="mt-1 max-w-2xl text-xs text-white/55 sm:text-sm">
         加密货币、外汇与贵金属即时报价与涨跌示意。数据为前端示例，上线后接入统一行情源。
@@ -102,11 +102,11 @@ function formatChange(pct) {
 
     <!-- 分类 -->
     <div
-      class="sticky top-14 z-10 -mx-3 border-b border-white/[0.06] bg-[#050505]/92 px-3 py-3 backdrop-blur-md sm:-mx-4 sm:px-4 lg:static lg:top-auto lg:mx-0 lg:border-0 lg:bg-transparent lg:px-0 lg:py-4 lg:backdrop-blur-0"
+      class="sticky top-14 z-10 -mx-3 border-b border-white/[0.04] bg-[#050505]/92 px-3 py-3 backdrop-blur-md sm:-mx-4 sm:px-4 lg:static lg:top-auto lg:mx-0 lg:border-0 lg:bg-transparent lg:px-0 lg:py-4 lg:backdrop-blur-0"
     >
       <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div
-          class="inline-flex rounded-xl border border-white/10 bg-white/[0.04] p-1"
+          class="flex w-full rounded-lg border border-white/[0.05] bg-[#090b0e] p-0.5 sm:w-auto sm:inline-flex"
           role="tablist"
           aria-label="行情分类"
         >
@@ -116,11 +116,11 @@ function formatChange(pct) {
             type="button"
             role="tab"
             :aria-selected="activeTab === t.key"
-            class="min-w-0 flex-1 rounded-lg px-3 py-2 text-center text-xs font-medium transition sm:flex-none sm:px-4 sm:text-sm"
+            class="min-w-0 flex-1 rounded-md px-3 py-2 text-center text-xs font-medium transition [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505] sm:flex-none sm:px-4 sm:text-sm"
             :class="
               activeTab === t.key
-                ? 'bg-lime-400/15 text-lime-200 ring-1 ring-lime-400/25'
-                : 'text-white/65 hover:bg-white/[0.06] hover:text-white/90'
+                ? 'bg-white/[0.08] text-lime-300'
+                : 'text-white/50 hover:bg-white/[0.04] hover:text-white/88'
             "
             @click="activeTab = t.key"
           >
@@ -135,7 +135,7 @@ function formatChange(pct) {
             type="search"
             autocomplete="off"
             placeholder="搜索代码或名称"
-            class="w-full rounded-xl border border-white/[0.14] bg-[#1e2329] py-2.5 pl-9 pr-3 text-sm text-[#eaecef] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] placeholder:text-[#848e9c] transition-colors focus:border-lime-400/50 focus:bg-[#23282f] focus:outline-none focus:ring-2 focus:ring-lime-400/20"
+            class="w-full rounded-lg border border-white/[0.05] bg-[#090b0e] py-2.5 pl-9 pr-3 text-sm text-[#eaecef] placeholder:text-[#848e9c] transition-colors [-webkit-tap-highlight-color:transparent] focus:border-lime-400/25 focus:bg-[#0c0f14] focus:outline-none focus:ring-1 focus:ring-lime-400/12"
           />
           <svg
             class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#848e9c]"
@@ -156,16 +156,16 @@ function formatChange(pct) {
 
     <!-- 表格：大屏 -->
     <div
-      class="mt-3 hidden overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] md:block"
+      class="mt-3 hidden overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.03] md:block"
     >
       <div
-        class="grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,0.95fr)] gap-3 border-b border-white/[0.06] px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-white/40 sm:px-5"
+        class="grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,0.95fr)] gap-3 border-b border-white/[0.04] px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-white/40 sm:px-5"
       >
         <span>品种</span>
         <span class="text-right">最新价</span>
         <span class="text-right">24h 涨跌</span>
       </div>
-      <ul class="divide-y divide-white/[0.05]">
+      <ul class="divide-y divide-white/[0.035]">
         <li
           v-for="(row, i) in filteredRows"
           :key="`${activeTab}-${row.symbol}-${i}`"
@@ -173,7 +173,7 @@ function formatChange(pct) {
         >
           <div class="flex min-w-0 items-center gap-3">
             <span
-              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.08] to-white/[0.02] text-xs font-bold text-lime-300/90"
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.06] bg-gradient-to-br from-white/[0.06] to-white/[0.02] text-xs font-bold text-lime-300/90"
             >
               {{ row.symbol.replace(/[^A-Z]/gi, '').slice(0, 3) }}
             </span>
@@ -201,12 +201,12 @@ function formatChange(pct) {
       <li
         v-for="(row, i) in filteredRows"
         :key="`m-${activeTab}-${row.symbol}-${i}`"
-        class="rounded-2xl border border-white/10 bg-white/[0.04] p-4 active:bg-white/[0.06]"
+        class="rounded-2xl border border-white/[0.06] bg-white/[0.04] p-4 active:bg-white/[0.06]"
       >
         <div class="flex items-start justify-between gap-3">
           <div class="flex min-w-0 items-center gap-3">
             <span
-              class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-br from-lime-400/15 to-transparent text-xs font-bold text-lime-200"
+              class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.06] bg-gradient-to-br from-lime-400/15 to-transparent text-xs font-bold text-lime-200"
             >
               {{ row.symbol.replace(/[^A-Z]/gi, '').slice(0, 3) }}
             </span>
@@ -228,7 +228,7 @@ function formatChange(pct) {
       </li>
       <li
         v-if="!filteredRows.length"
-        class="rounded-2xl border border-dashed border-white/15 py-12 text-center text-sm text-white/45"
+        class="rounded-2xl border border-dashed border-white/[0.08] py-12 text-center text-sm text-white/45"
       >
         没有匹配的品种
       </li>

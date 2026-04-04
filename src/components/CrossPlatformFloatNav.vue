@@ -66,7 +66,7 @@ function platformRowClass(key) {
     class="fixed right-4 z-50 bottom-4"
     :class="
       liftAboveTabBar
-        ? 'max-lg:[bottom:calc(1rem+3.5rem+env(safe-area-inset-bottom,0px))]'
+        ? 'max-lg:[bottom:calc(1rem+0.5rem+3.5rem+0.6rem+env(safe-area-inset-bottom,0px))]'
         : ''
     "
   >

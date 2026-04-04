@@ -1,6 +1,7 @@
 <script setup>
 import { nextTick, ref, watch } from 'vue'
 import BindPhoneFlow from './BindPhoneFlow.vue'
+import FrontPopupCloseButton from './FrontPopupCloseButton.vue'
 import FrontPopupShell from './FrontPopupShell.vue'
 
 const props = defineProps({
@@ -43,6 +44,7 @@ function onFlowComplete(payload) {
       class="popup-card relative z-[121] flex max-h-[min(92vh,680px)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#121212] shadow-2xl"
       @click.stop
     >
+      <FrontPopupCloseButton @click="close" />
       <span id="bind-phone-dialog-title" class="sr-only" tabindex="-1">绑定手机号</span>
       <BindPhoneFlow
         ref="flowRef"

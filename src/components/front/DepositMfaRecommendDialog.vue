@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
+import FrontPopupCloseButton from './FrontPopupCloseButton.vue'
 import FrontPopupShell from './FrontPopupShell.vue'
 import FrontStrokeIcon from './FrontStrokeIcon.vue'
 
@@ -111,9 +112,10 @@ function finishMfaBind() {
       <Transition :name="mfaSlideTransitionName" mode="out-in">
         <div
           :key="mfaViewKey"
-          class="flex max-h-[min(92vh,720px)] min-h-0 w-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#121212] text-white shadow-2xl"
+          class="relative flex max-h-[min(92vh,720px)] min-h-0 w-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#121212] text-white shadow-2xl"
           @click.stop
         >
+          <FrontPopupCloseButton @click="close" />
           <div class="shrink-0 border-b border-white/10 px-4 pb-3 pt-4">
             <div class="flex items-start gap-3">
               <div
@@ -122,7 +124,7 @@ function finishMfaBind() {
               >
                 <FrontStrokeIcon name="lock" size-class="h-5 w-5" />
               </div>
-              <div class="min-w-0 flex-1">
+              <div class="min-w-0 flex-1 pr-10 sm:pr-11">
                 <p v-if="mfaPhase === 'bind'" class="text-[10px] font-medium uppercase tracking-wider text-white/45">
                   绑定 Google 验证器 · 第 {{ mfaBindStep }} / 3 步
                 </p>

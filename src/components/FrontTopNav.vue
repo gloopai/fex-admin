@@ -240,19 +240,21 @@ function drawerRowActive(item) {
   return drawerPillActive(item.to)
 }
 
-/** 左侧抽屉：图标 + 文案一行 */
+/** 左侧抽屉：柔和分层，避免粗线框 + 重色块 */
 function drawerRowClass(item) {
   const on = drawerRowActive(item)
   return [
-    'flex w-full min-h-[3rem] items-center gap-3 rounded-xl px-3 py-3 text-[15px] leading-snug font-medium transition sm:min-h-0 sm:py-2.5 sm:text-[14px]',
-    on ? 'bg-lime-400/10 text-lime-200' : 'text-[#eaecef] hover:bg-white/[0.06]'
+    'drawer-nav-row flex w-full min-h-[2.75rem] items-center gap-3 rounded-lg px-2.5 py-2.5 text-[15px] leading-snug font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/28 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b0e11] sm:min-h-0 sm:py-2 sm:text-[14px]',
+    on
+      ? 'bg-gradient-to-r from-lime-400/[0.09] via-white/[0.03] to-transparent text-lime-100'
+      : 'text-[#eaecef] hover:bg-white/[0.04]'
   ]
 }
 
 </script>
 
 <template>
-  <div ref="navRoot" class="sticky top-0 z-20 w-full border-b border-[#2b3139] bg-[#0b0e11]">
+  <div ref="navRoot" class="sticky top-0 z-20 w-full border-b border-[#1f2429] bg-[#0b0e11]">
     <div
       class="mx-auto flex min-h-[3.5rem] w-full items-center justify-between gap-2.5 px-3 sm:min-h-14 sm:gap-3 sm:px-4 lg:gap-6 lg:px-6 xl:px-8"
     >
@@ -327,7 +329,7 @@ function drawerRowClass(item) {
               <div
                 v-show="tradeOpen"
                 id="front-trade-panel"
-                class="absolute left-0 top-full z-30 mt-1.5 min-w-[11rem] overflow-hidden rounded-md border border-[#2b3139] bg-[#1e2329] py-1 shadow-xl shadow-black/50"
+                class="absolute left-0 top-full z-30 mt-1.5 min-w-[11rem] overflow-hidden rounded-md border border-[#1f2429] bg-[#1e2329] py-1 shadow-xl shadow-black/50"
                 role="menu"
               >
                 <RouterLink
@@ -351,7 +353,7 @@ function drawerRowClass(item) {
       <div class="hidden shrink-0 items-center gap-2 sm:gap-3 lg:flex">
         <button
           type="button"
-          class="rounded-md p-2 text-[#eaecef] transition hover:bg-[#2b3139] hover:text-lime-300"
+          class="rounded-md p-2 text-[#eaecef] transition hover:bg-[#1f2429] hover:text-lime-300"
           aria-label="搜索"
         >
           <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -365,7 +367,7 @@ function drawerRowClass(item) {
         </button>
         <button
           type="button"
-          class="hidden rounded-md p-2 text-[#eaecef] transition hover:bg-[#2b3139] hover:text-lime-300 xl:block"
+          class="hidden rounded-md p-2 text-[#eaecef] transition hover:bg-[#1f2429] hover:text-lime-300 xl:block"
           aria-label="下载"
         >
           <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -380,7 +382,7 @@ function drawerRowClass(item) {
         </button>
         <button
           type="button"
-          class="hidden rounded-md p-2 text-[#eaecef] transition hover:bg-[#2b3139] hover:text-lime-300 xl:block"
+          class="hidden rounded-md p-2 text-[#eaecef] transition hover:bg-[#1f2429] hover:text-lime-300 xl:block"
           aria-label="语言"
         >
           <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -399,7 +401,7 @@ function drawerRowClass(item) {
 
         <RouterLink
           :to="`${prefix}/personal-center`"
-          class="rounded-md bg-[#2b3139] px-3 py-1.5 text-sm font-medium text-[#eaecef] transition hover:bg-[#3f4652] focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 sm:px-4 sm:py-2"
+          class="rounded-md bg-[#1f2429] px-3 py-1.5 text-sm font-medium text-[#eaecef] transition hover:bg-[#3f4652] focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 sm:px-4 sm:py-2"
           :class="
             isPersonalCenterNavActive()
               ? 'ring-1 ring-lime-400/40 ring-offset-1 ring-offset-[#0b0e11]'
@@ -415,7 +417,7 @@ function drawerRowClass(item) {
       <div class="flex shrink-0 items-center gap-2 lg:hidden">
         <button
           type="button"
-          class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[#2b3139] text-[#eaecef] transition hover:bg-[#3f4652]"
+          class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[#1f2429] text-[#eaecef] transition hover:bg-[#3f4652]"
           :aria-expanded="mobileOpen"
           aria-haspopup="dialog"
           aria-controls="front-nav-drawer"
@@ -460,11 +462,11 @@ function drawerRowClass(item) {
             role="dialog"
             aria-modal="true"
             aria-label="菜单"
-            class="front-drawer-panel absolute left-0 top-0 flex h-full w-[min(18rem,86vw)] max-w-[100vw] flex-col border-r border-[#2b3139] bg-[#0b0e11] shadow-2xl shadow-black/50"
+            class="front-drawer-panel absolute left-0 top-0 flex h-full w-[min(18rem,86vw)] max-w-[100vw] flex-col border-r border-white/[0.04] bg-[#0b0e11] shadow-[4px_0_24px_-4px_rgba(0,0,0,0.5)]"
             @click.stop
           >
             <div
-              class="flex shrink-0 items-center justify-end border-b border-[#2b3139] bg-[#0b0e11]/95 px-2 py-2 pt-[max(0.5rem,env(safe-area-inset-top,0px))]"
+              class="flex shrink-0 items-center justify-end border-b border-white/[0.04] bg-[#0b0e11]/95 px-2 py-2 pt-[max(0.5rem,env(safe-area-inset-top,0px))]"
             >
               <button
                 type="button"
@@ -486,10 +488,10 @@ function drawerRowClass(item) {
               class="drawer-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]"
               role="menu"
             >
-              <p class="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#848e9c] sm:tracking-wider">
+              <p class="mb-2.5 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#848e9c]/90 sm:tracking-wider">
                 主导航
               </p>
-              <div class="space-y-0.5">
+              <div class="space-y-1">
                 <RouterLink
                   v-for="item in drawerMainNavEntries"
                   :key="item.key"
@@ -499,7 +501,8 @@ function drawerRowClass(item) {
                   @click="mobileOpen = false"
                 >
                   <span
-                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#2b3139] text-lime-400/90"
+                    class="drawer-nav-icon flex h-8 w-8 shrink-0 items-center justify-center"
+                    :class="drawerRowActive(item) ? 'text-lime-300/95' : 'text-lime-400/65'"
                     aria-hidden="true"
                   >
                     <svg
@@ -517,12 +520,14 @@ function drawerRowClass(item) {
                   <span class="min-w-0 truncate">{{ item.label }}</span>
                 </RouterLink>
               </div>
-              <p
-                class="mb-2 mt-5 border-t border-[#2b3139] px-3 pt-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#848e9c] sm:tracking-wider"
-              >
+              <div
+                class="mx-3 mb-1 mt-6 h-px bg-gradient-to-r from-transparent via-white/[0.07] to-transparent"
+                aria-hidden="true"
+              />
+              <p class="mb-2.5 mt-4 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#848e9c]/90 sm:tracking-wider">
                 个人中心
               </p>
-              <div class="space-y-0.5">
+              <div class="space-y-1">
                 <RouterLink
                   v-for="item in drawerPersonalNavEntries"
                   :key="item.key"
@@ -532,7 +537,8 @@ function drawerRowClass(item) {
                   @click="mobileOpen = false"
                 >
                   <span
-                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#2b3139] text-lime-400/90"
+                    class="drawer-nav-icon flex h-8 w-8 shrink-0 items-center justify-center"
+                    :class="drawerRowActive(item) ? 'text-lime-300/95' : 'text-lime-400/65'"
                     aria-hidden="true"
                   >
                     <svg

@@ -630,7 +630,7 @@ const pcBottomEmptyText = computed(() => {
   <div class="trade-page w-full text-white lg:max-w-none">
     <!-- ——— PC：行情横条 + 类型切换 ——— -->
     <div
-      class="hidden border-b border-[#2b3139] bg-[#0b0e11] lg:block lg:px-4 lg:py-2 xl:px-6"
+      class="hidden border-b border-[#1f2429] bg-[#0b0e11] lg:block lg:px-4 lg:py-2 xl:px-6"
     >
       <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
         <div class="flex items-center gap-2">
@@ -638,7 +638,7 @@ const pcBottomEmptyText = computed(() => {
           <select
             id="pc-trade-pair"
             v-model.number="activePairIdx"
-            class="rounded-lg border border-[#2b3139] bg-[#1e2329] py-1.5 pl-2 pr-8 text-sm font-semibold text-white focus:border-[#00b464]/50 focus:outline-none"
+            class="rounded-lg border border-[#1f2429] bg-[#1e2329] py-1.5 pl-2 pr-8 text-sm font-semibold text-white focus:border-[#00b464]/50 focus:outline-none"
           >
             <option v-for="(p, i) in pairs" :key="p.base + p.quote" :value="i">
               {{ p.base }} / {{ p.quote }}
@@ -679,7 +679,7 @@ const pcBottomEmptyText = computed(() => {
 
         <div class="ml-auto flex items-center gap-4">
           <nav
-            class="flex rounded-lg border border-white/10 bg-white/[0.04] p-0.5"
+            class="flex rounded-lg border border-white/[0.06] bg-white/[0.04] p-0.5"
             aria-label="交易类型"
           >
             <RouterLink
@@ -699,13 +699,13 @@ const pcBottomEmptyText = computed(() => {
 
     <!-- ——— PC：三栏主终端 ——— -->
     <div
-      class="hidden min-h-[calc(100vh-7.5rem)] border-[#2b3139] lg:flex lg:border-t lg:border-b"
+      class="hidden min-h-[calc(100vh-7.5rem)] border-[#1f2429] lg:flex lg:border-t lg:border-b"
     >
       <!-- 左：图表 + 底部订单 -->
       <div
-        class="flex min-w-0 flex-[1.15] flex-col border-r border-[#2b3139] bg-[#050505]"
+        class="flex min-w-0 flex-[1.15] flex-col border-r border-[#1f2429] bg-[#050505]"
       >
-        <div class="flex items-center justify-between border-b border-[#2b3139] px-2 py-1.5">
+        <div class="flex items-center justify-between border-b border-[#1f2429] px-2 py-1.5">
           <div class="flex flex-wrap gap-0.5" role="tablist" aria-label="K 线周期">
             <button
               v-for="tf in chartTimeframes"
@@ -756,8 +756,8 @@ const pcBottomEmptyText = computed(() => {
             <div
               class="pointer-events-none absolute inset-0 opacity-[0.08]"
               style="
-                background-image: linear-gradient(#2b3139 1px, transparent 1px),
-                  linear-gradient(90deg, #2b3139 1px, transparent 1px);
+                background-image: linear-gradient(#1f2429 1px, transparent 1px),
+                  linear-gradient(90deg, #1f2429 1px, transparent 1px);
                 background-size: 22px 22px;
               "
             />
@@ -772,7 +772,7 @@ const pcBottomEmptyText = computed(() => {
                 K 线区域（示意）· 接入 TradingView / 自研图表
               </p>
             </div>
-            <div class="relative h-14 border-t border-[#2b3139] bg-[#0b0e11]/80 px-2">
+            <div class="relative h-14 border-t border-[#1f2429] bg-[#0b0e11]/80 px-2">
               <div
                 class="flex h-full items-end gap-px pt-2"
                 aria-hidden="true"
@@ -787,8 +787,8 @@ const pcBottomEmptyText = computed(() => {
             </div>
         </div>
 
-        <div class="flex min-h-[200px] flex-col border-t border-[#2b3139] bg-[#0b0e11]">
-          <div class="flex flex-wrap gap-0 border-b border-[#2b3139] px-1">
+        <div class="flex min-h-[200px] flex-col border-t border-[#1f2429] bg-[#0b0e11]">
+          <div class="flex flex-wrap gap-0 border-b border-[#1f2429] px-1">
             <button
               v-for="bt in pcBottomTabs"
               :key="bt.key"
@@ -812,9 +812,9 @@ const pcBottomEmptyText = computed(() => {
 
       <!-- 中：盘口 / 成交 -->
       <div
-        class="flex w-[300px] shrink-0 flex-col border-r border-[#2b3139] bg-[#0b0e11] xl:w-[340px]"
+        class="flex w-[300px] shrink-0 flex-col border-r border-[#1f2429] bg-[#0b0e11] xl:w-[340px]"
       >
-        <div class="flex border-b border-[#2b3139]">
+        <div class="flex border-b border-[#1f2429]">
           <button
             type="button"
             class="flex-1 border-b-2 py-2.5 text-xs font-medium transition"
@@ -842,7 +842,7 @@ const pcBottomEmptyText = computed(() => {
         </div>
         <div
           v-if="orderBookTab === 'book'"
-          class="border-b border-[#2b3139] px-2.5 py-2"
+          class="border-b border-[#1f2429] px-2.5 py-2"
         >
           <div
             class="flex w-full items-stretch rounded-lg bg-[#12141a] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-[#1a1e25]"
@@ -870,7 +870,7 @@ const pcBottomEmptyText = computed(() => {
 
         <template v-if="orderBookTab === 'book'">
           <div
-            class="grid grid-cols-3 border-b border-[#2b3139] px-2 py-2 text-[10px] font-medium text-[#848e9c]"
+            class="grid grid-cols-3 border-b border-[#1f2429] px-2 py-2 text-[10px] font-medium text-[#848e9c]"
           >
             <span class="text-left">价格(USDT)</span>
             <span class="text-right">数量({{ activePair.base }})</span>
@@ -893,7 +893,7 @@ const pcBottomEmptyText = computed(() => {
               </li>
             </ul>
             <div
-              class="flex items-center justify-center gap-2 border-y border-[#2b3139] bg-black/25 py-2"
+              class="flex items-center justify-center gap-2 border-y border-[#1f2429] bg-black/25 py-2"
             >
               <span class="font-mono text-sm font-bold tabular-nums text-white">{{ lastPrice }}</span>
               <svg
@@ -945,13 +945,13 @@ const pcBottomEmptyText = computed(() => {
 
       <!-- 右：下单 + 行情列表 + 资产（#121214 终端侧栏 + 橄榄绿 / 珊瑚红） -->
       <div
-        class="flex w-[320px] shrink-0 flex-col border-l border-[#25262b] bg-[#121214] xl:w-[360px]"
+        class="flex w-[320px] shrink-0 flex-col border-l border-[#1a1c21] bg-[#121214] xl:w-[360px]"
       >
-        <div class="flex-1 space-y-3.5 overflow-y-auto border-b border-[#25262b] px-3 py-3.5">
+        <div class="flex-1 space-y-3.5 overflow-y-auto border-b border-[#1a1c21] px-3 py-3.5">
           <!-- 交割 -->
           <template v-if="tradeMode === 'delivery'">
             <div
-              class="grid grid-cols-2 gap-1 rounded-lg bg-[#0e0f12] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] ring-1 ring-[#25262b]"
+              class="grid grid-cols-2 gap-1 rounded-lg bg-[#0e0f12] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] ring-1 ring-[#1a1c21]"
             >
               <button
                 type="button"
@@ -999,7 +999,7 @@ const pcBottomEmptyText = computed(() => {
             <label class="block text-[11px] font-medium text-[#8e8e93]">合约周期</label>
             <select
               v-model="selectedDeliveryPeriod"
-              class="w-full rounded-lg border border-[#2f3036] bg-[#1a1b1f] py-2 pl-2.5 pr-8 text-xs text-white shadow-[inset_0_1px_2px_rgba(0,0,0,0.25)] focus:border-[#4d7c59]/50 focus:outline-none focus:ring-1 focus:ring-[#4d7c59]/35"
+              class="w-full rounded-lg border border-[#24252b] bg-[#1a1b1f] py-2 pl-2.5 pr-8 text-xs text-white shadow-[inset_0_1px_2px_rgba(0,0,0,0.25)] focus:border-[#4d7c59]/50 focus:outline-none focus:ring-1 focus:ring-[#4d7c59]/35"
             >
               <option v-for="o in deliveryPeriods" :key="o" :value="o">{{ o }}</option>
             </select>
@@ -1008,20 +1008,20 @@ const pcBottomEmptyText = computed(() => {
               v-model="quantity"
               type="text"
               placeholder="请输入数量"
-              class="w-full rounded-lg border border-[#2f3036] bg-[#1a1b1f] py-2 px-2.5 text-sm text-white shadow-[inset_0_1px_2px_rgba(0,0,0,0.25)] placeholder:text-[#6b6b70] focus:border-[#4d7c59]/45 focus:outline-none focus:ring-1 focus:ring-[#4d7c59]/30"
+              class="w-full rounded-lg border border-[#24252b] bg-[#1a1b1f] py-2 px-2.5 text-sm text-white shadow-[inset_0_1px_2px_rgba(0,0,0,0.25)] placeholder:text-[#6b6b70] focus:border-[#4d7c59]/45 focus:outline-none focus:ring-1 focus:ring-[#4d7c59]/30"
             />
             <div class="grid grid-cols-4 gap-1.5">
               <button
                 v-for="p in [25, 50, 75, 100]"
                 :key="p"
                 type="button"
-                class="rounded-md border border-[#36373d] bg-transparent py-2 text-[10px] font-semibold text-[#a1a1a6] transition hover:border-[#4d7c59]/40 hover:text-white"
+                class="rounded-md border border-[#2a2b31] bg-transparent py-2 text-[10px] font-semibold text-[#a1a1a6] transition hover:border-[#4d7c59]/40 hover:text-white"
                 @click="setQtyPct(p)"
               >
                 {{ p }}%
               </button>
             </div>
-            <div class="flex justify-between border-t border-[#25262b] pt-2 text-[11px] text-[#8e8e93]">
+            <div class="flex justify-between border-t border-[#1a1c21] pt-2 text-[11px] text-[#8e8e93]">
               <span>预计收益</span>
               <span class="font-mono">--</span>
             </div>
@@ -1042,7 +1042,7 @@ const pcBottomEmptyText = computed(() => {
           <!-- 永续 -->
           <template v-else-if="tradeMode === 'perpetual'">
             <div
-              class="flex rounded-lg bg-[#0e0f12] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] ring-1 ring-[#25262b]"
+              class="flex rounded-lg bg-[#0e0f12] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] ring-1 ring-[#1a1c21]"
             >
               <button
                 type="button"
@@ -1076,7 +1076,7 @@ const pcBottomEmptyText = computed(() => {
             <label class="block text-[11px] font-medium text-[#8e8e93]">杠杆</label>
             <select
               v-model="leverage"
-              class="w-full rounded-lg border border-[#2f3036] bg-[#1a1b1f] py-2 pl-2.5 pr-8 text-xs text-white shadow-[inset_0_1px_2px_rgba(0,0,0,0.25)] focus:border-[#4d7c59]/50 focus:outline-none focus:ring-1 focus:ring-[#4d7c59]/35"
+              class="w-full rounded-lg border border-[#24252b] bg-[#1a1b1f] py-2 pl-2.5 pr-8 text-xs text-white shadow-[inset_0_1px_2px_rgba(0,0,0,0.25)] focus:border-[#4d7c59]/50 focus:outline-none focus:ring-1 focus:ring-[#4d7c59]/35"
             >
               <option value="1">1X</option>
               <option value="5">5X</option>
@@ -1088,21 +1088,21 @@ const pcBottomEmptyText = computed(() => {
               type="text"
               :placeholder="lastPrice"
               :disabled="orderType === 'market'"
-              class="w-full rounded-lg border border-[#2f3036] bg-[#1a1b1f] py-2 px-2.5 text-sm text-white shadow-[inset_0_1px_2px_rgba(0,0,0,0.25)] placeholder:text-[#6b6b70] focus:border-[#4d7c59]/45 focus:outline-none focus:ring-1 focus:ring-[#4d7c59]/30 disabled:cursor-not-allowed disabled:opacity-45"
+              class="w-full rounded-lg border border-[#24252b] bg-[#1a1b1f] py-2 px-2.5 text-sm text-white shadow-[inset_0_1px_2px_rgba(0,0,0,0.25)] placeholder:text-[#6b6b70] focus:border-[#4d7c59]/45 focus:outline-none focus:ring-1 focus:ring-[#4d7c59]/30 disabled:cursor-not-allowed disabled:opacity-45"
             />
             <label class="block text-[11px] font-medium text-[#8e8e93]">数量 (张)</label>
             <input
               v-model="quantity"
               type="text"
               placeholder="请输入数量(张)"
-              class="w-full rounded-lg border border-[#2f3036] bg-[#1a1b1f] py-2 px-2.5 text-sm text-white shadow-[inset_0_1px_2px_rgba(0,0,0,0.25)] placeholder:text-[#6b6b70] focus:border-[#4d7c59]/45 focus:outline-none focus:ring-1 focus:ring-[#4d7c59]/30"
+              class="w-full rounded-lg border border-[#24252b] bg-[#1a1b1f] py-2 px-2.5 text-sm text-white shadow-[inset_0_1px_2px_rgba(0,0,0,0.25)] placeholder:text-[#6b6b70] focus:border-[#4d7c59]/45 focus:outline-none focus:ring-1 focus:ring-[#4d7c59]/30"
             />
             <div class="grid grid-cols-4 gap-1.5">
               <button
                 v-for="p in [25, 50, 75, 100]"
                 :key="p"
                 type="button"
-                class="rounded-md border border-[#36373d] bg-transparent py-2 text-[10px] font-semibold text-[#a1a1a6] transition hover:border-[#4d7c59]/40 hover:text-white"
+                class="rounded-md border border-[#2a2b31] bg-transparent py-2 text-[10px] font-semibold text-[#a1a1a6] transition hover:border-[#4d7c59]/40 hover:text-white"
                 @click="setQtyPct(p)"
               >
                 {{ p }}%
@@ -1126,17 +1126,17 @@ const pcBottomEmptyText = computed(() => {
               <input
                 v-model="tpSl"
                 type="checkbox"
-                class="h-4 w-4 shrink-0 rounded border-[#36373d] bg-[#1a1b1f] accent-[#84cc16] focus:ring-2 focus:ring-[#84cc16]/30"
+                class="h-4 w-4 shrink-0 rounded border-[#2a2b31] bg-[#1a1b1f] accent-[#84cc16] focus:ring-2 focus:ring-[#84cc16]/30"
               />
               <span class="font-medium hover:text-[#b4b4b8]">止盈止损</span>
             </label>
             <div v-if="tpSl" class="space-y-2">
               <div
-                class="flex h-10 overflow-hidden rounded-lg border border-[#2f3036] bg-[#1a1b1f] shadow-[inset_0_1px_2px_rgba(0,0,0,0.2)]"
+                class="flex h-10 overflow-hidden rounded-lg border border-[#24252b] bg-[#1a1b1f] shadow-[inset_0_1px_2px_rgba(0,0,0,0.2)]"
               >
                 <button
                   type="button"
-                  class="flex w-9 shrink-0 items-center justify-center border-r border-[#2f3036] bg-[#1f2026] text-lg leading-none text-[#a1a1a6] transition hover:bg-[#25262e] hover:text-white"
+                  class="flex w-9 shrink-0 items-center justify-center border-r border-[#24252b] bg-[#1f2026] text-lg leading-none text-[#a1a1a6] transition hover:bg-[#25262e] hover:text-white"
                   aria-label="降低止盈价"
                   @click="bumpTakeProfit(-1)"
                 >
@@ -1151,7 +1151,7 @@ const pcBottomEmptyText = computed(() => {
                 />
                 <button
                   type="button"
-                  class="flex w-9 shrink-0 items-center justify-center border-l border-[#2f3036] bg-[#1f2026] text-lg leading-none text-[#a1a1a6] transition hover:bg-[#25262e] hover:text-white"
+                  class="flex w-9 shrink-0 items-center justify-center border-l border-[#24252b] bg-[#1f2026] text-lg leading-none text-[#a1a1a6] transition hover:bg-[#25262e] hover:text-white"
                   aria-label="提高止盈价"
                   @click="bumpTakeProfit(1)"
                 >
@@ -1159,11 +1159,11 @@ const pcBottomEmptyText = computed(() => {
                 </button>
               </div>
               <div
-                class="flex h-10 overflow-hidden rounded-lg border border-[#2f3036] bg-[#1a1b1f] shadow-[inset_0_1px_2px_rgba(0,0,0,0.2)]"
+                class="flex h-10 overflow-hidden rounded-lg border border-[#24252b] bg-[#1a1b1f] shadow-[inset_0_1px_2px_rgba(0,0,0,0.2)]"
               >
                 <button
                   type="button"
-                  class="flex w-9 shrink-0 items-center justify-center border-r border-[#2f3036] bg-[#1f2026] text-lg leading-none text-[#a1a1a6] transition hover:bg-[#25262e] hover:text-white"
+                  class="flex w-9 shrink-0 items-center justify-center border-r border-[#24252b] bg-[#1f2026] text-lg leading-none text-[#a1a1a6] transition hover:bg-[#25262e] hover:text-white"
                   aria-label="降低止损价"
                   @click="bumpStopLoss(-1)"
                 >
@@ -1178,7 +1178,7 @@ const pcBottomEmptyText = computed(() => {
                 />
                 <button
                   type="button"
-                  class="flex w-9 shrink-0 items-center justify-center border-l border-[#2f3036] bg-[#1f2026] text-lg leading-none text-[#a1a1a6] transition hover:bg-[#25262e] hover:text-white"
+                  class="flex w-9 shrink-0 items-center justify-center border-l border-[#24252b] bg-[#1f2026] text-lg leading-none text-[#a1a1a6] transition hover:bg-[#25262e] hover:text-white"
                   aria-label="提高止损价"
                   @click="bumpStopLoss(1)"
                 >
@@ -1206,7 +1206,7 @@ const pcBottomEmptyText = computed(() => {
 
           <!-- 现货 -->
           <template v-else>
-            <div class="flex rounded-lg border border-[#2b3139] p-0.5 bg-[#121212]">
+            <div class="flex rounded-lg border border-[#1f2429] p-0.5 bg-[#121212]">
               <button
                 type="button"
                 class="flex-1 rounded-md py-1.5 text-xs font-medium"
@@ -1233,14 +1233,14 @@ const pcBottomEmptyText = computed(() => {
               v-model="qtyQuote"
               type="text"
               placeholder="请输入数量"
-              class="w-full rounded-lg border border-[#2b3139] bg-[#1e2329] py-2 px-2 text-sm text-white placeholder:text-[#848e9c]"
+              class="w-full rounded-lg border border-[#1f2429] bg-[#1e2329] py-2 px-2 text-sm text-white placeholder:text-[#848e9c]"
             />
             <label class="block text-[11px] text-white/45">{{ activePair.base }}</label>
             <input
               v-model="quantity"
               type="text"
               placeholder="请输入数量"
-              class="w-full rounded-lg border border-[#2b3139] bg-[#1e2329] py-2 px-2 text-sm text-white placeholder:text-[#848e9c]"
+              class="w-full rounded-lg border border-[#1f2429] bg-[#1e2329] py-2 px-2 text-sm text-white placeholder:text-[#848e9c]"
             />
             <div class="grid grid-cols-2 gap-2 pt-1">
               <button
@@ -1261,9 +1261,9 @@ const pcBottomEmptyText = computed(() => {
           </template>
         </div>
 
-        <div class="max-h-[220px] shrink-0 overflow-y-auto border-b border-[#25262b] bg-[#121214]">
+        <div class="max-h-[220px] shrink-0 overflow-y-auto border-b border-[#1a1c21] bg-[#121214]">
           <div
-            class="sticky top-0 flex items-center justify-between border-b border-[#25262b] bg-[#121214] px-3 py-2 text-[11px] font-medium text-[#8e8e93]"
+            class="sticky top-0 flex items-center justify-between border-b border-[#1a1c21] bg-[#121214] px-3 py-2 text-[11px] font-medium text-[#8e8e93]"
           >
             <span>币对</span>
             <span>最新价</span>
@@ -1292,22 +1292,22 @@ const pcBottomEmptyText = computed(() => {
           </button>
         </div>
 
-        <div class="flex gap-2 border-t border-[#25262b] bg-[#121214] p-3">
+        <div class="flex gap-2 border-t border-[#1a1c21] bg-[#121214] p-3">
           <RouterLink
             :to="`${prefix}/personal-center/assets`"
-            class="flex-1 rounded-lg border border-[#36373d] py-2 text-center text-xs text-[#a1a1a6] transition hover:border-[#4d7c59]/35 hover:bg-white/[0.03] hover:text-white"
+            class="flex-1 rounded-lg border border-[#2a2b31] py-2 text-center text-xs text-[#a1a1a6] transition hover:border-[#4d7c59]/35 hover:bg-white/[0.03] hover:text-white"
           >
             充币
           </RouterLink>
           <RouterLink
             :to="`${prefix}/personal-center/assets`"
-            class="flex-1 rounded-lg border border-[#36373d] py-2 text-center text-xs text-[#a1a1a6] transition hover:border-[#4d7c59]/35 hover:bg-white/[0.03] hover:text-white"
+            class="flex-1 rounded-lg border border-[#2a2b31] py-2 text-center text-xs text-[#a1a1a6] transition hover:border-[#4d7c59]/35 hover:bg-white/[0.03] hover:text-white"
           >
             提币
           </RouterLink>
           <RouterLink
             :to="`${prefix}/personal-center/assets`"
-            class="flex-1 rounded-lg border border-[#36373d] py-2 text-center text-xs text-[#a1a1a6] transition hover:border-[#4d7c59]/35 hover:bg-white/[0.03] hover:text-white"
+            class="flex-1 rounded-lg border border-[#2a2b31] py-2 text-center text-xs text-[#a1a1a6] transition hover:border-[#4d7c59]/35 hover:bg-white/[0.03] hover:text-white"
           >
             划转
           </RouterLink>
@@ -1318,12 +1318,12 @@ const pcBottomEmptyText = computed(() => {
     <!-- ——— 移动端：参考 MDFEX 双列（左下单 + 右盘口），K 线全屏时底部方向条 ——— -->
     <div class="lg:hidden bg-black text-white">
       <div
-        class="sticky top-14 z-20 border-b border-white/[0.06] bg-black/95 px-2.5 py-2 backdrop-blur-sm supports-[backdrop-filter]:bg-black/90"
+        class="sticky top-14 z-20 border-b border-white/[0.04] bg-black/95 px-2.5 py-2 backdrop-blur-sm supports-[backdrop-filter]:bg-black/90"
       >
         <div class="flex items-stretch gap-2">
           <button
             type="button"
-            class="flex min-h-[42px] min-w-0 flex-[1.1] items-center gap-1.5 rounded-lg border border-white/[0.08] bg-[#141414] px-2.5 py-2 text-left active:bg-[#1a1a1a]"
+            class="flex min-h-[42px] min-w-0 flex-[1.1] items-center gap-1.5 rounded-lg border border-white/[0.05] bg-[#141414] px-2.5 py-2 text-left active:bg-[#1a1a1a]"
             @click="openPairDrawer"
           >
             <span class="truncate text-[14px] font-semibold leading-tight tracking-tight">{{ symbol }}</span>
@@ -1340,7 +1340,7 @@ const pcBottomEmptyText = computed(() => {
           </button>
           <button
             type="button"
-            class="flex min-h-[42px] max-w-[36%] items-center gap-1 rounded-lg border border-white/[0.08] bg-[#141414] px-2.5 py-2 text-left text-[12px] font-medium text-white/90 active:bg-[#1a1a1a] sm:max-w-none"
+            class="flex min-h-[42px] max-w-[36%] items-center gap-1 rounded-lg border border-white/[0.05] bg-[#141414] px-2.5 py-2 text-left text-[12px] font-medium text-white/90 active:bg-[#1a1a1a] sm:max-w-none"
             @click="openModeSheet"
           >
             <span class="truncate">{{ modeMenuLabel }}</span>
@@ -1356,7 +1356,7 @@ const pcBottomEmptyText = computed(() => {
           </button>
           <button
             type="button"
-            class="flex min-h-[42px] min-w-[42px] shrink-0 items-center justify-center rounded-lg border border-white/[0.08] bg-[#141414] active:bg-[#1a1a1a]"
+            class="flex min-h-[42px] min-w-[42px] shrink-0 items-center justify-center rounded-lg border border-white/[0.05] bg-[#141414] active:bg-[#1a1a1a]"
             :class="chartExpanded ? 'text-[#4ade80] ring-1 ring-[#4ade80]/35' : 'text-white/45'"
             aria-label="展开或收起 K 线"
             @click="chartExpanded = !chartExpanded"
@@ -1378,13 +1378,13 @@ const pcBottomEmptyText = computed(() => {
         class="px-2.5 pt-2"
         :class="
           chartExpanded
-            ? 'pb-[calc(9.75rem+env(safe-area-inset-bottom,0px))]'
-            : 'pb-[calc(4.75rem+env(safe-area-inset-bottom,0px))]'
+            ? 'pb-[calc(10.85rem+env(safe-area-inset-bottom,0px))]'
+            : 'pb-[calc(5.85rem+env(safe-area-inset-bottom,0px))]'
         "
       >
         <!-- 行情概要：交易视图与 K 线模式共用 -->
         <header
-          class="mb-2 border-b border-white/[0.06] pb-2 pt-0"
+          class="mb-2 border-b border-white/[0.04] pb-2 pt-0"
         >
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0 flex-1">
@@ -1433,16 +1433,16 @@ const pcBottomEmptyText = computed(() => {
 
         <section
           v-show="chartExpanded"
-          class="mb-3 overflow-hidden rounded-lg border border-white/[0.08] bg-[#0a0a0a]"
+          class="mb-3 overflow-hidden rounded-lg border border-white/[0.05] bg-[#0a0a0a]"
         >
           <div
-            class="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.06] px-4 py-2.5"
+            class="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.04] px-4 py-2.5"
           >
             <div class="flex w-full items-center gap-2 text-[11px] text-white/45">
               <span class="shrink-0">周期</span>
               <button
                 type="button"
-                class="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border border-white/10 bg-[#141414] px-2.5 py-1.5 text-left text-xs text-[#eaecef] active:bg-[#1a1a1a]"
+                class="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border border-white/[0.06] bg-[#141414] px-2.5 py-1.5 text-left text-xs text-[#eaecef] active:bg-[#1a1a1a]"
                 @click="openMobilePicker('chartTf')"
               >
                 <span class="truncate">{{ chartTimeframe }}</span>
@@ -1467,8 +1467,8 @@ const pcBottomEmptyText = computed(() => {
             <div
               class="pointer-events-none absolute inset-0 opacity-[0.1]"
               style="
-                background-image: linear-gradient(#2b3139 1px, transparent 1px),
-                  linear-gradient(90deg, #2b3139 1px, transparent 1px);
+                background-image: linear-gradient(#1f2429 1px, transparent 1px),
+                  linear-gradient(90deg, #1f2429 1px, transparent 1px);
                 background-size: 20px 20px;
               "
             />
@@ -1479,10 +1479,10 @@ const pcBottomEmptyText = computed(() => {
               />
             </div>
           </div>
-          <p class="border-t border-white/[0.06] px-3 pt-2 text-[10px] text-white/35">
+          <p class="border-t border-white/[0.04] px-3 pt-2 text-[10px] text-white/35">
             以下为市场公开数据（演示），非本人委托
           </p>
-          <div class="flex border-b border-white/[0.06] px-1">
+          <div class="flex border-b border-white/[0.04] px-1">
             <button
               type="button"
               class="flex-1 py-2 text-xs font-medium"
@@ -1537,7 +1537,7 @@ const pcBottomEmptyText = computed(() => {
                 </div>
               </div>
               <div
-                class="border-y border-white/[0.08] bg-black/40 py-1.5 text-center text-[13px] font-bold text-white"
+                class="border-y border-white/[0.05] bg-black/40 py-1.5 text-center text-[13px] font-bold text-white"
               >
                 {{ lastPrice }}
               </div>
@@ -1564,7 +1564,7 @@ const pcBottomEmptyText = computed(() => {
             class="max-h-[14rem] overflow-y-auto overscroll-contain px-2 pb-2 pt-1"
           >
             <div
-              class="grid grid-cols-3 gap-1 border-b border-white/[0.06] pb-1 text-[10px] font-medium text-white/40"
+              class="grid grid-cols-3 gap-1 border-b border-white/[0.04] pb-1 text-[10px] font-medium text-white/40"
             >
               <span>时间</span>
               <span class="text-center">价格({{ activePair.quote }})</span>
@@ -1593,8 +1593,8 @@ const pcBottomEmptyText = computed(() => {
         <div v-show="!chartExpanded" id="mobile-order-anchor" class="flex gap-2.5">
           <div class="min-w-0 flex-[1.12] space-y-2 py-0.5 pl-0.5 pr-0">
             <div v-if="isContract" class="flex flex-wrap gap-1.5 text-[10px] text-white/45">
-              <span class="rounded border border-white/10 px-1.5 py-0.5">全仓</span>
-              <span class="rounded border border-white/10 px-1.5 py-0.5">{{ leverage }}×</span>
+              <span class="rounded border border-white/[0.06] px-1.5 py-0.5">全仓</span>
+              <span class="rounded border border-white/[0.06] px-1.5 py-0.5">{{ leverage }}×</span>
             </div>
 
             <div class="grid grid-cols-2 gap-1">
@@ -1654,7 +1654,7 @@ const pcBottomEmptyText = computed(() => {
 
             <button
               type="button"
-              class="flex w-full items-center justify-between gap-2 rounded-md border border-white/[0.08] bg-[#141414] px-2.5 py-2 text-left text-[13px] text-white active:bg-[#1a1a1a]"
+              class="flex w-full items-center justify-between gap-2 rounded-md border border-white/[0.05] bg-[#141414] px-2.5 py-2 text-left text-[13px] text-white active:bg-[#1a1a1a]"
               @click="openMobilePicker('orderType')"
             >
               <span>{{ orderType === 'market' ? '市价' : '限价' }}</span>
@@ -1678,7 +1678,7 @@ const pcBottomEmptyText = computed(() => {
               <span class="shrink-0 text-[10px] text-white/40">杠杆</span>
               <button
                 type="button"
-                class="flex min-w-0 flex-1 items-center justify-between gap-1 rounded-md border border-white/[0.08] bg-[#141414] px-2 py-1.5 text-left text-[12px] text-white active:bg-[#1a1a1a]"
+                class="flex min-w-0 flex-1 items-center justify-between gap-1 rounded-md border border-white/[0.05] bg-[#141414] px-2 py-1.5 text-left text-[12px] text-white active:bg-[#1a1a1a]"
                 @click="openMobilePicker('leverage')"
               >
                 <span>{{ leverage }}×</span>
@@ -1702,7 +1702,7 @@ const pcBottomEmptyText = computed(() => {
             <div v-if="tradeMode === 'delivery'">
               <button
                 type="button"
-                class="flex w-full items-center justify-between gap-2 rounded-md border border-white/[0.08] bg-[#141414] px-2 py-1.5 text-left text-[11px] text-white active:bg-[#1a1a1a]"
+                class="flex w-full items-center justify-between gap-2 rounded-md border border-white/[0.05] bg-[#141414] px-2 py-1.5 text-left text-[11px] text-white active:bg-[#1a1a1a]"
                 @click="openMobilePicker('delivery')"
               >
                 <span class="line-clamp-2 min-w-0">{{ selectedDeliveryPeriod }}</span>
@@ -1730,14 +1730,14 @@ const pcBottomEmptyText = computed(() => {
                 type="text"
                 inputmode="decimal"
                 :placeholder="lastPrice"
-                class="w-full rounded-md border border-white/[0.08] bg-[#141414] px-2.5 py-2.5 font-mono text-[14px] font-semibold tabular-nums text-white placeholder:text-white/25 focus:border-[#4ade80]/50 focus:outline-none"
+                class="w-full rounded-md border border-white/[0.05] bg-[#141414] px-2.5 py-2.5 font-mono text-[14px] font-semibold tabular-nums text-white placeholder:text-white/25 focus:border-[#4ade80]/50 focus:outline-none"
               />
               <input
                 v-else
                 type="text"
                 readonly
                 :value="lastPrice"
-                class="w-full cursor-default rounded-md border border-white/[0.08] bg-[#141414] px-2.5 py-2.5 font-mono text-[14px] font-semibold tabular-nums text-white/90"
+                class="w-full cursor-default rounded-md border border-white/[0.05] bg-[#141414] px-2.5 py-2.5 font-mono text-[14px] font-semibold tabular-nums text-white/90"
               />
               <p class="text-[10px] text-white/35">≈ ${{ lastPrice }}</p>
             </div>
@@ -1749,7 +1749,7 @@ const pcBottomEmptyText = computed(() => {
                   type="text"
                   inputmode="decimal"
                   placeholder="请输入数量"
-                  class="w-full rounded-md border border-white/[0.08] bg-[#141414] py-2.5 pl-2.5 pr-10 text-[13px] text-white placeholder:text-white/25 focus:border-[#4ade80]/50 focus:outline-none"
+                  class="w-full rounded-md border border-white/[0.05] bg-[#141414] py-2.5 pl-2.5 pr-10 text-[13px] text-white placeholder:text-white/25 focus:border-[#4ade80]/50 focus:outline-none"
                 />
                 <span
                   class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-white/35"
@@ -1765,7 +1765,7 @@ const pcBottomEmptyText = computed(() => {
                   type="text"
                   inputmode="decimal"
                   :placeholder="tradeMode === 'perpetual' ? '数量(张)' : '请输入数量'"
-                  class="w-full rounded-md border border-white/[0.08] bg-[#141414] py-2.5 pl-2.5 pr-9 text-[13px] text-white placeholder:text-white/25 focus:border-[#4ade80]/50 focus:outline-none"
+                  class="w-full rounded-md border border-white/[0.05] bg-[#141414] py-2.5 pl-2.5 pr-9 text-[13px] text-white placeholder:text-white/25 focus:border-[#4ade80]/50 focus:outline-none"
                 />
                 <span
                   class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-white/35"
@@ -1780,7 +1780,7 @@ const pcBottomEmptyText = computed(() => {
                 v-for="p in [25, 50, 75, 100]"
                 :key="p"
                 type="button"
-                class="rounded border border-white/15 bg-transparent py-2 text-[11px] font-semibold text-white/50 active:bg-white/[0.05]"
+                class="rounded border border-white/[0.09] bg-transparent py-2 text-[11px] font-semibold text-white/50 active:bg-white/[0.05]"
                 @click="setQtyPct(p)"
               >
                 {{ p }}%
@@ -1792,7 +1792,7 @@ const pcBottomEmptyText = computed(() => {
                 <input
                   v-model="tpSl"
                   type="checkbox"
-                  class="h-3.5 w-3.5 rounded border-white/20 bg-[#141414] text-[#4ade80] accent-[#4ade80]"
+                  class="h-3.5 w-3.5 rounded border-white/[0.11] bg-[#141414] text-[#4ade80] accent-[#4ade80]"
                 />
                 止盈止损
               </label>
@@ -1802,14 +1802,14 @@ const pcBottomEmptyText = computed(() => {
                   type="text"
                   inputmode="decimal"
                   placeholder="止盈 USDT"
-                  class="w-full rounded-md border border-white/[0.08] bg-[#141414] px-2 py-1.5 text-center text-[11px] text-white placeholder:text-white/25 focus:border-[#4ade80]/45 focus:outline-none"
+                  class="w-full rounded-md border border-white/[0.05] bg-[#141414] px-2 py-1.5 text-center text-[11px] text-white placeholder:text-white/25 focus:border-[#4ade80]/45 focus:outline-none"
                 />
                 <input
                   v-model="stopLossPrice"
                   type="text"
                   inputmode="decimal"
                   placeholder="止损 USDT"
-                  class="w-full rounded-md border border-white/[0.08] bg-[#141414] px-2 py-1.5 text-center text-[11px] text-white placeholder:text-white/25 focus:border-[#4ade80]/45 focus:outline-none"
+                  class="w-full rounded-md border border-white/[0.05] bg-[#141414] px-2 py-1.5 text-center text-[11px] text-white placeholder:text-white/25 focus:border-[#4ade80]/45 focus:outline-none"
                 />
               </div>
             </template>
@@ -1844,7 +1844,7 @@ const pcBottomEmptyText = computed(() => {
           </div>
 
           <div
-            class="flex min-h-[14rem] min-w-0 flex-[0.88] flex-col border-l border-white/[0.06] pl-2"
+            class="flex min-h-[14rem] min-w-0 flex-[0.88] flex-col border-l border-white/[0.04] pl-2"
           >
             <div
               class="grid grid-cols-2 gap-0.5 pb-1.5 text-[10px] font-medium text-white/40"
@@ -1870,7 +1870,7 @@ const pcBottomEmptyText = computed(() => {
                 </li>
               </ul>
               <div
-                class="sticky top-0 z-[1] border-y border-white/[0.08] bg-black py-2 text-center font-mono text-[13px] font-bold tabular-nums text-white"
+                class="sticky top-0 z-[1] border-y border-white/[0.05] bg-black py-2 text-center font-mono text-[13px] font-bold tabular-nums text-white"
               >
                 {{ lastPrice }}
               </div>
@@ -1892,7 +1892,7 @@ const pcBottomEmptyText = computed(() => {
           </div>
         </div>
 
-        <div v-show="!chartExpanded" class="mt-3 border-t border-white/[0.06] pt-1">
+        <div v-show="!chartExpanded" class="mt-3 border-t border-white/[0.04] pt-1">
           <div class="flex text-[13px] font-medium">
             <button
               type="button"
@@ -2008,8 +2008,8 @@ const pcBottomEmptyText = computed(() => {
       <!-- K 线展开：底部悬浮做多/做空（或买/卖），点击进入下单页填数量，不在此直接成交 -->
       <div
         v-show="chartExpanded"
-        class="fixed left-0 right-0 z-[35] border-t border-white/[0.08] bg-black/95 px-3 py-2 shadow-[0_-12px_40px_rgba(0,0,0,0.45)] backdrop-blur-md lg:hidden"
-        :style="{ bottom: 'calc(3.5rem + env(safe-area-inset-bottom, 0px))' }"
+        class="fixed left-0 right-0 z-[35] border-t border-white/[0.05] bg-black/95 px-3 py-2 shadow-[0_-12px_40px_rgba(0,0,0,0.45)] backdrop-blur-md lg:hidden"
+        :style="{ bottom: 'calc(0.5rem + 3.5rem + 0.6rem + env(safe-area-inset-bottom, 0px))' }"
       >
         <div class="grid grid-cols-2 gap-2">
           <button
@@ -2043,14 +2043,14 @@ const pcBottomEmptyText = computed(() => {
       <Transition name="slide-left">
         <aside
           v-if="pairDrawerOpen"
-          class="trade-pair-drawer-panel fixed bottom-0 left-0 top-0 z-[61] flex h-full w-[min(18rem,86vw)] max-w-[100vw] flex-col border-r border-[#2b3139] bg-[#0b0e11] shadow-2xl shadow-black/50 lg:hidden"
+          class="trade-pair-drawer-panel fixed bottom-0 left-0 top-0 z-[61] flex h-full w-[min(18rem,86vw)] max-w-[100vw] flex-col border-r border-[#1f2429] bg-[#0b0e11] shadow-2xl shadow-black/50 lg:hidden"
           role="dialog"
           aria-modal="true"
           aria-labelledby="trade-pair-drawer-title"
           @click.stop
         >
           <div
-            class="flex shrink-0 items-center justify-between gap-2 border-b border-[#2b3139] bg-[#0b0e11]/95 px-2 py-2 pt-[max(0.5rem,env(safe-area-inset-top,0px))]"
+            class="flex shrink-0 items-center justify-between gap-2 border-b border-[#1f2429] bg-[#0b0e11]/95 px-2 py-2 pt-[max(0.5rem,env(safe-area-inset-top,0px))]"
           >
             <div class="min-w-0 px-2">
               <h2 id="trade-pair-drawer-title" class="text-sm font-semibold text-lime-300">
@@ -2093,7 +2093,7 @@ const pcBottomEmptyText = computed(() => {
                 @click="selectPair(i)"
               >
                 <span
-                  class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#2b3139] text-[11px] font-bold uppercase tracking-tight text-lime-400/90"
+                  class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#1f2429] text-[11px] font-bold uppercase tracking-tight text-lime-400/90"
                   aria-hidden="true"
                 >
                   {{ pairListBadge(p.base) }}
@@ -2132,7 +2132,7 @@ const pcBottomEmptyText = computed(() => {
       <Transition name="slide-up">
         <div
           v-if="mobilePickerOpen"
-          class="fixed bottom-0 left-0 right-0 z-[63] max-h-[min(70vh,28rem)] flex flex-col rounded-t-2xl border border-white/10 bg-[#1e2329] pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-2 shadow-[0_-16px_48px_rgba(0,0,0,0.45)] lg:hidden"
+          class="fixed bottom-0 left-0 right-0 z-[63] max-h-[min(70vh,28rem)] flex flex-col rounded-t-2xl border border-white/[0.06] bg-[#1e2329] pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-2 shadow-[0_-16px_48px_rgba(0,0,0,0.45)] lg:hidden"
           role="dialog"
           :aria-label="mobilePickerTitle"
         >
@@ -2144,7 +2144,7 @@ const pcBottomEmptyText = computed(() => {
             <li
               v-for="opt in mobilePickerOptionList"
               :key="String(opt.value)"
-              class="border-b border-white/[0.06] last:border-0"
+              class="border-b border-white/[0.04] last:border-0"
             >
               <button
                 type="button"
@@ -2172,7 +2172,7 @@ const pcBottomEmptyText = computed(() => {
           </ul>
           <button
             type="button"
-            class="mx-3 mt-2 w-[calc(100%-1.5rem)] shrink-0 rounded-xl border border-white/10 py-3 text-sm text-white/70"
+            class="mx-3 mt-2 w-[calc(100%-1.5rem)] shrink-0 rounded-xl border border-white/[0.06] py-3 text-sm text-white/70"
             @click="closeMobilePicker"
           >
             取消
@@ -2188,13 +2188,13 @@ const pcBottomEmptyText = computed(() => {
       <Transition name="slide-up">
         <div
           v-if="modeSheetOpen"
-          class="fixed bottom-0 left-0 right-0 z-[61] rounded-t-2xl border border-white/10 bg-[#1e2329] pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-2 lg:hidden"
+          class="fixed bottom-0 left-0 right-0 z-[61] rounded-t-2xl border border-white/[0.06] bg-[#1e2329] pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-2 lg:hidden"
           role="dialog"
           aria-label="选择交易类型"
         >
           <div class="mx-auto mb-2 h-1 w-10 rounded-full bg-white/15" />
           <ul class="px-2">
-            <li v-for="t in tradeTabs" :key="t.key" class="border-b border-white/[0.06] last:border-0">
+            <li v-for="t in tradeTabs" :key="t.key" class="border-b border-white/[0.04] last:border-0">
               <button
                 type="button"
                 class="flex w-full items-center justify-between px-4 py-3.5 text-left text-base text-white/90"
@@ -2220,7 +2220,7 @@ const pcBottomEmptyText = computed(() => {
           </ul>
           <button
             type="button"
-            class="mx-3 mt-2 w-[calc(100%-1.5rem)] rounded-xl border border-white/10 py-3 text-sm text-white/70"
+            class="mx-3 mt-2 w-[calc(100%-1.5rem)] rounded-xl border border-white/[0.06] py-3 text-sm text-white/70"
             @click="closeModeSheet"
           >
             取消

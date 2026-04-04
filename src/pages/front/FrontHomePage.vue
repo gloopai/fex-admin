@@ -111,7 +111,7 @@ const tradeModes = [
     <!-- 顶栏提示（与下方通栏 Hero 分离，避免整页被框在一起） -->
     <div class="relative mx-auto max-w-6xl px-3 pt-5 min-[400px]:px-4 sm:px-5 sm:pt-6 md:pt-8 lg:px-8">
       <div
-        class="mb-5 rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2.5 sm:mb-6 sm:px-4"
+        class="mb-5 rounded-lg border border-white/[0.05] bg-white/[0.02] px-3 py-2.5 sm:mb-6 sm:px-4"
         role="note"
       >
         <p
@@ -139,17 +139,17 @@ const tradeModes = [
         <div
           class="home-tunnel absolute left-1/2 top-[40%] h-[min(150vw,900px)] w-[min(150vw,900px)] -translate-x-1/2 -translate-y-1/2 opacity-[0.38]"
         >
-          <div class="home-ring absolute inset-[4%] rounded-full border border-cyan-400/22" />
-          <div class="home-ring absolute inset-[11%] rounded-full border border-sky-400/14" />
-          <div class="home-ring absolute inset-[18%] rounded-full border border-blue-400/11" />
-          <div class="home-ring absolute inset-[26%] rounded-full border border-indigo-400/09" />
+          <div class="home-ring absolute inset-[4%] rounded-full border border-cyan-400/14" />
+          <div class="home-ring absolute inset-[11%] rounded-full border border-sky-400/10" />
+          <div class="home-ring absolute inset-[18%] rounded-full border border-blue-400/08" />
+          <div class="home-ring absolute inset-[26%] rounded-full border border-indigo-400/06" />
         </div>
         <div
           class="absolute left-1/2 top-[40%] h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-xl bg-gradient-to-br from-cyan-200/28 via-white/18 to-blue-500/28 shadow-[0_0_90px_24px_rgba(56,189,248,0.12)] blur-[2px] sm:h-52 sm:w-52"
           style="transform: translate(-50%, -50%) rotateX(12deg) rotate(45deg)"
         />
         <div
-          class="absolute left-1/2 top-[40%] h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-lg border border-white/25 bg-gradient-to-br from-white/22 to-cyan-400/10 blur-[0.5px] sm:h-32 sm:w-32"
+          class="absolute left-1/2 top-[40%] h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-lg border border-white/12 bg-gradient-to-br from-white/22 to-cyan-400/10 blur-[0.5px] sm:h-32 sm:w-32"
           style="transform: translate(-50%, -50%) rotate(45deg)"
         />
       </div>
@@ -195,7 +195,7 @@ const tradeModes = [
             </RouterLink>
             <RouterLink
               :to="`${prefix}/market`"
-              class="inline-flex h-12 min-h-[2.75rem] w-full items-center justify-center rounded-md border border-white/[0.12] bg-white/[0.03] px-7 text-[15px] font-semibold text-white/90 backdrop-blur-sm transition hover:border-white/20 hover:bg-white/[0.06] sm:h-11 sm:min-h-0 sm:w-auto sm:text-sm"
+              class="inline-flex h-12 min-h-[2.75rem] w-full items-center justify-center rounded-md border border-white/[0.08] bg-white/[0.03] px-7 text-[15px] font-semibold text-white/90 backdrop-blur-sm transition hover:border-white/[0.11] hover:bg-white/[0.06] sm:h-11 sm:min-h-0 sm:w-auto sm:text-sm"
             >
               查看行情
             </RouterLink>
@@ -217,14 +217,14 @@ const tradeModes = [
             v-for="card in controlCards"
             :key="card.title"
             :to="card.to"
-            class="group relative overflow-hidden rounded-2xl border border-[#2b3139] bg-[#1e2329]/90 px-5 pb-6 pt-7 shadow-lg shadow-black/20 transition hover:border-lime-400/25 hover:bg-[#232a31] sm:px-6 sm:pb-7 sm:pt-8 md:px-8 md:pb-8 md:pt-9"
+            class="group relative overflow-hidden rounded-2xl border border-[#1f2429] bg-[#1e2329]/90 px-5 pb-6 pt-7 shadow-lg shadow-black/20 transition hover:border-lime-400/18 hover:bg-[#232a31] sm:px-6 sm:pb-7 sm:pt-8 md:px-8 md:pb-8 md:pt-9"
           >
             <span
-              class="absolute left-0 right-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-lime-400/80 to-transparent opacity-80"
+              class="absolute left-0 right-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-lime-400/50 to-transparent opacity-90"
               aria-hidden="true"
             />
             <div
-              class="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-lime-400/10 text-lime-400 ring-1 ring-lime-400/20 transition group-hover:bg-lime-400/[0.14]"
+              class="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-lime-400/10 text-lime-400 ring-1 ring-lime-400/14 transition group-hover:bg-lime-400/[0.14]"
               aria-hidden="true"
             >
               <svg
@@ -297,7 +297,7 @@ const tradeModes = [
           <li v-for="a in advantageCards" :key="a.num">
             <RouterLink
               :to="a.to"
-              class="home-adv-card group relative block overflow-hidden rounded-2xl border border-[#2b3139] bg-[#151a21] px-4 pb-5 pt-6 transition hover:border-lime-400/25 hover:bg-[#1a2129] sm:px-5 sm:pb-6 sm:pt-7 md:px-6 md:pb-8 md:pt-8"
+              class="home-adv-card group relative block overflow-hidden rounded-2xl border border-[#1f2429] bg-[#151a21] px-4 pb-5 pt-6 transition hover:border-lime-400/18 hover:bg-[#1a2129] sm:px-5 sm:pb-6 sm:pt-7 md:px-6 md:pb-8 md:pt-8"
             >
               <span
                 class="pointer-events-none absolute -right-1 bottom-0 select-none text-[4.25rem] font-black leading-none text-white/[0.04] tabular-nums sm:text-[5.25rem] md:text-[6.25rem] lg:text-[6.5rem]"
@@ -308,7 +308,7 @@ const tradeModes = [
               <span
                 class="relative mb-2.5 inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-lime-400/75 sm:mb-3 sm:text-[11px]"
               >
-                <span class="h-px w-5 bg-lime-400/40 sm:w-6" aria-hidden="true" />
+                <span class="h-px w-5 bg-lime-400/28 sm:w-6" aria-hidden="true" />
                 {{ a.num }}
               </span>
               <h3 class="relative text-[0.9375rem] font-bold leading-snug text-white sm:text-base md:text-lg">
@@ -324,7 +324,7 @@ const tradeModes = [
 
       <!-- 分栏：左侧玻璃感球体示意 + 右侧文案（参考 AI/量化一屏，改为绿色系点缀） -->
       <section
-        class="mb-12 grid gap-8 rounded-2xl border border-white/[0.07] bg-[#080a0c] px-4 py-8 min-[400px]:rounded-3xl sm:mb-16 sm:gap-10 sm:px-8 sm:py-11 md:mb-20 lg:grid-cols-2 lg:items-center lg:gap-12 lg:px-10 lg:py-12"
+        class="mb-12 grid gap-8 rounded-2xl border border-white/[0.045] bg-[#080a0c] px-4 py-8 min-[400px]:rounded-3xl sm:mb-16 sm:gap-10 sm:px-8 sm:py-11 md:mb-20 lg:grid-cols-2 lg:items-center lg:gap-12 lg:px-10 lg:py-12"
         aria-labelledby="home-tech"
       >
         <div class="home-glass-grid mx-auto grid max-w-md grid-cols-2 gap-3 sm:gap-4" aria-hidden="true">
@@ -384,7 +384,7 @@ const tradeModes = [
           <li
             v-for="(n, idx) in newsItems"
             :key="idx"
-            class="overflow-hidden rounded-xl border border-white/[0.08] bg-[#0c0f14] transition hover:border-lime-400/25"
+            class="overflow-hidden rounded-xl border border-white/[0.05] bg-[#0c0f14] transition hover:border-lime-400/18"
           >
             <div
               class="relative aspect-[16/10] w-full"
@@ -414,10 +414,10 @@ const tradeModes = [
           <li
             v-for="f in tradingHighlights"
             :key="f.title"
-            class="rounded-2xl border border-[#2b3139] bg-[#1e2329]/80 p-5 transition hover:border-white/[0.12] sm:p-6 md:p-7"
+            class="rounded-2xl border border-[#1f2429] bg-[#1e2329]/80 p-5 transition hover:border-white/[0.08] sm:p-6 md:p-7"
           >
             <div
-              class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-white/[0.05] text-lime-400/90 ring-1 ring-white/[0.06]"
+              class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-white/[0.05] text-lime-400/90 ring-1 ring-white/[0.04]"
               aria-hidden="true"
             >
               <svg
@@ -477,7 +477,7 @@ const tradeModes = [
           <li v-for="mode in tradeModes" :key="mode.to">
             <RouterLink
               :to="mode.to"
-              class="group flex h-full flex-col rounded-xl border border-white/[0.08] bg-[#0b0e11] p-5 transition hover:border-lime-400/35 sm:p-6 md:p-7"
+              class="group flex h-full flex-col rounded-xl border border-white/[0.05] bg-[#0b0e11] p-5 transition hover:border-lime-400/22 sm:p-6 md:p-7"
             >
               <h3 class="text-[1.0625rem] font-semibold leading-snug text-white sm:text-lg">
                 {{ mode.label }}
@@ -503,7 +503,7 @@ const tradeModes = [
       </section>
 
       <!-- 合作伙伴：占位条，不冒用真实 Logo -->
-      <section class="mb-12 border-t border-white/[0.06] pt-10 sm:mb-16 sm:pt-14 md:mb-20 md:pt-16" aria-labelledby="home-partners">
+      <section class="mb-12 border-t border-white/[0.04] pt-10 sm:mb-16 sm:pt-14 md:mb-20 md:pt-16" aria-labelledby="home-partners">
         <h2
           id="home-partners"
           class="text-center text-xl font-bold leading-snug tracking-tight text-white text-balance sm:text-2xl md:text-3xl"
@@ -519,7 +519,7 @@ const tradeModes = [
           <li
             v-for="slot in partnerSlots"
             :key="slot"
-            class="rounded-lg border border-white/[0.1] bg-white/[0.03] px-3.5 py-2.5 text-center text-[11px] font-medium leading-snug text-white/40 sm:min-w-[7.5rem] sm:px-4 sm:py-3 sm:text-xs sm:text-[13px]"
+            class="rounded-lg border border-white/[0.06] bg-white/[0.03] px-3.5 py-2.5 text-center text-[11px] font-medium leading-snug text-white/40 sm:min-w-[7.5rem] sm:px-4 sm:py-3 sm:text-xs sm:text-[13px]"
           >
             {{ slot }}
           </li>
@@ -528,7 +528,7 @@ const tradeModes = [
 
       <!-- 底 CTA -->
       <section
-        class="rounded-xl border border-[#2b3139] bg-gradient-to-b from-[#1a1f26] to-[#0e1116] px-5 py-9 text-center sm:rounded-2xl sm:px-8 sm:py-10 md:px-12 md:py-12"
+        class="rounded-xl border border-[#1f2429] bg-gradient-to-b from-[#1a1f26] to-[#0e1116] px-5 py-9 text-center sm:rounded-2xl sm:px-8 sm:py-10 md:px-12 md:py-12"
         aria-label="开始使用"
       >
         <p class="text-base font-semibold leading-snug text-white sm:text-lg md:text-xl">
@@ -546,14 +546,14 @@ const tradeModes = [
           </RouterLink>
           <RouterLink
             :to="`${prefix}/personal-center/verification`"
-            class="inline-flex h-12 min-h-[2.75rem] w-full items-center justify-center rounded-md border border-white/20 px-8 text-[15px] font-semibold text-white transition hover:border-lime-400/40 sm:h-11 sm:min-h-0 sm:w-auto sm:text-sm"
+            class="inline-flex h-12 min-h-[2.75rem] w-full items-center justify-center rounded-md border border-white/[0.11] px-8 text-[15px] font-semibold text-white transition hover:border-lime-400/28 sm:h-11 sm:min-h-0 sm:w-auto sm:text-sm"
           >
             身份认证
           </RouterLink>
         </div>
       </section>
 
-      <div class="mt-8 rounded-lg border border-white/[0.06] bg-[#080a0c] px-3 py-4 text-center sm:mt-10 sm:rounded-xl sm:px-4 sm:py-5 md:mt-12">
+      <div class="mt-8 rounded-lg border border-white/[0.04] bg-[#080a0c] px-3 py-4 text-center sm:mt-10 sm:rounded-xl sm:px-4 sm:py-5 md:mt-12">
         <p class="text-[11px] leading-[1.65] text-white/35 sm:text-[11px] md:text-xs md:leading-relaxed">
           <span class="font-semibold text-white/45">风险提示：</span>
           数字资产及衍生品交易风险极高，可能导致本金全部损失。本页市场摘要仅供教育参考，不构成投资建议。
@@ -607,7 +607,7 @@ const tradeModes = [
 .home-glass-grid .home-sphere {
   aspect-ratio: 1;
   border-radius: 9999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 .home-sphere--btc {
@@ -619,7 +619,7 @@ const tradeModes = [
 }
 .home-sphere--ai {
   background: radial-gradient(circle at 50% 40%, rgba(163, 230, 53, 0.35), rgba(15, 23, 42, 0.95));
-  border-color: rgba(163, 230, 53, 0.35);
+  border-color: rgba(163, 230, 53, 0.22);
 }
 .home-sphere--eth {
   background: radial-gradient(circle at 50% 50%, rgba(37, 99, 235, 0.45), rgba(15, 23, 42, 0.92));

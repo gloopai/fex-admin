@@ -54,7 +54,7 @@ function displayVal(val) {
   <div>
     <!-- 总资产 -->
     <section
-      class="rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.07] to-white/[0.02] p-4 md:p-6"
+      class="rounded-2xl border border-white/[0.06] bg-gradient-to-br from-white/[0.07] to-white/[0.02] p-4 md:p-6"
     >
       <div class="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
         <div class="min-w-0">
@@ -90,13 +90,13 @@ function displayVal(val) {
         <div class="flex flex-wrap gap-2 md:shrink-0 md:justify-end">
           <button
             type="button"
-            class="rounded-xl border border-white/20 px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/[0.06]"
+            class="rounded-xl border border-white/[0.11] px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/[0.06]"
           >
             提币
           </button>
           <button
             type="button"
-            class="rounded-xl border border-white/20 px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/[0.06]"
+            class="rounded-xl border border-white/[0.11] px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/[0.06]"
           >
             充币
           </button>
@@ -108,7 +108,7 @@ function displayVal(val) {
           </button>
           <button
             type="button"
-            class="rounded-xl border border-white/20 px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/[0.06]"
+            class="rounded-xl border border-white/[0.11] px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/[0.06]"
           >
             闪兑
           </button>
@@ -122,7 +122,7 @@ function displayVal(val) {
       <article
         v-for="acc in subAccounts"
         :key="acc.key"
-        class="rounded-2xl border border-white/10 bg-white/[0.04] p-3 md:p-5"
+        class="rounded-2xl border border-white/[0.06] bg-white/[0.04] p-3 md:p-5"
       >
         <p class="text-sm font-medium text-white/75">{{ acc.title }}</p>
         <p class="mt-4 font-mono text-2xl font-semibold text-white">

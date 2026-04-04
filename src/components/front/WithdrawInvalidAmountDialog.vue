@@ -1,4 +1,5 @@
 <script setup>
+import FrontPopupCloseButton from './FrontPopupCloseButton.vue'
 import FrontPopupShell from './FrontPopupShell.vue'
 
 defineProps({
@@ -35,13 +36,14 @@ function onConfirm() {
       class="popup-card relative z-[121] w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-[#121212] px-4 pb-6 pt-5 text-white shadow-2xl"
       @click.stop
     >
+      <FrontPopupCloseButton @click="onCancel" />
       <div class="flex items-start gap-3">
         <div
           class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-emerald-400/30 bg-emerald-400/15 text-xl text-lime-200"
         >
           !
         </div>
-        <div class="min-w-0 flex-1">
+        <div class="min-w-0 flex-1 pr-10 sm:pr-11">
           <h3 id="withdraw-range-dialog-title" class="text-lg font-semibold leading-snug">
             {{ title }}
           </h3>

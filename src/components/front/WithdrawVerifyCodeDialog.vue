@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
+import FrontPopupCloseButton from './FrontPopupCloseButton.vue'
 import FrontPopupShell from './FrontPopupShell.vue'
 import FrontStrokeIcon from './FrontStrokeIcon.vue'
 
@@ -55,6 +56,7 @@ function onCancel() {
       class="popup-card relative z-[121] w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-[#121212] px-4 pb-6 pt-5 text-white shadow-2xl"
       @click.stop
     >
+      <FrontPopupCloseButton @click="onCancel" />
       <div class="flex items-start gap-3">
         <div
           class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-400/35 bg-amber-400/12 text-amber-100"
@@ -62,7 +64,7 @@ function onCancel() {
         >
           <FrontStrokeIcon name="check" size-class="h-5 w-5" />
         </div>
-        <div class="min-w-0 flex-1">
+        <div class="min-w-0 flex-1 pr-10 sm:pr-11">
           <h3 id="withdraw-verify-dialog-title" class="text-lg font-semibold leading-snug">
             {{ title }}
           </h3>

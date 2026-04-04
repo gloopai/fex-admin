@@ -77,7 +77,7 @@ const compactLinks = computed(() => [
 
     <!-- 用户主卡片 -->
     <section
-      class="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.08] to-white/[0.02] p-4 md:p-6"
+      class="relative overflow-hidden rounded-2xl border border-white/[0.05] bg-gradient-to-br from-white/[0.06] to-white/[0.015] p-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] md:p-6"
     >
       <div
         class="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-lime-400/10 blur-3xl"
@@ -86,7 +86,7 @@ const compactLinks = computed(() => [
       <div class="relative flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
         <div class="flex items-start gap-4">
           <div
-            class="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-lime-300/30 to-lime-500/10 text-xl font-bold text-lime-100 ring-1 ring-lime-400/30 md:h-[4.5rem] md:w-[4.5rem] md:text-2xl"
+            class="grid h-16 w-16 shrink-0 place-items-center rounded-2xl border border-white/[0.09] bg-gradient-to-br from-white/[0.1] via-lime-400/[0.14] to-emerald-950/40 text-xl font-bold text-lime-50 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] md:h-[4.5rem] md:w-[4.5rem] md:text-2xl"
           >
             {{ displayEmail.slice(0, 1).toUpperCase() }}
           </div>
@@ -97,19 +97,24 @@ const compactLinks = computed(() => [
             <p class="mt-0.5 text-sm text-white/50">UID {{ displayUid }}</p>
             <div class="mt-3 flex flex-wrap items-center gap-2">
               <span
-                class="inline-flex items-center gap-1.5 rounded-full border border-amber-300/40 bg-amber-300/10 px-2.5 py-1 text-xs font-medium text-amber-100"
+                class="inline-flex items-center gap-1.5 rounded-full border border-amber-400/45 bg-amber-400/[0.12] px-2.5 py-1 text-xs font-medium text-white"
               >
                 <img
                   v-if="currentVipMeta?.iconUrl"
                   :src="currentVipMeta.iconUrl"
                   alt=""
-                  class="h-4 w-4 object-contain"
+                  class="h-3.5 w-3.5 object-contain brightness-110"
                   loading="lazy"
+                />
+                <FrontStrokeIcon
+                  v-else
+                  name="star"
+                  size-class="h-3.5 w-3.5 shrink-0 text-amber-400"
                 />
                 VIP {{ userVipLevel }}
               </span>
               <span
-                class="rounded-full border border-sky-400/35 bg-sky-400/10 px-2.5 py-1 text-xs font-medium text-sky-100"
+                class="rounded-full border border-sky-400/45 bg-sky-400/[0.12] px-2.5 py-1 text-xs font-medium text-white"
               >
                 {{ kycLabel }}
               </span>
@@ -141,13 +146,13 @@ const compactLinks = computed(() => [
         <div
           class="grid grid-cols-2 gap-2 sm:gap-3 sm:shrink-0 sm:text-right md:gap-3"
         >
-          <div class="rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 sm:px-4 sm:py-3">
+          <div class="rounded-xl bg-black/25 px-3 py-2.5 ring-1 ring-white/[0.04] sm:px-4 sm:py-3">
             <p class="text-[10px] uppercase tracking-wider text-white/40">信用分</p>
             <p class="mt-1 text-xl font-semibold tabular-nums text-lime-200 sm:text-2xl">
               {{ creditScore }}
             </p>
           </div>
-          <div class="rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 sm:px-4 sm:py-3">
+          <div class="rounded-xl bg-black/25 px-3 py-2.5 ring-1 ring-white/[0.04] sm:px-4 sm:py-3">
             <p class="text-[10px] uppercase tracking-wider text-white/40">安全评分</p>
             <p class="mt-1 text-xl font-semibold tabular-nums text-violet-200 sm:text-2xl">
               {{ securityScore }}
@@ -160,7 +165,7 @@ const compactLinks = computed(() => [
     <!-- 资产总览入口（完整页在顶栏「资产」） -->
     <RouterLink
       :to="`${prefix}/personal-center/assets`"
-      class="mt-6 flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3 transition hover:border-lime-400/30 hover:bg-white/[0.06] sm:flex-row sm:items-center sm:justify-between md:p-5"
+      class="mt-6 flex flex-col gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] p-3 transition hover:border-lime-400/22 hover:bg-white/[0.05] sm:flex-row sm:items-center sm:justify-between md:p-5"
     >
       <div>
         <p class="text-xs font-medium uppercase tracking-wider text-white/45">账户总资产</p>
@@ -172,7 +177,7 @@ const compactLinks = computed(() => [
 
     <div class="mt-5 grid gap-5 md:mt-6 md:gap-6 lg:grid-cols-2 lg:items-start">
       <!-- 安全项摘要 -->
-      <section class="rounded-2xl border border-white/10 bg-white/[0.04] p-3 md:p-5">
+      <section class="rounded-2xl border border-white/[0.05] bg-white/[0.035] p-3 md:p-5">
         <div class="flex items-center justify-between gap-3">
           <h2 class="text-sm font-semibold text-white/90">安全项</h2>
           <RouterLink
@@ -186,11 +191,13 @@ const compactLinks = computed(() => [
           还有 {{ securityPendingCount }} 项待完善，建议优先绑定邮箱与两步验证。
         </p>
         <p v-else class="mt-2 text-xs text-emerald-200/80">当前安全项已齐备（示例数据）。</p>
-        <ul class="mt-4 space-y-2">
+        <ul
+          class="mt-4 overflow-hidden rounded-xl bg-black/20 divide-y divide-white/[0.04]"
+        >
           <li
             v-for="row in securityBrief"
             :key="row.key"
-            class="flex items-center justify-between rounded-lg border border-white/[0.06] bg-black/20 px-3 py-2.5"
+            class="flex items-center justify-between px-3 py-2.5 transition hover:bg-white/[0.03]"
           >
             <span class="text-sm text-white/80">{{ row.label }}</span>
             <span
@@ -204,7 +211,7 @@ const compactLinks = computed(() => [
       </section>
 
       <!-- 最近动态：窄屏仅保留前 2 条，减轻滚动 -->
-      <section class="rounded-2xl border border-white/10 bg-white/[0.04] p-3 md:p-5">
+      <section class="rounded-2xl border border-white/[0.05] bg-white/[0.035] p-3 md:p-5">
         <div class="flex items-center justify-between gap-3">
           <h2 class="text-sm font-semibold text-white/90">最近动态</h2>
           <RouterLink
@@ -214,7 +221,7 @@ const compactLinks = computed(() => [
             全部消息
           </RouterLink>
         </div>
-        <ul class="mt-3 divide-y divide-white/[0.06]">
+        <ul class="mt-3 divide-y divide-white/[0.04]">
           <li
             v-for="row in recentItems"
             :key="row.key"
@@ -248,7 +255,7 @@ const compactLinks = computed(() => [
 
     <!-- 常用功能：窄屏与上方快捷入口重复，隐藏 -->
     <section
-      class="mt-6 hidden rounded-2xl border border-white/[0.08] bg-black/25 px-4 py-4 md:block md:px-5"
+      class="mt-6 hidden rounded-2xl border border-white/[0.05] bg-black/22 px-4 py-4 md:block md:px-5"
     >
       <h2 class="text-xs font-medium uppercase tracking-wider text-white/40">常用功能</h2>
       <div class="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm">
@@ -265,7 +272,7 @@ const compactLinks = computed(() => [
 
     <!-- 提示条：窄屏隐藏，减少干扰 -->
     <section
-      class="mt-6 hidden rounded-2xl border border-lime-400/20 bg-lime-400/[0.07] px-4 py-4 md:flex md:items-center md:justify-between md:px-5"
+      class="mt-6 hidden rounded-2xl border border-lime-400/12 bg-lime-400/[0.055] px-4 py-4 md:flex md:items-center md:justify-between md:px-5"
     >
       <div class="flex gap-3">
         <FrontStrokeIcon name="lightbulb" size-class="h-6 w-6 shrink-0 text-lime-200/90" />

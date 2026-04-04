@@ -34,7 +34,7 @@ function navActive(item) {
 
 <template>
   <div
-    class="min-h-[calc(100vh-3.5rem)] max-lg:min-h-[calc(100vh-7rem-env(safe-area-inset-bottom,0px))] border-t border-white/[0.06] bg-[#050505] text-white"
+    class="min-h-[calc(100vh-3.5rem)] max-lg:min-h-[calc(100vh-3.5rem-0.5rem-3.5rem-0.6rem-env(safe-area-inset-bottom,0px))] border-t border-white/[0.04] bg-[#050505] text-white"
   >
     <div
       class="mx-auto flex max-w-[1400px] flex-col gap-6 px-3 pt-3 pb-6 sm:px-4 lg:flex-row lg:gap-8 lg:px-6 lg:pt-8 lg:pb-8"
@@ -42,27 +42,32 @@ function navActive(item) {
       <!-- 大屏左侧导航 -->
       <aside class="hidden w-[260px] shrink-0 lg:block" aria-label="个人中心导航">
         <div class="sticky top-20 space-y-6">
-          <div class="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+          <div class="rounded-2xl border border-white/[0.04] bg-white/[0.035] p-4">
             <p class="text-xs font-medium uppercase tracking-wider text-white/40">菜单</p>
-            <nav class="mt-3 space-y-1">
+            <nav class="mt-3 space-y-0.5">
               <RouterLink
                 v-for="item in primaryNav"
                 :key="item.key"
                 :to="item.to"
-                class="flex flex-col rounded-xl px-3 py-2.5 text-left transition"
+                class="flex flex-col rounded-xl border px-3 py-2.5 text-left transition [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[#08090c]"
                 :class="
                   navActive(item)
-                    ? 'bg-lime-400/12 ring-1 ring-lime-400/25'
-                    : 'hover:bg-white/[0.06]'
+                    ? 'border-lime-400/35 bg-lime-400/[0.06]'
+                    : 'border-transparent hover:bg-white/[0.04]'
                 "
               >
                 <span
                   class="text-sm font-medium"
-                  :class="navActive(item) ? 'text-lime-200' : 'text-white/88'"
+                  :class="navActive(item) ? 'text-lime-100' : 'text-white/85'"
                 >
                   {{ item.label }}
                 </span>
-                <span class="mt-0.5 text-xs text-white/45">{{ item.description }}</span>
+                <span
+                  class="mt-0.5 text-xs"
+                  :class="navActive(item) ? 'text-lime-100/50' : 'text-white/42'"
+                >
+                  {{ item.description }}
+                </span>
               </RouterLink>
             </nav>
           </div>
@@ -85,7 +90,7 @@ function navActive(item) {
       <!-- 窄屏：仅在总览页底部放入口（无标题文案） -->
       <nav
         v-if="isPersonalOverview"
-        class="lg:hidden rounded-2xl border border-white/10 bg-white/[0.04] p-3"
+        class="lg:hidden rounded-2xl border border-white/[0.045] bg-white/[0.03] p-3 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.03)]"
         aria-label="个人中心入口"
       >
         <div class="grid grid-cols-2 gap-2">
@@ -93,21 +98,21 @@ function navActive(item) {
             v-for="item in mobileQuickNav"
             :key="`m-${item.key}`"
             :to="item.to"
-            class="rounded-xl border border-white/[0.08] bg-black/20 px-3 py-3 text-center text-sm font-medium transition active:scale-[0.99]"
+            class="rounded-xl bg-black/18 px-3 py-3 text-center text-sm font-medium ring-1 ring-white/[0.03] transition active:scale-[0.99]"
             :class="
               navActive(item)
-                ? 'border-lime-400/35 bg-lime-400/10 text-lime-100'
-                : 'text-white/88 hover:border-white/15 hover:bg-white/[0.05]'
+                ? 'bg-gradient-to-b from-lime-400/[0.12] to-lime-400/[0.04] text-lime-50 ring-lime-400/18'
+                : 'text-white/88 hover:bg-white/[0.04] hover:ring-white/[0.06]'
             "
           >
             {{ item.label }}
           </RouterLink>
           <RouterLink
             :to="`${prefix}/personal-center/fees-vip`"
-            class="rounded-xl border border-white/[0.08] bg-black/20 px-3 py-3 text-center text-sm font-medium text-white/88 transition hover:border-white/15 hover:bg-white/[0.05] active:scale-[0.99]"
+            class="rounded-xl bg-black/18 px-3 py-3 text-center text-sm font-medium text-white/88 ring-1 ring-white/[0.03] transition hover:bg-white/[0.04] hover:ring-white/[0.06] active:scale-[0.99]"
             :class="
               navActive({ to: `${prefix}/personal-center/fees-vip`, match: 'prefix' })
-                ? 'border-lime-400/35 bg-lime-400/10 text-lime-100'
+                ? 'bg-gradient-to-b from-lime-400/[0.12] to-lime-400/[0.04] text-lime-50 ring-lime-400/18'
                 : ''
             "
           >
@@ -115,10 +120,10 @@ function navActive(item) {
           </RouterLink>
           <RouterLink
             :to="`${prefix}/personal-center/notifications`"
-            class="rounded-xl border border-white/[0.08] bg-black/20 px-3 py-3 text-center text-sm font-medium text-white/88 transition hover:border-white/15 hover:bg-white/[0.05] active:scale-[0.99]"
+            class="rounded-xl bg-black/18 px-3 py-3 text-center text-sm font-medium text-white/88 ring-1 ring-white/[0.03] transition hover:bg-white/[0.04] hover:ring-white/[0.06] active:scale-[0.99]"
             :class="
               navActive({ to: `${prefix}/personal-center/notifications`, match: 'prefix' })
-                ? 'border-lime-400/35 bg-lime-400/10 text-lime-100'
+                ? 'bg-gradient-to-b from-lime-400/[0.12] to-lime-400/[0.04] text-lime-50 ring-lime-400/18'
                 : ''
             "
           >

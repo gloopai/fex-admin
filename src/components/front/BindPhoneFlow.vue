@@ -52,7 +52,7 @@ function onFinish() {
 
 <template>
   <div class="flex min-h-0 w-full flex-1 flex-col overflow-hidden text-white">
-    <div class="flex shrink-0 items-center gap-2 border-b border-white/10 px-3 py-3">
+    <div class="flex shrink-0 items-center gap-2 border-b border-white/10 py-3 pl-3 pr-12">
       <button
         type="button"
         class="rounded-lg px-2 py-1.5 text-sm text-white/80 hover:bg-white/10"
