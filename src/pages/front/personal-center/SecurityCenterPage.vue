@@ -86,7 +86,7 @@ function onMfaCompleted() {
 
 <template>
   <div>
-    <header class="mb-5 md:mb-6">
+    <header class="mb-5 hidden md:mb-6 md:block">
       <h1 class="text-2xl font-bold tracking-tight text-white md:text-3xl">安全中心</h1>
       <p class="mt-1 text-sm text-white/55">
         管理登录方式与二次验证，保护账户与资金安全。

@@ -23,6 +23,8 @@ const prefix = computed(() => {
 const depositDetailPath = computed(
   () => `${prefix.value}/personal-center/assets/deposit/${FRONT_DEPOSIT_DEFAULT_SYMBOL_LOWER}`
 )
+const transferPath = computed(() => `${prefix.value}/personal-center/assets/transfer`)
+const convertPath = computed(() => `${prefix.value}/personal-center/assets/convert`)
 
 const tradeAssetClass = computed(() => {
   const a = route.params.assetClass
@@ -1632,24 +1634,32 @@ const pcBottomEmptyText = computed(() => {
           </button>
         </div>
 
-        <div class="flex gap-2 border-t border-[#1a1c21] bg-[#121214] p-3">
+        <div
+          class="grid grid-cols-2 gap-2 border-t border-[#1a1c21] bg-[#121214] p-3 sm:grid-cols-4"
+        >
           <RouterLink
             :to="depositDetailPath"
-            class="flex-1 rounded-lg border border-[#2a2b31] py-2 text-center text-xs text-[#a1a1a6] transition hover:border-[#4d7c59]/35 hover:bg-white/[0.03] hover:text-white"
+            class="rounded-lg border border-[#2a2b31] py-2 text-center text-xs text-[#a1a1a6] transition hover:border-[#4d7c59]/35 hover:bg-white/[0.03] hover:text-white"
           >
             充币
           </RouterLink>
           <RouterLink
             :to="`${prefix}/personal-center/assets/withdraw`"
-            class="flex-1 rounded-lg border border-[#2a2b31] py-2 text-center text-xs text-[#a1a1a6] transition hover:border-[#4d7c59]/35 hover:bg-white/[0.03] hover:text-white"
+            class="rounded-lg border border-[#2a2b31] py-2 text-center text-xs text-[#a1a1a6] transition hover:border-[#4d7c59]/35 hover:bg-white/[0.03] hover:text-white"
           >
             提币
           </RouterLink>
           <RouterLink
-            :to="`${prefix}/personal-center/assets`"
-            class="flex-1 rounded-lg border border-[#2a2b31] py-2 text-center text-xs text-[#a1a1a6] transition hover:border-[#4d7c59]/35 hover:bg-white/[0.03] hover:text-white"
+            :to="transferPath"
+            class="rounded-lg border border-[#2a2b31] py-2 text-center text-xs text-[#a1a1a6] transition hover:border-[#4d7c59]/35 hover:bg-white/[0.03] hover:text-white"
           >
             划转
+          </RouterLink>
+          <RouterLink
+            :to="convertPath"
+            class="rounded-lg border border-[#2a2b31] py-2 text-center text-xs text-[#a1a1a6] transition hover:border-[#4d7c59]/35 hover:bg-white/[0.03] hover:text-white"
+          >
+            闪兑
           </RouterLink>
         </div>
       </div>

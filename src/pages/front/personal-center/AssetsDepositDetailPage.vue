@@ -125,7 +125,7 @@ const addressShell =
 
 <template>
   <div v-if="coinMeta" class="min-h-[50vh] min-w-0 text-white">
-    <header class="mb-4 md:mb-5 lg:mb-6">
+    <header class="mb-4 hidden md:mb-5 md:block lg:mb-6">
       <h1 class="text-xl font-bold tracking-tight text-white md:text-2xl lg:text-3xl">充币</h1>
       <p class="mt-1 text-sm text-white/55">
         向以下地址转入 <span class="font-medium text-white/85">{{ coinMeta.symbol }}</span>

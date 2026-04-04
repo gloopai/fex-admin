@@ -1,10 +1,14 @@
 <script setup>
 import { computed, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import FrontStrokeIcon from '../../components/front/FrontStrokeIcon.vue'
 import { FRONT_DEPOSIT_DEFAULT_SYMBOL_LOWER } from '../../constants/frontAssetCenterDemo'
 
+const route = useRoute()
 const prefix = '/front'
 const depositDetailPath = `${prefix}/personal-center/assets/deposit/${FRONT_DEPOSIT_DEFAULT_SYMBOL_LOWER}`
+const transferPath = `${prefix}/personal-center/assets/transfer`
+const convertPath = `${prefix}/personal-center/assets/convert`
 
 /** 示例估值，对接接口后替换 */
 const hideBalance = ref(false)
@@ -12,7 +16,7 @@ const totalBtc = ref('0')
 const totalUsd = ref('0')
 const todayPnl = ref('0')
 
-/** 移动端底部四宫格（对齐常见交易所 App） */
+/** 充提划转闪兑 */
 const assetQuickActions = [
   {
     key: 'withdraw',
@@ -30,15 +34,29 @@ const assetQuickActions = [
     key: 'transfer',
     label: '划转',
     icon: 'arrows-swap',
-    to: `${prefix}/personal-center/assets`
+    to: transferPath
   },
   {
     key: 'convert',
     label: '闪兑',
     icon: 'bolt',
-    to: `${prefix}/personal-center/assets`
+    to: convertPath
   }
 ]
+
+function pathNorm(p) {
+  return (p || '').replace(/\/+$/, '') || '/'
+}
+
+/** 是否与当前路由对应（用于高亮「你在哪」） */
+function actionActive(a) {
+  const p = pathNorm(route.path)
+  if (a.key === 'deposit') {
+    return p.includes('/personal-center/assets/deposit')
+  }
+  const t = pathNorm(a.to)
+  return p === t || p.startsWith(`${t}/`)
+}
 
 const subAccounts = ref([
   {
@@ -80,150 +98,163 @@ function toggleEye() {
 function displayVal(val) {
   return masked.value ? '****' : val
 }
+
+const card = 'rounded-2xl border border-white/[0.06] bg-white/[0.025]'
+const label = 'text-[10px] font-medium uppercase tracking-[0.08em] text-white/38'
+
+const actionPillBase =
+  'inline-flex items-center justify-center gap-2 rounded-xl border text-left font-medium transition [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505]'
+const actionPillOn =
+  'border-lime-400/45 bg-lime-400/[0.13] text-lime-50 shadow-[0_0_0_1px_rgba(190,242,100,0.22)]'
+const actionPillOff =
+  'border-white/[0.09] bg-white/[0.02] text-white/78 hover:border-white/[0.14] hover:bg-white/[0.055] hover:text-white/92 active:scale-[0.99]'
 </script>
 
 <template>
   <div class="text-white">
-    <div class="flex flex-col gap-5 md:gap-6">
-    <!-- ——— 移动端：总资卡片 + 卡片外四宫格图标（参考主流 App） ——— -->
-    <div class="flex flex-col gap-5 md:hidden">
-      <section
-        class="rounded-2xl bg-[#1c1c1e] px-4 py-5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]"
-        aria-label="账户总资产"
-      >
-        <div class="flex items-center gap-2">
-          <h1 class="text-[13px] font-normal text-white/45">账户总资产</h1>
-          <button
-            type="button"
-            class="-mr-1 rounded-md p-1 text-white/40 transition hover:bg-white/10 hover:text-white/75 [-webkit-tap-highlight-color:transparent]"
-            :aria-label="hideBalance ? '显示余额' : '隐藏余额'"
-            @click="toggleEye"
-          >
-            <FrontStrokeIcon
-              :name="masked ? 'eye-off' : 'eye'"
-              size-class="h-[1.125rem] w-[1.125rem]"
-            />
-          </button>
-        </div>
-        <p class="mt-4 font-mono text-[2rem] font-semibold leading-none tracking-tight text-white">
-          {{ displayVal(totalBtc) }}
-        </p>
-        <p class="mt-2 text-[13px] text-white/38">≈ $ {{ displayVal(totalUsd) }}</p>
-        <div class="mt-4 flex items-center gap-2 text-[13px] text-white/45">
-          <span>今日收益: {{ displayVal(todayPnl) }}</span>
-          <button
-            type="button"
-            class="-m-1 rounded-md p-1 text-white/35 transition hover:bg-white/10 hover:text-white/70 [-webkit-tap-highlight-color:transparent]"
-            aria-label="刷新估值"
-          >
-            <FrontStrokeIcon name="refresh" size-class="h-[1.125rem] w-[1.125rem]" />
-          </button>
-        </div>
-      </section>
-
-      <nav
-        class="grid grid-cols-4 gap-x-1 gap-y-2 px-0.5"
-        aria-label="资产快捷操作"
-      >
-        <RouterLink
-          v-for="a in assetQuickActions"
-          :key="a.key"
-          :to="a.to"
-          class="flex flex-col items-center gap-2 [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-        >
-          <span
-            class="flex h-11 w-11 items-center justify-center rounded-xl border border-white/[0.12] bg-white/[0.04] text-white transition active:scale-[0.97] hover:border-white/[0.18] hover:bg-white/[0.07]"
-          >
-            <FrontStrokeIcon :name="a.icon" size-class="h-[1.35rem] w-[1.35rem]" />
-          </span>
-          <span class="max-w-[4.5rem] text-center text-[11px] font-medium leading-tight text-white/88">
-            {{ a.label }}
-          </span>
-        </RouterLink>
-      </nav>
-    </div>
-
-    <!-- ——— 桌面端：渐变卡 + 横排按钮 ——— -->
-    <section
-      class="hidden rounded-2xl border border-white/[0.06] bg-gradient-to-br from-white/[0.07] to-white/[0.02] p-4 md:block md:p-6"
+    <header
+      class="mb-4 hidden border-b border-white/[0.06] pb-4 md:mb-5 md:block lg:mb-6 lg:pb-5"
     >
-      <div class="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
-        <div class="min-w-0">
-          <div class="flex flex-wrap items-center gap-2">
-            <h1 class="text-sm font-medium text-white/55">账户总资产</h1>
+      <h1 class="text-xl font-semibold tracking-tight text-white lg:text-[1.35rem]">资产</h1>
+      <p class="mt-1 text-xs text-white/42">总览余额、快捷充提与分账户分布</p>
+    </header>
+
+    <div class="flex flex-col gap-4 md:gap-5">
+      <div class="flex flex-col gap-4 md:hidden">
+        <section :class="`${card} px-4 py-4`" aria-label="账户总资产">
+          <div class="flex items-center gap-2">
+            <h1 class="text-xs font-medium text-white/45">账户总资产</h1>
             <button
               type="button"
-              class="rounded p-1 text-white/45 hover:bg-white/10 hover:text-white/75"
+              class="-mr-0.5 rounded-md p-1 text-white/38 transition hover:bg-white/[0.06] hover:text-white/70 [-webkit-tap-highlight-color:transparent]"
               :aria-label="hideBalance ? '显示余额' : '隐藏余额'"
               @click="toggleEye"
             >
-              <FrontStrokeIcon :name="masked ? 'eye-off' : 'eye'" size-class="h-[18px] w-[18px]" />
+              <FrontStrokeIcon
+                :name="masked ? 'eye-off' : 'eye'"
+                size-class="h-4 w-4"
+              />
             </button>
           </div>
-          <p class="mt-3 font-mono text-3xl font-semibold tracking-tight text-white md:text-4xl">
+          <p class="mt-3 font-mono text-[1.625rem] font-medium leading-none tracking-tight text-white">
             {{ displayVal(totalBtc) }}
           </p>
-          <p class="mt-1 text-sm text-white/45">≈ $ {{ displayVal(totalUsd) }}</p>
-          <div class="mt-4 flex flex-wrap items-center gap-2 text-sm text-white/50">
-            <span>今日收益: {{ displayVal(todayPnl) }}</span>
+          <p class="mt-2 text-xs text-white/40">≈ $ {{ displayVal(totalUsd) }}</p>
+          <div class="mt-3 flex items-center gap-2 border-t border-white/[0.06] pt-3 text-xs text-white/42">
+            <span>今日收益 {{ displayVal(todayPnl) }}</span>
             <button
               type="button"
-              class="rounded p-1 text-white/40 hover:text-lime-300/90"
+              class="-m-1 rounded-md p-1 text-white/32 transition hover:bg-white/[0.06] hover:text-white/65 [-webkit-tap-highlight-color:transparent]"
               aria-label="刷新估值"
             >
-              <FrontStrokeIcon name="refresh" size-class="h-[18px] w-[18px]" />
+              <FrontStrokeIcon name="refresh" size-class="h-4 w-4" />
             </button>
           </div>
+        </section>
+
+        <nav
+          class="overflow-hidden rounded-xl border border-white/[0.07] bg-white/[0.02] [-webkit-tap-highlight-color:transparent]"
+          aria-label="资产快捷操作"
+        >
+          <div class="grid grid-cols-4 divide-x divide-white/[0.06]">
+            <RouterLink
+              v-for="a in assetQuickActions"
+              :key="a.key"
+              :to="a.to"
+              :aria-current="actionActive(a) ? 'page' : undefined"
+              class="flex min-h-[4.25rem] flex-col items-center justify-center gap-1 px-1 py-2.5 text-center transition focus:outline-none focus-visible:z-[1] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-lime-400/35 active:bg-white/[0.04]"
+              :class="
+                actionActive(a)
+                  ? 'bg-lime-400/[0.09] text-lime-100'
+                  : 'text-white/78 hover:bg-white/[0.035]'
+              "
+            >
+              <span
+                class="inline-flex shrink-0"
+                :class="actionActive(a) ? 'text-lime-300/95' : 'text-white/55'"
+              >
+                <FrontStrokeIcon :name="a.icon" size-class="h-[1.15rem] w-[1.15rem]" />
+              </span>
+              <span class="text-[10px] font-medium leading-tight tracking-tight">
+                {{ a.label }}
+              </span>
+            </RouterLink>
+          </div>
+        </nav>
+      </div>
+
+      <section :class="`hidden ${card} p-5 md:block lg:p-6`">
+        <div class="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+          <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-2">
+              <h1 class="text-xs font-medium text-white/45 md:text-sm">账户总资产</h1>
+              <button
+                type="button"
+                class="rounded-md p-1 text-white/40 transition hover:bg-white/[0.06] hover:text-white/70"
+                :aria-label="hideBalance ? '显示余额' : '隐藏余额'"
+                @click="toggleEye"
+              >
+                <FrontStrokeIcon :name="masked ? 'eye-off' : 'eye'" size-class="h-[18px] w-[18px]" />
+              </button>
+            </div>
+            <p class="mt-3 font-mono text-2xl font-medium tracking-tight text-white md:text-3xl">
+              {{ displayVal(totalBtc) }}
+            </p>
+            <p class="mt-1 text-sm text-white/42">≈ $ {{ displayVal(totalUsd) }}</p>
+            <div class="mt-3 flex flex-wrap items-center gap-2 text-sm text-white/45">
+              <span>今日收益 {{ displayVal(todayPnl) }}</span>
+              <button
+                type="button"
+                class="rounded p-1 text-white/35 transition hover:text-lime-300/80"
+                aria-label="刷新估值"
+              >
+                <FrontStrokeIcon name="refresh" size-class="h-[18px] w-[18px]" />
+              </button>
+            </div>
+          </div>
+          <div class="w-full md:w-auto">
+            <p :class="`${label} mb-2 md:text-right`">快捷操作</p>
+            <nav
+              class="flex flex-wrap gap-2 md:justify-end"
+              aria-label="资产快捷操作"
+            >
+              <RouterLink
+                v-for="a in assetQuickActions"
+                :key="`d-${a.key}`"
+                :to="a.to"
+                :aria-current="actionActive(a) ? 'page' : undefined"
+                :class="[
+                  actionPillBase,
+                  actionActive(a) ? actionPillOn : actionPillOff,
+                  'px-3.5 py-2.5 text-sm md:px-4'
+                ]"
+              >
+                <span
+                  class="inline-flex shrink-0"
+                  :class="actionActive(a) ? 'text-lime-200/95' : 'text-white/48'"
+                >
+                  <FrontStrokeIcon :name="a.icon" size-class="h-[1.05rem] w-[1.05rem]" />
+                </span>
+                {{ a.label }}
+              </RouterLink>
+            </nav>
+          </div>
         </div>
-        <div class="flex flex-wrap gap-2 md:shrink-0 md:justify-end">
-          <RouterLink
-            :to="`${prefix}/personal-center/assets/withdraw`"
-            class="rounded-xl border border-white/[0.11] px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/[0.06]"
-          >
-            提币
-          </RouterLink>
-          <RouterLink
-            :to="depositDetailPath"
-            class="rounded-xl border border-white/[0.11] px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/[0.06]"
-          >
-            充币
-          </RouterLink>
-          <button
-            type="button"
-            class="rounded-xl bg-lime-400 px-4 py-2.5 text-sm font-semibold text-black hover:bg-lime-300"
-          >
-            划转
-          </button>
-          <button
-            type="button"
-            class="rounded-xl border border-white/[0.11] px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/[0.06]"
-          >
-            闪兑
-          </button>
+      </section>
+
+      <div class="flex flex-col gap-3">
+        <h2 :class="label">账户分布</h2>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <article v-for="acc in subAccounts" :key="acc.key" :class="`${card} p-4 md:p-5`">
+            <p class="text-sm font-medium text-white/72">{{ acc.title }}</p>
+            <p class="mt-3 font-mono text-xl font-medium tabular-nums text-white md:text-2xl">
+              {{ displayVal(acc.btc) }}
+            </p>
+            <p class="mt-1 text-xs text-white/40">≈ $ {{ displayVal(acc.usd) }}</p>
+            <p class="mt-3 text-xs text-white/38">今日收益 {{ displayVal(acc.dayPnl) }}</p>
+          </article>
         </div>
       </div>
-    </section>
-
-    <!-- 子账户 -->
-    <div class="flex flex-col gap-3">
-    <h2 class="text-xs font-medium uppercase tracking-wider text-white/40">
-      账户分布
-    </h2>
-    <div class="grid gap-3 sm:grid-cols-2">
-      <article
-        v-for="acc in subAccounts"
-        :key="acc.key"
-        class="rounded-2xl border border-white/[0.06] bg-white/[0.04] p-3 md:p-5"
-      >
-        <p class="text-sm font-medium text-white/75">{{ acc.title }}</p>
-        <p class="mt-4 font-mono text-2xl font-semibold text-white">
-          {{ displayVal(acc.btc) }}
-        </p>
-        <p class="mt-1 text-xs text-white/45">≈ $ {{ displayVal(acc.usd) }}</p>
-        <p class="mt-4 text-xs text-white/40">今日收益: {{ displayVal(acc.dayPnl) }}</p>
-      </article>
-    </div>
-    </div>
     </div>
   </div>
 </template>

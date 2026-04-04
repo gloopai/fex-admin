@@ -67,7 +67,7 @@ const labelBase =
 
 <template>
   <div class="min-h-[50vh] min-w-0 text-white">
-    <header class="mb-4 md:mb-5 lg:mb-6">
+    <header class="mb-4 hidden md:mb-5 md:block lg:mb-6">
       <h1 class="text-xl font-bold tracking-tight text-white md:text-2xl lg:text-3xl">提币</h1>
       <p class="mt-1 text-sm text-white/55">
         提交链上提币申请前请核对网络与地址；演示数据，对接接口后替换。

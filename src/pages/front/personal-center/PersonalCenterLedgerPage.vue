@@ -248,7 +248,7 @@ function nextPage() {
 
 <template>
   <div class="pb-3">
-    <header class="mb-5 md:mb-6">
+    <header class="mb-5 hidden md:mb-6 md:block">
       <h1 class="text-xl font-bold tracking-tight text-white md:text-2xl lg:text-3xl">账变记录</h1>
       <p class="mt-1 hidden text-sm text-white/55 sm:block">
         选好条件后点击「应用筛选」查询；当前为示例数据，接入接口后替换。

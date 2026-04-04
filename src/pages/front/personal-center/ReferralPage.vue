@@ -19,7 +19,7 @@ function copy(text) {
 
 <template>
   <div>
-    <header class="mb-5 md:mb-6">
+    <header class="mb-5 hidden md:mb-6 md:block">
       <h1 class="text-2xl font-bold tracking-tight text-white md:text-3xl">邀请返佣</h1>
       <p class="mt-1 text-sm text-white/55">
         邀请好友注册并完成交易，按规则获得返现。比例与结算周期以活动公告为准。

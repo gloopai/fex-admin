@@ -109,6 +109,18 @@ export const frontDesktopRoutes = [
         meta: { title: '提币' }
       },
       {
+        path: 'assets/transfer',
+        name: 'front-personal-assets-transfer',
+        component: () => import('../../pages/front/personal-center/AssetsTransferPage.vue'),
+        meta: { title: '划转' }
+      },
+      {
+        path: 'assets/convert',
+        name: 'front-personal-assets-convert',
+        component: () => import('../../pages/front/personal-center/AssetsFlashConvertPage.vue'),
+        meta: { title: '闪兑' }
+      },
+      {
         path: 'assets/deposit',
         name: 'front-personal-assets-deposit',
         redirect: () => ({

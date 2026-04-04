@@ -23,7 +23,7 @@ const tiers = [
 
 <template>
   <div>
-    <header class="mb-5 md:mb-6">
+    <header class="mb-5 hidden md:mb-6 md:block">
       <h1 class="text-2xl font-bold tracking-tight text-white md:text-3xl">费率与 VIP</h1>
       <p class="mt-1 text-sm text-white/55">
         手续费与 VIP 等级、近 30 日交易量挂钩，具体以平台规则与合约说明为准。

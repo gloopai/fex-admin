@@ -72,7 +72,7 @@ onUnmounted(() => document.body.removeEventListener('keydown', onPrefsKeydown))
 
 <template>
   <div>
-    <header class="mb-5 md:mb-6">
+    <header class="mb-5 hidden md:mb-6 md:block">
       <h1 class="text-2xl font-bold tracking-tight text-white md:text-3xl">账户设置</h1>
       <p class="mt-1 text-sm text-white/55">
         昵称与显示偏好；敏感变更仍需在安全中心完成验证。

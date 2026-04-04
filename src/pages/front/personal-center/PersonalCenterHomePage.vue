@@ -66,228 +66,213 @@ const compactLinks = computed(() => [
   { label: '邀请返佣', to: `${prefix}/personal-center/referral` },
   { label: '账户设置', to: `${prefix}/personal-center/preferences` }
 ])
+
+const card =
+  'rounded-2xl border border-white/[0.06] bg-white/[0.025] shadow-none'
+const sectionLabel = 'text-[10px] font-medium uppercase tracking-[0.08em] text-white/38'
+const sectionTitle = 'text-sm font-medium text-white/90'
 </script>
 
 <template>
-  <div>
-    <header class="mb-5 hidden md:mb-6 md:block">
-      <h1 class="text-3xl font-bold tracking-tight text-white">账户总览</h1>
-      <p class="mt-1 text-sm text-white/55">
-        查看信用、安全与最近动态；更多功能见侧栏导航。
+  <div class="text-white">
+    <header class="mb-4 hidden border-b border-white/[0.06] pb-4 md:mb-5 md:block lg:mb-6 lg:pb-5">
+      <h1 class="text-xl font-semibold tracking-tight text-white lg:text-[1.35rem]">账户总览</h1>
+      <p class="mt-1 max-w-xl text-xs leading-relaxed text-white/42">
+        信用、安全与近期提醒；完整功能请使用左侧菜单。
       </p>
     </header>
 
-    <div class="flex flex-col gap-5 md:gap-6">
-    <!-- 用户主卡片 -->
-    <section
-      class="relative overflow-hidden rounded-2xl border border-white/[0.05] bg-gradient-to-br from-white/[0.06] to-white/[0.015] p-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] md:p-6"
-    >
-      <div
-        class="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-lime-400/10 blur-3xl"
-        aria-hidden="true"
-      />
-      <div class="relative flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-        <div class="flex items-start gap-4">
-          <div
-            class="grid h-16 w-16 shrink-0 place-items-center rounded-2xl border border-white/[0.09] bg-gradient-to-br from-white/[0.1] via-lime-400/[0.14] to-emerald-950/40 text-xl font-bold text-lime-50 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] md:h-[4.5rem] md:w-[4.5rem] md:text-2xl"
-          >
-            {{ displayEmail.slice(0, 1).toUpperCase() }}
-          </div>
-          <div class="min-w-0">
-            <p class="truncate text-lg font-semibold text-white md:text-xl">
-              {{ displayEmail }}
-            </p>
-            <p class="mt-0.5 text-sm text-white/50">UID {{ displayUid }}</p>
-            <div class="mt-3 flex flex-wrap items-center gap-2">
-              <FrontMutedPill tone="amber" inline-flex>
-                <img
-                  v-if="currentVipMeta?.iconUrl"
-                  :src="currentVipMeta.iconUrl"
-                  alt=""
-                  class="h-3.5 w-3.5 object-contain brightness-110"
-                  loading="lazy"
-                />
-                <FrontStrokeIcon
-                  v-else
-                  name="star"
-                  size-class="h-3.5 w-3.5 shrink-0 text-amber-400"
-                />
-                VIP {{ userVipLevel }}
-              </FrontMutedPill>
-              <FrontMutedPill tone="sky">{{ kycLabel }}</FrontMutedPill>
-            </div>
-            <!-- 大屏侧栏无此区域时保留；窄屏由壳层快捷入口覆盖 -->
-            <div class="mt-4 hidden flex-wrap gap-x-4 gap-y-2 text-xs lg:flex">
-              <RouterLink
-                :to="`${prefix}/personal-center/security`"
-                class="text-lime-300/90 hover:text-lime-200"
-              >
-                安全中心
-              </RouterLink>
-              <RouterLink
-                :to="`${prefix}/personal-center/verification`"
-                class="text-lime-300/90 hover:text-lime-200"
-              >
-                身份认证
-              </RouterLink>
-              <RouterLink
-                :to="`${prefix}/personal-center/notifications`"
-                class="text-white/45 hover:text-white/70"
-              >
-                消息通知
-              </RouterLink>
-            </div>
-          </div>
-        </div>
-
-        <div
-          class="grid grid-cols-2 gap-2 sm:gap-3 sm:shrink-0 sm:text-right md:gap-3"
-        >
-          <div class="rounded-xl bg-black/25 px-3 py-2.5 ring-1 ring-white/[0.04] sm:px-4 sm:py-3">
-            <p class="text-[10px] uppercase tracking-wider text-white/40">信用分</p>
-            <p class="mt-1 text-xl font-semibold tabular-nums text-lime-200 sm:text-2xl">
-              {{ creditScore }}
-            </p>
-          </div>
-          <div class="rounded-xl bg-black/25 px-3 py-2.5 ring-1 ring-white/[0.04] sm:px-4 sm:py-3">
-            <p class="text-[10px] uppercase tracking-wider text-white/40">安全评分</p>
-            <p class="mt-1 text-xl font-semibold tabular-nums text-violet-200 sm:text-2xl">
-              {{ securityScore }}
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 资产总览入口（完整页在顶栏「资产」） -->
-    <RouterLink
-      :to="`${prefix}/personal-center/assets`"
-      class="flex flex-col gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] p-3 transition hover:border-lime-400/22 hover:bg-white/[0.05] sm:flex-row sm:items-center sm:justify-between md:p-5"
-    >
-      <div>
-        <p class="text-xs font-medium uppercase tracking-wider text-white/45">账户总资产</p>
-        <p class="mt-1 font-mono text-xl font-semibold text-white md:text-2xl">0</p>
-        <p class="mt-0.5 text-sm text-white/45">≈ $ 0 · 今日收益 0</p>
-      </div>
-      <span class="text-sm font-medium text-lime-300/90 sm:shrink-0">查看资产 →</span>
-    </RouterLink>
-
-    <div class="grid gap-5 md:gap-6 lg:grid-cols-2 lg:items-start">
-      <!-- 安全项摘要 -->
-      <section class="rounded-2xl border border-white/[0.05] bg-white/[0.035] p-3 md:p-5">
-        <div class="flex items-center justify-between gap-3">
-          <h2 class="text-sm font-semibold text-white/90">安全项</h2>
-          <RouterLink
-            :to="`${prefix}/personal-center/security`"
-            class="text-xs font-medium text-lime-300/90 hover:text-lime-200"
-          >
-            管理
-          </RouterLink>
-        </div>
-        <p v-if="securityPendingCount" class="mt-2 text-xs text-amber-200/85">
-          还有 {{ securityPendingCount }} 项待完善，建议优先绑定邮箱与两步验证。
-        </p>
-        <p v-else class="mt-2 text-xs text-emerald-200/80">当前安全项已齐备（示例数据）。</p>
-        <ul
-          class="mt-4 overflow-hidden rounded-xl bg-black/20 divide-y divide-white/[0.04]"
-        >
-          <li
-            v-for="row in securityBrief"
-            :key="row.key"
-            class="flex items-center justify-between px-3 py-2.5 transition hover:bg-white/[0.03]"
-          >
-            <span class="text-sm text-white/80">{{ row.label }}</span>
-            <span
-              class="text-xs font-medium"
-              :class="row.ok ? 'text-emerald-300/90' : 'text-white/40'"
+    <div class="flex flex-col gap-4 md:gap-5">
+      <!-- 用户主卡片 -->
+      <section :class="`${card} p-4 md:p-5`">
+        <div class="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+          <div class="flex items-start gap-3.5 md:gap-4">
+            <div
+              class="grid h-14 w-14 shrink-0 place-items-center rounded-xl border border-white/[0.08] bg-white/[0.05] text-lg font-semibold text-white/95 md:h-16 md:w-16 md:text-xl"
             >
-              {{ row.ok ? '已设置' : '未完成' }}
-            </span>
-          </li>
-        </ul>
-      </section>
-
-      <!-- 最近动态：窄屏仅保留前 2 条，减轻滚动 -->
-      <section class="rounded-2xl border border-white/[0.05] bg-white/[0.035] p-3 md:p-5">
-        <div class="flex items-center justify-between gap-3">
-          <h2 class="text-sm font-semibold text-white/90">最近动态</h2>
-          <RouterLink
-            :to="`${prefix}/personal-center/notifications`"
-            class="text-xs font-medium text-lime-300/90 hover:text-lime-200"
-          >
-            全部消息
-          </RouterLink>
-        </div>
-        <ul class="mt-3 divide-y divide-white/[0.04]">
-          <li
-            v-for="row in recentItems"
-            :key="row.key"
-            class="max-lg:[&:nth-child(n+3)]:hidden"
-          >
-            <RouterLink
-              :to="feedTo(row.to)"
-              class="flex gap-3 py-3 text-left transition hover:bg-white/[0.03]"
-            >
-              <span
-                class="mt-0.5 h-2 w-2 shrink-0 rounded-full"
-                :class="
-                  row.kind === 'security'
-                    ? 'bg-amber-400/90'
-                    : row.kind === 'system'
-                      ? 'bg-sky-400/80'
-                      : 'bg-white/30'
-                "
-                aria-hidden="true"
-              />
-              <div class="min-w-0 flex-1">
-                <p class="text-sm text-white/88">{{ row.title }}</p>
-                <p class="mt-0.5 text-xs text-white/40">{{ row.time }}</p>
+              {{ displayEmail.slice(0, 1).toUpperCase() }}
+            </div>
+            <div class="min-w-0">
+              <p class="truncate text-base font-medium text-white md:text-lg">
+                {{ displayEmail }}
+              </p>
+              <p class="mt-0.5 text-xs text-white/45">UID {{ displayUid }}</p>
+              <div class="mt-2.5 flex flex-wrap items-center gap-2">
+                <FrontMutedPill tone="amber" inline-flex>
+                  <img
+                    v-if="currentVipMeta?.iconUrl"
+                    :src="currentVipMeta.iconUrl"
+                    alt=""
+                    class="h-3.5 w-3.5 object-contain brightness-110"
+                    loading="lazy"
+                  />
+                  <FrontStrokeIcon
+                    v-else
+                    name="star"
+                    size-class="h-3.5 w-3.5 shrink-0 text-amber-400"
+                  />
+                  VIP {{ userVipLevel }}
+                </FrontMutedPill>
+                <FrontMutedPill tone="sky">{{ kycLabel }}</FrontMutedPill>
               </div>
-              <span class="shrink-0 text-white/25" aria-hidden="true">›</span>
+              <div class="mt-3 hidden flex-wrap gap-x-5 gap-y-1 text-xs text-white/50 lg:flex">
+                <RouterLink
+                  :to="`${prefix}/personal-center/security`"
+                  class="text-lime-300/85 transition hover:text-lime-200"
+                >
+                  安全中心
+                </RouterLink>
+                <RouterLink
+                  :to="`${prefix}/personal-center/verification`"
+                  class="text-lime-300/85 transition hover:text-lime-200"
+                >
+                  身份认证
+                </RouterLink>
+                <RouterLink
+                  :to="`${prefix}/personal-center/notifications`"
+                  class="transition hover:text-white/70"
+                >
+                  消息通知
+                </RouterLink>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 sm:w-[13.5rem] sm:shrink-0 sm:gap-2.5 sm:text-right">
+            <div class="rounded-xl border border-white/[0.06] bg-black/20 px-3 py-2.5 md:px-3.5 md:py-3">
+              <p :class="sectionLabel">信用分</p>
+              <p class="mt-1 font-mono text-lg font-medium tabular-nums text-lime-200/95 md:text-xl">
+                {{ creditScore }}
+              </p>
+            </div>
+            <div class="rounded-xl border border-white/[0.06] bg-black/20 px-3 py-2.5 md:px-3.5 md:py-3">
+              <p :class="sectionLabel">安全评分</p>
+              <p class="mt-1 font-mono text-lg font-medium tabular-nums text-violet-200/95 md:text-xl">
+                {{ securityScore }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <RouterLink
+        :to="`${prefix}/personal-center/assets`"
+        :class="`${card} flex flex-col gap-3 p-4 transition hover:border-white/[0.1] hover:bg-white/[0.035] sm:flex-row sm:items-center sm:justify-between md:p-5`"
+      >
+        <div>
+          <p :class="sectionLabel">账户总资产</p>
+          <p class="mt-2 font-mono text-lg font-medium tabular-nums text-white md:text-xl">0</p>
+          <p class="mt-1 text-xs text-white/42">≈ $ 0 · 今日收益 0</p>
+        </div>
+        <span class="text-xs font-medium text-lime-300/85 sm:shrink-0">查看资产</span>
+      </RouterLink>
+
+      <div class="grid gap-4 md:gap-5 lg:grid-cols-2 lg:items-start">
+        <section :class="`${card} p-4 md:p-5`">
+          <div class="flex items-center justify-between gap-3">
+            <h2 :class="sectionTitle">安全项</h2>
+            <RouterLink
+              :to="`${prefix}/personal-center/security`"
+              class="text-xs font-medium text-lime-300/85 hover:text-lime-200"
+            >
+              管理
             </RouterLink>
-          </li>
-        </ul>
+          </div>
+          <p v-if="securityPendingCount" class="mt-2 text-xs leading-relaxed text-amber-200/80">
+            还有 {{ securityPendingCount }} 项待完善，建议绑定邮箱并开启两步验证。
+          </p>
+          <p v-else class="mt-2 text-xs text-emerald-200/75">当前安全项已齐备（示例）。</p>
+          <ul class="mt-4 divide-y divide-white/[0.06] border-t border-white/[0.06]">
+            <li
+              v-for="row in securityBrief"
+              :key="row.key"
+              class="flex items-center justify-between py-2.5 first:pt-3"
+            >
+              <span class="text-sm text-white/78">{{ row.label }}</span>
+              <span
+                class="text-xs font-medium tabular-nums"
+                :class="row.ok ? 'text-emerald-300/85' : 'text-white/38'"
+              >
+                {{ row.ok ? '已设置' : '未完成' }}
+              </span>
+            </li>
+          </ul>
+        </section>
+
+        <section :class="`${card} p-4 md:p-5`">
+          <div class="flex items-center justify-between gap-3">
+            <h2 :class="sectionTitle">最近动态</h2>
+            <RouterLink
+              :to="`${prefix}/personal-center/notifications`"
+              class="text-xs font-medium text-lime-300/85 hover:text-lime-200"
+            >
+              全部
+            </RouterLink>
+          </div>
+          <ul class="mt-2 divide-y divide-white/[0.06]">
+            <li
+              v-for="row in recentItems"
+              :key="row.key"
+              class="max-lg:[&:nth-child(n+3)]:hidden"
+            >
+              <RouterLink
+                :to="feedTo(row.to)"
+                class="flex gap-3 py-3 text-left transition hover:bg-white/[0.02]"
+              >
+                <span
+                  class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full"
+                  :class="
+                    row.kind === 'security'
+                      ? 'bg-amber-400/85'
+                      : row.kind === 'system'
+                        ? 'bg-sky-400/75'
+                        : 'bg-white/28'
+                  "
+                  aria-hidden="true"
+                />
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm leading-snug text-white/85">{{ row.title }}</p>
+                  <p class="mt-0.5 text-xs text-white/38">{{ row.time }}</p>
+                </div>
+              </RouterLink>
+            </li>
+          </ul>
+        </section>
+      </div>
+
+      <section :class="`hidden ${card} px-4 py-4 md:block md:px-5 md:py-4`">
+        <p :class="sectionLabel">常用功能</p>
+        <div class="mt-3 flex flex-wrap gap-x-6 gap-y-2">
+          <RouterLink
+            v-for="link in compactLinks"
+            :key="link.to"
+            :to="link.to"
+            class="text-sm text-white/55 transition hover:text-lime-300/85"
+          >
+            {{ link.label }}
+          </RouterLink>
+        </div>
+      </section>
+
+      <section
+        :class="`hidden ${card} border-lime-400/15 bg-lime-400/[0.04] md:flex md:items-center md:justify-between md:px-5 md:py-4`"
+      >
+        <div class="flex gap-3">
+          <FrontStrokeIcon name="lightbulb" size-class="h-5 w-5 shrink-0 text-lime-200/80" />
+          <div>
+            <p class="text-sm font-medium text-lime-100/90">降低账户风险</p>
+            <p class="mt-1 text-xs leading-relaxed text-white/48">
+              完成邮箱与两步验证后，提现与改密等操作更安全。
+            </p>
+          </div>
+        </div>
+        <RouterLink
+          :to="`${prefix}/personal-center/security`"
+          class="mt-3 inline-flex shrink-0 rounded-lg bg-lime-400 px-3.5 py-2 text-xs font-semibold text-black transition hover:bg-lime-300 md:mt-0"
+        >
+          去安全中心
+        </RouterLink>
       </section>
     </div>
-
-    <!-- 常用功能：窄屏与上方快捷入口重复，隐藏 -->
-    <section
-      class="hidden rounded-2xl border border-white/[0.05] bg-black/22 px-4 py-4 md:block md:px-5"
-    >
-      <h2 class="text-xs font-medium uppercase tracking-wider text-white/40">常用功能</h2>
-      <div class="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm">
-        <RouterLink
-          v-for="link in compactLinks"
-          :key="link.to"
-          :to="link.to"
-          class="text-white/65 transition hover:text-lime-300/90"
-        >
-          {{ link.label }}
-        </RouterLink>
-      </div>
-    </section>
-
-    <!-- 提示条：窄屏隐藏，减少干扰 -->
-    <section
-      class="hidden rounded-2xl  bg-lime-400/[0.055] px-4 py-4 md:flex md:items-center md:justify-between md:px-5"
-    >
-      <div class="flex gap-3">
-        <FrontStrokeIcon name="lightbulb" size-class="h-6 w-6 shrink-0 text-lime-200/90" />
-        <div>
-          <p class="text-sm font-medium text-lime-100/95">降低账户风险</p>
-          <p class="mt-1 text-xs leading-relaxed text-white/55">
-            完成邮箱与两步验证后，提现与改密等操作将更安全。
-          </p>
-        </div>
-      </div>
-      <RouterLink
-        :to="`${prefix}/personal-center/security`"
-        class="mt-3 inline-flex rounded-lg bg-lime-400 px-4 py-2 text-sm font-semibold text-black hover:bg-lime-300 md:mt-0 md:shrink-0"
-      >
-        去安全中心
-      </RouterLink>
-    </section>
-    </div>
-
   </div>
 </template>
