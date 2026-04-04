@@ -28,14 +28,15 @@ const addresses = ref([
 
 <template>
   <div>
-    <header class="mb-6 md:mb-8">
+    <header class="mb-5 md:mb-6">
       <h1 class="text-2xl font-bold tracking-tight text-white md:text-3xl">提币地址</h1>
       <p class="mt-1 text-sm text-white/55">
         管理链上提币白名单地址。新增或修改地址通常需安全验证与短时冷静期。
       </p>
     </header>
 
-    <section class="mb-6 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex flex-col gap-5 md:gap-6">
+    <section class="flex flex-wrap items-center justify-between gap-3">
       <button
         type="button"
         class="rounded-lg bg-lime-400 px-4 py-2.5 text-sm font-semibold text-black hover:bg-lime-300"
@@ -45,7 +46,7 @@ const addresses = ref([
       <p class="text-xs text-white/45">已启用 {{ addresses.filter((a) => a.verified).length }} / {{ addresses.length }} 条已验证</p>
     </section>
 
-    <div class="space-y-3">
+    <div class="flex flex-col gap-5 md:gap-6">
       <article
         v-for="row in addresses"
         :key="row.id"
@@ -89,6 +90,7 @@ const addresses = ref([
           </button>
         </div>
       </article>
+    </div>
     </div>
   </div>
 </template>

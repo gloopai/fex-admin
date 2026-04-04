@@ -111,14 +111,15 @@ function nextPage() {
 
 <template>
   <div>
-    <header class="mb-6 md:mb-8">
+    <header class="mb-5 md:mb-6">
       <h1 class="text-2xl font-bold tracking-tight text-white md:text-3xl">消息通知</h1>
       <p class="mt-1 text-sm text-white/55">
         系统、安全与活动消息统一在此查看，重要安全提醒也会通过短信或邮件发送。
       </p>
     </header>
 
-    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex flex-col gap-5 md:gap-6">
+    <div class="flex flex-wrap items-center justify-between gap-3">
       <div class="flex flex-wrap gap-2">
         <button
           v-for="t in tabs"
@@ -216,6 +217,7 @@ function nextPage() {
           </button>
         </div>
       </div>
+    </div>
     </div>
   </div>
 </template>

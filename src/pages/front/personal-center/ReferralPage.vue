@@ -19,14 +19,15 @@ function copy(text) {
 
 <template>
   <div>
-    <header class="mb-6 md:mb-8">
+    <header class="mb-5 md:mb-6">
       <h1 class="text-2xl font-bold tracking-tight text-white md:text-3xl">邀请返佣</h1>
       <p class="mt-1 text-sm text-white/55">
         邀请好友注册并完成交易，按规则获得返现。比例与结算周期以活动公告为准。
       </p>
     </header>
 
-    <section class="mb-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4 md:p-6">
+    <div class="flex flex-col gap-5 md:gap-6">
+    <section class="rounded-2xl border border-white/10 bg-white/[0.04] p-4 md:p-6">
       <h2 class="text-sm font-semibold text-white/90">我的邀请码</h2>
       <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
         <div class="min-w-0 flex-1">
@@ -64,7 +65,7 @@ function copy(text) {
       </div>
     </section>
 
-    <section class="mb-6 grid gap-3 sm:grid-cols-3">
+    <section class="grid gap-3 sm:grid-cols-3">
       <div class="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 md:px-4 md:py-4">
         <p class="text-xs text-white/45">已邀请（人）</p>
         <p class="mt-2 text-2xl font-semibold tabular-nums text-white">{{ stats.invited }}</p>
@@ -87,5 +88,6 @@ function copy(text) {
         <li>详情以「邀请活动规则」页面与站内信通知为准。</li>
       </ul>
     </section>
+    </div>
   </div>
 </template>

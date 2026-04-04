@@ -72,22 +72,23 @@ onUnmounted(() => document.body.removeEventListener('keydown', onPrefsKeydown))
 
 <template>
   <div>
-    <header class="mb-6 md:mb-8">
+    <header class="mb-5 md:mb-6">
       <h1 class="text-2xl font-bold tracking-tight text-white md:text-3xl">账户设置</h1>
       <p class="mt-1 text-sm text-white/55">
         昵称与显示偏好；敏感变更仍需在安全中心完成验证。
       </p>
     </header>
 
+    <div class="flex flex-col gap-5 md:gap-6">
     <p
       v-if="savedHint"
-      class="mb-4 rounded-xl border border-lime-400/30 bg-lime-400/10 px-4 py-2 text-sm text-lime-100/95"
+      class="rounded-xl border border-lime-400/30 bg-lime-400/10 px-4 py-2 text-sm text-lime-100/95"
       role="status"
     >
       {{ savedHint }}
     </p>
 
-    <section class="space-y-6">
+    <section class="flex flex-col gap-5 md:gap-6">
       <div class="rounded-2xl border border-white/10 bg-white/[0.04] p-3 md:p-5">
         <h2 class="text-sm font-semibold text-white/90">基本资料</h2>
         <label class="mt-4 block">
@@ -202,6 +203,7 @@ onUnmounted(() => document.body.removeEventListener('keydown', onPrefsKeydown))
         保存设置
       </button>
     </section>
+    </div>
 
     <Teleport to="body">
       <Transition name="pref-fade">

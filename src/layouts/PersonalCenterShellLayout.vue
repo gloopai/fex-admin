@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import FrontStrokeIcon from '../components/front/FrontStrokeIcon.vue'
 import {
   getPersonalCenterNavItems,
   getPersonalCenterShellMobileNavItems
@@ -12,6 +13,23 @@ const prefix = '/front'
 
 const primaryNav = computed(() => getPersonalCenterNavItems(prefix))
 const mobileQuickNav = computed(() => getPersonalCenterShellMobileNavItems(prefix))
+
+/** 与个人中心首页 3×3 网格入口对应的描边图标 */
+const shellQuickIconByKey = {
+  assets: 'wallet',
+  ledger: 'clipboard',
+  security: 'shield',
+  verify: 'id-card',
+  'withdraw-addresses': 'link',
+  notifications: 'bell',
+  'fees-vip': 'star',
+  referral: 'gift',
+  preferences: 'cog'
+}
+
+function shellQuickIcon(key) {
+  return shellQuickIconByKey[key] ?? 'monitor'
+}
 
 function pathNorm(p) {
   return p.replace(/\/+$/, '') || '/'
@@ -37,7 +55,12 @@ function navActive(item) {
     class="min-h-[calc(100vh-3.5rem)] max-lg:min-h-[calc(100vh-3.5rem-0.5rem-3.5rem-0.6rem-env(safe-area-inset-bottom,0px))] border-t border-white/[0.04] bg-[#050505] text-white"
   >
     <div
-      class="mx-auto flex max-w-[1400px] flex-col gap-6 px-3 pt-3 pb-6 sm:px-4 lg:flex-row lg:gap-8 lg:px-6 lg:pt-8 lg:pb-8"
+      class="mx-auto flex max-w-[1400px] flex-col gap-5 px-3 pt-3 pb-6 sm:px-4 lg:flex-row lg:gap-8 lg:px-6 lg:pt-8 lg:pb-8"
+      :class="
+        isPersonalOverview
+          ? 'max-lg:!pb-[calc(8.25rem+env(safe-area-inset-bottom,0px))] max-lg:gap-5'
+          : ''
+      "
     >
       <!-- 大屏左侧导航 -->
       <aside class="hidden w-[260px] shrink-0 lg:block" aria-label="个人中心导航">
@@ -78,6 +101,7 @@ function navActive(item) {
       <main class="min-w-0 flex-1 text-white">
         <div
           class="mx-auto w-full max-w-[1280px] px-0 pb-6 max-lg:pt-0 lg:pb-0"
+          :class="isPersonalOverview ? 'max-lg:!pb-1' : ''"
         >
           <RouterView v-slot="{ Component }">
             <Transition name="pc-fade" mode="out-in">
@@ -87,47 +111,42 @@ function navActive(item) {
         </div>
       </main>
 
-      <!-- 窄屏：仅在总览页底部放入口（无标题文案） -->
+      <!-- 窄屏：仅在总览页底部 — 3×3 紧凑网格；页面额外 pb 避开固定「快捷菜单」 -->
       <nav
         v-if="isPersonalOverview"
-        class="lg:hidden rounded-2xl border border-white/[0.045] bg-white/[0.03] p-3 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.03)]"
+        class="lg:hidden rounded-2xl bg-[#0b0c0e]/95 p-2.5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]"
         aria-label="个人中心入口"
       >
-        <div class="grid grid-cols-2 gap-2">
+        <h2
+          class="mb-2 pl-0.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-white/35"
+        >
+          常用服务
+        </h2>
+        <div class="grid grid-cols-3 gap-x-1 gap-y-1">
           <RouterLink
             v-for="item in mobileQuickNav"
             :key="`m-${item.key}`"
             :to="item.to"
-            class="rounded-xl bg-black/18 px-3 py-3 text-center text-sm font-medium ring-1 ring-white/[0.03] transition active:scale-[0.99]"
+            class="group flex min-h-[4.75rem] flex-col items-center justify-center gap-1.5 rounded-xl px-1 py-2 text-center transition [-webkit-tap-highlight-color:transparent] active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505]"
             :class="
               navActive(item)
-                ? 'bg-gradient-to-b from-lime-400/[0.12] to-lime-400/[0.04] text-lime-50 ring-lime-400/18'
-                : 'text-white/88 hover:bg-white/[0.04] hover:ring-white/[0.06]'
+                ? 'bg-lime-400/[0.11] text-lime-50'
+                : 'text-white/88 hover:bg-white/[0.055] active:bg-white/[0.08]'
             "
           >
-            {{ item.label }}
-          </RouterLink>
-          <RouterLink
-            :to="`${prefix}/personal-center/fees-vip`"
-            class="rounded-xl bg-black/18 px-3 py-3 text-center text-sm font-medium text-white/88 ring-1 ring-white/[0.03] transition hover:bg-white/[0.04] hover:ring-white/[0.06] active:scale-[0.99]"
-            :class="
-              navActive({ to: `${prefix}/personal-center/fees-vip`, match: 'prefix' })
-                ? 'bg-gradient-to-b from-lime-400/[0.12] to-lime-400/[0.04] text-lime-50 ring-lime-400/18'
-                : ''
-            "
-          >
-            费率与 VIP
-          </RouterLink>
-          <RouterLink
-            :to="`${prefix}/personal-center/notifications`"
-            class="rounded-xl bg-black/18 px-3 py-3 text-center text-sm font-medium text-white/88 ring-1 ring-white/[0.03] transition hover:bg-white/[0.04] hover:ring-white/[0.06] active:scale-[0.99]"
-            :class="
-              navActive({ to: `${prefix}/personal-center/notifications`, match: 'prefix' })
-                ? 'bg-gradient-to-b from-lime-400/[0.12] to-lime-400/[0.04] text-lime-50 ring-lime-400/18'
-                : ''
-            "
-          >
-            消息通知
+            <span
+              class="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-white/[0.08] text-lime-200/95 transition group-hover:bg-white/[0.12]"
+              :class="navActive(item) ? 'bg-lime-400/25 text-lime-50' : ''"
+              aria-hidden="true"
+            >
+              <FrontStrokeIcon :name="shellQuickIcon(item.key)" size-class="h-5 w-5" />
+            </span>
+            <span
+              class="line-clamp-2 w-full px-0.5 text-center text-[12px] font-medium leading-[1.25] text-white/86"
+              :class="navActive(item) ? 'text-lime-50/95' : ''"
+            >
+              {{ item.label }}
+            </span>
           </RouterLink>
         </div>
       </nav>

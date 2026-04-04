@@ -70,13 +70,14 @@ const compactLinks = computed(() => [
 
 <template>
   <div>
-    <header class="mb-5 hidden md:mb-8 md:block">
+    <header class="mb-5 hidden md:mb-6 md:block">
       <h1 class="text-3xl font-bold tracking-tight text-white">账户总览</h1>
       <p class="mt-1 text-sm text-white/55">
         查看信用、安全与最近动态；更多功能见侧栏导航。
       </p>
     </header>
 
+    <div class="flex flex-col gap-5 md:gap-6">
     <!-- 用户主卡片 -->
     <section
       class="relative overflow-hidden rounded-2xl border border-white/[0.05] bg-gradient-to-br from-white/[0.06] to-white/[0.015] p-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] md:p-6"
@@ -161,7 +162,7 @@ const compactLinks = computed(() => [
     <!-- 资产总览入口（完整页在顶栏「资产」） -->
     <RouterLink
       :to="`${prefix}/personal-center/assets`"
-      class="mt-6 flex flex-col gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] p-3 transition hover:border-lime-400/22 hover:bg-white/[0.05] sm:flex-row sm:items-center sm:justify-between md:p-5"
+      class="flex flex-col gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.035] p-3 transition hover:border-lime-400/22 hover:bg-white/[0.05] sm:flex-row sm:items-center sm:justify-between md:p-5"
     >
       <div>
         <p class="text-xs font-medium uppercase tracking-wider text-white/45">账户总资产</p>
@@ -171,7 +172,7 @@ const compactLinks = computed(() => [
       <span class="text-sm font-medium text-lime-300/90 sm:shrink-0">查看资产 →</span>
     </RouterLink>
 
-    <div class="mt-5 grid gap-5 md:mt-6 md:gap-6 lg:grid-cols-2 lg:items-start">
+    <div class="grid gap-5 md:gap-6 lg:grid-cols-2 lg:items-start">
       <!-- 安全项摘要 -->
       <section class="rounded-2xl border border-white/[0.05] bg-white/[0.035] p-3 md:p-5">
         <div class="flex items-center justify-between gap-3">
@@ -251,7 +252,7 @@ const compactLinks = computed(() => [
 
     <!-- 常用功能：窄屏与上方快捷入口重复，隐藏 -->
     <section
-      class="mt-6 hidden rounded-2xl border border-white/[0.05] bg-black/22 px-4 py-4 md:block md:px-5"
+      class="hidden rounded-2xl border border-white/[0.05] bg-black/22 px-4 py-4 md:block md:px-5"
     >
       <h2 class="text-xs font-medium uppercase tracking-wider text-white/40">常用功能</h2>
       <div class="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm">
@@ -268,7 +269,7 @@ const compactLinks = computed(() => [
 
     <!-- 提示条：窄屏隐藏，减少干扰 -->
     <section
-      class="mt-6 hidden rounded-2xl border border-lime-400/12 bg-lime-400/[0.055] px-4 py-4 md:flex md:items-center md:justify-between md:px-5"
+      class="hidden rounded-2xl border border-lime-400/12 bg-lime-400/[0.055] px-4 py-4 md:flex md:items-center md:justify-between md:px-5"
     >
       <div class="flex gap-3">
         <FrontStrokeIcon name="lightbulb" size-class="h-6 w-6 shrink-0 text-lime-200/90" />
@@ -286,6 +287,7 @@ const compactLinks = computed(() => [
         去安全中心
       </RouterLink>
     </section>
+    </div>
 
   </div>
 </template>

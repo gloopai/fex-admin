@@ -61,40 +61,30 @@ const PAIRS_BY_CLASS = {
   crypto: [
     { base: 'BTC', quote: 'USDT' },
     { base: 'ETH', quote: 'USDT' },
-    { base: 'BNB', quote: 'USDT' },
     { base: 'SOL', quote: 'USDT' },
+    { base: 'BNB', quote: 'USDT' },
     { base: 'XRP', quote: 'USDT' },
     { base: 'DOGE', quote: 'USDT' },
     { base: 'ADA', quote: 'USDT' },
     { base: 'AVAX', quote: 'USDT' },
     { base: 'DOT', quote: 'USDT' },
-    { base: 'LINK', quote: 'USDT' },
-    { base: 'TRX', quote: 'USDT' },
     { base: 'MATIC', quote: 'USDT' },
-    { base: 'LTC', quote: 'USDT' },
-    { base: 'BCH', quote: 'USDT' },
-    { base: 'ATOM', quote: 'USDT' },
+    { base: 'LINK', quote: 'USDT' },
     { base: 'UNI', quote: 'USDT' },
+    { base: 'ATOM', quote: 'USDT' },
+    { base: 'LTC', quote: 'USDT' },
     { base: 'ETC', quote: 'USDT' },
-    { base: 'NEAR', quote: 'USDT' },
     { base: 'FIL', quote: 'USDT' },
     { base: 'APT', quote: 'USDT' },
     { base: 'ARB', quote: 'USDT' },
     { base: 'OP', quote: 'USDT' },
-    { base: 'INJ', quote: 'USDT' },
     { base: 'SUI', quote: 'USDT' },
-    { base: 'TON', quote: 'USDT' },
+    { base: 'INJ', quote: 'USDT' },
+    { base: 'TIA', quote: 'USDT' },
     { base: 'SEI', quote: 'USDT' },
     { base: 'WLD', quote: 'USDT' },
-    { base: 'HBAR', quote: 'USDT' },
-    { base: 'AAVE', quote: 'USDT' },
-    { base: 'ALGO', quote: 'USDT' },
-    { base: 'STX', quote: 'USDT' },
-    { base: 'GRT', quote: 'USDT' },
-    { base: 'XLM', quote: 'USDT' },
-    { base: 'VET', quote: 'USDT' },
-    { base: 'TIA', quote: 'USDT' },
-    { base: 'RUNE', quote: 'USDT' }
+    { base: 'PEPE', quote: 'USDT' },
+    { base: 'SHIB', quote: 'USDT' }
   ],
   forex: [
     { base: 'EUR', quote: 'USD' },
@@ -109,44 +99,32 @@ const PAIRS_BY_CLASS = {
 }
 
 const PAIR_MARKET_TABLE = {
-  // 加密 · USDT（演示价 / 24H 涨跌幅 %）
   'BTC-USDT': [98420.5, 1.24],
   'ETH-USDT': [2050.43, -0.358],
-  'BNB-USDT': [612.8, 0.552],
   'SOL-USDT': [188.35, 2.91],
-  'XRP-USDT': [2.153, -1.18],
-  'DOGE-USDT': [0.15236, 3.07],
-  'ADA-USDT': [0.8912, -0.82],
-  'AVAX-USDT': [35.24, 1.93],
-  'DOT-USDT': [6.847, -0.41],
-  'LINK-USDT': [14.286, 2.19],
-  'TRX-USDT': [0.2487, 0.91],
-  'MATIC-USDT': [0.4185, -2.14],
-  'LTC-USDT': [98.42, 0.64],
-  'BCH-USDT': [412.15, -0.27],
-  'ATOM-USDT': [8.124, -1.52],
-  'UNI-USDT': [9.453, 1.08],
-  'ETC-USDT': [24.86, -0.95],
-  'NEAR-USDT': [4.852, -1.76],
-  'FIL-USDT': [5.148, 2.47],
-  'APT-USDT': [8.967, 5.08],
-  'ARB-USDT': [0.7312, 4.25],
-  'OP-USDT': [1.847, -3.18],
-  'INJ-USDT': [18.23, 7.31],
-  'SUI-USDT': [2.681, -0.88],
-  'TON-USDT': [5.419, 0.34],
-  'SEI-USDT': [0.3088, 6.15],
-  'WLD-USDT': [1.124, -5.48],
-  'HBAR-USDT': [0.1924, 1.62],
-  'AAVE-USDT': [218.5, 0.79],
-  'ALGO-USDT': [0.2631, -1.33],
-  'STX-USDT': [0.874, 2.91],
-  'GRT-USDT': [0.1362, -0.56],
-  'XLM-USDT': [0.0963, 1.05],
-  'VET-USDT': [0.03284, -2.9],
-  'TIA-USDT': [3.752, 8.42],
-  'RUNE-USDT': [3.918, -1.07],
-  // 外汇 / 贵金属
+  'BNB-USDT': [712.8, 0.62],
+  'XRP-USDT': [2.084, 1.05],
+  'DOGE-USDT': [0.3842, -0.91],
+  'ADA-USDT': [0.872, 0.44],
+  'AVAX-USDT': [39.55, -0.27],
+  'DOT-USDT': [7.82, 0.18],
+  'MATIC-USDT': [0.5234, -1.12],
+  'LINK-USDT': [24.16, 0.73],
+  'UNI-USDT': [13.05, -0.45],
+  'ATOM-USDT': [9.94, 0.29],
+  'LTC-USDT': [108.3, 0.51],
+  'ETC-USDT': [28.4, -0.62],
+  'FIL-USDT': [8.12, 1.88],
+  'APT-USDT': [9.65, -0.34],
+  'ARB-USDT': [0.721, 0.92],
+  'OP-USDT': [2.08, -0.71],
+  'SUI-USDT': [3.42, 2.15],
+  'INJ-USDT': [24.88, 0.38],
+  'TIA-USDT': [4.95, -1.05],
+  'SEI-USDT': [0.412, 0.67],
+  'WLD-USDT': [1.856, -0.89],
+  'PEPE-USDT': [0.00001234, 3.2],
+  'SHIB-USDT': [0.00002418, -0.55],
   'EUR-USD': [1.0856, 0.042],
   'GBP-USD': [1.265, -0.08],
   'USD-JPY': [149.82, 0.15],
@@ -158,9 +136,14 @@ const PAIR_MARKET_TABLE = {
 const pairs = computed(() => PAIRS_BY_CLASS[tradeAssetClass.value] || PAIRS_BY_CLASS.crypto)
 
 const activePairIdx = ref(0)
+const pcPairPickerOpen = ref(false)
+const pcPairSearch = ref('')
+const pcPairPickerRoot = ref(null)
 
 watch(tradeAssetClass, () => {
   activePairIdx.value = 0
+  pcPairPickerOpen.value = false
+  pcPairSearch.value = ''
 })
 
 watch(pairs, (list) => {
@@ -188,10 +171,16 @@ function syncPairMarket() {
 
 watch([activePairIdx, tradeAssetClass], syncPairMarket, { immediate: true })
 
-const decimals = computed(() => {
-  const m = midNumeric.value
-  return m >= 1000 ? 2 : m >= 1 ? 2 : 4
-})
+function marketRowDecimals(mid) {
+  if (mid >= 10_000) return 2
+  if (mid >= 100) return 2
+  if (mid >= 1) return mid >= 10 ? 4 : 5
+  if (mid >= 0.01) return 5
+  if (mid >= 0.0001) return 6
+  return 8
+}
+
+const decimals = computed(() => marketRowDecimals(midNumeric.value))
 
 function fmtPriceNum(price, dec) {
   return price.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec })
@@ -325,13 +314,6 @@ const stats24h = computed(() => {
   }
 })
 
-function marketRowDecimals(mid) {
-  if (mid >= 10_000) return 2
-  if (mid >= 100) return 2
-  if (mid >= 1) return mid >= 10 ? 4 : 5
-  return 4
-}
-
 const marketMiniRows = computed(() =>
   pairs.value.map((p, idx) => {
     const key = `${p.base}-${p.quote}`
@@ -347,63 +329,55 @@ const marketMiniRows = computed(() =>
   })
 )
 
-const pairDrawerOpen = ref(false)
-const modeSheetOpen = ref(false)
-const chartExpanded = ref(false)
-
-/** PC：自定义交易对选择（替代原生 select） */
-const pcPairPickerRoot = ref(null)
-const pcPairPickerOpen = ref(false)
-const pcPairSearch = ref('')
-
-function pcPairQuoteSnapshot(p) {
-  const key = `${p.base}-${p.quote}`
-  const [mid, pct] = PAIR_MARKET_TABLE[key] || [0, 0]
-  const dec = marketRowDecimals(mid)
-  return { price: fmtPriceNum(mid, dec), pct }
-}
-
+/** PC：自定义交易对选择（搜索 + 演示价 / 涨跌幅） */
 const pcPairPickerRows = computed(() => {
-  const q = pcPairSearch.value.trim().toLowerCase().replace(/\s+/g, '')
-  return pairs.value
-    .map((p, i) => ({ p, i, ...pcPairQuoteSnapshot(p) }))
-    .filter((row) => {
-      if (!q) return true
-      const compact = `${row.p.base}${row.p.quote}`.toLowerCase()
-      const label = `${row.p.base}/${row.p.quote}`.toLowerCase()
-      return compact.includes(q) || label.includes(q)
+  const q = pcPairSearch.value.trim().toLowerCase()
+  const list = pairs.value
+  const rows = []
+  for (let i = 0; i < list.length; i++) {
+    const p = list[i]
+    const hay = `${p.base} ${p.quote} ${p.base}/${p.quote}`.toLowerCase()
+    if (q && !hay.includes(q)) continue
+    const key = `${p.base}-${p.quote}`
+    const [mid, pct] = PAIR_MARKET_TABLE[key] || [100, 0]
+    const dec = marketRowDecimals(mid)
+    rows.push({
+      i,
+      p,
+      price: fmtPriceNum(mid, dec),
+      pct
     })
+  }
+  return rows
 })
-
-function selectPcPair(i) {
-  activePairIdx.value = i
-  pcPairPickerOpen.value = false
-  pcPairSearch.value = ''
-}
 
 function togglePcPairPicker() {
   pcPairPickerOpen.value = !pcPairPickerOpen.value
   if (pcPairPickerOpen.value) {
     pcPairSearch.value = ''
-    nextTick(() => document.getElementById('pc-trade-pair-search')?.focus())
+    nextTick(() => {
+      document.getElementById('pc-trade-pair-search')?.focus()
+    })
   }
 }
 
-watch(pcPairPickerOpen, (open) => {
-  if (typeof document === 'undefined') return
-  if (!open) return
-  const onDoc = (e) => {
-    if (pcPairPickerRoot.value?.contains(e.target)) return
-    pcPairPickerOpen.value = false
-  }
-  nextTick(() => document.addEventListener('pointerdown', onDoc, true))
-  return () => document.removeEventListener('pointerdown', onDoc, true)
-})
-
-watch(tradeAssetClass, () => {
+function selectPcPair(idx) {
+  activePairIdx.value = idx
   pcPairPickerOpen.value = false
   pcPairSearch.value = ''
-})
+}
+
+function onDocPointerDownPcPair(e) {
+  if (!pcPairPickerOpen.value) return
+  const root = pcPairPickerRoot.value
+  if (root && !root.contains(e.target)) {
+    pcPairPickerOpen.value = false
+  }
+}
+
+const pairDrawerOpen = ref(false)
+const modeSheetOpen = ref(false)
+const chartExpanded = ref(false)
 
 const positionSide = ref('long')
 const orderType = ref('limit')
@@ -450,7 +424,6 @@ watch(
     chartMarketTab.value = 'depth'
     orderPrice.value = ''
     pcPairPickerOpen.value = false
-    pcPairSearch.value = ''
   }
 )
 
@@ -830,12 +803,14 @@ function tickClock() {
 
 onMounted(() => {
   document.body.addEventListener('keydown', onBodyKeydown)
+  document.addEventListener('pointerdown', onDocPointerDownPcPair, true)
   tickClock()
   clockTimer = setInterval(tickClock, 1000)
 })
 
 onUnmounted(() => {
   document.body.removeEventListener('keydown', onBodyKeydown)
+  document.removeEventListener('pointerdown', onDocPointerDownPcPair, true)
   if (clockTimer) clearInterval(clockTimer)
   if (orderToastTimer) clearTimeout(orderToastTimer)
 })
@@ -851,13 +826,15 @@ const pcBottomEmptyText = computed(() => {
 </script>
 
 <template>
-  <div class="trade-page w-full text-white lg:max-w-none">
+  <div
+    class="trade-page w-full text-white lg:max-w-none lg:flex lg:h-[calc(100dvh-3.5rem-1px)] lg:min-h-0 lg:flex-col lg:overflow-hidden"
+  >
     <!-- ——— PC：行情横条 + 类型切换 ——— -->
     <div
-      class="hidden border-b border-[#1f2429] bg-[#0b0e11] lg:block lg:px-4 lg:py-2 xl:px-6"
+      class="hidden shrink-0 border-b border-[#1f2429] bg-[#0b0e11] lg:block lg:px-4 lg:py-2 xl:px-6"
     >
-      <!-- 整行不换行：统计区空间不足时可横向滑览，右侧品种/类型/时间固定单行 -->
-      <div class="flex min-h-[2.75rem] flex-nowrap items-center gap-3 lg:gap-4">
+      <!-- 整行不换行：统计区可横向滑览，右侧品种/类型/时间固定同一行并对齐 -->
+      <div class="flex min-h-[2.75rem] flex-nowrap items-center gap-3 xl:gap-4">
         <div ref="pcPairPickerRoot" class="relative shrink-0">
           <label class="sr-only" for="pc-trade-pair-trigger">交易对</label>
           <button
@@ -949,14 +926,12 @@ const pcBottomEmptyText = computed(() => {
         <div
           class="min-w-0 flex-1 overflow-x-auto overflow-y-hidden overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
-          <div
-            class="flex w-max min-w-full flex-nowrap items-baseline gap-x-4 pr-2 xl:gap-x-6 xl:pr-0"
-          >
+          <div class="flex w-max max-w-none flex-nowrap items-center gap-x-6 pr-1 lg:gap-x-7 xl:gap-x-8">
             <div class="shrink-0">
-              <p class="font-mono text-xl font-bold tabular-nums" :class="changeClass(changePct)">
+              <p class="font-mono text-xl font-bold leading-tight tabular-nums" :class="changeClass(changePct)">
                 {{ lastPrice }}
               </p>
-              <p class="text-[11px] text-white/45">≈ $ {{ lastPrice }}</p>
+              <p class="mt-0.5 whitespace-nowrap text-[11px] text-white/45">≈ $ {{ lastPrice }}</p>
             </div>
             <div class="shrink-0 whitespace-nowrap text-xs">
               <span class="text-white/40">24H 涨跌</span>
@@ -983,51 +958,47 @@ const pcBottomEmptyText = computed(() => {
           </div>
         </div>
 
-        <div
-          class="ml-auto flex shrink-0 flex-nowrap items-center gap-1.5 border-l border-white/[0.06] pl-3 lg:gap-2 xl:pl-4"
-        >
+        <div class="flex shrink-0 flex-nowrap items-center justify-end gap-2.5 sm:gap-3">
           <nav
-            class="flex shrink-0 flex-nowrap rounded-lg border border-white/[0.06] bg-white/[0.04] p-0.5"
+            class="flex rounded-lg border border-white/[0.06] bg-white/[0.04] p-0.5"
             aria-label="交易品种"
           >
             <RouterLink
               v-for="t in assetClassTabs"
               :key="t.key"
               :to="t.to"
-              class="whitespace-nowrap rounded-md px-2 py-1.5 text-[11px] font-medium transition xl:px-2.5 xl:text-xs"
+              class="whitespace-nowrap rounded-md px-2.5 py-1.5 text-xs font-medium transition"
               :class="tabLinkClass(t.to)"
             >
               {{ t.label }}
             </RouterLink>
           </nav>
           <nav
-            class="flex shrink-0 flex-nowrap rounded-lg border border-white/[0.06] bg-white/[0.04] p-0.5"
+            class="flex rounded-lg border border-white/[0.06] bg-white/[0.04] p-0.5"
             aria-label="交易类型"
           >
             <RouterLink
               v-for="t in tradeTabs"
               :key="t.key"
               :to="t.to"
-              class="whitespace-nowrap rounded-md px-2 py-1.5 text-[11px] font-medium transition xl:px-3 xl:text-xs"
+              class="whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium transition"
               :class="tabLinkClass(t.to)"
             >
               {{ t.label }}
             </RouterLink>
           </nav>
-          <time class="shrink-0 whitespace-nowrap font-mono text-[10px] tabular-nums text-white/50 xl:text-xs">{{
-            clockStr
-          }}</time>
+          <time class="font-mono text-xs tabular-nums text-white/50">{{ clockStr }}</time>
         </div>
       </div>
     </div>
 
-    <!-- ——— PC：三栏主终端 ——— -->
+    <!-- ——— PC：三栏主终端（flex-1 + min-h-0：滚动只在栏内，不撑出 body） ——— -->
     <div
-      class="hidden min-h-[calc(100vh-7.5rem)] border-[#1f2429] lg:flex lg:border-t lg:border-b"
+      class="hidden min-h-0 border-[#1f2429] lg:flex lg:flex-1 lg:flex-row lg:overflow-hidden lg:border-t lg:border-b"
     >
       <!-- 左：图表 + 底部订单 -->
       <div
-        class="flex min-w-0 flex-[1.15] flex-col border-r border-[#1f2429] bg-[#050505]"
+        class="flex h-full min-h-0 min-w-0 flex-[1.15] flex-col border-r border-[#1f2429] bg-[#050505]"
       >
         <div class="flex items-center justify-between border-b border-[#1f2429] px-2 py-1.5">
           <div class="flex flex-wrap gap-0.5" role="tablist" aria-label="K 线周期">
@@ -1076,7 +1047,9 @@ const pcBottomEmptyText = computed(() => {
             </button>
           </div>
         </div>
-        <div class="relative flex min-h-[380px] flex-1 flex-col bg-[#050505] xl:min-h-[440px]">
+        <div
+          class="relative flex min-h-[240px] flex-1 flex-col overflow-hidden bg-[#050505] lg:min-h-0"
+        >
             <div
               class="pointer-events-none absolute inset-0 opacity-[0.08]"
               style="
@@ -1111,8 +1084,10 @@ const pcBottomEmptyText = computed(() => {
             </div>
         </div>
 
-        <div class="flex min-h-[200px] flex-col border-t border-[#1f2429] bg-[#0b0e11]">
-          <div class="flex flex-wrap gap-0 border-b border-[#1f2429] px-1">
+        <div
+          class="flex max-h-[min(280px,38vh)] shrink-0 flex-col overflow-hidden border-t border-[#1f2429] bg-[#0b0e11]"
+        >
+          <div class="flex shrink-0 flex-wrap gap-0 border-b border-[#1f2429] px-1">
             <button
               v-for="bt in pcBottomTabs"
               :key="bt.key"
@@ -1128,7 +1103,9 @@ const pcBottomEmptyText = computed(() => {
               {{ bt.label }}
             </button>
           </div>
-          <div class="flex flex-1 items-center justify-center px-4 py-10 text-sm text-white/40">
+          <div
+            class="trade-pair-scroll flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-4 py-10 text-sm text-white/40"
+          >
             {{ pcBottomEmptyText }}
           </div>
         </div>
@@ -1136,7 +1113,7 @@ const pcBottomEmptyText = computed(() => {
 
       <!-- 中：盘口 / 成交 -->
       <div
-        class="flex w-[300px] shrink-0 flex-col border-r border-[#1f2429] bg-[#0b0e11] xl:w-[340px]"
+        class="flex h-full min-h-0 w-[300px] shrink-0 flex-col border-r border-[#1f2429] bg-[#0b0e11] xl:w-[340px]"
       >
         <div class="flex border-b border-[#1f2429]">
           <button
@@ -1200,7 +1177,7 @@ const pcBottomEmptyText = computed(() => {
             <span class="text-right">数量({{ activePair.base }})</span>
             <span class="text-right">合计({{ activePair.quote }})</span>
           </div>
-          <div class="min-h-0 flex-1 overflow-y-auto">
+          <div class="trade-pair-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain">
             <ul v-if="obSideMode !== 'buy'">
               <li
                 v-for="(row, i) in depthAsks"
@@ -1252,7 +1229,10 @@ const pcBottomEmptyText = computed(() => {
             </ul>
           </div>
         </template>
-        <div v-else class="flex-1 overflow-y-auto px-2 py-3 text-center text-xs text-white/40">
+        <div
+          v-else
+          class="trade-pair-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-3 text-center text-xs text-white/40"
+        >
           <p>最新成交接入行情后展示</p>
           <ul class="mt-4 space-y-2 text-left font-mono text-[11px] text-white/55">
             <li v-for="n in 6" :key="n" class="grid grid-cols-4 gap-1">
@@ -1269,39 +1249,100 @@ const pcBottomEmptyText = computed(() => {
 
       <!-- 右：下单 + 行情列表 + 资产（#121214 终端侧栏 + 橄榄绿 / 珊瑚红） -->
       <div
-        class="flex w-[320px] shrink-0 flex-col border-l border-[#1a1c21] bg-[#121214] xl:w-[360px]"
+        class="flex h-full min-h-0 w-[320px] shrink-0 flex-col border-l border-[#1a1c21] bg-[#121214] xl:w-[360px]"
       >
-        <div class="flex-1 space-y-3.5 overflow-y-auto border-b border-[#1a1c21] px-3 py-3.5">
+        <div class="flex min-h-0 flex-1 flex-col border-b border-[#1a1c21]">
+          <!-- 顶栏：交割方向 / 市价限价，固定不随表单滚动 -->
+          <div
+            class="shrink-0 border-b border-[#1a1c21] bg-[#121214] px-3 pb-2.5 pt-3.5"
+          >
+            <template v-if="tradeMode === 'delivery'">
+              <div
+                class="grid grid-cols-2 gap-1 rounded-lg bg-[#0e0f12] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] ring-1 ring-[#1a1c21]"
+              >
+                <button
+                  type="button"
+                  class="rounded-md py-2.5 text-xs font-bold tracking-tight transition duration-150"
+                  :class="
+                    positionSide === 'long'
+                      ? 'bg-[#152019] text-[#8fd4a8] shadow-[inset_0_1px_0_rgba(143,212,168,0.12)] ring-1 ring-[#4d7c59]/55'
+                      : 'text-[#8e8e93] hover:bg-white/[0.03] hover:text-[#b4b4b8]'
+                  "
+                  @click="positionSide = 'long'"
+                >
+                  做多买入
+                </button>
+                <button
+                  type="button"
+                  class="rounded-md py-2.5 text-xs font-bold tracking-tight transition duration-150"
+                  :class="
+                    positionSide === 'short'
+                      ? 'bg-[#231619] text-[#ffb0b3] shadow-[inset_0_1px_0_rgba(240,90,94,0.08)] ring-1 ring-[#8f3d42]/60'
+                      : 'text-[#8e8e93] hover:bg-white/[0.03] hover:text-[#b4b4b8]'
+                  "
+                  @click="positionSide = 'short'"
+                >
+                  做空买入
+                </button>
+              </div>
+            </template>
+            <template v-else-if="tradeMode === 'perpetual'">
+              <div
+                class="flex rounded-lg bg-[#0e0f12] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] ring-1 ring-[#1a1c21]"
+              >
+                <button
+                  type="button"
+                  class="flex-1 rounded-md py-2 text-xs font-semibold tracking-tight transition duration-150"
+                  :class="
+                    orderType === 'market'
+                      ? 'bg-[#152019] text-[#9bc99f] shadow-[inset_0_1px_0_rgba(155,201,159,0.1)] ring-1 ring-[#4d7c59]/45'
+                      : 'text-[#8e8e93] hover:bg-white/[0.025] hover:text-[#b4b4b8]'
+                  "
+                  @click="orderType = 'market'"
+                >
+                  市价
+                </button>
+                <button
+                  type="button"
+                  class="flex-1 rounded-md py-2 text-xs font-semibold tracking-tight transition duration-150"
+                  :class="
+                    orderType === 'limit'
+                      ? 'bg-[#152019] text-[#9bc99f] shadow-[inset_0_1px_0_rgba(155,201,159,0.1)] ring-1 ring-[#4d7c59]/45'
+                      : 'text-[#8e8e93] hover:bg-white/[0.025] hover:text-[#b4b4b8]'
+                  "
+                  @click="orderType = 'limit'"
+                >
+                  限价
+                </button>
+              </div>
+            </template>
+            <template v-else>
+              <div class="flex rounded-lg border border-[#1f2429] bg-[#121212] p-0.5">
+                <button
+                  type="button"
+                  class="flex-1 rounded-md py-1.5 text-xs font-medium"
+                  :class="orderType === 'market' ? 'bg-[#00b464]/20 text-[#00b464]' : 'text-white/45'"
+                  @click="orderType = 'market'"
+                >
+                  市价
+                </button>
+                <button
+                  type="button"
+                  class="flex-1 rounded-md py-1.5 text-xs font-medium"
+                  :class="orderType === 'limit' ? 'bg-[#00b464]/20 text-[#00b464]' : 'text-white/45'"
+                  @click="orderType = 'limit'"
+                >
+                  限价
+                </button>
+              </div>
+            </template>
+          </div>
+
+          <div
+            class="trade-pair-scroll min-h-0 flex-1 space-y-3.5 overflow-y-auto overscroll-contain px-3 pb-2 pt-3"
+          >
           <!-- 交割 -->
           <template v-if="tradeMode === 'delivery'">
-            <div
-              class="grid grid-cols-2 gap-1 rounded-lg bg-[#0e0f12] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] ring-1 ring-[#1a1c21]"
-            >
-              <button
-                type="button"
-                class="rounded-md py-2.5 text-xs font-bold tracking-tight transition duration-150"
-                :class="
-                  positionSide === 'long'
-                    ? 'bg-[#152019] text-[#8fd4a8] shadow-[inset_0_1px_0_rgba(143,212,168,0.12)] ring-1 ring-[#4d7c59]/55'
-                    : 'text-[#8e8e93] hover:bg-white/[0.03] hover:text-[#b4b4b8]'
-                "
-                @click="positionSide = 'long'"
-              >
-                做多买入
-              </button>
-              <button
-                type="button"
-                class="rounded-md py-2.5 text-xs font-bold tracking-tight transition duration-150"
-                :class="
-                  positionSide === 'short'
-                    ? 'bg-[#231619] text-[#ffb0b3] shadow-[inset_0_1px_0_rgba(240,90,94,0.08)] ring-1 ring-[#8f3d42]/60'
-                    : 'text-[#8e8e93] hover:bg-white/[0.03] hover:text-[#b4b4b8]'
-                "
-                @click="positionSide = 'short'"
-              >
-                做空买入
-              </button>
-            </div>
             <ul class="space-y-2 text-[11px] leading-snug">
               <li class="flex justify-between gap-2">
                 <span class="text-[#8e8e93]">交易资产</span>
@@ -1345,54 +1386,10 @@ const pcBottomEmptyText = computed(() => {
                 {{ p }}%
               </button>
             </div>
-            <div class="flex justify-between border-t border-[#1a1c21] pt-2 text-[11px] text-[#8e8e93]">
-              <span>预计收益</span>
-              <span class="font-mono">--</span>
-            </div>
-            <button
-              type="button"
-              class="w-full rounded-lg py-3 text-sm font-bold tracking-tight text-white shadow-md transition hover:brightness-105 active:brightness-95"
-              :class="
-                positionSide === 'long'
-                  ? 'bg-[#3d8f62] shadow-[#3d8f62]/15'
-                  : 'bg-[#F05A5E] shadow-[#F05A5E]/20'
-              "
-              @click="submitDemoOrder()"
-            >
-              {{ primaryCtaLabel }}
-            </button>
           </template>
 
           <!-- 永续 -->
           <template v-else-if="tradeMode === 'perpetual'">
-            <div
-              class="flex rounded-lg bg-[#0e0f12] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] ring-1 ring-[#1a1c21]"
-            >
-              <button
-                type="button"
-                class="flex-1 rounded-md py-2 text-xs font-semibold tracking-tight transition duration-150"
-                :class="
-                  orderType === 'market'
-                    ? 'bg-[#152019] text-[#9bc99f] shadow-[inset_0_1px_0_rgba(155,201,159,0.1)] ring-1 ring-[#4d7c59]/45'
-                    : 'text-[#8e8e93] hover:bg-white/[0.025] hover:text-[#b4b4b8]'
-                "
-                @click="orderType = 'market'"
-              >
-                市价
-              </button>
-              <button
-                type="button"
-                class="flex-1 rounded-md py-2 text-xs font-semibold tracking-tight transition duration-150"
-                :class="
-                  orderType === 'limit'
-                    ? 'bg-[#152019] text-[#9bc99f] shadow-[inset_0_1px_0_rgba(155,201,159,0.1)] ring-1 ring-[#4d7c59]/45'
-                    : 'text-[#8e8e93] hover:bg-white/[0.025] hover:text-[#b4b4b8]'
-                "
-                @click="orderType = 'limit'"
-              >
-                限价
-              </button>
-            </div>
             <div class="flex justify-between text-[11px]">
               <span class="text-[#8e8e93]">可用数量</span>
               <span class="font-mono font-medium text-white">0.00 {{ activePair.quote }}</span>
@@ -1510,44 +1507,10 @@ const pcBottomEmptyText = computed(() => {
                 </button>
               </div>
             </div>
-            <div class="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                class="rounded-lg bg-[#3d8f62] py-3 text-xs font-bold tracking-tight text-white shadow-md shadow-[#3d8f62]/15 transition hover:brightness-105 active:brightness-95"
-                @click="submitDemoOrder('long')"
-              >
-                做多买入
-              </button>
-              <button
-                type="button"
-                class="rounded-lg bg-[#F05A5E] py-3 text-xs font-bold tracking-tight text-white shadow-md shadow-[#F05A5E]/20 transition hover:brightness-105 active:brightness-95"
-                @click="submitDemoOrder('short')"
-              >
-                做空买入
-              </button>
-            </div>
           </template>
 
           <!-- 现货 -->
           <template v-else>
-            <div class="flex rounded-lg border border-[#1f2429] p-0.5 bg-[#121212]">
-              <button
-                type="button"
-                class="flex-1 rounded-md py-1.5 text-xs font-medium"
-                :class="orderType === 'market' ? 'bg-[#00b464]/20 text-[#00b464]' : 'text-white/45'"
-                @click="orderType = 'market'"
-              >
-                市价
-              </button>
-              <button
-                type="button"
-                class="flex-1 rounded-md py-1.5 text-xs font-medium"
-                :class="orderType === 'limit' ? 'bg-[#00b464]/20 text-[#00b464]' : 'text-white/45'"
-                @click="orderType = 'limit'"
-              >
-                限价
-              </button>
-            </div>
             <div class="flex justify-between text-[11px] text-white/50">
               <span>可用</span>
               <span class="font-mono">0.00 {{ activePair.quote }}</span>
@@ -1566,23 +1529,66 @@ const pcBottomEmptyText = computed(() => {
               placeholder="请输入数量"
               class="w-full rounded-lg border border-[#1f2429] bg-[#1e2329] py-2 px-2 text-sm text-white placeholder:text-[#848e9c]"
             />
-            <div class="grid grid-cols-2 gap-2 pt-1">
-              <button
-                type="button"
-                class="rounded-lg bg-[#3d8f62] py-3 text-xs font-bold tracking-tight text-white shadow-md shadow-[#3d8f62]/15 transition hover:brightness-105"
-                @click="submitDemoOrder('long')"
-              >
-                买入
-              </button>
-              <button
-                type="button"
-                class="rounded-lg bg-[#F05A5E] py-3 text-xs font-bold tracking-tight text-white shadow-md shadow-[#F05A5E]/20 transition hover:brightness-105"
-                @click="submitDemoOrder('short')"
-              >
-                卖出
-              </button>
-            </div>
           </template>
+          </div>
+
+          <!-- 主操作固定在侧栏底部，避免卷入滚动区被滚动条挤压/裁切 -->
+          <div class="shrink-0 border-t border-[#1a1c21] bg-[#121214] px-3 pb-3 pt-2.5">
+            <template v-if="tradeMode === 'delivery'">
+              <div class="mb-2 flex justify-between text-[11px] text-[#8e8e93]">
+                <span>预计收益</span>
+                <span class="font-mono">--</span>
+              </div>
+              <button
+                type="button"
+                class="w-full rounded-lg py-3 text-sm font-bold tracking-tight text-white shadow-md transition hover:brightness-105 active:brightness-95"
+                :class="
+                  positionSide === 'long'
+                    ? 'bg-[#3d8f62] shadow-[#3d8f62]/15'
+                    : 'bg-[#F05A5E] shadow-[#F05A5E]/20'
+                "
+                @click="submitDemoOrder()"
+              >
+                {{ primaryCtaLabel }}
+              </button>
+            </template>
+            <template v-else-if="tradeMode === 'perpetual'">
+              <div class="grid grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  class="min-h-[44px] rounded-lg bg-[#3d8f62] px-1 py-3 text-xs font-bold leading-tight tracking-tight text-white shadow-md shadow-[#3d8f62]/15 transition hover:brightness-105 active:brightness-95"
+                  @click="submitDemoOrder('long')"
+                >
+                  做多买入
+                </button>
+                <button
+                  type="button"
+                  class="min-h-[44px] rounded-lg bg-[#F05A5E] px-1 py-3 text-xs font-bold leading-tight tracking-tight text-white shadow-md shadow-[#F05A5E]/20 transition hover:brightness-105 active:brightness-95"
+                  @click="submitDemoOrder('short')"
+                >
+                  做空买入
+                </button>
+              </div>
+            </template>
+            <template v-else>
+              <div class="grid grid-cols-2 gap-2.5 pt-0.5">
+                <button
+                  type="button"
+                  class="min-h-[44px] rounded-lg bg-[#3d8f62] py-3 text-xs font-bold tracking-tight text-white shadow-md shadow-[#3d8f62]/15 transition hover:brightness-105"
+                  @click="submitDemoOrder('long')"
+                >
+                  买入
+                </button>
+                <button
+                  type="button"
+                  class="min-h-[44px] rounded-lg bg-[#F05A5E] py-3 text-xs font-bold tracking-tight text-white shadow-md shadow-[#F05A5E]/20 transition hover:brightness-105"
+                  @click="submitDemoOrder('short')"
+                >
+                  卖出
+                </button>
+              </div>
+            </template>
+          </div>
         </div>
 
         <div
@@ -2194,7 +2200,7 @@ const pcBottomEmptyText = computed(() => {
               <span class="text-right">数量({{ activePair.base }})</span>
             </div>
             <div
-              class="max-h-[min(50vh,22rem)] flex-1 overflow-y-auto overscroll-contain pr-0.5 [-webkit-overflow-scrolling:touch]"
+              class="trade-pair-scroll max-h-[min(50vh,22rem)] flex-1 overflow-y-auto overscroll-contain pr-0.5 [-webkit-overflow-scrolling:touch]"
             >
               <ul class="m-0 list-none p-0">
                 <li
@@ -2261,7 +2267,7 @@ const pcBottomEmptyText = computed(() => {
             </button>
           </div>
           <div
-            class="max-h-[min(40vh,16rem)] overflow-y-auto overscroll-contain px-0.5"
+            class="trade-pair-scroll max-h-[min(40vh,16rem)] overflow-y-auto overscroll-contain px-0.5"
           >
             <ul
               v-if="tradeBottomTab === 'orders'"
@@ -2504,7 +2510,7 @@ const pcBottomEmptyText = computed(() => {
           <p class="shrink-0 px-4 pb-2 text-center text-sm font-semibold text-white">
             {{ mobilePickerTitle }}
           </p>
-          <ul class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2">
+          <ul class="trade-pair-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pr-2.5">
             <li
               v-for="opt in mobilePickerOptionList"
               :key="String(opt.value)"
@@ -2609,32 +2615,6 @@ const pcBottomEmptyText = computed(() => {
 </template>
 
 <style scoped>
-/* 交易对列表：细滚动条，与深色面板统一 */
-.trade-pair-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(132, 142, 156, 0.5) rgba(255, 255, 255, 0.04);
-}
-
-.trade-pair-scroll::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
-
-.trade-pair-scroll::-webkit-scrollbar-track {
-  margin: 2px 0;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 9999px;
-}
-
-.trade-pair-scroll::-webkit-scrollbar-thumb {
-  background: rgba(132, 142, 156, 0.45);
-  border-radius: 9999px;
-}
-
-.trade-pair-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(132, 142, 156, 0.72);
-}
-
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.2s ease;

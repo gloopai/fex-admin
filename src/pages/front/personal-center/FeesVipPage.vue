@@ -23,15 +23,16 @@ const tiers = [
 
 <template>
   <div>
-    <header class="mb-6 md:mb-8">
+    <header class="mb-5 md:mb-6">
       <h1 class="text-2xl font-bold tracking-tight text-white md:text-3xl">费率与 VIP</h1>
       <p class="mt-1 text-sm text-white/55">
         手续费与 VIP 等级、近 30 日交易量挂钩，具体以平台规则与合约说明为准。
       </p>
     </header>
 
+    <div class="flex flex-col gap-5 md:gap-6">
     <section
-      class="mb-6 rounded-2xl border border-white/10 bg-gradient-to-br from-amber-950/30 to-[#121212] p-4 md:flex md:items-center md:justify-between md:p-6"
+      class="rounded-2xl border border-white/10 bg-gradient-to-br from-amber-950/30 to-[#121212] p-4 md:flex md:items-center md:justify-between md:p-6"
     >
       <div class="flex items-start gap-4">
         <div
@@ -95,5 +96,6 @@ const tiers = [
         <p class="mt-1 text-xs text-white/45 md:mt-0">{{ row.note || '—' }}</p>
       </div>
     </section>
+    </div>
   </div>
 </template>

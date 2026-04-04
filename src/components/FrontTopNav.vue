@@ -1,7 +1,11 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { getFrontMainNavLinks, getFrontTradeMenuGroups } from '../constants/frontNav'
+import {
+  getFrontMainNavLinks,
+  getFrontTradeMenuGroups,
+  TRADE_PRODUCT_MODE_META
+} from '../constants/frontNav'
 import { getPersonalCenterShellMobileNavItems } from '../constants/personalCenterNav'
 
 const props = defineProps({
@@ -19,6 +23,32 @@ const mobileDrawerRef = ref(null)
 
 const mainLinks = computed(() => getFrontMainNavLinks(props.prefix))
 const tradeMenuGroups = computed(() => getFrontTradeMenuGroups(props.prefix))
+
+/** 抽屉内交易：仅现货 / 永续 / 交割（默认加密货币品种，页内可再切） */
+const drawerQuickTradeLinks = computed(() => {
+  const p = props.prefix
+  const base = `${p}/trade/crypto`
+  return [
+    {
+      key: 'drawer-trade-spot',
+      label: TRADE_PRODUCT_MODE_META.spot.label,
+      to: `${base}/spot`,
+      icon: 'market'
+    },
+    {
+      key: 'drawer-trade-perpetual',
+      label: TRADE_PRODUCT_MODE_META.perpetual.label,
+      to: `${base}/perpetual`,
+      icon: 'market'
+    },
+    {
+      key: 'drawer-trade-delivery',
+      label: TRADE_PRODUCT_MODE_META.delivery.label,
+      to: `${base}/delivery`,
+      icon: 'market'
+    }
+  ]
+})
 
 const pcDrawerShortcuts = computed(() =>
   getPersonalCenterShellMobileNavItems(props.prefix).filter((i) => i.key !== 'assets')
@@ -489,7 +519,7 @@ function drawerRowClass(item) {
               </button>
             </div>
             <nav
-              class="drawer-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]"
+              class="front-drawer-nav-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]"
               role="menu"
             >
               <p class="mb-2.5 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#848e9c]/90 sm:tracking-wider">
@@ -524,6 +554,44 @@ function drawerRowClass(item) {
                   <span class="min-w-0 truncate">{{ item.label }}</span>
                 </RouterLink>
               </div>
+
+              <div
+                class="mx-3 mb-1 mt-6 h-px bg-gradient-to-r from-transparent via-white/[0.07] to-transparent"
+                aria-hidden="true"
+              />
+              <p class="mb-2.5 mt-6 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#848e9c]/90 sm:tracking-wider">
+                交易
+              </p>
+              <div class="space-y-1">
+                <RouterLink
+                  v-for="item in drawerQuickTradeLinks"
+                  :key="item.key"
+                  :to="item.to"
+                  role="menuitem"
+                  :class="drawerRowClass(item)"
+                  @click="mobileOpen = false"
+                >
+                  <span
+                    class="drawer-nav-icon flex h-8 w-8 shrink-0 items-center justify-center"
+                    :class="drawerRowActive(item) ? 'text-lime-300/95' : 'text-lime-400/65'"
+                    aria-hidden="true"
+                  >
+                    <svg
+                      class="h-[18px] w-[18px]"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.65"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path v-for="(d, i) in drawerIconPaths(item.icon)" :key="i" :d="d" />
+                    </svg>
+                  </span>
+                  <span class="min-w-0 truncate">{{ item.label }}</span>
+                </RouterLink>
+              </div>
+
               <div
                 class="mx-3 mb-1 mt-6 h-px bg-gradient-to-r from-transparent via-white/[0.07] to-transparent"
                 aria-hidden="true"
@@ -598,13 +666,13 @@ function drawerRowClass(item) {
   }
 }
 
-/* 可滚动但不显示滚动条（触摸 / 滚轮 / 触控板仍可用） */
-.drawer-scroll {
+/* 主导航抽屉：可滚动但不显示滚动条 */
+.front-drawer-nav-scroll {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
-.drawer-scroll::-webkit-scrollbar {
+.front-drawer-nav-scroll::-webkit-scrollbar {
   display: none;
 }
 </style>
