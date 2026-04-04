@@ -7,9 +7,11 @@ import {
   TRADE_PRODUCT_MODE_KEYS,
   TRADE_PRODUCT_MODE_META
 } from '../../constants/frontNav'
+import { useRequireFrontAuth } from '../../composables/useRequireFrontAuth'
 
 const route = useRoute()
 const router = useRouter()
+const { requireAuth } = useRequireFrontAuth()
 
 const prefix = computed(() => {
   const p = route.path
@@ -756,6 +758,7 @@ function validateOrderQty() {
 
 /** 演示环境：校验数量后提示，无真实下单 */
 function submitDemoOrder(forcedSide) {
+  if (!requireAuth()) return
   const err = validateOrderQty()
   if (err) {
     showTradeToast(err)

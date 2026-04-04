@@ -1,6 +1,9 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { storeToRefs } from 'pinia'
+import { useRoute, useRouter } from 'vue-router'
+import { useFrontAuthStore } from '../stores/frontAuth'
+import { pathNeedsFrontAuth } from '../composables/useRequireFrontAuth'
 import {
   getFrontMainNavLinks,
   getFrontTradeMenuGroups,
@@ -14,6 +17,25 @@ const props = defineProps({
 })
 
 const route = useRoute()
+const router = useRouter()
+const frontAuth = useFrontAuthStore()
+const { isLoggedIn, email: authEmail, nickname: authNickname } = storeToRefs(frontAuth)
+
+const authDisplay = computed(() => {
+  const n = authNickname.value
+  const e = authEmail.value
+  if (n) return n
+  if (!e) return ''
+  return e.length > 22 ? `${e.slice(0, 10)}…${e.slice(-8)}` : e
+})
+
+function logoutFront() {
+  frontAuth.logout()
+  closeOverlays()
+  if (pathNeedsFrontAuth(route.path)) {
+    router.push(`${props.prefix}/home`)
+  }
+}
 
 const tradeOpen = ref(false)
 const mobileOpen = ref(false)
@@ -82,6 +104,32 @@ const drawerPersonalNavEntries = computed(() => {
     }
   ]
 })
+
+function loginRouteWithRedirect(redirectPath) {
+  return {
+    path: `${props.prefix}/login`,
+    query: { redirect: redirectPath }
+  }
+}
+
+/** 未登录：资产 → 登录带回跳；已登录：原链链 */
+const drawerPrimaryNavResolved = computed(() =>
+  drawerPrimaryNavEntries.value.map((item) => ({
+    ...item,
+    linkTo:
+      !isLoggedIn.value && item.key === 'assets'
+        ? loginRouteWithRedirect(item.to)
+        : item.to
+  }))
+)
+
+/** 未登录：交易入口 → 登录后回到对应交易页 */
+const drawerTradeLinksResolved = computed(() =>
+  drawerQuickTradeLinks.value.map((item) => ({
+    ...item,
+    linkTo: isLoggedIn.value ? item.to : loginRouteWithRedirect(item.to)
+  }))
+)
 
 function drawerPcIconKey(key) {
   const m = {
@@ -435,16 +483,40 @@ function drawerRowClass(item) {
           </svg>
         </button>
 
-        <RouterLink
-          :to="`${prefix}/personal-center`"
-          class="rounded-lg px-3.5 py-2 text-sm font-medium text-[#eaecef] transition [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b0e11] hover:bg-[#3f4652] sm:px-4"
-          :class="
-            isPersonalCenterNavActive() ? 'bg-[#3f4652] text-white' : 'bg-[#1f2429]'
-          "
-          @click="mobileOpen = false"
-        >
-          个人中心
-        </RouterLink>
+        <template v-if="isLoggedIn">
+          <RouterLink
+            :to="`${prefix}/personal-center`"
+            class="max-w-[11rem] truncate rounded-lg bg-[#1f2429] px-3.5 py-2 text-sm font-medium text-[#eaecef] transition [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b0e11] hover:bg-[#3f4652] sm:max-w-xs sm:px-4"
+            :class="isPersonalCenterNavActive() ? 'bg-[#3f4652] text-white' : ''"
+            :title="authEmail || undefined"
+            @click="mobileOpen = false"
+          >
+            {{ authDisplay }}
+          </RouterLink>
+          <button
+            type="button"
+            class="rounded-lg border border-white/[0.12] px-3 py-2 text-sm font-medium text-white/75 transition hover:bg-white/[0.06] hover:text-white"
+            @click="logoutFront"
+          >
+            退出
+          </button>
+        </template>
+        <template v-else>
+          <RouterLink
+            :to="`${prefix}/login`"
+            class="rounded-lg border border-white/[0.14] px-3.5 py-2 text-sm font-medium text-[#eaecef] transition [-webkit-tap-highlight-color:transparent] hover:bg-white/[0.06] sm:px-4"
+            @click="mobileOpen = false"
+          >
+            登录
+          </RouterLink>
+          <RouterLink
+            :to="`${prefix}/register`"
+            class="rounded-lg bg-lime-400 px-3.5 py-2 text-sm font-semibold text-black transition hover:bg-lime-300 sm:px-4"
+            @click="mobileOpen = false"
+          >
+            注册
+          </RouterLink>
+        </template>
       </div>
 
       <!-- 右：<lg 菜单 -->
@@ -522,14 +594,62 @@ function drawerRowClass(item) {
               class="front-drawer-nav-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]"
               role="menu"
             >
+              <div
+                class="mb-4 space-y-2 rounded-xl border border-white/[0.06] bg-black/25 px-3 py-3"
+              >
+                <template v-if="isLoggedIn">
+                  <p class="text-[10px] font-medium uppercase tracking-wider text-lime-400/70">当前账号</p>
+                  <p class="mt-0.5 truncate text-sm font-medium text-white/90" :title="authEmail || undefined">
+                    {{ authDisplay }}
+                  </p>
+                  <div class="mt-2 flex flex-wrap gap-2">
+                    <RouterLink
+                      :to="`${prefix}/personal-center`"
+                      class="inline-flex flex-1 min-w-[6rem] items-center justify-center rounded-lg bg-lime-400/15 py-2 text-xs font-semibold text-lime-200"
+                      @click="mobileOpen = false"
+                    >
+                      个人中心
+                    </RouterLink>
+                    <button
+                      type="button"
+                      class="inline-flex flex-1 min-w-[6rem] items-center justify-center rounded-lg border border-white/15 py-2 text-xs font-medium text-white/70"
+                      @click="logoutFront"
+                    >
+                      退出
+                    </button>
+                  </div>
+                </template>
+                <template v-else>
+                  <p class="text-[11px] leading-relaxed text-white/42">
+                    登录后可使用资产、交易与个人中心全部功能。
+                  </p>
+                  <div class="mt-2.5 grid grid-cols-2 gap-2">
+                    <RouterLink
+                      :to="`${prefix}/login`"
+                      class="flex items-center justify-center rounded-lg border border-white/18 py-2.5 text-sm font-medium text-white/85"
+                      @click="mobileOpen = false"
+                    >
+                      登录
+                    </RouterLink>
+                    <RouterLink
+                      :to="`${prefix}/register`"
+                      class="flex items-center justify-center rounded-lg bg-lime-400 py-2.5 text-sm font-semibold text-black"
+                      @click="mobileOpen = false"
+                    >
+                      注册
+                    </RouterLink>
+                  </div>
+                </template>
+              </div>
+
               <p class="mb-2.5 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#848e9c]/90 sm:tracking-wider">
                 主导航
               </p>
               <div class="space-y-1">
                 <RouterLink
-                  v-for="item in drawerPrimaryNavEntries"
+                  v-for="item in drawerPrimaryNavResolved"
                   :key="item.key"
-                  :to="item.to"
+                  :to="item.linkTo"
                   role="menuitem"
                   :class="drawerRowClass(item)"
                   @click="mobileOpen = false"
@@ -562,11 +682,17 @@ function drawerRowClass(item) {
               <p class="mb-2.5 mt-6 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#848e9c]/90 sm:tracking-wider">
                 交易
               </p>
+              <p
+                v-if="!isLoggedIn"
+                class="mb-2 px-3 text-[10px] leading-relaxed text-white/38"
+              >
+                以下入口将引导登录，登录后自动进入所选交易类型。
+              </p>
               <div class="space-y-1">
                 <RouterLink
-                  v-for="item in drawerQuickTradeLinks"
+                  v-for="item in drawerTradeLinksResolved"
                   :key="item.key"
-                  :to="item.to"
+                  :to="item.linkTo"
                   role="menuitem"
                   :class="drawerRowClass(item)"
                   @click="mobileOpen = false"
@@ -599,7 +725,7 @@ function drawerRowClass(item) {
               <p class="mb-2.5 mt-6 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#848e9c]/90 sm:tracking-wider">
                 个人中心
               </p>
-              <div class="space-y-1">
+              <div v-if="isLoggedIn" class="space-y-1">
                 <RouterLink
                   v-for="item in drawerPersonalNavEntries"
                   :key="item.key"
@@ -626,6 +752,21 @@ function drawerRowClass(item) {
                     </svg>
                   </span>
                   <span class="min-w-0 truncate">{{ item.label }}</span>
+                </RouterLink>
+              </div>
+              <div
+                v-else
+                class="mx-1 rounded-xl border border-white/[0.07] bg-white/[0.03] px-3 py-3"
+              >
+                <p class="text-xs leading-relaxed text-white/45">
+                  账户总览、安全中心、身份认证、消息通知等需登录后使用。
+                </p>
+                <RouterLink
+                  :to="loginRouteWithRedirect(`${prefix}/personal-center`)"
+                  class="mt-3 flex w-full items-center justify-center rounded-lg bg-lime-400/12 py-2.5 text-xs font-semibold text-lime-200 transition hover:bg-lime-400/18"
+                  @click="mobileOpen = false"
+                >
+                  登录后查看
                 </RouterLink>
               </div>
             </nav>

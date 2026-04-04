@@ -1,3 +1,9 @@
+/**
+ * 前台路由（/front）。
+ * 需登录：personal-center 整树、trade/:assetClass/:tradeMode、verification-*-demo。
+ * 公开：home、market、login、register。
+ * 守卫与组合式函数：router/index.js、src/composables/useRequireFrontAuth.js
+ */
 export const frontDesktopRoutes = [
   {
     path: '',
@@ -35,7 +41,7 @@ export const frontDesktopRoutes = [
     path: 'trade/:assetClass/:tradeMode',
     name: 'front-trade-desktop',
     component: () => import('../../pages/front/FrontTradePage.vue'),
-    meta: { title: '交易' },
+    meta: { title: '交易', requiresAuth: true },
     beforeEnter(to) {
       const okA = new Set(['crypto', 'forex', 'metal'])
       const okM = new Set(['spot', 'perpetual', 'delivery'])
@@ -49,7 +55,20 @@ export const frontDesktopRoutes = [
     redirect: '/front/personal-center/assets'
   },
   {
+    path: 'login',
+    name: 'front-login',
+    component: () => import('../../pages/front/FrontAuthPage.vue'),
+    meta: { title: '登录', guestOnly: true }
+  },
+  {
+    path: 'register',
+    name: 'front-register',
+    component: () => import('../../pages/front/FrontAuthPage.vue'),
+    meta: { title: '注册', guestOnly: true }
+  },
+  {
     path: 'personal-center',
+    meta: { requiresAuth: true },
     component: () => import('../../layouts/PersonalCenterShellLayout.vue'),
     children: [
       {
@@ -133,7 +152,8 @@ export const frontDesktopRoutes = [
     name: 'front-verification-permission-demo-desktop',
     component: () => import('../../pages/front/VerificationPermissionDemoPage.vue'),
     meta: {
-      title: '账户权限（PC）'
+      title: '账户权限（PC）',
+      requiresAuth: true
     }
   },
   {
@@ -141,7 +161,8 @@ export const frontDesktopRoutes = [
     name: 'front-verification-popup-demo-desktop',
     component: () => import('../../pages/front/VerificationPopupDemoPage.vue'),
     meta: {
-      title: '安全与验证（PC）'
+      title: '安全与验证（PC）',
+      requiresAuth: true
     }
   }
 ]
