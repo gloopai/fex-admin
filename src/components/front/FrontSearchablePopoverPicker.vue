@@ -123,10 +123,10 @@ onUnmounted(() => {
 
 function optionBtnClass(selected) {
   return [
-    'flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition',
+    'flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm',
     selected
-      ? 'bg-lime-400/15 text-lime-100 ring-1 ring-lime-400/25'
-      : 'text-[#eaecef] hover:bg-white/[0.06] active:bg-white/[0.06]'
+      ? 'border border-lime-400/35 bg-lime-400/[0.1] text-lime-100'
+      : 'border border-transparent text-[#eaecef] hover:bg-white/[0.06]'
   ]
 }
 </script>
@@ -147,7 +147,7 @@ function optionBtnClass(selected) {
         <span class="min-w-0 truncate">{{ currentLabel }}</span>
       </span>
       <svg
-        class="h-4 w-4 shrink-0 text-[#848e9c] transition duration-200"
+        class="h-4 w-4 shrink-0 text-[#848e9c]"
         :class="open ? 'rotate-180' : ''"
         viewBox="0 0 24 24"
         fill="none"
@@ -166,7 +166,7 @@ function optionBtnClass(selected) {
     <!-- lg+：锚点面板 -->
     <div
       v-show="showDesktopPopover"
-      class="absolute left-0 right-0 top-[calc(100%+0.375rem)] z-[90] max-lg:hidden overflow-hidden rounded-xl border border-white/[0.1] bg-[#121212] shadow-[0_12px_40px_-8px_rgba(0,0,0,0.65)]"
+      class="absolute left-0 top-[calc(100%+0.375rem)] z-[90] max-lg:hidden max-w-[min(26rem,calc(100vw-1.5rem))] min-w-[max(100%,17.5rem)] overflow-hidden rounded-xl border border-white/[0.1] bg-[#121212] shadow-[0_12px_40px_-8px_rgba(0,0,0,0.65)]"
       role="presentation"
       @click.stop
     >
@@ -201,9 +201,13 @@ function optionBtnClass(selected) {
               :aria-selected="model === opt.value"
               @click="pick(opt.value)"
             >
-              <span class="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span class="truncate font-medium">{{ opt.label }}</span>
-                <span v-if="opt.hint" class="truncate text-[11px] font-normal text-[#848e9c]">
+              <slot name="option-leading" :option="opt" />
+              <span class="flex min-w-0 flex-1 items-center justify-between gap-2">
+                <span class="min-w-0 truncate font-medium">{{ opt.label }}</span>
+                <span
+                  v-if="opt.hint"
+                  class="max-w-[45%] shrink-0 truncate text-right text-[11px] font-normal text-[#848e9c]"
+                >
                   {{ opt.hint }}
                 </span>
               </span>
@@ -291,9 +295,13 @@ function optionBtnClass(selected) {
                     :aria-selected="model === opt.value"
                     @click="pick(opt.value)"
                   >
-                    <span class="flex min-w-0 flex-1 flex-col gap-0.5">
-                      <span class="truncate font-medium">{{ opt.label }}</span>
-                      <span v-if="opt.hint" class="truncate text-[11px] font-normal text-[#848e9c]">
+                    <slot name="option-leading" :option="opt" />
+                    <span class="flex min-w-0 flex-1 items-center justify-between gap-2">
+                      <span class="min-w-0 truncate font-medium">{{ opt.label }}</span>
+                      <span
+                        v-if="opt.hint"
+                        class="max-w-[45%] shrink-0 truncate text-right text-[11px] font-normal text-[#848e9c]"
+                      >
                         {{ opt.hint }}
                       </span>
                     </span>
