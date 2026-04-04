@@ -1,5 +1,6 @@
 <script setup>
 import { nextTick, ref, watch } from 'vue'
+import FrontPopupCard from './FrontPopupCard.vue'
 import FrontPopupCloseButton from './FrontPopupCloseButton.vue'
 import FrontPopupShell from './FrontPopupShell.vue'
 import MfaBindFlow from './MfaBindFlow.vue'
@@ -41,10 +42,7 @@ function onFlowComplete() {
     @update:model-value="emit('update:modelValue', $event)"
     @backdrop-click="emit('backdrop-close')"
   >
-    <div
-      class="popup-card relative z-[121] flex max-h-[min(92vh,680px)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#121212] shadow-2xl"
-      @click.stop
-    >
+    <FrontPopupCard variant="flow" flow-max="680" @click.stop>
       <FrontPopupCloseButton @click="close" />
       <span id="mfa-bind-dialog-title" class="sr-only" tabindex="-1">绑定 Google 验证器</span>
       <MfaBindFlow
@@ -54,6 +52,6 @@ function onFlowComplete() {
         @completed="onFlowComplete"
         @secret-copied="emit('secret-copied')"
       />
-    </div>
+    </FrontPopupCard>
   </FrontPopupShell>
 </template>

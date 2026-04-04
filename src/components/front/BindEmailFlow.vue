@@ -1,5 +1,8 @@
 <script setup>
 import { computed, ref } from 'vue'
+import FrontDarkField from './FrontDarkField.vue'
+import FrontFlowStepHeader from './FrontFlowStepHeader.vue'
+import FrontLimeButton from './FrontLimeButton.vue'
 
 /**
  * 绑定邮箱流程（无 Teleport，可嵌入安全总览或单独弹窗）。
@@ -52,41 +55,24 @@ function onFinish() {
 
 <template>
   <div class="flex min-h-0 w-full flex-1 flex-col overflow-hidden text-white">
-    <div class="flex shrink-0 items-center gap-2 border-b border-white/10 py-3 pl-3 pr-12">
-      <button
-        type="button"
-        class="rounded-lg px-2 py-1.5 text-sm text-white/80 hover:bg-white/10"
-        aria-label="返回"
-        @click="onBack"
-      >
-        ←
-      </button>
-      <h2 class="text-base font-semibold">绑定邮箱</h2>
-    </div>
+    <FrontFlowStepHeader title="绑定邮箱" @back="onBack" />
 
     <div class="min-h-0 flex-1 overflow-y-auto px-4 py-4">
       <template v-if="step === 1">
         <p class="text-sm leading-relaxed text-emerald-100/85">
           用于接收安全通知与验证邮件，请填写本人常用邮箱。
         </p>
-        <label class="mt-4 block">
-          <span class="text-xs text-white/50">邮箱地址</span>
-          <input
-            v-model="email"
-            type="email"
-            autocomplete="email"
-            placeholder="you@example.com"
-            class="mt-1.5 w-full rounded-lg border border-white/15 bg-black/40 px-3 py-3 text-sm text-white placeholder:text-white/25 focus:border-lime-400/50 focus:outline-none focus:ring-1 focus:ring-lime-400/30"
-          />
-        </label>
-        <button
-          type="button"
-          :disabled="!emailOk"
-          class="mt-4 w-full rounded-lg bg-lime-400 px-4 py-3 text-sm font-semibold text-black hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-40"
-          @click="onSendCode"
-        >
+        <FrontDarkField
+          v-model="email"
+          class="mt-4"
+          label="邮箱地址"
+          type="email"
+          autocomplete="email"
+          placeholder="you@example.com"
+        />
+        <FrontLimeButton class="mt-4 w-full" :disabled="!emailOk" @click="onSendCode">
           获取验证码
-        </button>
+        </FrontLimeButton>
       </template>
 
       <template v-else-if="step === 2">
@@ -95,38 +81,26 @@ function onFinish() {
           <span class="break-all font-medium text-white/90">{{ email }}</span>
           ，请查收邮件并填写验证码。
         </p>
-        <label class="mt-4 block">
-          <span class="text-xs text-white/50">邮箱验证码</span>
-          <input
-            v-model="mailCode"
-            type="text"
-            inputmode="numeric"
-            maxlength="6"
-            autocomplete="one-time-code"
-            placeholder="000000"
-            class="mt-1.5 w-full rounded-lg border border-white/15 bg-black/40 px-3 py-3 text-center font-mono text-lg tracking-[0.35em] text-white placeholder:text-white/25 focus:border-lime-400/50 focus:outline-none focus:ring-1 focus:ring-lime-400/30"
-            @keydown.enter.prevent="onConfirmBind"
-          />
-        </label>
-        <button
-          type="button"
-          :disabled="!codeOk"
-          class="mt-4 w-full rounded-lg bg-lime-400 px-4 py-3 text-sm font-semibold text-black hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-40"
-          @click="onConfirmBind"
-        >
+        <FrontDarkField
+          v-model="mailCode"
+          class="mt-4"
+          label="邮箱验证码"
+          variant="otp"
+          type="text"
+          inputmode="numeric"
+          maxlength="6"
+          autocomplete="one-time-code"
+          placeholder="000000"
+          @keydown.enter.prevent="onConfirmBind"
+        />
+        <FrontLimeButton class="mt-4 w-full" :disabled="!codeOk" @click="onConfirmBind">
           确认绑定
-        </button>
+        </FrontLimeButton>
       </template>
 
       <template v-else>
         <p class="text-sm leading-relaxed text-emerald-100/85">邮箱已绑定成功。</p>
-        <button
-          type="button"
-          class="mt-6 w-full rounded-lg bg-lime-400 px-4 py-3 text-sm font-semibold text-black hover:bg-lime-300"
-          @click="onFinish"
-        >
-          完成
-        </button>
+        <FrontLimeButton class="mt-6 w-full" @click="onFinish">完成</FrontLimeButton>
       </template>
     </div>
   </div>

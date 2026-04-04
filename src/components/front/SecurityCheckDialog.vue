@@ -2,7 +2,9 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import BindEmailFlow from './BindEmailFlow.vue'
 import BindPhoneFlow from './BindPhoneFlow.vue'
+import FrontPopupCard from './FrontPopupCard.vue'
 import FrontPopupCloseButton from './FrontPopupCloseButton.vue'
+import FrontPopupInnerPanel from './FrontPopupInnerPanel.vue'
 import FrontPopupShell from './FrontPopupShell.vue'
 import FrontStrokeIcon from './FrontStrokeIcon.vue'
 import MfaBindFlow from './MfaBindFlow.vue'
@@ -94,13 +96,9 @@ function onMfaDone() {
     @update:model-value="emit('update:modelValue', $event)"
     @backdrop-click="emit('backdrop-close')"
   >
-    <div class="popup-card relative z-[121] w-full max-w-md overflow-hidden">
+    <FrontPopupCard variant="shell">
       <Transition :name="slideName" mode="out-in">
-        <div
-          :key="viewKey"
-          class="relative flex max-h-[min(92vh,720px)] min-h-0 w-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#121212] text-white shadow-2xl"
-          @click.stop
-        >
+        <FrontPopupInnerPanel :key="viewKey" max-preset="720" @click.stop>
           <FrontPopupCloseButton @click="closeOut" />
           <!-- 总览 -->
           <template v-if="view === 'hub'">
@@ -223,9 +221,9 @@ function onMfaDone() {
             @completed="onMfaDone"
             @secret-copied="emit('mfa-secret-copied')"
           />
-        </div>
+        </FrontPopupInnerPanel>
       </Transition>
-    </div>
+    </FrontPopupCard>
   </FrontPopupShell>
 </template>
 

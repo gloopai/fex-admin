@@ -1,5 +1,6 @@
 <script setup>
 import { computed, nextTick, ref, watch } from 'vue'
+import FrontPopupCard from './FrontPopupCard.vue'
 import FrontPopupShell from './FrontPopupShell.vue'
 import FrontStrokeIcon from './FrontStrokeIcon.vue'
 
@@ -102,10 +103,7 @@ function revokeAllOthers() {
     @update:model-value="emit('update:modelValue', $event)"
     @backdrop-click="emit('backdrop-close')"
   >
-    <div
-      class="popup-card relative z-[121] flex max-h-[min(92vh,760px)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#121212] shadow-2xl sm:max-w-lg"
-      @click.stop
-    >
+    <FrontPopupCard variant="flow" flow-max="760" wide @click.stop>
       <div class="flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3">
         <div>
           <h2 id="device-mgmt-title" class="text-base font-semibold text-white">登录设备管理</h2>
@@ -237,6 +235,6 @@ function revokeAllOthers() {
           结束后对应设备需重新验证身份才能访问账户
         </p>
       </div>
-    </div>
+    </FrontPopupCard>
   </FrontPopupShell>
 </template>

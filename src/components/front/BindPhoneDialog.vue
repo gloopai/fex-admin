@@ -1,6 +1,7 @@
 <script setup>
 import { nextTick, ref, watch } from 'vue'
 import BindPhoneFlow from './BindPhoneFlow.vue'
+import FrontPopupCard from './FrontPopupCard.vue'
 import FrontPopupCloseButton from './FrontPopupCloseButton.vue'
 import FrontPopupShell from './FrontPopupShell.vue'
 
@@ -40,10 +41,7 @@ function onFlowComplete(payload) {
     @update:model-value="emit('update:modelValue', $event)"
     @backdrop-click="emit('backdrop-close')"
   >
-    <div
-      class="popup-card relative z-[121] flex max-h-[min(92vh,680px)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#121212] shadow-2xl"
-      @click.stop
-    >
+    <FrontPopupCard variant="flow" flow-max="680" @click.stop>
       <FrontPopupCloseButton @click="close" />
       <span id="bind-phone-dialog-title" class="sr-only" tabindex="-1">绑定手机号</span>
       <BindPhoneFlow
@@ -52,6 +50,6 @@ function onFlowComplete(payload) {
         @completed="onFlowComplete"
         @send-code="(p) => emit('send-code', p)"
       />
-    </div>
+    </FrontPopupCard>
   </FrontPopupShell>
 </template>

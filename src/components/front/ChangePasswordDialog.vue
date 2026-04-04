@@ -1,5 +1,8 @@
 <script setup>
 import { computed, nextTick, ref, watch } from 'vue'
+import FrontDarkField from './FrontDarkField.vue'
+import FrontLimeButton from './FrontLimeButton.vue'
+import FrontPopupCard from './FrontPopupCard.vue'
 import FrontPopupShell from './FrontPopupShell.vue'
 import FrontStrokeIcon from './FrontStrokeIcon.vue'
 
@@ -94,10 +97,7 @@ defineExpose({ reset })
     @update:model-value="emit('update:modelValue', $event)"
     @backdrop-click="emit('backdrop-close')"
   >
-    <div
-      class="popup-card relative z-[121] flex max-h-[min(92vh,720px)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#121212] shadow-2xl"
-      @click.stop
-    >
+    <FrontPopupCard variant="flow" flow-max="720" @click.stop>
       <div class="flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3">
         <h2 id="change-password-title" class="text-base font-semibold text-white">修改登录密码</h2>
         <button
@@ -122,13 +122,7 @@ defineExpose({ reset })
             <p class="mt-1 text-xs leading-relaxed text-white/50">
               请使用新密码登录。如在其他设备保存了旧密码，需重新登录。
             </p>
-            <button
-              type="button"
-              class="mt-5 w-full rounded-lg bg-lime-400 px-4 py-3 text-sm font-semibold text-black hover:bg-lime-300"
-              @click="close"
-            >
-              完成
-            </button>
+            <FrontLimeButton class="mt-5 w-full" @click="close">完成</FrontLimeButton>
           </div>
         </template>
 
@@ -137,58 +131,48 @@ defineExpose({ reset })
             为保障账户安全，修改前请确认当前环境可信；勿在公共设备上操作。
           </p>
 
-          <label class="mt-4 block">
-            <span class="text-xs text-white/50">当前登录密码</span>
-            <input
-              v-model="currentPassword"
-              type="password"
-              autocomplete="current-password"
-              class="mt-1.5 w-full rounded-lg border border-white/15 bg-black/40 px-3 py-3 text-sm text-white placeholder:text-white/25 focus:border-lime-400/50 focus:outline-none focus:ring-1 focus:ring-lime-400/30"
-              placeholder="请输入当前密码"
-            />
-          </label>
+          <FrontDarkField
+            v-model="currentPassword"
+            class="mt-4"
+            label="当前登录密码"
+            type="password"
+            autocomplete="current-password"
+            placeholder="请输入当前密码"
+          />
 
-          <label class="mt-4 block">
-            <span class="text-xs text-white/50">新登录密码</span>
-            <input
+          <div class="mt-4">
+            <FrontDarkField
               v-model="newPassword"
+              label="新登录密码"
               type="password"
               autocomplete="new-password"
               :maxlength="maxLen"
-              class="mt-1.5 w-full rounded-lg border border-white/15 bg-black/40 px-3 py-3 text-sm text-white placeholder:text-white/25 focus:border-lime-400/50 focus:outline-none focus:ring-1 focus:ring-lime-400/30"
               placeholder="设置新密码"
             />
             <p class="mt-1 text-xs" :class="newPasswordHint.includes('建议') ? 'text-white/40' : 'text-lime-300/80'">
               {{ newPasswordHint }}
             </p>
-          </label>
+          </div>
 
-          <label class="mt-4 block">
-            <span class="text-xs text-white/50">确认新密码</span>
-            <input
-              v-model="confirmPassword"
-              type="password"
-              autocomplete="new-password"
-              :maxlength="maxLen"
-              class="mt-1.5 w-full rounded-lg border border-white/15 bg-black/40 px-3 py-3 text-sm text-white placeholder:text-white/25 focus:border-lime-400/50 focus:outline-none focus:ring-1 focus:ring-lime-400/30"
-              placeholder="再次输入新密码"
-            />
-          </label>
+          <FrontDarkField
+            v-model="confirmPassword"
+            class="mt-4"
+            label="确认新密码"
+            type="password"
+            autocomplete="new-password"
+            :maxlength="maxLen"
+            placeholder="再次输入新密码"
+          />
 
           <p v-if="submitError" class="mt-3 text-xs font-medium text-amber-200/95">
             {{ submitError }}
           </p>
 
-          <button
-            type="button"
-            :disabled="!canSubmit"
-            class="mt-5 w-full rounded-lg bg-lime-400 px-4 py-3 text-sm font-semibold text-black hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-40"
-            @click="onSubmit"
-          >
+          <FrontLimeButton class="mt-5 w-full" :disabled="!canSubmit" @click="onSubmit">
             确认修改
-          </button>
+          </FrontLimeButton>
         </template>
       </div>
-    </div>
+    </FrontPopupCard>
   </FrontPopupShell>
 </template>

@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { getVipLevelByLevel } from '../../../admin/mock/vip'
+import FrontMutedPill from '../../../components/front/FrontMutedPill.vue'
 import FrontStrokeIcon from '../../../components/front/FrontStrokeIcon.vue'
 
 const prefix = '/front'
@@ -96,9 +97,7 @@ const compactLinks = computed(() => [
             </p>
             <p class="mt-0.5 text-sm text-white/50">UID {{ displayUid }}</p>
             <div class="mt-3 flex flex-wrap items-center gap-2">
-              <span
-                class="inline-flex items-center gap-1.5 rounded-full border border-amber-400/45 bg-amber-400/[0.12] px-2.5 py-1 text-xs font-medium text-white"
-              >
+              <FrontMutedPill tone="amber" inline-flex>
                 <img
                   v-if="currentVipMeta?.iconUrl"
                   :src="currentVipMeta.iconUrl"
@@ -112,12 +111,8 @@ const compactLinks = computed(() => [
                   size-class="h-3.5 w-3.5 shrink-0 text-amber-400"
                 />
                 VIP {{ userVipLevel }}
-              </span>
-              <span
-                class="rounded-full border border-sky-400/45 bg-sky-400/[0.12] px-2.5 py-1 text-xs font-medium text-white"
-              >
-                {{ kycLabel }}
-              </span>
+              </FrontMutedPill>
+              <FrontMutedPill tone="sky">{{ kycLabel }}</FrontMutedPill>
             </div>
             <!-- 大屏侧栏无此区域时保留；窄屏由壳层快捷入口覆盖 -->
             <div class="mt-4 hidden flex-wrap gap-x-4 gap-y-2 text-xs lg:flex">

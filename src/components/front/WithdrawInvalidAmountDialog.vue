@@ -1,4 +1,5 @@
 <script setup>
+import FrontPopupCard from './FrontPopupCard.vue'
 import FrontPopupCloseButton from './FrontPopupCloseButton.vue'
 import FrontPopupShell from './FrontPopupShell.vue'
 
@@ -32,10 +33,7 @@ function onConfirm() {
     @update:model-value="emit('update:modelValue', $event)"
     @backdrop-click="emit('cancel')"
   >
-    <div
-      class="popup-card relative z-[121] w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-[#121212] px-4 pb-6 pt-5 text-white shadow-2xl"
-      @click.stop
-    >
+    <FrontPopupCard variant="padded" @click.stop>
       <FrontPopupCloseButton @click="onCancel" />
       <div class="flex items-start gap-3">
         <div
@@ -69,6 +67,6 @@ function onConfirm() {
           知道了
         </button>
       </div>
-    </div>
+    </FrontPopupCard>
   </FrontPopupShell>
 </template>

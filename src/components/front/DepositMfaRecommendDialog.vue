@@ -1,6 +1,8 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
+import FrontPopupCard from './FrontPopupCard.vue'
 import FrontPopupCloseButton from './FrontPopupCloseButton.vue'
+import FrontPopupInnerPanel from './FrontPopupInnerPanel.vue'
 import FrontPopupShell from './FrontPopupShell.vue'
 import FrontStrokeIcon from './FrontStrokeIcon.vue'
 
@@ -108,13 +110,9 @@ function finishMfaBind() {
     @update:model-value="emit('update:modelValue', $event)"
     @backdrop-click="emit('backdrop-close')"
   >
-    <div class="popup-card relative z-[121] w-full max-w-md overflow-hidden">
+    <FrontPopupCard variant="shell">
       <Transition :name="mfaSlideTransitionName" mode="out-in">
-        <div
-          :key="mfaViewKey"
-          class="relative flex max-h-[min(92vh,720px)] min-h-0 w-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#121212] text-white shadow-2xl"
-          @click.stop
-        >
+        <FrontPopupInnerPanel :key="mfaViewKey" max-preset="720" @click.stop>
           <FrontPopupCloseButton @click="close" />
           <div class="shrink-0 border-b border-white/10 px-4 pb-3 pt-4">
             <div class="flex items-start gap-3">
@@ -285,9 +283,9 @@ function finishMfaBind() {
               </button>
             </template>
           </div>
-        </div>
+        </FrontPopupInnerPanel>
       </Transition>
-    </div>
+    </FrontPopupCard>
   </FrontPopupShell>
 </template>
 
