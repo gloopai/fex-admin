@@ -73,14 +73,14 @@ function onFinish() {
     <div class="min-h-0 flex-1 overflow-y-auto px-4 py-4">
       <template v-if="step === 1">
         <p class="text-sm leading-relaxed text-emerald-100/85">
-          使用 Google Authenticator 等应用生成动态口令。扫描下方二维码或手动输入密钥（演示数据）。
+          使用 Google Authenticator 等应用生成动态口令。请扫描下方二维码或手动输入密钥。
         </p>
         <div class="mt-4 flex flex-col items-center gap-3 rounded-xl border border-white/10 bg-black/30 px-4 py-5">
-          <p class="text-xs text-white/50">二维码（演示占位）</p>
+          <p class="text-xs text-white/50">使用验证器扫描以下二维码</p>
           <div
             class="flex h-32 w-32 items-center justify-center rounded-lg border border-white/15 bg-white"
             role="img"
-            aria-label="演示二维码"
+            aria-label="Google 验证器绑定二维码"
           >
             <span class="text-center text-[10px] text-neutral-400">QR</span>
           </div>
@@ -109,7 +109,7 @@ function onFinish() {
 
       <template v-else-if="step === 2">
         <p class="text-sm leading-relaxed text-emerald-100/85">
-          请输入验证器中 6 位动态码（演示任意 6 位数字可通过）。
+          请输入验证器中显示的 6 位动态码。
         </p>
         <label class="mt-4 block">
           <span class="text-xs text-white/50">验证码</span>

@@ -48,7 +48,7 @@ export const vipLevels = [
     iconUrl: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23FCD34D"%3E%3Cpath d="M12 2L4 9h4v11h8V9h4l-8-7z"/%3E%3C/svg%3E',
     status: VIP_LEVEL_STATUS.ENABLED,
     minCreditScore: 700,
-    benefits: ['85折手续费', '专属客服', '专业数据分析', '每月空投奖励', 'API接入'],
+    benefits: ['85折手续费', '专属客服', '专业数据分析', '每月空投奖励'],
     description: '黄金级VIP会员，享受高级特权',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-03-01T00:00:00Z'
@@ -61,7 +61,7 @@ export const vipLevels = [
     iconUrl: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23A78BFA"%3E%3Cpath d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/%3E%3C/svg%3E',
     status: VIP_LEVEL_STATUS.ENABLED,
     minCreditScore: 750,
-    benefits: ['8折手续费', '一对一客服', '全方位数据分析', '每周空投奖励', 'API接入', '优先提现'],
+    benefits: ['8折手续费', '一对一客服', '全方位数据分析', '每周空投奖励', '优先提现'],
     description: '铂金级VIP会员，尊享顶级特权',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-03-01T00:00:00Z'
@@ -74,7 +74,7 @@ export const vipLevels = [
     iconUrl: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%2310B981"%3E%3Cpath d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/%3E%3C/svg%3E',
     status: VIP_LEVEL_STATUS.ENABLED,
     minCreditScore: 780,
-    benefits: ['75折手续费', '专属客户经理', '定制化服务', '每日空投奖励', 'API接入', '优先提现', '线下活动邀请'],
+    benefits: ['75折手续费', '专属客户经理', '定制化服务', '每日空投奖励', '优先提现', '线下活动邀请'],
     description: '钻石级VIP会员，至尊无上特权',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-03-01T00:00:00Z'

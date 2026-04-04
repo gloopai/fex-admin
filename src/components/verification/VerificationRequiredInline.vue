@@ -10,7 +10,7 @@ const props = defineProps({
   userLevel: { type: String, required: true },
   requiredLevel: { type: String, required: true },
   featureName: { type: String, default: '此操作' },
-  verifyHref: { type: String, default: '/front/verification-flow' },
+  verifyHref: { type: String, default: '/front/personal-center/verification' },
   dark: { type: Boolean, default: true }
 })
 

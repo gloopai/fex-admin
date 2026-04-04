@@ -67,7 +67,7 @@ function onFinish() {
     <div class="min-h-0 flex-1 overflow-y-auto px-4 py-4">
       <template v-if="step === 1">
         <p class="text-sm leading-relaxed text-emerald-100/85">
-          用于接收安全验证码与异常登录提醒。以下为演示，真实环境需对接短信网关与风控。
+          用于接收安全验证码与异常登录提醒，请填写本人实名手机号。
         </p>
         <label class="mt-4 block">
           <span class="text-xs text-white/50">手机号码</span>
@@ -94,7 +94,7 @@ function onFinish() {
         <p class="text-sm text-white/70">
           验证码已发送至
           <span class="font-medium text-white/90">{{ phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2') }}</span>
-          （演示，未真实发短信）。
+          ，请查收短信并填写验证码。
         </p>
         <label class="mt-4 block">
           <span class="text-xs text-white/50">短信验证码</span>

@@ -1,7 +1,7 @@
 <script setup>
 /**
- * 认证权限提示组件演示：页内横幅、内联条、空状态、弹窗。
- * 业务模块与后台「认证权限配置」中的资金与交易权限项一一对应；当前等级与目标等级均可自选模拟。
+ * 账户权限说明页：横幅、内联条、空状态、弹窗等形态。
+ * 与后台「认证权限配置」中的权限项对应；支持切换当前等级与目标等级以查看文案。
  * PC：/front/verification-permission-demo · 移动：/m/verification-permission-demo
  */
 import { ref, computed, watch } from 'vue'
@@ -23,7 +23,7 @@ const route = useRoute()
 const isMobileRoute = computed(() => route.path.startsWith('/m'))
 
 const verifyHref = computed(() =>
-  isMobileRoute.value ? '/m/verification-flow' : '/front/verification-flow'
+  isMobileRoute.value ? '/m/personal-center/verification' : '/front/personal-center/verification'
 )
 
 /** 模拟当前用户认证等级 */
@@ -48,7 +48,7 @@ const targetLevelLabel = computed(() => getVerificationLevelLabel(simulatedTarge
 
 /**
  * 配置推导为「未认证即可」时，若仍把目标设为未认证，则 userLevel 恒满足、弹窗会被 onlyWhenBlocked 立即关掉。
- * 演示页将目标提升为「初级认证」，便于预览充币等场景的弹窗与拦截（可自行改回「未认证」体验无门槛）。
+ * 此页在推导为未认证时自动将目标提升到「初级认证」，以便预览需认证场景下的提示（可再改回「未认证」）。
  */
 function effectiveTargetFromConfig(level) {
   return level === VERIFICATION_LEVEL.NONE ? VERIFICATION_LEVEL.BASIC : level
@@ -89,9 +89,9 @@ const levelOptions = [
     class="mx-auto min-h-screen w-full max-w-md px-4 py-8 pb-24 text-white md:max-w-3xl md:px-6"
   >
     <header class="mb-8">
-      <h1 class="text-2xl font-bold text-white">认证权限提示</h1>
+      <h1 class="text-2xl font-bold text-white">账户权限</h1>
       <p class="mt-2 text-sm text-white/60">
-        与后台「认证权限配置」中的资金与交易权限对应；可分别选择<strong class="font-medium text-white/80">当前用户等级</strong>与<strong class="font-medium text-white/80">目标认证等级</strong>（业务要求）进行模拟。
+        与后台「认证权限配置」一致。可选择<strong class="font-medium text-white/80">当前用户等级</strong>与<strong class="font-medium text-white/80">目标认证等级</strong>（业务要求），查看各场景下的提示文案。
       </p>
       <p class="mt-1 text-xs text-white/45">
         当前环境：{{ isMobileRoute ? '移动端 /m' : 'PC /front' }} · 去认证跳转 {{ verifyHref }}

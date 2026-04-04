@@ -11,7 +11,7 @@ const props = defineProps({
   requiredLevel: { type: String, required: true },
   /** 业务功能名称，用于标题 */
   featureName: { type: String, default: '此功能' },
-  verifyHref: { type: String, default: '/front/verification-flow' },
+  verifyHref: { type: String, default: '/front/personal-center/verification' },
   dark: { type: Boolean, default: true },
   /**
    * 是否撑满父级剩余区域（列表/Tab 内空状态时常用 min-height）

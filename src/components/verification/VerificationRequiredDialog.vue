@@ -11,7 +11,7 @@ const props = defineProps({
   userLevel: { type: String, required: true },
   requiredLevel: { type: String, required: true },
   featureName: { type: String, default: '此功能' },
-  verifyHref: { type: String, default: '/front/verification-flow' },
+  verifyHref: { type: String, default: '/front/personal-center/verification' },
   /** PC：居中弹窗；移动端由样式改为底部抽屉 */
   dark: { type: Boolean, default: true },
   /**

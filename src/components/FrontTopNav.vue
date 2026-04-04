@@ -27,7 +27,12 @@ const linkBase =
   'rounded-lg border text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40'
 
 function isActive(to) {
-  return route.path.startsWith(to)
+  const p = route.path
+  const pcHome = `${props.prefix}/personal-center`
+  if (to === pcHome) {
+    return p === pcHome || p === `${pcHome}/`
+  }
+  return p === to || p.startsWith(`${to}/`)
 }
 
 function activeClass(to) {
@@ -81,7 +86,7 @@ onUnmounted(() => {
         :to="primaryItems[0]?.to ?? `${prefix}/personal-center`"
         class="min-w-0 text-sm font-semibold text-white/90"
       >
-        前台模板
+        账户中心
       </RouterLink>
       <div class="relative shrink-0">
         <button
@@ -121,7 +126,7 @@ onUnmounted(() => {
     </div>
   </div>
 
-  <!-- 桌面端：品牌 + 主入口 +「更多演示」下拉 -->
+  <!-- 桌面端：品牌 + 主入口 +「更多」下拉 -->
   <div
     v-else
     ref="desktopMoreRoot"
@@ -132,7 +137,7 @@ onUnmounted(() => {
         :to="primaryItems[0]?.to ?? `${prefix}/personal-center`"
         class="mr-1 shrink-0 text-sm font-semibold tracking-tight text-white/90 hover:text-lime-200/90"
       >
-        前台模板
+        账户中心
       </RouterLink>
 
       <nav class="flex min-w-0 flex-1 flex-wrap items-center gap-2" aria-label="前台主导航">
@@ -155,7 +160,7 @@ onUnmounted(() => {
             aria-controls="front-desktop-more-panel"
             @click="moreOpen = !moreOpen"
           >
-            更多演示
+            更多
             <span class="text-[10px] text-white/45" aria-hidden="true">{{ moreOpen ? '▲' : '▼' }}</span>
           </button>
           <div

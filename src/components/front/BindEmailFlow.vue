@@ -67,7 +67,7 @@ function onFinish() {
     <div class="min-h-0 flex-1 overflow-y-auto px-4 py-4">
       <template v-if="step === 1">
         <p class="text-sm leading-relaxed text-emerald-100/85">
-          用于接收安全通知与找回验证。演示中不会真实发信，验证码可任意 6 位数字通过。
+          用于接收安全通知与验证邮件，请填写本人常用邮箱。
         </p>
         <label class="mt-4 block">
           <span class="text-xs text-white/50">邮箱地址</span>
@@ -93,7 +93,7 @@ function onFinish() {
         <p class="text-sm text-white/70">
           验证码已发送至
           <span class="break-all font-medium text-white/90">{{ email }}</span>
-          （演示）。
+          ，请查收邮件并填写验证码。
         </p>
         <label class="mt-4 block">
           <span class="text-xs text-white/50">邮箱验证码</span>

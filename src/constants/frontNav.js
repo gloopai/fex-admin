@@ -5,8 +5,9 @@
 export function getFrontNavItems(prefix) {
   return [
     { key: 'personal', label: '个人中心', to: `${prefix}/personal-center`, primary: true },
-    { key: 'verify', label: '认证流程', to: `${prefix}/verification-flow`, primary: false },
-    { key: 'perm', label: '认证权限提示', to: `${prefix}/verification-permission-demo`, primary: false },
-    { key: 'popup', label: '弹窗演示', to: `${prefix}/verification-popup-demo`, primary: false }
+    { key: 'assets', label: '资产', to: `${prefix}/personal-center/assets`, primary: true },
+    { key: 'verify', label: '身份认证', to: `${prefix}/personal-center/verification`, primary: false },
+    { key: 'perm', label: '账户权限', to: `${prefix}/verification-permission-demo`, primary: false },
+    { key: 'popup', label: '安全与验证', to: `${prefix}/verification-popup-demo`, primary: false }
   ]
 }

@@ -4,7 +4,7 @@ import FrontPopupShell from './FrontPopupShell.vue'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
-  /** 演示用 TOTP 密钥 */
+  /** 绑定用 TOTP 密钥（由服务端下发） */
   demoSecret: { type: String, default: 'JBSWY3DPEHPK3PXP' }
 })
 
@@ -161,20 +161,18 @@ function finishMfaBind() {
               </ol>
 
               <div class="mt-4 flex flex-col items-center gap-3 rounded-xl border border-white/10 bg-black/30 px-4 py-5">
-                <p class="text-xs text-white/50">扫描以下二维码（演示占位，实际上线由后端下发）</p>
+                <p class="text-xs text-white/50">使用验证器扫描以下二维码</p>
                 <div
                   class="flex h-36 w-36 items-center justify-center rounded-lg border border-white/15 bg-white"
                   role="img"
-                  aria-label="演示用二维码占位"
+                  aria-label="Google 验证器绑定二维码"
                 >
                   <span class="select-none text-center text-[10px] leading-tight text-neutral-400">
                     QR
-                    <br />
-                    演示
                   </span>
                 </div>
                 <div class="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5">
-                  <p class="text-[10px] uppercase tracking-wide text-white/45">密钥（演示）</p>
+                  <p class="text-[10px] uppercase tracking-wide text-white/45">密钥</p>
                   <p class="mt-1 break-all font-mono text-xs text-lime-200/90">
                     {{ demoSecret }}
                   </p>
@@ -191,7 +189,7 @@ function finishMfaBind() {
 
             <template v-else-if="mfaBindStep === 2">
               <p class="text-sm leading-relaxed text-emerald-100/85">
-                输入验证器中显示的 <b class="text-white/90">6 位数字</b>，用于校验时间同步与密钥是否正确（演示中任意 6 位数字均可通过）。
+                输入验证器中显示的 <b class="text-white/90">6 位数字</b>，用于确认时间与密钥已正确配置。
               </p>
               <label class="mt-4 block">
                 <span class="text-xs text-white/50">验证码</span>
@@ -212,11 +210,6 @@ function finishMfaBind() {
               <p class="text-sm leading-relaxed text-emerald-100/85">
                 两步验证已启用。请妥善保管手机与验证器应用；若更换设备，请按平台流程迁移或重新绑定。
               </p>
-              <div
-                class="mt-4 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-100/90"
-              >
-                演示：真实环境需调用服务端接口完成绑定，并可能要求邮箱/短信等二次确认。
-              </div>
             </template>
           </div>
 

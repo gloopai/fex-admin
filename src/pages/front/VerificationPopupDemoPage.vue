@@ -8,7 +8,7 @@ import WithdrawInvalidAmountDialog from '../../components/front/WithdrawInvalidA
 import WithdrawVerifyCodeDialog from '../../components/front/WithdrawVerifyCodeDialog.vue'
 
 /**
- * 弹窗演示页：组合前台抽离的对话框组件（仅演示交互与文案）。
+ * 安全与验证：组合前台对话框组件的预览页（直链可达，主导航不展示）。
  */
 const popupDemoType = ref('withdraw_invalid_amount')
 
@@ -28,11 +28,11 @@ function openWithdrawInvalidAmountDialog() {
 }
 
 function onWithdrawAmountConfirm() {
-  amountActionLog.value = '已继续提币（演示：这里可跳转到提币页面或触发下一步流程）。'
+  amountActionLog.value = '已继续提币。'
 }
 
 function onWithdrawAmountCancel() {
-  amountActionLog.value = '已返回修改（演示）。'
+  amountActionLog.value = '已返回修改提币数量。'
 }
 
 // --- 充币成功 → MFA 推荐绑定 ---
@@ -42,7 +42,7 @@ const mfaDialogOpen = ref(false)
 
 function simulateDepositSuccess() {
   if (simulateMfaBound.value) {
-    mfaActionLog.value = '充币已到账（演示）。当前账号已绑定 MFA，不再弹出推荐绑定。'
+    mfaActionLog.value = '充币已到账。当前账号已绑定 MFA，不再弹出推荐绑定。'
     return
   }
   mfaActionLog.value = ''
@@ -50,26 +50,26 @@ function simulateDepositSuccess() {
 }
 
 function onMfaSkip() {
-  mfaActionLog.value = '已选择暂不绑定 MFA（演示）。'
+  mfaActionLog.value = '已选择暂不绑定 MFA。'
 }
 
 function onMfaBackdrop() {
-  mfaActionLog.value = '已关闭弹窗（演示）。'
+  mfaActionLog.value = '已关闭弹窗。'
 }
 
 function onMfaCompleted() {
   simulateMfaBound.value = true
-  mfaActionLog.value = 'MFA 绑定完成（演示）。下次充币成功将不再提示；可勾选「未绑定」重新体验流程。'
+  mfaActionLog.value = 'MFA 绑定完成。下次充币成功将不再提示；可勾选「未绑定」再次查看推荐流程。'
 }
 
 function onMfaSecretCopied() {
-  mfaActionLog.value = '已复制密钥（演示，实际对接后端密钥）。'
+  mfaActionLog.value = '已复制密钥。'
 }
 
 // --- 提现验证码 ---
 const withdrawVerifyOpen = ref(false)
 const withdrawVerifyLog = ref('')
-const withdrawVerifySummary = '本次提币 · 100 USDT · 手续费 1 USDT（演示摘要，实际由接口返回）'
+const withdrawVerifySummary = '本次提币 · 100 USDT · 手续费 1 USDT'
 
 function openWithdrawVerifyDialog() {
   withdrawVerifyLog.value = ''
@@ -77,15 +77,15 @@ function openWithdrawVerifyDialog() {
 }
 
 function onWithdrawVerifySubmit(code) {
-  withdrawVerifyLog.value = `已提交验证码（演示）：${code}。真实环境在此调用提现接口并处理错误码。`
+  withdrawVerifyLog.value = `已提交验证码：${code}。`
 }
 
 function onWithdrawVerifyCancel() {
-  withdrawVerifyLog.value = '已取消提现验证（演示）。'
+  withdrawVerifyLog.value = '已取消提现验证。'
 }
 
 function onWithdrawVerifyBackdrop() {
-  withdrawVerifyLog.value = '已通过点击遮罩关闭验证弹窗（演示）。'
+  withdrawVerifyLog.value = '已通过点击遮罩关闭验证弹窗。'
 }
 
 // --- 账号安全：总览 / 单独手机 / 单独邮箱 ---
@@ -112,7 +112,7 @@ function openBindEmailOnly() {
 }
 
 function onSecurityBackdrop() {
-  securityLog.value = '已关闭安全检测弹窗（演示）。'
+  securityLog.value = '已关闭安全检测弹窗。'
 }
 
 function logSecurity(msg) {
@@ -123,9 +123,9 @@ function logSecurity(msg) {
 <template>
   <div class="mx-auto min-h-screen w-full max-w-md px-4 py-8 pb-24 text-white md:max-w-3xl md:px-6">
     <header class="mb-8">
-      <h1 class="text-2xl font-bold text-white">弹窗演示</h1>
+      <h1 class="text-2xl font-bold text-white">安全与验证</h1>
       <p class="mt-2 text-sm text-white/60">
-        提币、提现验证、充币 MFA、账号安全总览与手机/邮箱绑定；组件位于 <span class="text-white/80">src/components/front/</span>。
+        用于联调与预览：提币校验、提现验证码、充币后 MFA 引导、安全总览及手机/邮箱绑定等流程。
       </p>
     </header>
 
@@ -211,13 +211,7 @@ function logSecurity(msg) {
 
       <div v-else-if="popupDemoType === 'security_account'" class="mt-4 space-y-4">
         <p class="text-xs text-white/60 leading-relaxed">
-          <span class="text-white/80">SecurityCheckDialog</span>
-          为总览（内嵌
-          <span class="text-white/80">BindPhoneFlow</span>、
-          <span class="text-white/80">BindEmailFlow</span>、
-          <span class="text-white/80">MfaBindFlow</span>）。亦可单独使用
-          <span class="text-white/80">BindPhoneDialog</span> /
-          <span class="text-white/80">BindEmailDialog</span>。
+          安全检测总览整合手机、邮箱与验证器绑定；也可只打开手机或邮箱绑定弹窗。
         </p>
 
         <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
@@ -305,22 +299,22 @@ function logSecurity(msg) {
     v-model:email-bound="secEmailBound"
     v-model:mfa-bound="secMfaBound"
     @backdrop-close="onSecurityBackdrop"
-    @phone-send-code="logSecurity('总览：请求发送短信（演示），手机号 ' + $event)"
-    @email-send-code="logSecurity('总览：请求发送邮件（演示），' + $event)"
-    @mfa-secret-copied="logSecurity('总览：已复制 MFA 密钥（演示）')"
+    @phone-send-code="logSecurity('总览：请求发送短信，手机号 ' + $event)"
+    @email-send-code="logSecurity('总览：请求发送邮件，' + $event)"
+    @mfa-secret-copied="logSecurity('总览：已复制 MFA 密钥')"
   />
 
   <BindPhoneDialog
     v-model="bindPhoneOnlyOpen"
-    @completed="logSecurity('单独手机绑定完成（演示）：' + JSON.stringify($event))"
-    @send-code="logSecurity('单独手机：请求发送短信（演示），' + $event)"
-    @backdrop-close="logSecurity('已关闭绑定手机弹窗（演示）')"
+    @completed="logSecurity('单独手机绑定完成：' + JSON.stringify($event))"
+    @send-code="logSecurity('单独手机：请求发送短信，' + $event)"
+    @backdrop-close="logSecurity('已关闭绑定手机弹窗')"
   />
 
   <BindEmailDialog
     v-model="bindEmailOnlyOpen"
-    @completed="logSecurity('单独邮箱绑定完成（演示）：' + JSON.stringify($event))"
-    @send-code="logSecurity('单独邮箱：请求发送邮件（演示），' + $event)"
-    @backdrop-close="logSecurity('已关闭绑定邮箱弹窗（演示）')"
+    @completed="logSecurity('单独邮箱绑定完成：' + JSON.stringify($event))"
+    @send-code="logSecurity('单独邮箱：请求发送邮件，' + $event)"
+    @backdrop-close="logSecurity('已关闭绑定邮箱弹窗')"
   />
 </template>

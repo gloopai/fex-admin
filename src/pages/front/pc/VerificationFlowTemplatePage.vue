@@ -226,7 +226,7 @@ const resetFlow = () => {
   <div class="mx-auto max-w-[1280px] px-6 py-6 text-white">
     <div class="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
       <div>
-        <div class="text-xs text-white/55">身份认证 / 审批流程</div>
+        <div class="text-xs text-white/55">个人中心 · 身份认证</div>
         <h1 class="mt-1 text-2xl font-semibold">身份认证</h1>
         <p class="mt-2 max-w-[720px] text-sm text-white/65">
           先完成初级认证并通过审核，再按清单上传高级认证材料。

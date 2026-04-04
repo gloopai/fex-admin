@@ -189,14 +189,11 @@ form.value.files = Object.fromEntries([
 </script>
 
 <template>
-  <div class="mx-auto min-h-screen w-full max-w-md px-4 py-4 text-white">
+  <div class="mx-auto w-full max-w-md px-4 py-4 text-white">
     <header class="mb-4 flex items-center justify-between gap-3">
-      <div class="flex items-center gap-3">
-        <span class="text-2xl text-white/80">&lt;</span>
-        <div>
-          <div class="text-xs text-white/55">身份认证</div>
-          <h1 class="text-2xl font-semibold">审批流程</h1>
-        </div>
+      <div>
+        <div class="text-xs text-white/55">个人中心 · 身份认证</div>
+        <h1 class="mt-0.5 text-2xl font-semibold">审批流程</h1>
       </div>
       <div class="max-w-[160px] text-right text-xs text-white/60">{{ flowHeadline }}</div>
     </header>

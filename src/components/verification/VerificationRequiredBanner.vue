@@ -14,7 +14,7 @@ const props = defineProps({
   /** 功能名称，用于标题 */
   featureName: { type: String, default: '此功能' },
   /** 「去认证」跳转，默认前台认证流程 */
-  verifyHref: { type: String, default: '/front/verification-flow' },
+  verifyHref: { type: String, default: '/front/personal-center/verification' },
   /** 暗色主题（与前台 /front、/m 默认背景一致） */
   dark: { type: Boolean, default: true }
 })
