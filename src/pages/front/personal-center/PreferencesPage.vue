@@ -109,7 +109,7 @@ function save() {
 
       <button
         type="button"
-        class="rounded-lg bg-lime-400 px-6 py-3 text-sm font-semibold text-black hover:bg-lime-300"
+        class="w-full rounded-lg bg-lime-400 px-6 py-3 text-sm font-semibold text-black hover:bg-lime-300 md:w-auto"
         @click="save"
       >
         保存设置
