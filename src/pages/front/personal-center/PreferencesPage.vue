@@ -1,5 +1,13 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import {
+  frontSheetBackdropPaintOnly,
+  frontSheetCancelBtnClass,
+  frontSheetDragHandleClass,
+  frontSheetListItemBorderClass,
+  frontSheetListRowBtnClass,
+  frontSheetPanelShellClass
+} from '../../../constants/frontBottomSheet'
 
 const nickname = ref('交易用户 143')
 const language = ref('zh-CN')
@@ -209,7 +217,7 @@ onUnmounted(() => document.body.removeEventListener('keydown', onPrefsKeydown))
       <Transition name="pref-fade">
         <div
           v-if="prefsSheetOpen"
-          class="fixed inset-0 z-[60] bg-black/55 md:hidden"
+          :class="['fixed inset-0 z-[60] md:hidden', frontSheetBackdropPaintOnly]"
           aria-hidden="true"
           @click="closePrefsSheet"
         />
@@ -217,11 +225,11 @@ onUnmounted(() => document.body.removeEventListener('keydown', onPrefsKeydown))
       <Transition name="pref-slide">
         <div
           v-if="prefsSheetOpen"
-          class="fixed bottom-0 left-0 right-0 z-[61] max-h-[min(70vh,28rem)] flex flex-col rounded-t-2xl border border-white/10 bg-[#1a1a1a] pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-2 shadow-[0_-16px_48px_rgba(0,0,0,0.45)] md:hidden"
+          :class="`fixed bottom-0 left-0 right-0 z-[61] max-h-[min(70vh,28rem)] flex flex-col pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-2 md:hidden ${frontSheetPanelShellClass}`"
           role="dialog"
           :aria-label="prefsSheetTitle"
         >
-          <div class="mx-auto mb-2 h-1 w-10 shrink-0 rounded-full bg-white/15" />
+          <div :class="['mb-2', frontSheetDragHandleClass]" />
           <p class="shrink-0 px-4 pb-2 text-center text-sm font-semibold text-white">
             {{ prefsSheetTitle }}
           </p>
@@ -229,13 +237,9 @@ onUnmounted(() => document.body.removeEventListener('keydown', onPrefsKeydown))
             <li
               v-for="opt in prefsSheetOptions"
               :key="opt.value"
-              class="border-b border-white/[0.06] last:border-0"
+              :class="frontSheetListItemBorderClass"
             >
-              <button
-                type="button"
-                class="flex w-full items-center justify-between px-4 py-3.5 text-left text-base text-white/90 transition hover:bg-white/[0.04]"
-                @click="pickPref(opt.value)"
-              >
+              <button type="button" :class="frontSheetListRowBtnClass" @click="pickPref(opt.value)">
                 <span class="min-w-0 flex-1 pr-2 leading-snug">{{ opt.label }}</span>
                 <svg
                   v-if="isPrefOptionSelected(opt.value)"
@@ -255,11 +259,7 @@ onUnmounted(() => document.body.removeEventListener('keydown', onPrefsKeydown))
               </button>
             </li>
           </ul>
-          <button
-            type="button"
-            class="mx-3 mt-2 w-[calc(100%-1.5rem)] shrink-0 rounded-xl border border-white/10 py-3 text-sm text-white/70"
-            @click="closePrefsSheet"
-          >
+          <button type="button" :class="frontSheetCancelBtnClass" @click="closePrefsSheet">
             取消
           </button>
         </div>

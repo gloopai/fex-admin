@@ -1,5 +1,10 @@
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import {
+  frontSheetBackdropClass,
+  frontSheetDragHandleClass,
+  frontSheetPanelShellClass
+} from '../../constants/frontBottomSheet'
 import FrontStrokeIcon from './FrontStrokeIcon.vue'
 
 /**
@@ -228,16 +233,11 @@ function optionBtnClass(selected) {
           aria-modal="true"
           :aria-labelledby="titleId"
         >
+          <div :class="frontSheetBackdropClass" aria-hidden="true" @click="close" />
           <div
-            class="absolute inset-0 bg-black/55 backdrop-blur-[1px]"
-            aria-hidden="true"
-            @click="close"
-          />
-          <div
-            class="front-sheet-panel relative mx-auto flex w-full max-w-md max-h-[min(72vh,520px)] flex-col rounded-t-2xl border border-white/10 bg-[#121212] text-white shadow-2xl sm:max-w-lg"
+            :class="`front-sheet-panel relative mx-auto flex w-full max-w-md max-h-[min(72vh,520px)] flex-col sm:max-w-lg ${frontSheetPanelShellClass}`"
             :style="{
-              paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))',
-              boxShadow: '0 -8px 40px -12px rgba(0,0,0,0.55)'
+              paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))'
             }"
             @click.stop
           >
@@ -245,7 +245,7 @@ function optionBtnClass(selected) {
               class="shrink-0 pt-3"
               :style="{ paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0px))' }"
             >
-              <div class="mx-auto h-1 w-10 rounded-full bg-white/20" aria-hidden="true" />
+              <div :class="frontSheetDragHandleClass" aria-hidden="true" />
             </div>
             <div
               class="flex shrink-0 items-center justify-between gap-3 border-b border-white/[0.06] px-4 pb-3 pt-2"

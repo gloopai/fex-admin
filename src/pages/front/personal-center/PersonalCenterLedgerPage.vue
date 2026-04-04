@@ -3,6 +3,11 @@ import { computed, onUnmounted, ref, watch, watchEffect } from 'vue'
 import FrontAdaptiveSelect from '../../../components/front/FrontAdaptiveSelect.vue'
 import FrontLimeButton from '../../../components/front/FrontLimeButton.vue'
 import FrontStrokeIcon from '../../../components/front/FrontStrokeIcon.vue'
+import {
+  frontSheetBackdropClass,
+  frontSheetDragHandleClass,
+  frontSheetPanelShellClass
+} from '../../../constants/frontBottomSheet'
 
 function optionLabel(options, value) {
   return options.find((o) => o.value === value)?.label ?? ''
@@ -527,17 +532,16 @@ function nextPage() {
           aria-labelledby="ledger-filter-title"
         >
           <div
-            class="absolute inset-0 bg-black/55 backdrop-blur-[1px]"
+            :class="frontSheetBackdropClass"
             aria-hidden="true"
             @click="closeFilterSheetWithoutApply"
           />
           <div
-            class="ledger-sheet-panel relative mx-auto flex w-full max-w-md max-h-[min(88vh,520px)] flex-col rounded-t-2xl border border-white/10 bg-[#121212] text-white shadow-2xl sm:max-w-lg"
-            :style="{ boxShadow: '0 -8px 40px -12px rgba(0,0,0,0.55)' }"
+            :class="`ledger-sheet-panel relative mx-auto flex w-full max-w-md max-h-[min(88vh,520px)] flex-col sm:max-w-lg ${frontSheetPanelShellClass}`"
             @click.stop
           >
             <div class="shrink-0 pt-2.5">
-              <div class="mx-auto h-1 w-9 rounded-full bg-white/20" aria-hidden="true" />
+              <div :class="frontSheetDragHandleClass" aria-hidden="true" />
             </div>
             <div
               class="flex shrink-0 items-center justify-between gap-3 border-b border-white/[0.06] px-3 py-2.5"

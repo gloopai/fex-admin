@@ -1,5 +1,11 @@
 <script setup>
 import { computed, onUnmounted, ref, watch } from 'vue'
+import {
+  frontSheetAdaptiveHybridPanelShellClass,
+  frontSheetBackdropClass,
+  frontSheetDragHandleClass,
+  frontSheetPanelShellClass
+} from '../../constants/frontBottomSheet'
 import FrontStrokeIcon from './FrontStrokeIcon.vue'
 
 /**
@@ -66,11 +72,14 @@ const overlayClass = computed(() => {
   return `${z} max-lg:flex-col max-lg:justify-end lg:items-center lg:justify-center lg:p-6`
 })
 
-const panelClass = computed(() => [
-  'front-sheet-panel relative mx-auto flex w-full max-w-md max-h-[min(72vh,480px)] flex-col border border-white/10 bg-[#121212] text-white shadow-2xl sm:max-w-lg',
-  props.nativeDesktop ? 'rounded-t-2xl' : 'rounded-t-2xl lg:rounded-2xl lg:max-h-[min(72vh,520px)]',
-  !props.nativeDesktop ? 'front-adaptive-select-desktop-modal lg:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.65)]' : ''
-].filter(Boolean).join(' '))
+const panelClass = computed(() => {
+  const layout =
+    'front-sheet-panel relative mx-auto flex w-full max-w-md max-h-[min(72vh,480px)] flex-col sm:max-w-lg'
+  if (props.nativeDesktop) {
+    return `${layout} ${frontSheetPanelShellClass}`
+  }
+  return `${layout} lg:max-h-[min(72vh,520px)] ${frontSheetAdaptiveHybridPanelShellClass} front-adaptive-select-desktop-modal`
+})
 
 const labelClass =
   'block text-[10px] font-medium uppercase tracking-[0.06em] text-[#848e9c]/85 sm:text-[11px] sm:tracking-wide sm:normal-case'
@@ -182,16 +191,11 @@ onUnmounted(() => {
           aria-modal="true"
           :aria-labelledby="titleId"
         >
-          <div
-            class="absolute inset-0 bg-black/55 backdrop-blur-[1px]"
-            aria-hidden="true"
-            @click="close"
-          />
+          <div :class="frontSheetBackdropClass" aria-hidden="true" @click="close" />
           <div
             :class="panelClass"
             :style="{
-              paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))',
-              boxShadow: '0 -8px 40px -12px rgba(0,0,0,0.55)'
+              paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))'
             }"
             @click.stop
           >
@@ -199,10 +203,7 @@ onUnmounted(() => {
               class="shrink-0 pt-3 max-lg:block lg:hidden"
               :style="{ paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0px))' }"
             >
-              <div
-                class="mx-auto h-1 w-10 rounded-full bg-white/20"
-                aria-hidden="true"
-              />
+              <div :class="frontSheetDragHandleClass" aria-hidden="true" />
             </div>
             <div
               class="flex shrink-0 items-center justify-between gap-3 border-b border-white/[0.06] px-4 pb-3 pt-2 lg:rounded-t-2xl lg:pt-4"
