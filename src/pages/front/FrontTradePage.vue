@@ -139,6 +139,9 @@ const depthBids = computed(() => {
   })
 })
 
+/** K 线盘口：卖单从高价到低价向下展示 */
+const depthAsksReversed = computed(() => [...depthAsks.value].reverse())
+
 const lastPrice = computed(() => fmtPriceNum(midNumeric.value, decimals.value))
 
 const stats24h = computed(() => {
@@ -148,7 +151,8 @@ const stats24h = computed(() => {
       high: '99,120.50',
       low: '97,880.00',
       volBase: '482.31 BTC',
-      turnover: '47.28M USDT'
+      turnover: '47.28M USDT',
+      tradeAmtShort: '12.41M'
     }
   }
   if (m > 500) {
@@ -156,14 +160,16 @@ const stats24h = computed(() => {
       high: '2,081.76',
       low: '2,041.65',
       volBase: '90.85K ETH',
-      turnover: '186.21M USDT'
+      turnover: '186.21M USDT',
+      tradeAmtShort: '90.91K'
     }
   }
   return {
     high: '198.20',
     low: '182.10',
     volBase: '4.2M SOL',
-    turnover: '782.5M USDT'
+    turnover: '782.5M USDT',
+    tradeAmtShort: '1.28M'
   }
 })
 
@@ -214,6 +220,8 @@ const selectedDeliveryPeriod = ref(deliveryPeriods[0])
 
 const chartTimeframes = ['1分', '5分', '15分', '30分', '1小时', '1日', '1周', '1月']
 const chartTimeframe = ref('1分')
+/** K 线展开区域：市场盘口 / 最新成交（非个人委托） */
+const chartMarketTab = ref('depth')
 const tradeBottomTab = ref('orders')
 const orderBookTab = ref('book')
 const obSideMode = ref('both')
@@ -235,6 +243,7 @@ watch(
   () => route.fullPath,
   () => {
     chartExpanded.value = false
+    chartMarketTab.value = 'depth'
     orderPrice.value = ''
   }
 )
@@ -279,6 +288,7 @@ watch(
 )
 
 function openPairDrawer() {
+  closeMobilePicker()
   pairDrawerOpen.value = true
 }
 
@@ -287,6 +297,7 @@ function closePairDrawer() {
 }
 
 function openModeSheet() {
+  closeMobilePicker()
   modeSheetOpen.value = true
 }
 
@@ -302,6 +313,72 @@ function selectPair(i) {
 function goMode(path) {
   closeModeSheet()
   if (route.path !== path) router.push(path)
+}
+
+/** 移动端：用底部抽屉代替原生 select */
+const mobilePickerOpen = ref(false)
+const mobilePickerTitle = ref('')
+const mobilePickerKind = ref('')
+const mobilePickerOptionList = ref([])
+
+function mobilePickerCurrentValue() {
+  const k = mobilePickerKind.value
+  if (k === 'chartTf') return chartTimeframe.value
+  if (k === 'orderType') return orderType.value
+  if (k === 'leverage') return leverage.value
+  if (k === 'delivery') return selectedDeliveryPeriod.value
+  return ''
+}
+
+function isMobilePickerOptionSelected(value) {
+  return String(mobilePickerCurrentValue()) === String(value)
+}
+
+function openMobilePicker(kind) {
+  mobilePickerKind.value = kind
+  if (kind === 'chartTf') {
+    mobilePickerTitle.value = 'K 线周期'
+    mobilePickerOptionList.value = chartTimeframes.slice(0, 4).map((tf) => ({
+      value: tf,
+      label: tf
+    }))
+  } else if (kind === 'orderType') {
+    mobilePickerTitle.value = '委托类型'
+    mobilePickerOptionList.value = [
+      { value: 'market', label: '市价' },
+      { value: 'limit', label: '限价' }
+    ]
+  } else if (kind === 'leverage') {
+    mobilePickerTitle.value = '杠杆'
+    mobilePickerOptionList.value = [
+      { value: '1', label: '1×' },
+      { value: '5', label: '5×' },
+      { value: '10', label: '10×' },
+      { value: '20', label: '20×' }
+    ]
+  } else if (kind === 'delivery') {
+    mobilePickerTitle.value = '交割周期'
+    mobilePickerOptionList.value = deliveryPeriods.map((p) => ({
+      value: p,
+      label: p
+    }))
+  } else {
+    mobilePickerOptionList.value = []
+  }
+  mobilePickerOpen.value = true
+}
+
+function closeMobilePicker() {
+  mobilePickerOpen.value = false
+}
+
+function confirmMobilePick(value) {
+  const k = mobilePickerKind.value
+  if (k === 'chartTf') chartTimeframe.value = value
+  else if (k === 'orderType') orderType.value = value
+  else if (k === 'leverage') leverage.value = String(value)
+  else if (k === 'delivery') selectedDeliveryPeriod.value = value
+  closeMobilePicker()
 }
 
 function setQtyPct(pct) {
@@ -413,6 +490,49 @@ const mobileDemoHistOrders = computed(() => {
   ]
 })
 
+/** K 线区「最新成交」：示意市场成交明细，非用户订单 */
+const klineMarketTrades = computed(() => {
+  const mid = midNumeric.value
+  const dec = decimals.value
+  const tick =
+    mid >= 10_000 ? 1 : mid >= 1_000 ? 0.1 : mid >= 100 ? 0.01 : 0.0001
+  const pattern = [
+    [true, 0, '0.04'],
+    [false, 0.01, '0.05'],
+    [true, -0.01, '0.09'],
+    [false, 0.02, '0.12'],
+    [true, 0.01, '0.03'],
+    [false, -0.01, '0.07'],
+    [true, 0, '0.11'],
+    [false, 0.01, '0.02'],
+    [true, -0.02, '0.08'],
+    [false, 0, '0.15'],
+    [true, 0.02, '0.06'],
+    [false, -0.01, '0.04']
+  ]
+  const rows = []
+  let ts = Date.now()
+  for (let i = 0; i < pattern.length; i++) {
+    const [isBuy, deltaTicks, q] = pattern[i]
+    ts -= 700 + i * 320
+    const d = new Date(ts)
+    const timeStr = d.toLocaleTimeString('zh-CN', {
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    })
+    const pNum = Math.max(0.00000001, mid + deltaTicks * tick * (isBuy ? -1 : 1))
+    rows.push({
+      time: timeStr,
+      price: fmtPriceNum(pNum, dec),
+      qty: q,
+      isBuy
+    })
+  }
+  return rows
+})
+
 const orderToast = ref('')
 let orderToastTimer = null
 
@@ -457,6 +577,10 @@ function submitDemoOrder(forcedSide) {
 
 function onBodyKeydown(e) {
   if (e.key === 'Escape') {
+    if (mobilePickerOpen.value) {
+      closeMobilePicker()
+      return
+    }
     pairDrawerOpen.value = false
     modeSheetOpen.value = false
   }
@@ -1252,24 +1376,52 @@ const pcBottomEmptyText = computed(() => {
             : 'pb-[calc(4.75rem+env(safe-area-inset-bottom,0px))]'
         "
       >
+        <!-- 行情概要：交易视图与 K 线模式共用 -->
         <header
-          v-if="!chartExpanded"
-          class="mb-2 flex items-center justify-between gap-2 border-b border-white/[0.05] pb-2"
+          class="mb-2 border-b border-white/[0.06] pb-2 pt-0"
         >
-          <div class="flex items-baseline gap-2">
-            <p
-              class="font-mono text-lg font-bold tabular-nums leading-none"
-              :class="changeClass(changePct)"
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0 flex-1">
+              <p
+                class="font-mono text-[1.35rem] font-bold leading-none tracking-tight tabular-nums"
+                :class="changeClass(changePct)"
+              >
+                {{ lastPrice }}
+              </p>
+              <div class="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0">
+                <span
+                  class="text-[11px] font-mono font-medium tabular-nums"
+                  :class="changeClass(changePct)"
+                >
+                  {{ changePct >= 0 ? '+' : '' }}{{ changePct.toFixed(3) }}%
+                </span>
+                <span class="text-[11px] font-mono tabular-nums text-[#4ade80]">
+                  ≈$ {{ lastPrice }}
+                </span>
+              </div>
+            </div>
+            <div
+              class="flex w-[min(48%,11rem)] shrink-0 flex-col gap-1 text-[11px] leading-snug sm:w-auto sm:min-w-[10rem]"
             >
-              {{ lastPrice }}
-            </p>
-            <span class="text-[11px] font-mono tabular-nums text-white/40">
-              {{ changePct >= 0 ? '+' : '' }}{{ changePct.toFixed(2) }}%
-            </span>
-          </div>
-          <div class="flex max-w-[48%] flex-wrap justify-end gap-x-2 text-right text-[10px] text-white/35">
-            <span>高 {{ stats24h.high }}</span>
-            <span>低 {{ stats24h.low }}</span>
+              <div class="flex items-center justify-between gap-2">
+                <span class="shrink-0 text-white/45">24H 最高</span>
+                <span class="min-w-0 truncate text-right font-mono tabular-nums text-white">
+                  {{ stats24h.high }}
+                </span>
+              </div>
+              <div class="flex items-center justify-between gap-2">
+                <span class="shrink-0 text-white/45">24H 最低</span>
+                <span class="min-w-0 truncate text-right font-mono tabular-nums text-white">
+                  {{ stats24h.low }}
+                </span>
+              </div>
+              <div class="flex items-center justify-between gap-2">
+                <span class="shrink-0 text-white/45">24H 交易额</span>
+                <span class="min-w-0 truncate text-right font-mono tabular-nums text-white">
+                  {{ stats24h.tradeAmtShort }}
+                </span>
+              </div>
+            </div>
           </div>
         </header>
 
@@ -1280,17 +1432,30 @@ const pcBottomEmptyText = computed(() => {
           <div
             class="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.06] px-4 py-2.5"
           >
-            <label class="flex items-center gap-2 text-[11px] text-white/45">
-              周期
-              <select
-                v-model="chartTimeframe"
-                class="rounded-lg border border-white/10 bg-[#1e2329] py-1.5 pl-2 pr-8 text-xs text-[#eaecef]"
+            <div class="flex w-full items-center gap-2 text-[11px] text-white/45">
+              <span class="shrink-0">周期</span>
+              <button
+                type="button"
+                class="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border border-white/10 bg-[#141414] px-2.5 py-1.5 text-left text-xs text-[#eaecef] active:bg-[#1a1a1a]"
+                @click="openMobilePicker('chartTf')"
               >
-                <option v-for="tf in chartTimeframes.slice(0, 4)" :key="tf" :value="tf">
-                  {{ tf }}
-                </option>
-              </select>
-            </label>
+                <span class="truncate">{{ chartTimeframe }}</span>
+                <svg
+                  class="h-3.5 w-3.5 shrink-0 text-white/35"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="m6 9 6 6 6-6"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
           <div class="relative flex min-h-[min(42vh,17.5rem)] items-end justify-center px-4 pb-4 pt-3">
             <div
@@ -1308,108 +1473,111 @@ const pcBottomEmptyText = computed(() => {
               />
             </div>
           </div>
-          <div class="flex border-t border-white/[0.06] px-1">
+          <p class="border-t border-white/[0.06] px-3 pt-2 text-[10px] text-white/35">
+            以下为市场公开数据（演示），非本人委托
+          </p>
+          <div class="flex border-b border-white/[0.06] px-1">
             <button
               type="button"
               class="flex-1 py-2 text-xs font-medium"
               :class="
-                tradeBottomTab === 'orders'
-                  ? 'border-b-2 border-lime-400 text-lime-300'
+                chartMarketTab === 'depth'
+                  ? 'border-b-2 border-[#4ade80] text-[#4ade80]'
                   : 'text-white/45'
               "
-              @click="tradeBottomTab = 'orders'"
+              @click="chartMarketTab = 'depth'"
             >
-              当前委托
+              委托订单
             </button>
             <button
               type="button"
               class="flex-1 py-2 text-xs font-medium"
               :class="
-                tradeBottomTab === 'trades'
-                  ? 'border-b-2 border-lime-400 text-lime-300'
+                chartMarketTab === 'tape'
+                  ? 'border-b-2 border-[#4ade80] text-[#4ade80]'
                   : 'text-white/45'
               "
-              @click="tradeBottomTab = 'trades'"
+              @click="chartMarketTab = 'tape'"
             >
-              历史订单
+              最新成交
             </button>
           </div>
+          <!-- 市场盘口：左买量 | 中间价 | 右卖量 -->
           <div
-            class="max-h-[11.5rem] overflow-y-auto overscroll-contain px-3 pb-3 pt-1"
+            v-if="chartMarketTab === 'depth'"
+            class="max-h-[14rem] overflow-y-auto overscroll-contain px-2 pb-2 pt-1"
           >
-            <ul
-              v-if="tradeBottomTab === 'orders'"
-              class="m-0 list-none divide-y divide-white/[0.06] p-0"
+            <div
+              class="grid grid-cols-3 gap-0.5 pb-1 text-[10px] font-medium text-white/40"
             >
-              <li
-                v-for="row in mobileDemoOpenOrders"
-                :key="row.id"
-                class="py-2.5 first:pt-1"
+              <span class="text-left">数量({{ activePair.base }})</span>
+              <span class="text-center">价格({{ activePair.quote }})</span>
+              <span class="text-right">数量({{ activePair.base }})</span>
+            </div>
+            <div class="font-mono text-[11px] tabular-nums leading-tight">
+              <div
+                v-for="(row, i) in depthAsksReversed"
+                :key="'ask-' + i"
+                class="grid grid-cols-3 items-center py-[3px]"
               >
-                <div class="mb-1 flex items-start justify-between gap-2">
-                  <div class="min-w-0 flex flex-wrap items-center gap-1.5">
-                    <span
-                      class="text-[12px] font-semibold"
-                      :class="row.sideLong ? 'text-[#4ade80]' : 'text-[#f87171]'"
-                    >
-                      {{ row.sideLabel }}
-                    </span>
-                    <span class="text-[10px] text-white/35">{{ row.pair }}</span>
-                    <span
-                      class="rounded bg-white/[0.06] px-1 py-px text-[10px] text-white/45"
-                    >
-                      {{ row.modeTag }}
-                    </span>
-                  </div>
-                  <span class="shrink-0 font-mono text-[10px] text-white/35">{{
-                    row.time
-                  }}</span>
+                <span class="text-left text-white/25">—</span>
+                <span class="text-center text-[#f87171]">{{ row.p }}</span>
+                <div class="relative py-0.5 text-right">
+                  <div
+                    class="pointer-events-none absolute inset-y-0 right-0 bg-rose-500/16"
+                    :style="{ width: `${row.bar}%` }"
+                  />
+                  <span class="relative text-white/75">{{ row.q }}</span>
                 </div>
-                <p class="font-mono text-[10px] leading-relaxed text-white/55">
-                  <span class="text-white/40">{{ row.type }}</span>
-                  <span class="mx-1 text-white/20">·</span>
-                  <span>{{ row.price }}</span>
-                  <span class="mx-1 text-white/20">·</span>
-                  <span>{{ row.amount }}</span>
-                </p>
-                <p class="mt-1 text-[10px] text-white/35">已成交 {{ row.filled }}</p>
-              </li>
-            </ul>
-            <ul
-              v-else
-              class="m-0 list-none divide-y divide-white/[0.06] p-0"
+              </div>
+              <div
+                class="border-y border-white/[0.08] bg-black/40 py-1.5 text-center text-[13px] font-bold text-white"
+              >
+                {{ lastPrice }}
+              </div>
+              <div
+                v-for="(row, i) in depthBids"
+                :key="'bid-' + i"
+                class="grid grid-cols-3 items-center py-[3px]"
+              >
+                <div class="relative py-0.5 text-left">
+                  <div
+                    class="pointer-events-none absolute inset-y-0 left-0 bg-emerald-500/16"
+                    :style="{ width: `${row.bar}%` }"
+                  />
+                  <span class="relative text-white/75">{{ row.q }}</span>
+                </div>
+                <span class="text-center text-[#4ade80]">{{ row.p }}</span>
+                <span class="text-right text-white/25">—</span>
+              </div>
+            </div>
+          </div>
+          <!-- 市场最新成交 -->
+          <div
+            v-else
+            class="max-h-[14rem] overflow-y-auto overscroll-contain px-2 pb-2 pt-1"
+          >
+            <div
+              class="grid grid-cols-3 gap-1 border-b border-white/[0.06] pb-1 text-[10px] font-medium text-white/40"
             >
+              <span>时间</span>
+              <span class="text-center">价格({{ activePair.quote }})</span>
+              <span class="text-right">数量({{ activePair.base }})</span>
+            </div>
+            <ul class="m-0 list-none p-0 font-mono text-[11px] tabular-nums">
               <li
-                v-for="row in mobileDemoHistOrders"
-                :key="row.id"
-                class="py-2.5 first:pt-1"
+                v-for="(row, i) in klineMarketTrades"
+                :key="'kt-' + i"
+                class="grid grid-cols-3 items-center py-1.5 text-white/80"
               >
-                <div class="mb-1 flex items-start justify-between gap-2">
-                  <span
-                    class="text-[12px] font-semibold"
-                    :class="row.sideLong ? 'text-[#4ade80]' : 'text-[#f87171]'"
-                  >
-                    {{ row.sideLabel }}
-                  </span>
-                  <span class="shrink-0 font-mono text-[10px] text-white/35">{{
-                    row.time
-                  }}</span>
-                </div>
-                <p class="font-mono text-[10px] leading-relaxed text-white/55">
-                  <span class="text-white/40">{{ row.type }}</span>
-                  <span class="mx-1 text-white/20">·</span>
-                  <span>{{ row.price }}</span>
-                  <span class="mx-1 text-white/20">·</span>
-                  <span>{{ row.amount }}</span>
-                </p>
-                <p
-                  class="mt-1 text-[10px]"
-                  :class="
-                    row.status === '已撤销' ? 'text-amber-400/90' : 'text-white/40'
-                  "
+                <span class="text-white/45">{{ row.time }}</span>
+                <span
+                  class="text-center"
+                  :class="row.isBuy ? 'text-[#4ade80]' : 'text-[#f87171]'"
                 >
-                  {{ row.status }}
-                </p>
+                  {{ row.price }}
+                </span>
+                <span class="text-right">{{ row.qty }}</span>
               </li>
             </ul>
           </div>
@@ -1478,34 +1646,75 @@ const pcBottomEmptyText = computed(() => {
               </template>
             </div>
 
-            <select
-              v-model="orderType"
-              class="w-full rounded-md border border-white/[0.08] bg-[#141414] px-2.5 py-2 text-[13px] text-white focus:border-[#4ade80]/50 focus:outline-none"
+            <button
+              type="button"
+              class="flex w-full items-center justify-between gap-2 rounded-md border border-white/[0.08] bg-[#141414] px-2.5 py-2 text-left text-[13px] text-white active:bg-[#1a1a1a]"
+              @click="openMobilePicker('orderType')"
             >
-              <option value="market">市价</option>
-              <option value="limit">限价</option>
-            </select>
+              <span>{{ orderType === 'market' ? '市价' : '限价' }}</span>
+              <svg
+                class="h-4 w-4 shrink-0 text-white/30"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="m6 9 6 6 6-6"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
 
             <div v-if="tradeMode === 'perpetual'" class="flex items-center gap-2">
               <span class="shrink-0 text-[10px] text-white/40">杠杆</span>
-              <select
-                v-model="leverage"
-                class="min-w-0 flex-1 rounded-md border border-white/[0.08] bg-[#141414] px-2 py-1.5 text-[12px] text-white focus:border-[#4ade80]/50 focus:outline-none"
+              <button
+                type="button"
+                class="flex min-w-0 flex-1 items-center justify-between gap-1 rounded-md border border-white/[0.08] bg-[#141414] px-2 py-1.5 text-left text-[12px] text-white active:bg-[#1a1a1a]"
+                @click="openMobilePicker('leverage')"
               >
-                <option value="1">1×</option>
-                <option value="5">5×</option>
-                <option value="10">10×</option>
-                <option value="20">20×</option>
-              </select>
+                <span>{{ leverage }}×</span>
+                <svg
+                  class="h-3.5 w-3.5 shrink-0 text-white/30"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="m6 9 6 6 6-6"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </button>
             </div>
 
             <div v-if="tradeMode === 'delivery'">
-              <select
-                v-model="selectedDeliveryPeriod"
-                class="w-full rounded-md border border-white/[0.08] bg-[#141414] px-2 py-1.5 text-[11px] text-white focus:border-[#4ade80]/50 focus:outline-none"
+              <button
+                type="button"
+                class="flex w-full items-center justify-between gap-2 rounded-md border border-white/[0.08] bg-[#141414] px-2 py-1.5 text-left text-[11px] text-white active:bg-[#1a1a1a]"
+                @click="openMobilePicker('delivery')"
               >
-                <option v-for="o in deliveryPeriods" :key="o" :value="o">{{ o }}</option>
-              </select>
+                <span class="line-clamp-2 min-w-0">{{ selectedDeliveryPeriod }}</span>
+                <svg
+                  class="h-3.5 w-3.5 shrink-0 text-white/30"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="m6 9 6 6 6-6"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </button>
             </div>
 
             <div class="space-y-1">
@@ -1802,14 +2011,14 @@ const pcBottomEmptyText = computed(() => {
             class="flex min-h-[46px] items-center justify-center rounded-lg bg-[#58bd8c] text-[14px] font-bold text-black active:opacity-90"
             @click="leaveChartToOrder('long')"
           >
-            {{ isContract ? '做多' : '买入' }}
+            {{ isContract ? '做多买入' : '买入' }}
           </button>
           <button
             type="button"
             class="flex min-h-[46px] items-center justify-center rounded-lg bg-[#e85d5d] text-[14px] font-bold text-white active:opacity-90"
             @click="leaveChartToOrder('short')"
           >
-            {{ isContract ? '做空' : '卖出' }}
+            {{ isContract ? '做空卖出' : '卖出' }}
           </button>
         </div>
       </div>
@@ -1862,6 +2071,66 @@ const pcBottomEmptyText = computed(() => {
               </button>
             </li>
           </ul>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <Teleport to="body">
+      <Transition name="fade">
+        <div
+          v-if="mobilePickerOpen"
+          class="fixed inset-0 z-[62] bg-black/55 lg:hidden"
+          @click="closeMobilePicker"
+        />
+      </Transition>
+      <Transition name="slide-up">
+        <div
+          v-if="mobilePickerOpen"
+          class="fixed bottom-0 left-0 right-0 z-[63] max-h-[min(70vh,28rem)] flex flex-col rounded-t-2xl border border-white/10 bg-[#1e2329] pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-2 shadow-[0_-16px_48px_rgba(0,0,0,0.45)] lg:hidden"
+          role="dialog"
+          :aria-label="mobilePickerTitle"
+        >
+          <div class="mx-auto mb-2 h-1 w-10 shrink-0 rounded-full bg-white/15" />
+          <p class="shrink-0 px-4 pb-2 text-center text-sm font-semibold text-white">
+            {{ mobilePickerTitle }}
+          </p>
+          <ul class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2">
+            <li
+              v-for="opt in mobilePickerOptionList"
+              :key="String(opt.value)"
+              class="border-b border-white/[0.06] last:border-0"
+            >
+              <button
+                type="button"
+                class="flex w-full items-center justify-between px-4 py-3.5 text-left text-base text-white/90 transition hover:bg-white/[0.04] active:bg-white/[0.06]"
+                @click="confirmMobilePick(opt.value)"
+              >
+                <span class="min-w-0 flex-1 pr-2 leading-snug">{{ opt.label }}</span>
+                <svg
+                  v-if="isMobilePickerOptionSelected(opt.value)"
+                  class="h-5 w-5 shrink-0 text-[#4ade80]"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M20 6 9 17l-5-5"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </button>
+            </li>
+          </ul>
+          <button
+            type="button"
+            class="mx-3 mt-2 w-[calc(100%-1.5rem)] shrink-0 rounded-xl border border-white/10 py-3 text-sm text-white/70"
+            @click="closeMobilePicker"
+          >
+            取消
+          </button>
         </div>
       </Transition>
     </Teleport>
