@@ -61,6 +61,7 @@ function feedTo(pathKey) {
 
 /** 高频功能：小链接即可，完整列表在侧栏 / 账户菜单 */
 const compactLinks = computed(() => [
+  { label: '账变记录', to: `${prefix}/personal-center/ledger` },
   { label: '提币地址', to: `${prefix}/personal-center/withdraw-addresses` },
   { label: '邀请返佣', to: `${prefix}/personal-center/referral` },
   { label: '账户设置', to: `${prefix}/personal-center/preferences` }

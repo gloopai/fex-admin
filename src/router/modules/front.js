@@ -76,6 +76,12 @@ export const frontDesktopRoutes = [
         meta: { title: '资产' }
       },
       {
+        path: 'ledger',
+        name: 'front-personal-ledger-desktop',
+        component: () => import('../../pages/front/personal-center/PersonalCenterLedgerPage.vue'),
+        meta: { title: '账变记录' }
+      },
+      {
         path: 'api-keys',
         redirect: '/front/personal-center'
       },

@@ -3,6 +3,7 @@
  */
 export const PERSONAL_CENTER_SHELL_MOBILE_PRIMARY_KEYS = new Set([
   'assets',
+  'ledger',
   'security',
   'verify',
   'withdraw-addresses',
@@ -37,6 +38,13 @@ export function getPersonalCenterNavItems(prefix) {
       label: '资产',
       description: '充提、划转与账户分布',
       to: `${prefix}/personal-center/assets`,
+      match: 'prefix'
+    },
+    {
+      key: 'ledger',
+      label: '账变记录',
+      description: '资金流水与账务变动',
+      to: `${prefix}/personal-center/ledger`,
       match: 'prefix'
     },
     {
