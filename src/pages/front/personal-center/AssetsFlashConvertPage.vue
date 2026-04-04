@@ -99,7 +99,8 @@ const pickerWrap = 'w-[8.25rem] min-w-0 shrink-0 sm:w-[9rem]'
       class="pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] lg:grid lg:max-w-5xl lg:grid-cols-[minmax(0,1fr)_17.5rem] lg:items-start lg:gap-8 lg:pb-8 xl:grid-cols-[minmax(0,1fr)_19rem]"
     >
       <div class="min-w-0 space-y-4 lg:space-y-5">
-        <div :class="`${card} overflow-hidden`">
+        <!-- lg+ 锚点下拉超出卡片底部时，父级 overflow-hidden 会裁切弹层 -->
+        <div :class="`${card} max-lg:overflow-hidden lg:overflow-visible`">
           <div class="px-3.5 py-3.5 sm:px-4 sm:py-4 lg:px-5 lg:py-5">
             <div class="flex items-start justify-between gap-3">
               <span :class="fieldLabel + ' pt-0.5'">支付</span>
@@ -120,6 +121,15 @@ const pickerWrap = 'w-[8.25rem] min-w-0 shrink-0 sm:w-[9rem]'
                       aria-hidden="true"
                     >
                       {{ payCoin.symbol.slice(0, 1) }}
+                    </span>
+                  </template>
+                  <template #option-leading="{ option }">
+                    <span
+                      class="pointer-events-none grid h-5 w-5 shrink-0 place-items-center rounded-full text-[8px] font-bold leading-none text-white lg:h-6 lg:w-6 lg:text-[9px]"
+                      :class="assetSwatch(option.value)"
+                      aria-hidden="true"
+                    >
+                      {{ String(option.label).slice(0, 1) }}
                     </span>
                   </template>
                 </FrontSearchablePopoverPicker>
@@ -174,6 +184,15 @@ const pickerWrap = 'w-[8.25rem] min-w-0 shrink-0 sm:w-[9rem]'
                       aria-hidden="true"
                     >
                       {{ receiveCoin.symbol.slice(0, 1) }}
+                    </span>
+                  </template>
+                  <template #option-leading="{ option }">
+                    <span
+                      class="pointer-events-none grid h-5 w-5 shrink-0 place-items-center rounded-full text-[8px] font-bold leading-none text-white lg:h-6 lg:w-6 lg:text-[9px]"
+                      :class="assetSwatch(option.value)"
+                      aria-hidden="true"
+                    >
+                      {{ String(option.label).slice(0, 1) }}
                     </span>
                   </template>
                 </FrontSearchablePopoverPicker>
