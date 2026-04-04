@@ -1,22 +1,24 @@
 <script setup>
 import { computed, ref } from 'vue'
+import BindEmailDialog from '../../components/front/BindEmailDialog.vue'
+import BindPhoneDialog from '../../components/front/BindPhoneDialog.vue'
+import DepositMfaRecommendDialog from '../../components/front/DepositMfaRecommendDialog.vue'
+import SecurityCheckDialog from '../../components/front/SecurityCheckDialog.vue'
+import WithdrawInvalidAmountDialog from '../../components/front/WithdrawInvalidAmountDialog.vue'
+import WithdrawVerifyCodeDialog from '../../components/front/WithdrawVerifyCodeDialog.vue'
 
 /**
- * 弹窗演示页面：当前仅包含「提币数量不符合范围」校验提示
- * 后续可继续扩展更多弹窗类型，保持与权限提示页面解耦
+ * 弹窗演示页：组合前台抽离的对话框组件（仅演示交互与文案）。
  */
 const popupDemoType = ref('withdraw_invalid_amount')
 
-// 示例：提币数量允许范围（包含边界）
+// --- 提币数量不在范围 ---
 const withdrawAmountMin = 10
 const withdrawAmountMax = 1000
-
 const amountPopupOpen = ref(false)
 const amountActionLog = ref('')
 
-const withdrawAmountDialogTitle = computed(() => '提币数量不在允许范围内')
-
-const withdrawAmountDialogMessage = computed(() => {
+const withdrawAmountMessage = computed(() => {
   return `本次提币数量不符合要求，允许范围为 ${withdrawAmountMin} ~ ${withdrawAmountMax}（包含最小与最大值）。请调整后重试。`
 })
 
@@ -25,14 +27,96 @@ function openWithdrawInvalidAmountDialog() {
   amountPopupOpen.value = true
 }
 
-function confirmWithdrawAction() {
-  amountPopupOpen.value = false
+function onWithdrawAmountConfirm() {
   amountActionLog.value = '已继续提币（演示：这里可跳转到提币页面或触发下一步流程）。'
 }
 
-function cancelWithdrawAction() {
-  amountPopupOpen.value = false
+function onWithdrawAmountCancel() {
   amountActionLog.value = '已返回修改（演示）。'
+}
+
+// --- 充币成功 → MFA 推荐绑定 ---
+const simulateMfaBound = ref(false)
+const mfaActionLog = ref('')
+const mfaDialogOpen = ref(false)
+
+function simulateDepositSuccess() {
+  if (simulateMfaBound.value) {
+    mfaActionLog.value = '充币已到账（演示）。当前账号已绑定 MFA，不再弹出推荐绑定。'
+    return
+  }
+  mfaActionLog.value = ''
+  mfaDialogOpen.value = true
+}
+
+function onMfaSkip() {
+  mfaActionLog.value = '已选择暂不绑定 MFA（演示）。'
+}
+
+function onMfaBackdrop() {
+  mfaActionLog.value = '已关闭弹窗（演示）。'
+}
+
+function onMfaCompleted() {
+  simulateMfaBound.value = true
+  mfaActionLog.value = 'MFA 绑定完成（演示）。下次充币成功将不再提示；可勾选「未绑定」重新体验流程。'
+}
+
+function onMfaSecretCopied() {
+  mfaActionLog.value = '已复制密钥（演示，实际对接后端密钥）。'
+}
+
+// --- 提现验证码 ---
+const withdrawVerifyOpen = ref(false)
+const withdrawVerifyLog = ref('')
+const withdrawVerifySummary = '本次提币 · 100 USDT · 手续费 1 USDT（演示摘要，实际由接口返回）'
+
+function openWithdrawVerifyDialog() {
+  withdrawVerifyLog.value = ''
+  withdrawVerifyOpen.value = true
+}
+
+function onWithdrawVerifySubmit(code) {
+  withdrawVerifyLog.value = `已提交验证码（演示）：${code}。真实环境在此调用提现接口并处理错误码。`
+}
+
+function onWithdrawVerifyCancel() {
+  withdrawVerifyLog.value = '已取消提现验证（演示）。'
+}
+
+function onWithdrawVerifyBackdrop() {
+  withdrawVerifyLog.value = '已通过点击遮罩关闭验证弹窗（演示）。'
+}
+
+// --- 账号安全：总览 / 单独手机 / 单独邮箱 ---
+const securityOpen = ref(false)
+const securityLog = ref('')
+const secPhoneBound = ref(false)
+const secEmailBound = ref(false)
+const secMfaBound = ref(false)
+
+const bindPhoneOnlyOpen = ref(false)
+const bindEmailOnlyOpen = ref(false)
+
+function openSecurityCheck() {
+  securityLog.value = ''
+  securityOpen.value = true
+}
+
+function openBindPhoneOnly() {
+  bindPhoneOnlyOpen.value = true
+}
+
+function openBindEmailOnly() {
+  bindEmailOnlyOpen.value = true
+}
+
+function onSecurityBackdrop() {
+  securityLog.value = '已关闭安全检测弹窗（演示）。'
+}
+
+function logSecurity(msg) {
+  securityLog.value = msg
 }
 </script>
 
@@ -41,7 +125,7 @@ function cancelWithdrawAction() {
     <header class="mb-8">
       <h1 class="text-2xl font-bold text-white">弹窗演示</h1>
       <p class="mt-2 text-sm text-white/60">
-        当前展示：提币数量校验失败时的提示弹窗。
+        提币、提现验证、充币 MFA、账号安全总览与手机/邮箱绑定；组件位于 <span class="text-white/80">src/components/front/</span>。
       </p>
     </header>
 
@@ -53,14 +137,18 @@ function cancelWithdrawAction() {
           class="mt-1.5 w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-white"
         >
           <option value="withdraw_invalid_amount">提币：数量不符合范围</option>
+          <option value="withdraw_verify_code">提币：安全验证（验证码）</option>
+          <option value="deposit_mfa">充币成功：未绑定 MFA 时推荐绑定</option>
+          <option value="security_account">账号安全：检测总览 / 手机 / 邮箱</option>
         </select>
       </label>
 
       <div v-if="popupDemoType === 'withdraw_invalid_amount'" class="mt-4 space-y-3">
         <p class="text-xs text-white/60 leading-relaxed">
-          当前弹窗为「提币数量不在允许范围」示例。允许范围为
-          <span class="text-lime-200/90 font-medium">{{ withdrawAmountMin }} ~ {{ withdrawAmountMax }}</span>
-          （包含最小与最大值）。点击下方按钮直接展示弹窗。
+          允许范围为
+          <span class="font-medium text-lime-200/90">{{ withdrawAmountMin }} ~ {{ withdrawAmountMax }}</span>
+          （含边界）。组件：
+          <span class="text-white/80">WithdrawInvalidAmountDialog</span>。
         </p>
 
         <button
@@ -75,58 +163,164 @@ function cancelWithdrawAction() {
           {{ amountActionLog }}
         </p>
       </div>
+
+      <div v-else-if="popupDemoType === 'withdraw_verify_code'" class="mt-4 space-y-3">
+        <p class="text-xs text-white/60 leading-relaxed">
+          组件：<span class="text-white/80">WithdrawVerifyCodeDialog</span>。
+        </p>
+
+        <button
+          type="button"
+          class="w-full rounded-lg bg-lime-400 px-5 py-3 text-sm font-semibold text-black hover:bg-lime-300"
+          @click="openWithdrawVerifyDialog"
+        >
+          打开提现验证弹窗
+        </button>
+
+        <p v-if="withdrawVerifyLog" class="text-xs text-white/55">
+          {{ withdrawVerifyLog }}
+        </p>
+      </div>
+
+      <div v-else-if="popupDemoType === 'deposit_mfa'" class="mt-4 space-y-4">
+        <p class="text-xs text-white/60 leading-relaxed">
+          组件：<span class="text-white/80">DepositMfaRecommendDialog</span>。
+        </p>
+
+        <label class="flex cursor-pointer items-center gap-2 text-xs text-white/70">
+          <input
+            v-model="simulateMfaBound"
+            type="checkbox"
+            class="h-4 w-4 rounded border-white/25 bg-black/40 text-lime-400 focus:ring-lime-400/40"
+          />
+          模拟账号已绑定 MFA（勾选后仅提示到账，不弹窗）
+        </label>
+
+        <button
+          type="button"
+          class="w-full rounded-lg bg-lime-400 px-5 py-3 text-sm font-semibold text-black hover:bg-lime-300"
+          @click="simulateDepositSuccess"
+        >
+          模拟充币成功
+        </button>
+
+        <p v-if="mfaActionLog" class="text-xs text-white/55">
+          {{ mfaActionLog }}
+        </p>
+      </div>
+
+      <div v-else-if="popupDemoType === 'security_account'" class="mt-4 space-y-4">
+        <p class="text-xs text-white/60 leading-relaxed">
+          <span class="text-white/80">SecurityCheckDialog</span>
+          为总览（内嵌
+          <span class="text-white/80">BindPhoneFlow</span>、
+          <span class="text-white/80">BindEmailFlow</span>、
+          <span class="text-white/80">MfaBindFlow</span>）。亦可单独使用
+          <span class="text-white/80">BindPhoneDialog</span> /
+          <span class="text-white/80">BindEmailDialog</span>。
+        </p>
+
+        <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <button
+            type="button"
+            class="rounded-lg bg-lime-400 px-4 py-3 text-sm font-semibold text-black hover:bg-lime-300 sm:flex-1"
+            @click="openSecurityCheck"
+          >
+            打开安全检测总览
+          </button>
+          <button
+            type="button"
+            class="rounded-lg border border-white/20 px-4 py-3 text-sm font-medium text-white/85 hover:bg-white/10 sm:flex-1"
+            @click="openBindPhoneOnly"
+          >
+            仅绑定手机
+          </button>
+          <button
+            type="button"
+            class="rounded-lg border border-white/20 px-4 py-3 text-sm font-medium text-white/85 hover:bg-white/10 sm:flex-1"
+            @click="openBindEmailOnly"
+          >
+            仅绑定邮箱
+          </button>
+        </div>
+
+        <label class="flex cursor-pointer items-center gap-2 text-xs text-white/70">
+          <input
+            v-model="secPhoneBound"
+            type="checkbox"
+            class="h-4 w-4 rounded border-white/25 bg-black/40 text-lime-400 focus:ring-lime-400/40"
+          />
+          模拟手机已绑定（总览标签）
+        </label>
+        <label class="flex cursor-pointer items-center gap-2 text-xs text-white/70">
+          <input
+            v-model="secEmailBound"
+            type="checkbox"
+            class="h-4 w-4 rounded border-white/25 bg-black/40 text-lime-400 focus:ring-lime-400/40"
+          />
+          模拟邮箱已绑定
+        </label>
+        <label class="flex cursor-pointer items-center gap-2 text-xs text-white/70">
+          <input
+            v-model="secMfaBound"
+            type="checkbox"
+            class="h-4 w-4 rounded border-white/25 bg-black/40 text-lime-400 focus:ring-lime-400/40"
+          />
+          模拟 MFA 已开启
+        </label>
+
+        <p v-if="securityLog" class="text-xs text-white/55">
+          {{ securityLog }}
+        </p>
+      </div>
     </section>
   </div>
 
-  <!-- 提币数量不合法弹窗 -->
-  <Teleport to="body">
-    <div
-      v-if="amountPopupOpen"
-      class="fixed inset-0 z-[120] flex items-end justify-center px-4 pb-4 sm:items-center sm:p-4"
-      role="dialog"
-      aria-modal="true"
-    >
-      <div class="absolute inset-0 bg-black/60 backdrop-blur-[2px]" @click="cancelWithdrawAction" />
+  <WithdrawInvalidAmountDialog
+    v-model="amountPopupOpen"
+    :message="withdrawAmountMessage"
+    @confirm="onWithdrawAmountConfirm"
+    @cancel="onWithdrawAmountCancel"
+  />
 
-      <div
-        class="relative z-[121] w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-[#121212] px-4 pb-6 pt-5 text-white shadow-2xl"
-        @click.stop
-      >
-        <div class="flex items-start gap-3">
-          <div
-            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-emerald-400/30 bg-emerald-400/15 text-xl text-lime-200"
-          >
-            !
-          </div>
+  <WithdrawVerifyCodeDialog
+    v-model="withdrawVerifyOpen"
+    :withdraw-summary="withdrawVerifySummary"
+    @submit="onWithdrawVerifySubmit"
+    @cancel="onWithdrawVerifyCancel"
+    @backdrop-cancel="onWithdrawVerifyBackdrop"
+  />
 
-          <div class="min-w-0 flex-1">
-            <h3 class="text-lg font-semibold leading-snug">
-              {{ withdrawAmountDialogTitle }}
-            </h3>
-            <p class="mt-2 text-sm leading-relaxed text-emerald-100/85">
-              {{ withdrawAmountDialogMessage }}
-            </p>
-          </div>
-        </div>
+  <DepositMfaRecommendDialog
+    v-model="mfaDialogOpen"
+    @skip="onMfaSkip"
+    @completed="onMfaCompleted"
+    @backdrop-close="onMfaBackdrop"
+    @secret-copied="onMfaSecretCopied"
+  />
 
-        <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <button
-            type="button"
-            class="rounded-lg border border-white/20 px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/10"
-            @click="cancelWithdrawAction"
-          >
-            返回修改
-          </button>
-          <button
-            type="button"
-            class="rounded-lg bg-lime-400 px-4 py-2.5 text-sm font-semibold text-black hover:bg-lime-300"
-            @click="confirmWithdrawAction"
-          >
-            知道了
-          </button>
-        </div>
-      </div>
-    </div>
-  </Teleport>
+  <SecurityCheckDialog
+    v-model="securityOpen"
+    v-model:phone-bound="secPhoneBound"
+    v-model:email-bound="secEmailBound"
+    v-model:mfa-bound="secMfaBound"
+    @backdrop-close="onSecurityBackdrop"
+    @phone-send-code="logSecurity('总览：请求发送短信（演示），手机号 ' + $event)"
+    @email-send-code="logSecurity('总览：请求发送邮件（演示），' + $event)"
+    @mfa-secret-copied="logSecurity('总览：已复制 MFA 密钥（演示）')"
+  />
+
+  <BindPhoneDialog
+    v-model="bindPhoneOnlyOpen"
+    @completed="logSecurity('单独手机绑定完成（演示）：' + JSON.stringify($event))"
+    @send-code="logSecurity('单独手机：请求发送短信（演示），' + $event)"
+    @backdrop-close="logSecurity('已关闭绑定手机弹窗（演示）')"
+  />
+
+  <BindEmailDialog
+    v-model="bindEmailOnlyOpen"
+    @completed="logSecurity('单独邮箱绑定完成（演示）：' + JSON.stringify($event))"
+    @send-code="logSecurity('单独邮箱：请求发送邮件（演示），' + $event)"
+    @backdrop-close="logSecurity('已关闭绑定邮箱弹窗（演示）')"
+  />
 </template>
-
