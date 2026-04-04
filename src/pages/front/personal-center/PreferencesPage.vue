@@ -194,15 +194,15 @@ onUnmounted(() => document.body.removeEventListener('keydown', onPrefsKeydown))
           />
         </label>
       </div>
+    </section>
 
       <button
         type="button"
-        class="w-full rounded-lg bg-lime-400 px-6 py-3 text-sm font-semibold text-black hover:bg-lime-300 md:w-auto"
+        class="w-full rounded-lg bg-lime-400 px-6 py-3 text-sm font-semibold text-black hover:bg-lime-300 md:w-max md:flex-none md:self-start"
         @click="save"
       >
         保存设置
       </button>
-    </section>
     </div>
 
     <Teleport to="body">
