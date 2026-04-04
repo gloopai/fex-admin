@@ -8,10 +8,10 @@ import DeviceManagementDialog from '../../../components/front/DeviceManagementDi
 import MfaBindDialog from '../../../components/front/MfaBindDialog.vue'
 import SecurityCheckDialog from '../../../components/front/SecurityCheckDialog.vue'
 
-const phoneBound = ref(true)
+const phoneBound = ref(false)
 const emailBound = ref(false)
 const mfaBound = ref(false)
-const passwordOk = ref(true)
+const passwordOk = ref(false)
 
 const securityOverviewOpen = ref(false)
 const phoneDialogOpen = ref(false)
@@ -196,7 +196,7 @@ function onMfaCompleted() {
           </span>
           <button
             type="button"
-            class="rounded-lg bg-white/[0.08] px-4 py-2 text-xs font-medium text-white/88 hover:bg-white/[0.12]"
+            class="rounded-lg bg-white/[0.08] px-4 py-2 text-xs font-medium text-white/88 transition hover:bg-white/[0.12]"
             @click="openDedicatedDialog(row.key)"
           >
             {{ row.actionLabel }}
@@ -208,7 +208,7 @@ function onMfaCompleted() {
     <section class="rounded-2xl border border-white/[0.08] bg-black/30 px-3 py-3 text-xs leading-relaxed text-white/50 md:px-5 md:py-4">
       <p class="font-medium text-white/65">提示</p>
       <p class="mt-2">
-        手机、邮箱与验证器可分别打开对应绑定流程；安全评分卡片中的「安全检测总览」为一步到位的引导，在其中完成绑定后会与此页状态保持一致。
+        三项验证方式可任选绑定，无先后顺序；任意完成一项即可用于对应安全能力。「安全检测总览」与本页列表互通，绑定结果一致。
       </p>
     </section>
     </div>

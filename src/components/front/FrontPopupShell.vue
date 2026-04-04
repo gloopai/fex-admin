@@ -40,16 +40,16 @@ function onBackdrop() {
 
 <style scoped>
 .popup-shell-enter-active {
-  transition: opacity 0.28s ease;
+  transition: opacity 0.26s ease-out;
 }
 
 .popup-shell-leave-active {
-  transition: opacity 0.22s ease;
+  transition: opacity 0.2s ease-in;
 }
 
 .popup-shell-enter-active :deep(.popup-card),
 .popup-shell-leave-active :deep(.popup-card) {
-  transition: transform 0.38s cubic-bezier(0.32, 0.72, 0, 1);
+  transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .popup-shell-enter-from,
@@ -57,15 +57,17 @@ function onBackdrop() {
   opacity: 0;
 }
 
+/* 移动端：略减小上滑距离，避免「整块甩上来」的突兀感 */
 .popup-shell-enter-from :deep(.popup-card),
 .popup-shell-leave-to :deep(.popup-card) {
-  transform: translateY(100%);
+  transform: translateY(72%);
 }
 
 @media (min-width: 640px) {
+  /* 桌面：居中弹层用轻微下沉 + 回收，而不是大块位移 */
   .popup-shell-enter-from :deep(.popup-card),
   .popup-shell-leave-to :deep(.popup-card) {
-    transform: translateY(min(28vh, 10rem));
+    transform: translateY(1rem) scale(0.97);
   }
 }
 

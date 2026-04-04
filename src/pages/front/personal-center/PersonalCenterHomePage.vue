@@ -12,15 +12,17 @@ const currentVipMeta = computed(() => getVipLevelByLevel(userVipLevel.value))
 const displayEmail = 'acheqi@qq.com'
 const displayUid = '143'
 const creditScore = 72
-const securityScore = 78
 const kycLabel = '初级认证'
 
-/** 首页安全项摘要（示例，可与安全中心同源） */
+/** 首页安全项摘要（演示：与「新账户未绑定」一致；对接后可与全局用户状态同源） */
 const securityBrief = ref([
-  { key: 'phone', label: '手机', ok: true },
+  { key: 'phone', label: '手机', ok: false },
   { key: 'email', label: '邮箱', ok: false },
   { key: 'mfa', label: '两步验证', ok: false }
 ])
+
+const securityCompleteCount = computed(() => securityBrief.value.filter((i) => i.ok).length)
+const securityScore = computed(() => Math.min(96, 20 + securityCompleteCount.value * 26))
 
 const securityPendingCount = computed(() => securityBrief.value.filter((i) => !i.ok).length)
 
@@ -179,7 +181,7 @@ const sectionTitle = 'text-sm font-medium text-white/90'
             </RouterLink>
           </div>
           <p v-if="securityPendingCount" class="mt-2 text-xs leading-relaxed text-amber-200/80">
-            还有 {{ securityPendingCount }} 项待完善，建议绑定邮箱并开启两步验证。
+            还有 {{ securityPendingCount }} 项待完善。可前往安全中心，任选绑定手机、邮箱或两步验证。
           </p>
           <p v-else class="mt-2 text-xs text-emerald-200/75">当前安全项已齐备（示例）。</p>
           <ul class="mt-4 divide-y divide-white/[0.06] border-t border-white/[0.06]">

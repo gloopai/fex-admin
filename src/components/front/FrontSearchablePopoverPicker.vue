@@ -312,12 +312,12 @@ function optionBtnClass(selected) {
 <style scoped>
 .front-sheet-enter-active,
 .front-sheet-leave-active {
-  transition: opacity 0.22s ease;
+  transition: opacity 0.24s ease-out;
 }
 
 .front-sheet-enter-active .front-sheet-panel,
 .front-sheet-leave-active .front-sheet-panel {
-  transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .front-sheet-enter-from,
@@ -327,7 +327,7 @@ function optionBtnClass(selected) {
 
 .front-sheet-enter-from .front-sheet-panel,
 .front-sheet-leave-to .front-sheet-panel {
-  transform: translateY(100%);
+  transform: translateY(85%);
 }
 
 .scrollbar-thin {

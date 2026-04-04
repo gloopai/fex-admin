@@ -1,12 +1,43 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import FrontSearchablePopoverPicker from '../../../components/front/FrontSearchablePopoverPicker.vue'
+import SecurityCheckDialog from '../../../components/front/SecurityCheckDialog.vue'
+import WithdrawAuthDialog from '../../../components/front/WithdrawAuthDialog.vue'
 import {
   FRONT_ACCOUNT_TYPE_OPTIONS,
   FRONT_WITHDRAW_ASSETS,
   FRONT_WITHDRAW_NETWORKS,
   networkHintWithdraw
 } from '../../../constants/frontAssetCenterDemo'
+
+const prefix = '/front'
+
+/** 演示：新账户默认未完成绑定；对接后从接口/Store 同步 */
+const phoneBound = ref(false)
+const emailBound = ref(false)
+const mfaBound = ref(false)
+
+const securityCheckOpen = ref(false)
+const withdrawAuthOpen = ref(false)
+
+/** 至少完成一种验证方式即可提币；认证时仅使用已绑定项 */
+const withdrawVerifyChannelReady = computed(
+  () => phoneBound.value || emailBound.value || mfaBound.value
+)
+
+const submitError = ref('')
+
+const withdrawToast = ref('')
+let withdrawToastTimer = null
+
+function showWithdrawToast(message) {
+  withdrawToast.value = message
+  if (withdrawToastTimer) clearTimeout(withdrawToastTimer)
+  withdrawToastTimer = window.setTimeout(() => {
+    withdrawToast.value = ''
+    withdrawToastTimer = null
+  }, 3200)
+}
 
 const accountType = ref(FRONT_ACCOUNT_TYPE_OPTIONS[0].value)
 const assetSymbol = ref(FRONT_WITHDRAW_ASSETS[0].symbol)
@@ -41,9 +72,57 @@ watch(assetSymbol, () => {
   amount.value = ''
 })
 
+watch([address, amount], () => {
+  submitError.value = ''
+})
+
 function fillMax() {
   amount.value = selectedAsset.value.balance
 }
+
+function parseAmountNum(raw) {
+  const n = Number(String(raw || '').replace(/,/g, '').trim())
+  return Number.isFinite(n) ? n : NaN
+}
+
+function onSubmit() {
+  const addr = String(address.value || '').trim()
+  if (!addr) {
+    submitError.value = '请填写提币地址'
+    return
+  }
+  const amt = parseAmountNum(amount.value)
+  if (!Number.isFinite(amt) || amt <= 0) {
+    submitError.value = '请输入有效的提币数量'
+    return
+  }
+  const maxBal = Number(selectedAsset.value.balance)
+  if (Number.isFinite(maxBal) && amt > maxBal) {
+    submitError.value = '提币数量不能超过可用余额'
+    return
+  }
+  submitError.value = ''
+
+  if (!withdrawVerifyChannelReady.value) {
+    securityCheckOpen.value = true
+    return
+  }
+
+  withdrawAuthOpen.value = true
+}
+
+function onWithdrawAuthConfirmed({ method }) {
+  // 演示：提交提币 API 时一并上传验证码等字段（见 WithdrawAuthDialog @confirmed 载荷）
+  const label =
+    method === 'mfa' ? '验证器' : method === 'email' ? '邮箱' : '短信'
+  showWithdrawToast(
+    `已通过${label}验证，提币申请已提交。演示未上链，接入 API 后以接口结果为准。`
+  )
+}
+
+onUnmounted(() => {
+  if (withdrawToastTimer) clearTimeout(withdrawToastTimer)
+})
 
 function assetSwatch(symbol) {
   const s = String(symbol)
@@ -51,10 +130,6 @@ function assetSwatch(symbol) {
   if (s === 'ETH') return 'bg-indigo-500'
   if (s === 'BTC') return 'bg-amber-500'
   return 'bg-white/20'
-}
-
-function onSubmit() {
-  // 演示：对接提币 API、KYC、MFA 后接入
 }
 
 /** 与 FrontAdaptiveSelect comfortable 对齐：44px 行高、玻璃底、内高光 */
@@ -75,6 +150,29 @@ const labelBase =
     </header>
 
     <div class="flex flex-col gap-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] lg:max-w-3xl lg:gap-6 lg:pb-8">
+      <div
+        v-if="!withdrawVerifyChannelReady"
+        class="rounded-xl border border-amber-400/30 bg-amber-400/[0.08] px-3.5 py-3 text-xs leading-relaxed text-amber-50/95 sm:text-[13px] md:flex md:items-center md:justify-between md:gap-4 md:py-3.5"
+      >
+        <p class="min-w-0 md:flex-1">
+          提币前请至少绑定一种安全方式（手机、邮箱或谷歌验证器可任选）。绑定成功后即可用于验证；若已绑定多种，提币时默认优先验证器并可切换。
+        </p>
+        <div class="mt-2 flex shrink-0 flex-wrap items-center gap-2 md:mt-0">
+          <button
+            type="button"
+            class="rounded-lg bg-amber-400/90 px-3 py-2 text-xs font-semibold text-black transition hover:bg-amber-300"
+            @click="securityCheckOpen = true"
+          >
+            去完善
+          </button>
+          <RouterLink
+            :to="`${prefix}/personal-center/security`"
+            class="rounded-lg border border-white/25 px-3 py-2 text-xs font-medium text-white/90 transition hover:bg-white/10"
+          >
+            安全中心
+          </RouterLink>
+        </div>
+      </div>
       <!-- 移动端：整块卡片；PC：去掉外壳，字段直接铺在页面上 -->
       <div
         class="rounded-2xl border border-white/[0.06] bg-white/[0.035] p-3.5 sm:p-4 lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0"
@@ -207,7 +305,8 @@ const labelBase =
         </div>
       </div>
 
-      <div class="max-lg:mt-1">
+      <div class="max-lg:mt-1 space-y-2">
+        <p v-if="submitError" class="text-xs font-medium text-amber-200/90">{{ submitError }}</p>
         <button
           type="button"
           class="w-full rounded-xl bg-lime-400 py-3 text-base font-semibold text-black transition hover:bg-lime-300 active:scale-[0.99] [-webkit-tap-highlight-color:transparent] sm:py-2.5 sm:text-sm lg:w-auto lg:min-w-[200px] lg:rounded-lg lg:px-8 lg:py-3 lg:text-base"
@@ -217,5 +316,48 @@ const labelBase =
         </button>
       </div>
     </div>
+
+    <SecurityCheckDialog
+      v-model="securityCheckOpen"
+      v-model:phone-bound="phoneBound"
+      v-model:email-bound="emailBound"
+      v-model:mfa-bound="mfaBound"
+    />
+
+    <WithdrawAuthDialog
+      v-model="withdrawAuthOpen"
+      :phone-bound="phoneBound"
+      :email-bound="emailBound"
+      :mfa-bound="mfaBound"
+      @confirmed="onWithdrawAuthConfirmed"
+    />
+
+    <Teleport to="body">
+      <Transition name="withdraw-toast-fade">
+        <div
+          v-if="withdrawToast"
+          class="fixed left-1/2 top-[max(0.75rem,env(safe-area-inset-top))] z-[80] max-w-[min(92vw,24rem)] -translate-x-1/2 px-3"
+          role="status"
+        >
+          <p
+            class="rounded-xl border border-emerald-400/25 bg-[#1e2329] px-4 py-2.5 text-center text-sm leading-snug text-white shadow-lg ring-1 ring-white/10"
+          >
+            {{ withdrawToast }}
+          </p>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
+
+<style scoped>
+.withdraw-toast-fade-enter-active,
+.withdraw-toast-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.withdraw-toast-fade-enter-from,
+.withdraw-toast-fade-leave-to {
+  opacity: 0;
+}
+</style>

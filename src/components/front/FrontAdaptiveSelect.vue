@@ -250,12 +250,12 @@ onUnmounted(() => {
 <style scoped>
 .front-sheet-enter-active,
 .front-sheet-leave-active {
-  transition: opacity 0.22s ease;
+  transition: opacity 0.24s ease-out;
 }
 
 .front-sheet-enter-active .front-sheet-panel,
 .front-sheet-leave-active .front-sheet-panel {
-  transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .front-sheet-enter-from,
@@ -265,13 +265,13 @@ onUnmounted(() => {
 
 .front-sheet-enter-from .front-sheet-panel,
 .front-sheet-leave-to .front-sheet-panel {
-  transform: translateY(100%);
+  transform: translateY(85%);
 }
 
 @media (min-width: 1024px) {
   .front-sheet-enter-from .front-adaptive-select-desktop-modal,
   .front-sheet-leave-to .front-adaptive-select-desktop-modal {
-    transform: translateY(12px) scale(0.96);
+    transform: translateY(0.5rem) scale(0.97);
   }
 }
 

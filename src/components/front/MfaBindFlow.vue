@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
+import FrontBindSuccessState from './FrontBindSuccessState.vue'
 import FrontDarkField from './FrontDarkField.vue'
 import FrontFlowStepHeader from './FrontFlowStepHeader.vue'
 import FrontLimeButton from './FrontLimeButton.vue'
@@ -118,9 +119,12 @@ function onFinish() {
       </template>
 
       <template v-else>
-        <p class="text-sm leading-relaxed text-emerald-100/85">两步验证已开启。</p>
-        <p class="mt-2 text-xs text-white/50">请妥善保管设备；换机请按平台规则迁移或重新绑定。</p>
-        <FrontLimeButton class="mt-6 w-full" @click="onFinish">完成</FrontLimeButton>
+        <FrontBindSuccessState @primary="onFinish">
+          <template #title>Google 验证器已启用</template>
+          <template #description>
+            提币等敏感操作将校验动态码。请妥善保管当前设备；换机或重装应用时，请在安全中心重新绑定。
+          </template>
+        </FrontBindSuccessState>
       </template>
     </div>
   </div>
