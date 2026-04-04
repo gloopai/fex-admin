@@ -269,7 +269,7 @@ const compactLinks = computed(() => [
 
     <!-- 提示条：窄屏隐藏，减少干扰 -->
     <section
-      class="hidden rounded-2xl border border-lime-400/12 bg-lime-400/[0.055] px-4 py-4 md:flex md:items-center md:justify-between md:px-5"
+      class="hidden rounded-2xl  bg-lime-400/[0.055] px-4 py-4 md:flex md:items-center md:justify-between md:px-5"
     >
       <div class="flex gap-3">
         <FrontStrokeIcon name="lightbulb" size-class="h-6 w-6 shrink-0 text-lime-200/90" />
