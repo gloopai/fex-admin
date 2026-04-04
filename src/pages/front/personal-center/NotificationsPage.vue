@@ -93,7 +93,7 @@ function markAllRead() {
       <article
         v-for="row in filtered"
         :key="row.id"
-        class="cursor-pointer rounded-2xl border border-white/10 bg-white/[0.04] p-4 transition hover:border-white/20 md:p-5"
+        class="cursor-pointer rounded-2xl border border-white/10 bg-white/[0.04] p-3 transition hover:border-white/20 md:p-5"
         :class="!row.read ? 'ring-1 ring-lime-400/20' : ''"
         @click="markRead(row.id)"
       >

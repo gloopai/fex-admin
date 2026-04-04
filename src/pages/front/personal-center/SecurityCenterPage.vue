@@ -93,7 +93,7 @@ function onMfaCompleted() {
     </header>
 
     <section
-      class="mb-6 flex flex-col gap-4 rounded-2xl border border-white/10 bg-gradient-to-r from-violet-950/40 to-[#121212] p-5 md:flex-row md:items-center md:justify-between md:p-6"
+      class="mb-6 flex flex-col gap-4 rounded-2xl border border-white/10 bg-gradient-to-r from-violet-950/40 to-[#121212] p-4 md:flex-row md:items-center md:justify-between md:p-6"
     >
       <div>
         <p class="text-xs font-medium uppercase tracking-wider text-violet-200/70">安全评分</p>
@@ -116,7 +116,7 @@ function onMfaCompleted() {
       </div>
     </section>
 
-    <section class="mb-4 rounded-2xl border border-white/10 bg-white/[0.04] p-4 md:p-5">
+    <section class="mb-4 rounded-2xl border border-white/10 bg-white/[0.04] p-3 md:p-5">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-start gap-3">
           <div
@@ -200,7 +200,7 @@ function onMfaCompleted() {
       </div>
     </section>
 
-    <section class="mt-8 rounded-2xl border border-white/[0.08] bg-black/30 px-4 py-4 text-xs leading-relaxed text-white/50 md:px-5">
+    <section class="mt-8 rounded-2xl border border-white/[0.08] bg-black/30 px-3 py-3 text-xs leading-relaxed text-white/50 md:px-5 md:py-4">
       <p class="font-medium text-white/65">提示</p>
       <p class="mt-2">
         手机、邮箱与验证器可分别打开对应绑定流程；安全评分卡片中的「安全检测总览」为一步到位的引导，在其中完成绑定后会与此页状态保持一致。

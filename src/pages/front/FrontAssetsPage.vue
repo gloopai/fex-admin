@@ -50,11 +50,10 @@ function displayVal(val) {
 </script>
 
 <template>
-  <div class="mx-auto max-w-[1280px] px-4 py-6 text-white sm:px-6">
-    <p class="mb-4 text-xs text-white/50">个人中心 · 资产</p>
+  <div>
     <!-- 总资产 -->
     <section
-      class="rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.07] to-white/[0.02] p-5 md:p-6"
+      class="rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.07] to-white/[0.02] p-4 md:p-6"
     >
       <div class="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
         <div class="min-w-0">
@@ -119,7 +118,7 @@ function displayVal(val) {
       <article
         v-for="acc in subAccounts"
         :key="acc.key"
-        class="rounded-2xl border border-white/10 bg-white/[0.04] p-4 md:p-5"
+        class="rounded-2xl border border-white/10 bg-white/[0.04] p-3 md:p-5"
       >
         <p class="text-sm font-medium text-white/75">{{ acc.title }}</p>
         <p class="mt-4 font-mono text-2xl font-semibold text-white">

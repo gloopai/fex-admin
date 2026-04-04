@@ -47,7 +47,7 @@ function save() {
     </p>
 
     <section class="space-y-6">
-      <div class="rounded-2xl border border-white/10 bg-white/[0.04] p-4 md:p-5">
+      <div class="rounded-2xl border border-white/10 bg-white/[0.04] p-3 md:p-5">
         <h2 class="text-sm font-semibold text-white/90">基本资料</h2>
         <label class="mt-4 block">
           <span class="text-xs text-white/50">昵称（前台展示）</span>
@@ -59,7 +59,7 @@ function save() {
         </label>
       </div>
 
-      <div class="rounded-2xl border border-white/10 bg-white/[0.04] p-4 md:p-5">
+      <div class="rounded-2xl border border-white/10 bg-white/[0.04] p-3 md:p-5">
         <h2 class="text-sm font-semibold text-white/90">语言与时区</h2>
         <div class="mt-4 grid gap-4 sm:max-w-xl sm:grid-cols-2">
           <label class="block">
@@ -87,7 +87,7 @@ function save() {
         </div>
       </div>
 
-      <div class="rounded-2xl border border-white/10 bg-white/[0.04] p-4 md:p-5">
+      <div class="rounded-2xl border border-white/10 bg-white/[0.04] p-3 md:p-5">
         <h2 class="text-sm font-semibold text-white/90">交易体验</h2>
         <label class="mt-4 flex cursor-pointer items-center justify-between gap-3 border-b border-white/[0.06] pb-4">
           <span class="text-sm text-white/75">下单前二次确认</span>

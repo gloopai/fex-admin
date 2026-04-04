@@ -17,18 +17,10 @@ function pathNorm(p) {
   return p.replace(/\/+$/, '') || '/'
 }
 
-/** 个人中心首页（窄屏在此展示快捷网格；子页只保留返回 + 内容） */
+/** 个人中心首页（窄屏在此展示快捷网格；子页仅主内容） */
 const isPersonalOverview = computed(() => {
   const home = pathNorm(`${prefix}/personal-center`)
   return pathNorm(route.path) === home
-})
-
-/** 非总览子页时显示返回（仅窄屏展示，见模板 lg:hidden） */
-const showMobileBackToOverview = computed(() => {
-  const home = `${prefix}/personal-center`
-  const p = route.path
-  if (p === home || p === `${home}/`) return false
-  return p.startsWith(`${home}/`)
 })
 
 function navActive(item) {
@@ -45,7 +37,7 @@ function navActive(item) {
     class="min-h-[calc(100vh-3.5rem)] max-lg:min-h-[calc(100vh-7rem-env(safe-area-inset-bottom,0px))] border-t border-white/[0.06] bg-[#050505] text-white"
   >
     <div
-      class="mx-auto flex max-w-[1400px] flex-col gap-6 px-4 py-6 lg:flex-row lg:gap-8 lg:px-6 lg:py-8"
+      class="mx-auto flex max-w-[1400px] flex-col gap-6 px-3 pt-3 pb-6 sm:px-4 lg:flex-row lg:gap-8 lg:px-6 lg:pt-8 lg:pb-8"
     >
       <!-- 大屏左侧导航 -->
       <aside class="hidden w-[260px] shrink-0 lg:block" aria-label="个人中心导航">
@@ -77,21 +69,17 @@ function navActive(item) {
         </div>
       </aside>
 
-      <!-- 主内容 -->
-      <main class="min-w-0 flex-1">
-        <RouterLink
-          v-if="showMobileBackToOverview"
-          :to="`${prefix}/personal-center`"
-          class="mb-4 inline-flex items-center gap-1.5 text-sm text-lime-300/90 hover:text-lime-200 lg:hidden"
+      <!-- 主内容：窄屏不留额外左右边距（由外壳 px 承担），底部与大屏留白统一 -->
+      <main class="min-w-0 flex-1 text-white">
+        <div
+          class="mx-auto w-full max-w-[1280px] px-0 pb-6 max-lg:pt-0 lg:pb-0"
         >
-          <span aria-hidden="true" class="text-base leading-none">←</span>
-          返回个人中心
-        </RouterLink>
-        <RouterView v-slot="{ Component }">
-          <Transition name="pc-fade" mode="out-in">
-            <component :is="Component" />
-          </Transition>
-        </RouterView>
+          <RouterView v-slot="{ Component }">
+            <Transition name="pc-fade" mode="out-in">
+              <component :is="Component" />
+            </Transition>
+          </RouterView>
+        </div>
       </main>
 
       <!-- 窄屏：仅在总览页底部放入口（无标题文案） -->

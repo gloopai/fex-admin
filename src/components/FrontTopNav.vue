@@ -250,7 +250,7 @@ function drawerRowClass(item) {
 <template>
   <div ref="navRoot" class="sticky top-0 z-20 w-full border-b border-[#2b3139] bg-[#0b0e11]">
     <div
-      class="mx-auto flex h-14 w-full items-center justify-between gap-3 px-4 lg:gap-6 lg:px-6 xl:px-8"
+      class="mx-auto flex h-14 w-full items-center justify-between gap-3 px-3 sm:px-4 lg:gap-6 lg:px-6 xl:px-8"
     >
       <!-- 左：品牌 + 大屏主导航 -->
       <div class="flex min-w-0 flex-1 items-center gap-4 lg:gap-10">

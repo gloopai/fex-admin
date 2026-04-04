@@ -30,7 +30,7 @@ const tiers = [
     </header>
 
     <section
-      class="mb-6 rounded-2xl border border-white/10 bg-gradient-to-br from-amber-950/30 to-[#121212] p-5 md:flex md:items-center md:justify-between md:p-6"
+      class="mb-6 rounded-2xl border border-white/10 bg-gradient-to-br from-amber-950/30 to-[#121212] p-4 md:flex md:items-center md:justify-between md:p-6"
     >
       <div class="flex items-start gap-4">
         <div
@@ -73,7 +73,7 @@ const tiers = [
     </section>
 
     <section class="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
-      <div class="border-b border-white/10 px-4 py-3">
+      <div class="border-b border-white/10 px-3 py-3 md:px-4">
         <h2 class="text-sm font-semibold text-white/90">现货阶梯费率（示例）</h2>
       </div>
       <div class="hidden md:grid md:grid-cols-4 md:gap-3 md:border-b md:border-white/10 md:px-4 md:py-2.5">
@@ -85,7 +85,7 @@ const tiers = [
       <div
         v-for="row in tiers"
         :key="row.level"
-        class="border-b border-white/[0.06] px-4 py-3 last:border-0 md:grid md:grid-cols-4 md:items-center md:gap-3 md:py-3"
+        class="border-b border-white/[0.06] px-3 py-3 last:border-0 md:grid md:grid-cols-4 md:items-center md:gap-3 md:px-4 md:py-3"
         :class="row.note === '当前档位' ? 'bg-lime-400/[0.06]' : ''"
       >
         <p class="text-sm font-medium text-white/90">{{ row.level }}</p>

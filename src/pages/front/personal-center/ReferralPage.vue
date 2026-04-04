@@ -26,7 +26,7 @@ function copy(text) {
       </p>
     </header>
 
-    <section class="mb-6 rounded-2xl border border-white/10 bg-white/[0.04] p-5 md:p-6">
+    <section class="mb-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4 md:p-6">
       <h2 class="text-sm font-semibold text-white/90">我的邀请码</h2>
       <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
         <div class="min-w-0 flex-1">
@@ -65,21 +65,21 @@ function copy(text) {
     </section>
 
     <section class="mb-6 grid gap-3 sm:grid-cols-3">
-      <div class="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-4">
+      <div class="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 md:px-4 md:py-4">
         <p class="text-xs text-white/45">已邀请（人）</p>
         <p class="mt-2 text-2xl font-semibold tabular-nums text-white">{{ stats.invited }}</p>
       </div>
-      <div class="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-4">
+      <div class="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 md:px-4 md:py-4">
         <p class="text-xs text-white/45">待结算（USDT）</p>
         <p class="mt-2 text-2xl font-semibold tabular-nums text-amber-200">{{ stats.pendingCommission }}</p>
       </div>
-      <div class="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-4">
+      <div class="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 md:px-4 md:py-4">
         <p class="text-xs text-white/45">累计已到账（USDT）</p>
         <p class="mt-2 text-2xl font-semibold tabular-nums text-lime-200">{{ stats.settled }}</p>
       </div>
     </section>
 
-    <section class="rounded-2xl border border-white/[0.08] bg-black/30 px-4 py-4 text-xs leading-relaxed text-white/50 md:px-5">
+    <section class="rounded-2xl border border-white/[0.08] bg-black/30 px-3 py-3 text-xs leading-relaxed text-white/50 md:px-5 md:py-4">
       <p class="font-medium text-white/65">说明</p>
       <ul class="mt-2 list-inside list-disc space-y-1">
         <li>好友须通过您的邀请链接或填写邀请码完成注册。</li>

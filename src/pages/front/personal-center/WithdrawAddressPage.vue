@@ -49,7 +49,7 @@ const addresses = ref([
       <article
         v-for="row in addresses"
         :key="row.id"
-        class="rounded-2xl border border-white/10 bg-white/[0.04] p-4 md:p-5"
+        class="rounded-2xl border border-white/10 bg-white/[0.04] p-3 md:p-5"
       >
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>

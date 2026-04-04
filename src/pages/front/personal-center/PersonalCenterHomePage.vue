@@ -67,16 +67,16 @@ const compactLinks = computed(() => [
 
 <template>
   <div>
-    <header class="mb-5 md:mb-8">
-      <h1 class="text-2xl font-bold tracking-tight text-white md:text-3xl">账户总览</h1>
-      <p class="mt-1 hidden text-sm text-white/55 md:block">
+    <header class="mb-5 hidden md:mb-8 md:block">
+      <h1 class="text-3xl font-bold tracking-tight text-white">账户总览</h1>
+      <p class="mt-1 text-sm text-white/55">
         查看信用、安全与最近动态；更多功能见侧栏导航。
       </p>
     </header>
 
     <!-- 用户主卡片 -->
     <section
-      class="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.08] to-white/[0.02] p-5 md:p-6"
+      class="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.08] to-white/[0.02] p-4 md:p-6"
     >
       <div
         class="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-lime-400/10 blur-3xl"
@@ -159,7 +159,7 @@ const compactLinks = computed(() => [
     <!-- 资产总览入口（完整页在顶栏「资产」） -->
     <RouterLink
       :to="`${prefix}/personal-center/assets`"
-      class="mt-6 flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 transition hover:border-lime-400/30 hover:bg-white/[0.06] sm:flex-row sm:items-center sm:justify-between md:p-5"
+      class="mt-6 flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3 transition hover:border-lime-400/30 hover:bg-white/[0.06] sm:flex-row sm:items-center sm:justify-between md:p-5"
     >
       <div>
         <p class="text-xs font-medium uppercase tracking-wider text-white/45">账户总资产</p>
@@ -171,7 +171,7 @@ const compactLinks = computed(() => [
 
     <div class="mt-5 grid gap-5 md:mt-6 md:gap-6 lg:grid-cols-2 lg:items-start">
       <!-- 安全项摘要 -->
-      <section class="rounded-2xl border border-white/10 bg-white/[0.04] p-4 md:p-5">
+      <section class="rounded-2xl border border-white/10 bg-white/[0.04] p-3 md:p-5">
         <div class="flex items-center justify-between gap-3">
           <h2 class="text-sm font-semibold text-white/90">安全项</h2>
           <RouterLink
@@ -203,7 +203,7 @@ const compactLinks = computed(() => [
       </section>
 
       <!-- 最近动态：窄屏仅保留前 2 条，减轻滚动 -->
-      <section class="rounded-2xl border border-white/10 bg-white/[0.04] p-4 md:p-5">
+      <section class="rounded-2xl border border-white/10 bg-white/[0.04] p-3 md:p-5">
         <div class="flex items-center justify-between gap-3">
           <h2 class="text-sm font-semibold text-white/90">最近动态</h2>
           <RouterLink

@@ -223,7 +223,7 @@ const resetFlow = () => {
 </script>
 
 <template>
-  <div class="mx-auto max-w-[1280px] px-6 py-6 text-white">
+  <div>
     <div class="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
       <div>
         <div class="text-xs text-white/55">个人中心 · 身份认证</div>
@@ -239,7 +239,7 @@ const resetFlow = () => {
     </div>
 
     <!-- Progress -->
-    <section class="mb-6 rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+    <section class="mb-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4 md:p-5">
       <div class="flex items-start justify-between gap-3">
         <div class="text-sm font-semibold">流程进度</div>
         <!-- <div class="text-xs text-white/55">已完成 {{ uploadedAdvancedCount }}/{{ requiredUploadCount }} 项</div> -->
@@ -271,7 +271,7 @@ const resetFlow = () => {
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
       <!-- Left rail -->
       <aside class="space-y-4">
-        <div class="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+        <div class="rounded-2xl border border-white/10 bg-white/[0.04] p-3 md:p-4">
           <div class="text-sm font-semibold">你需要做什么</div>
           <ol class="mt-3 space-y-2 text-sm text-white/70">
             <li class="flex gap-2"><span class="text-white/40">1.</span>提交初级资料并等待审核</li>
@@ -280,7 +280,7 @@ const resetFlow = () => {
           </ol>
         </div>
 
-        <div class="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+        <div class="rounded-2xl border border-white/10 bg-white/[0.04] p-3 md:p-4">
           <button type="button" class="flex w-full items-center justify-between text-left" @click="showDevTools = !showDevTools">
             <div>
               <div class="text-sm font-semibold">联调工具（审批状态调试）</div>
@@ -327,7 +327,7 @@ const resetFlow = () => {
 
       <!-- Main -->
       <div class="space-y-6">
-        <section class="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
+        <section class="rounded-2xl border border-white/10 bg-white/[0.04] p-4 md:p-6">
           <div class="flex items-start justify-between gap-4">
             <div>
               <div class="text-xs text-white/55">步骤 1 / 2</div>
@@ -447,7 +447,7 @@ const resetFlow = () => {
           </div>
         </section>
 
-        <section v-if="canEnterAdvanced" class="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
+        <section v-if="canEnterAdvanced" class="rounded-2xl border border-white/10 bg-white/[0.04] p-4 md:p-6">
           <div class="flex items-start justify-between gap-4">
             <div>
               <div class="text-xs text-white/55">步骤 2 / 2</div>
