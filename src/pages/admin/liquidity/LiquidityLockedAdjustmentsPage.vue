@@ -137,7 +137,7 @@ const fmtCurrency = (val, currency, decimals = 2) => {
 		</article>
 
 		<!-- 调整申请弹窗 -->
-		<div v-if="showAdjustmentModal" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4" @click.self="showAdjustmentModal = false">
+		<div v-if="showAdjustmentModal" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4">
 			<section class="w-full max-w-md rounded-xl bg-white">
 				<header class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
 					<h2 class="text-xl font-semibold text-slate-900">新建调整</h2>
@@ -318,7 +318,7 @@ const fmtCurrency = (val, currency, decimals = 2) => {
 		</article>
 
 		<!-- 调整申请弹窗 -->
-		<div v-if="showAdjustmentModal" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4" @click.self="showAdjustmentModal = false">
+		<div v-if="showAdjustmentModal" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4">
 			<section class="w-full max-w-md rounded-xl bg-white">
 				<header class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
 					<h2 class="text-xl font-semibold text-slate-900">新建调整</h2>

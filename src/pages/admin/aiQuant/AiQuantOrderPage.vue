@@ -56,7 +56,7 @@
 		</article>
 
 		<!-- 订单详情弹窗 -->
-		<div v-if="showDetailModal && selectedOrder" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showDetailModal = false">
+		<div v-if="showDetailModal && selectedOrder" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
 			<div class="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col">
 				<!-- 弹窗头部 -->
 				<div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between flex-shrink-0">

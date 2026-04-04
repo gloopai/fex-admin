@@ -557,7 +557,7 @@ const fmtCurrency = (val, currency, decimals = 2) => {
     </template>
 
     <!-- 产品编辑弹窗 -->
-    <div v-if="showProductModal" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4" @click.self="showProductModal = false">
+    <div v-if="showProductModal" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4">
       <section class="w-full max-w-2xl rounded-xl bg-white">
         <header class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
           <h2 class="text-xl font-semibold text-slate-900">{{ editingProductId ? '编辑产品' : '新增产品' }}</h2>
@@ -650,7 +650,7 @@ const fmtCurrency = (val, currency, decimals = 2) => {
     </div>
 
     <!-- 调整申请弹窗 -->
-    <div v-if="showAdjustmentModal" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4" @click.self="showAdjustmentModal = false">
+    <div v-if="showAdjustmentModal" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4">
       <section class="w-full max-w-md rounded-xl bg-white">
         <header class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
           <h2 class="text-xl font-semibold text-slate-900">新建调整</h2>

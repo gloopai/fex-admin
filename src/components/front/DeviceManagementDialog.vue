@@ -109,7 +109,7 @@ function revokeAllOthers() {
       <div class="flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3">
         <div>
           <h2 id="device-mgmt-title" class="text-base font-semibold text-white">登录设备管理</h2>
-          <p class="mt-0.5 text-xs text-white/45">查看最近登录会话，结束可疑或非本人设备</p>
+          <p class="mt-0.5 text-xs text-white/60">查看最近登录会话，结束可疑或非本人设备</p>
         </div>
         <button
           type="button"
@@ -134,18 +134,18 @@ function revokeAllOthers() {
           <div
             v-for="row in sessions"
             :key="row.id"
-            class="rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-3"
+            class="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-3"
           >
             <div class="flex gap-3">
               <div
-                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-black/30 text-sky-300/90"
+                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/12 bg-white/[0.06] text-sky-300"
                 aria-hidden="true"
               >
                 <FrontStrokeIcon :name="row.icon" size-class="h-5 w-5" />
               </div>
               <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-center gap-2">
-                  <p class="text-sm font-medium text-white/92">{{ row.label }}</p>
+                  <p class="text-sm font-semibold text-[#eaecef]">{{ row.label }}</p>
                   <span
                     v-if="row.current"
                     class="rounded-full border border-lime-400/35 bg-lime-400/10 px-2 py-0.5 text-[10px] font-medium text-lime-200"
@@ -153,8 +153,8 @@ function revokeAllOthers() {
                     本设备
                   </span>
                 </div>
-                <p class="mt-0.5 text-xs text-white/45">{{ row.sub }}</p>
-                <p class="mt-1 text-[11px] text-white/38">{{ row.lastActive }}</p>
+                <p class="mt-0.5 text-xs text-white/75">{{ row.sub }}</p>
+                <p class="mt-1 text-[11px] text-white/55">{{ row.lastActive }}</p>
               </div>
             </div>
 

@@ -128,7 +128,7 @@
     </article>
 
     <!-- 订单详情模态框 -->
-    <div v-if="showDetailModal && selectedOrder" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" @click.self="showDetailModal = false">
+    <div v-if="showDetailModal && selectedOrder" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <article class="relative w-full max-w-5xl max-h-[95vh] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl flex flex-col">
         <!-- 头部 -->
         <header class="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">

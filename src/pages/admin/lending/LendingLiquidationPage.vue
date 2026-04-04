@@ -243,7 +243,6 @@
     <div 
       v-if="showDetailModal"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      @click.self="closeDetailModal"
     >
       <article class="relative w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col">
         <header class="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
@@ -452,7 +451,6 @@
     <div 
       v-if="showApproveModal"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      @click.self="showApproveModal = false"
     >
       <article class="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl">
         <header class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
@@ -535,7 +533,6 @@
     <div 
       v-if="showCancelModal"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      @click.self="showCancelModal = false"
     >
       <article class="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl">
         <header class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
@@ -624,7 +621,6 @@
     <div 
       v-if="showPauseModal"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      @click.self="showPauseModal = false"
     >
       <article class="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl">
         <header class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
@@ -713,7 +709,6 @@
     <div 
       v-if="showRetryModal"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      @click.self="showRetryModal = false"
     >
       <article class="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl">
         <header class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
@@ -799,7 +794,6 @@
     <div 
       v-if="showContinueModal"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      @click.self="showContinueModal = false"
     >
       <article class="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl">
         <header class="flex items-center justify-between border-b border-slate-200 px-6 py-4">

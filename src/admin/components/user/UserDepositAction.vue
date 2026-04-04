@@ -107,7 +107,6 @@ const confirm = () => {
       <div
         v-if="showModal"
         class="fixed inset-0 z-[60] bg-black/40 grid place-items-center p-4"
-        @click.self="close"
       >
         <section class="w-full max-w-xl rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden">
           <header class="border-b border-slate-200 bg-slate-50 px-5 py-4">

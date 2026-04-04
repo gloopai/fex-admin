@@ -348,7 +348,7 @@ const goNext = () => {
       </div>
     </article>
 
-    <div v-if="showEditModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm" @click.self="closeModal">
+    <div v-if="showEditModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
       <section class="w-full max-w-3xl overflow-hidden rounded-lg bg-white shadow-2xl border border-black/[0.06]">
         <header class="flex items-start justify-between gap-4 border-b border-black/[0.06] bg-white px-6 py-4">
           <div>

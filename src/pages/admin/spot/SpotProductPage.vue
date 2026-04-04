@@ -215,7 +215,6 @@
     <div
       v-if="showModal"
       class="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm"
-      @click.self="closeModal"
     >
       <section class="flex h-[90vh] w-full max-w-6xl overflow-hidden rounded-lg bg-white shadow-2xl border border-black/[0.06]">
         <div class="flex w-3/5 flex-col border-r border-black/[0.06]">

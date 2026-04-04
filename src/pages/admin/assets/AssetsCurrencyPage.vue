@@ -424,7 +424,7 @@ const badgeClass = (status) => (status === ASSET_STATUS.ENABLED ? 'bg-emerald-10
     </article>
   </section>
 
-  <div v-if="showEditModal" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4" @click.self="showEditModal = false">
+  <div v-if="showEditModal" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4">
     <section class="w-full max-w-3xl rounded-xl bg-white">
       <header class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
         <h2 class="text-xl font-semibold text-slate-900">{{ editingCoinId ? '编辑币种配置' : '新增币种配置' }}</h2>

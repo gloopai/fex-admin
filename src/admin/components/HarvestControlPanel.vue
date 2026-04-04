@@ -863,7 +863,7 @@ const klineSvg = computed(() => {
 <template>
   <transition name="slide">
     <div v-if="open" class="fixed inset-0 z-40">
-      <div class="absolute inset-0 bg-slate-900/35" @click="close"></div>
+      <div class="absolute inset-0 bg-slate-900/35"></div>
       <div class="absolute right-0 top-0 h-full w-full max-w-7xl bg-white shadow-2xl flex flex-col">
         <div class="border-b border-slate-200 px-6 py-4">
           <div class="flex items-start justify-between gap-4">

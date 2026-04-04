@@ -149,7 +149,7 @@
     </article>
 
     <!-- 产品编辑模态框 - 左右布局 -->
-    <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4" @click.self="closeModal">
+    <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
       <div class="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col">
         <!-- 弹窗头部 -->
         <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between flex-shrink-0">

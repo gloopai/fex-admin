@@ -5,7 +5,7 @@
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
   ariaLabelledby: { type: String, default: '' },
-  closeOnBackdrop: { type: Boolean, default: true }
+  closeOnBackdrop: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['update:modelValue', 'backdrop-click'])

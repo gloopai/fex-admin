@@ -287,7 +287,6 @@ const statusClass = (status) =>
       <div
         v-if="showTemplateModal"
         class="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm"
-        @click.self="showTemplateModal = false"
       >
         <section
           class="flex flex-col w-full max-w-4xl h-[85vh] overflow-hidden rounded-lg bg-white shadow-xl"

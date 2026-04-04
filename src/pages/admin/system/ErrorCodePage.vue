@@ -341,7 +341,7 @@ const nextPage = () => {
       </div>
     </article>
 
-    <div v-if="modalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" @click.self="closeModal">
+    <div v-if="modalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div class="w-full max-w-lg rounded-xl bg-white shadow-xl overflow-hidden">
         <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
           <h3 class="text-base font-semibold text-slate-900">{{ modalMode === 'create' ? '新建错误码' : '编辑错误码' }}</h3>

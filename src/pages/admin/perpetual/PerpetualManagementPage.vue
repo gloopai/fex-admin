@@ -553,7 +553,7 @@ onMounted(() => {
     </article>
   </section>
 
-  <div v-if="showContractModal" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4" @click.self="showContractModal = false">
+  <div v-if="showContractModal" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4">
     <section class="w-full max-w-3xl rounded-xl bg-white">
       <header class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
         <h2 class="text-2xl font-semibold text-slate-900">{{ editingContractId ? '编辑永续合约' : '新增永续合约' }}</h2>

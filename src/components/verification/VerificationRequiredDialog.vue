@@ -72,10 +72,7 @@ watch(
         aria-modal="true"
         aria-labelledby="vreq-dialog-title"
       >
-        <div
-          class="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
-          @click="close"
-        />
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-[2px]" aria-hidden="true" />
         <div
           class="relative z-[101] w-full max-w-md max-h-[90vh] overflow-y-auto rounded-t-2xl border border-white/10 bg-[#121212] px-4 pb-6 pt-5 text-white shadow-2xl sm:rounded-2xl sm:p-6 sm:px-6"
           @click.stop

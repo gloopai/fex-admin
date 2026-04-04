@@ -1229,7 +1229,6 @@ const openRiskHelpModal = () => {
       <div
         v-if="showRiskHelpModal"
         class="fixed inset-0 bg-slate-900 bg-opacity-50 z-50 flex items-center justify-center p-4"
-        @click.self="showRiskHelpModal = false"
       >
         <!--
           用途：把“风险等级”背后的判定口径透明化，并把每个档位的线控动作标准化：

@@ -228,7 +228,6 @@
     <div 
       v-if="showDetailModal"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      @click.self="closeDetailModal"
     >
       <article class="relative w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col">
         <!-- 标题栏 -->
@@ -395,7 +394,6 @@
     <div 
       v-if="showAdjustModal"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      @click.self="showAdjustModal = false"
     >
       <article class="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl">
         <header class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
@@ -478,7 +476,6 @@
     <div 
       v-if="showCancelModal"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      @click.self="showCancelModal = false"
     >
       <article class="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl">
         <header class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
@@ -570,7 +567,6 @@
     <div 
       v-if="showTransactionModal"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      @click.self="closeTransactionModal"
     >
       <article class="relative w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col">
         <!-- 标题栏 -->

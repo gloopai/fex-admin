@@ -472,7 +472,7 @@ const getFeeTemplateName = (templateId) => {
   </section>
 
   <!-- 编辑/新增弹窗 -->
-  <div v-if="showEditModal" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4" @click.self="showEditModal = false">
+  <div v-if="showEditModal" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4">
     <section class="flex max-h-[75vh] w-full max-w-5xl overflow-hidden rounded-xl bg-white shadow-2xl">
       <div class="flex w-3/5 flex-col border-r border-slate-200">
         <header class="flex items-center justify-between border-b border-slate-200 bg-gradient-to-r from-blue-50 to-cyan-50 px-6 py-4">

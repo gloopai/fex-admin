@@ -264,7 +264,7 @@ const submitTemplate = () => {
     </article>
   </section>
 
-  <div v-if="showTemplateModal" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4" @click.self="showTemplateModal = false">
+  <div v-if="showTemplateModal" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4">
     <section class="w-full max-w-3xl rounded-xl bg-white">
       <header class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
         <h2 class="text-2xl font-semibold text-slate-900">{{ editingTemplateId ? '编辑杠杆模板' : '新增杠杆模板' }}</h2>

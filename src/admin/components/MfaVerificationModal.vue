@@ -74,7 +74,6 @@ const close = () => {
     <div
       v-show="open"
       class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/45 p-4"
-      @click.self="close"
     >
       <section class="w-full max-w-md overflow-hidden rounded-xl bg-white shadow-2xl">
         <!-- 头部 -->

@@ -451,7 +451,6 @@ onMounted(() => {
       <div
         v-if="showContractModal"
         class="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm"
-        @click.self="showContractModal = false"
       >
         <section
           class="flex flex-col w-full max-w-3xl h-[30rem] overflow-hidden rounded-lg bg-white shadow-xl"

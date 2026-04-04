@@ -304,7 +304,6 @@ const sortedVipLevels = computed(() => {
         <div
           v-if="showModal"
           class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          @click.self="closeModal"
         >
           <Transition
             enter-active-class="transition ease-out duration-200"

@@ -432,7 +432,6 @@
     <div 
       v-if="modals.userDetail.visible" 
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      @click.self="modals.userDetail.visible = false"
     >
       <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div class="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
@@ -577,7 +576,6 @@
     <div 
       v-if="modals.userOrders.visible" 
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      @click.self="modals.userOrders.visible = false"
     >
       <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div class="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
@@ -680,7 +678,6 @@
     <div 
       v-if="modals.warning.visible" 
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      @click.self="modals.warning.visible = false"
     >
       <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4">
         <div class="bg-rose-50 border-b border-rose-200 px-6 py-4">

@@ -214,7 +214,6 @@ const tabButtonClass = (id) => {
       <div
         v-if="visible && user"
         class="fixed inset-0 z-50 bg-black/40"
-        @click.self="close"
       >
         <section
           class="user-detail-drawer-panel absolute left-0 right-0 top-0 flex h-[92vh] w-full flex-col overflow-hidden rounded-b-2xl border-b border-slate-200 bg-slate-50 shadow-2xl"
@@ -508,7 +507,6 @@ const tabButtonClass = (id) => {
               <div
                 v-if="showActionModal"
                 class="fixed inset-0 z-[60] bg-black/40 grid place-items-center p-4"
-                @click.self="closeActionModal"
               >
                 <section class="w-full max-w-md rounded-xl border border-slate-200 bg-white shadow-lg overflow-hidden">
                   <header class="px-5 py-3 border-b border-slate-100 bg-white">

@@ -193,7 +193,7 @@ const showToast = (message) => {
 
     <div class="relative min-h-[400px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <transition name="audit-drawer">
-        <div v-if="showDetailModal && selectedAudit && selectedSiteInfo" class="fixed inset-0 z-40 bg-slate-900/35" @click.self="closeDetail">
+        <div v-if="showDetailModal && selectedAudit && selectedSiteInfo" class="fixed inset-0 z-40 bg-slate-900/35">
           <section class="audit-drawer-panel flex h-[88vh] w-full flex-col overflow-hidden rounded-b-2xl border-b border-slate-200 bg-slate-50 shadow-2xl">
             <div class="border-b border-slate-200 bg-gradient-to-r from-white to-slate-100 px-5 py-4">
               <div class="flex items-start justify-between gap-4">

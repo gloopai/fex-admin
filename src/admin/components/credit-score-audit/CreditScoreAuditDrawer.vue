@@ -105,7 +105,6 @@ const submitAudit = () => {
     <div
       v-if="visible && audit && selectedAuditContext"
       class="fixed inset-0 z-40 bg-slate-900/35"
-      @click.self="handleClose"
     >
       <section class="audit-drawer-panel flex h-[88vh] w-full flex-col overflow-hidden rounded-b-2xl border-b border-slate-200 bg-slate-50 shadow-2xl">
         <div class="border-b border-slate-200 bg-gradient-to-r from-white to-slate-100 px-5 py-4">
