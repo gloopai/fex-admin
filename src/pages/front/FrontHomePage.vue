@@ -1,5 +1,8 @@
 <script setup>
+import { getFrontTradeDefaultPath } from '../../constants/frontNav'
+
 const prefix = '/front'
+const tradeDefault = getFrontTradeDefaultPath(prefix)
 
 const brandValues = ['安全稳定', '专业撮合', '快捷下单', '透明费率']
 
@@ -8,7 +11,7 @@ const controlCards = [
   {
     title: '高效交易执行',
     desc: '全链路加密传输与风控校验，委托与成交状态实时可查，降低异常滑点担忧。',
-    to: `${prefix}/trade/perpetual`,
+    to: tradeDefault,
     icon: 'bolt'
   },
   {
@@ -37,7 +40,7 @@ const advantageCards = [
     num: '03',
     title: '深度与低延迟体验',
     desc: '聚合盘口与撮合路由持续优化，尽力让成交更顺、更贴近盘口预期。',
-    to: `${prefix}/trade/perpetual`
+    to: tradeDefault
   }
 ]
 
@@ -89,17 +92,17 @@ const tradeModes = [
   {
     label: 'U 本位永续',
     sub: 'USDT 保证金 · 资金费率机制透明',
-    to: `${prefix}/trade/perpetual`
+    to: `${prefix}/trade/crypto/perpetual`
   },
   {
     label: '现货交易',
     sub: '主流资产即时买卖，与合约同一套行情体验',
-    to: `${prefix}/trade/spot`
+    to: `${prefix}/trade/crypto/spot`
   },
   {
     label: '交割合约',
     sub: '有到期日的合约品种，便于周期策略布局',
-    to: `${prefix}/trade/delivery`
+    to: `${prefix}/trade/crypto/delivery`
   }
 ]
 </script>
@@ -188,7 +191,7 @@ const tradeModes = [
           </ul>
           <div class="mt-6 flex w-full flex-col gap-2.5 sm:mt-7 sm:w-auto sm:flex-row sm:flex-wrap sm:gap-3">
             <RouterLink
-              :to="`${prefix}/trade/perpetual`"
+              :to="tradeDefault"
               class="inline-flex h-12 min-h-[2.75rem] w-full items-center justify-center rounded-md bg-gradient-to-r from-lime-400 to-emerald-500 px-7 text-[15px] font-semibold text-[#0b0e11] shadow-[0_4px_24px_-6px_rgba(163,230,53,0.35)] transition hover:brightness-110 sm:h-11 sm:min-h-0 sm:w-auto sm:text-sm"
             >
               立即交易
@@ -352,7 +355,7 @@ const tradeModes = [
             CryptoX Pro 在撮合、行情与账户体系上持续投入：一方面降低延迟与故障窗口，另一方面让量化、网格等自动化策略可以稳定接入。我们深知，可依赖的系统表现，是交易者长期留存的基础。
           </p>
           <RouterLink
-            :to="`${prefix}/trade/perpetual`"
+            :to="tradeDefault"
             class="mt-5 inline-flex items-center text-[13px] font-semibold text-lime-400 transition hover:text-lime-300 sm:mt-6 sm:text-sm"
           >
             前往交易终端
@@ -539,7 +542,7 @@ const tradeModes = [
         </p>
         <div class="mt-5 flex flex-col items-stretch justify-center gap-2.5 sm:mt-6 sm:flex-row sm:items-center sm:gap-3">
           <RouterLink
-            :to="`${prefix}/trade/perpetual`"
+            :to="tradeDefault"
             class="inline-flex h-12 min-h-[2.75rem] w-full items-center justify-center rounded-md bg-gradient-to-r from-lime-400 to-emerald-500 px-8 text-[15px] font-semibold text-[#0b0e11] shadow-[0_4px_20px_-6px_rgba(163,230,53,0.35)] transition hover:brightness-110 sm:h-11 sm:min-h-0 sm:w-auto sm:text-sm"
           >
             进入永续

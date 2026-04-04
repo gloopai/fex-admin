@@ -1,11 +1,15 @@
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import {
+  TRADE_ASSET_CLASS_KEYS,
+  TRADE_ASSET_CLASS_META,
+  TRADE_PRODUCT_MODE_KEYS,
+  TRADE_PRODUCT_MODE_META
+} from '../../constants/frontNav'
 
 const route = useRoute()
 const router = useRouter()
-
-const tradeMode = computed(() => route.meta.tradeMode || 'perpetual')
 
 const prefix = computed(() => {
   const p = route.path
@@ -13,48 +17,108 @@ const prefix = computed(() => {
   return i > 0 ? p.slice(0, i) : '/front'
 })
 
-const tradeTabs = computed(() => {
-  const pre = prefix.value
-  return [
-    { key: 'spot', label: '现货', to: `${pre}/trade/spot` },
-    { key: 'perpetual', label: '永续合约', to: `${pre}/trade/perpetual` },
-    { key: 'delivery', label: '交割合约', to: `${pre}/trade/delivery` }
-  ]
+const tradeAssetClass = computed(() => {
+  const a = route.params.assetClass
+  return TRADE_ASSET_CLASS_KEYS.includes(a) ? a : 'crypto'
 })
 
-const modeMenuLabel = computed(() => {
-  switch (tradeMode.value) {
-    case 'spot':
-      return '现货'
-    case 'delivery':
-      return '交割合约'
-    default:
-      return '永续合约'
-  }
+const tradeMode = computed(() => {
+  const m = route.params.tradeMode
+  return TRADE_PRODUCT_MODE_KEYS.includes(m) ? m : 'perpetual'
 })
+
+const tradeAssetClassLabel = computed(
+  () => TRADE_ASSET_CLASS_META[tradeAssetClass.value]?.label ?? '加密货币'
+)
+
+const tradeTabs = computed(() => {
+  const pre = prefix.value
+  const ac = tradeAssetClass.value
+  return TRADE_PRODUCT_MODE_KEYS.map((pm) => ({
+    key: pm,
+    label: TRADE_PRODUCT_MODE_META[pm].label,
+    to: `${pre}/trade/${ac}/${pm}`
+  }))
+})
+
+const assetClassTabs = computed(() => {
+  const pre = prefix.value
+  const pm = tradeMode.value
+  return TRADE_ASSET_CLASS_KEYS.map((k) => ({
+    key: k,
+    label: TRADE_ASSET_CLASS_META[k].label,
+    to: `${pre}/trade/${k}/${pm}`
+  }))
+})
+
+const modeMenuLabel = computed(
+  () => TRADE_PRODUCT_MODE_META[tradeMode.value]?.label ?? TRADE_PRODUCT_MODE_META.perpetual.label
+)
 
 const isContract = computed(() => tradeMode.value === 'perpetual' || tradeMode.value === 'delivery')
 
-const pairs = [
-  { base: 'ETH', quote: 'USDT' },
-  { base: 'BTC', quote: 'USDT' },
-  { base: 'SOL', quote: 'USDT' }
-]
+const PAIRS_BY_CLASS = {
+  crypto: [
+    { base: 'ETH', quote: 'USDT' },
+    { base: 'BTC', quote: 'USDT' },
+    { base: 'SOL', quote: 'USDT' }
+  ],
+  forex: [
+    { base: 'EUR', quote: 'USD' },
+    { base: 'GBP', quote: 'USD' },
+    { base: 'USD', quote: 'JPY' }
+  ],
+  metal: [
+    { base: 'XAU', quote: 'USD' },
+    { base: 'XAG', quote: 'USD' },
+    { base: 'XPT', quote: 'USD' }
+  ]
+}
+
+const PAIR_MARKET_TABLE = {
+  'ETH-USDT': [2050.43, -0.358],
+  'BTC-USDT': [98420.5, 1.24],
+  'SOL-USDT': [188.35, 2.91],
+  'EUR-USD': [1.0856, 0.042],
+  'GBP-USD': [1.265, -0.08],
+  'USD-JPY': [149.82, 0.15],
+  'XAU-USD': [2658.2, 0.45],
+  'XAG-USD': [31.42, -0.72],
+  'XPT-USD': [985.3, 0.19]
+}
+
+const pairs = computed(() => PAIRS_BY_CLASS[tradeAssetClass.value] || PAIRS_BY_CLASS.crypto)
 
 const activePairIdx = ref(0)
-const activePair = computed(() => pairs[activePairIdx.value])
+
+watch(tradeAssetClass, () => {
+  activePairIdx.value = 0
+})
+
+watch(pairs, (list) => {
+  if (activePairIdx.value >= list.length) activePairIdx.value = 0
+})
+
+const activePair = computed(() => {
+  const list = pairs.value
+  const i = Math.min(activePairIdx.value, list.length - 1)
+  return list[i]
+})
 
 const symbol = computed(() => `${activePair.value.base} / ${activePair.value.quote}`)
 
 const midNumeric = ref(2050.43)
 const changePct = ref(-0.358)
 
-function syncPairMarket(i) {
-  midNumeric.value = i === 1 ? 98420.5 : i === 2 ? 188.35 : 2050.43
-  changePct.value = i === 1 ? 1.24 : i === 2 ? 2.91 : -0.358
+function syncPairMarket() {
+  const p = activePair.value
+  const key = `${p.base}-${p.quote}`
+  const row = PAIR_MARKET_TABLE[key] || [100, 0]
+  midNumeric.value = row[0]
+  changePct.value = row[1]
 }
 
-watch(activePairIdx, syncPairMarket)
+watch([activePairIdx, tradeAssetClass], syncPairMarket, { immediate: true })
 
 const decimals = computed(() => {
   const m = midNumeric.value
@@ -146,6 +210,26 @@ const lastPrice = computed(() => fmtPriceNum(midNumeric.value, decimals.value))
 
 const stats24h = computed(() => {
   const m = midNumeric.value
+  const dec = decimals.value
+  const ac = tradeAssetClass.value
+  if (ac === 'forex') {
+    return {
+      high: fmtPriceNum(m * 1.0022, dec),
+      low: fmtPriceNum(m * 0.9978, dec),
+      volBase: '128.4K lots',
+      turnover: '—',
+      tradeAmtShort: '—'
+    }
+  }
+  if (ac === 'metal') {
+    return {
+      high: fmtPriceNum(m * 1.006, 2),
+      low: fmtPriceNum(m * 0.994, 2),
+      volBase: `${(8.2 + m / 400).toFixed(1)}K oz`,
+      turnover: '—',
+      tradeAmtShort: '—'
+    }
+  }
   if (m > 50_000) {
     return {
       high: '99,120.50',
@@ -173,29 +257,27 @@ const stats24h = computed(() => {
   }
 })
 
-const marketMiniRows = computed(() => [
-  {
-    idx: 0,
-    label: 'ETH / USDT',
-    price: lastPrice.value,
-    pct: changePct.value,
-    vol: '90.8K'
-  },
-  {
-    idx: 1,
-    label: 'BTC / USDT',
-    price: '98,420.50',
-    pct: 1.24,
-    vol: '12.4K'
-  },
-  {
-    idx: 2,
-    label: 'SOL / USDT',
-    price: '188.35',
-    pct: 2.91,
-    vol: '1.2M'
-  }
-])
+function marketRowDecimals(mid) {
+  if (mid >= 10_000) return 2
+  if (mid >= 100) return 2
+  if (mid >= 1) return mid >= 10 ? 4 : 5
+  return 4
+}
+
+const marketMiniRows = computed(() =>
+  pairs.value.map((p, idx) => {
+    const key = `${p.base}-${p.quote}`
+    const [mid, pct] = PAIR_MARKET_TABLE[key] || [100, 0]
+    const dec = marketRowDecimals(mid)
+    return {
+      idx,
+      label: `${p.base} / ${p.quote}`,
+      price: fmtPriceNum(mid, dec),
+      pct,
+      vol: '—'
+    }
+  })
+)
 
 const pairDrawerOpen = ref(false)
 const modeSheetOpen = ref(false)
@@ -253,7 +335,13 @@ function leaveChartToOrder(side) {
   positionSide.value = side
   chartExpanded.value = false
   nextTick(() => {
-    document.getElementById('mobile-order-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const el = document.getElementById('mobile-order-anchor')
+        if (!el) return
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      })
+    })
   })
 }
 
@@ -280,7 +368,7 @@ const pcBottomTabs = computed(() => {
 })
 
 watch(
-  () => tradeMode.value,
+  [() => tradeMode.value, () => tradeAssetClass.value],
   () => {
     pcBottomTab.value = pcBottomTabs.value[0].key
     if (tradeMode.value === 'spot') positionSide.value = 'long'
@@ -318,7 +406,7 @@ function pairListBadge(base) {
 
 function goMode(path) {
   closeModeSheet()
-  if (route.path !== path) router.push(path)
+  if (!pathsMatch(route.path, path)) router.push(path)
 }
 
 /** 移动端：用底部抽屉代替原生 select */
@@ -391,8 +479,16 @@ function setQtyPct(pct) {
   quantity.value = String(pct)
 }
 
+function normPath(p) {
+  return (p || '').replace(/\/+$/, '') || '/'
+}
+
+function pathsMatch(a, b) {
+  return normPath(a) === normPath(b)
+}
+
 function tabLinkClass(to) {
-  const active = route.path === to || route.path === `${to}/`
+  const active = pathsMatch(route.path, to)
   return active
     ? 'bg-lime-400/15 text-lime-200 ring-1 ring-lime-400/25'
     : 'text-white/65 hover:bg-white/[0.06] hover:text-white/90'
@@ -677,7 +773,21 @@ const pcBottomEmptyText = computed(() => {
           </div>
         </div>
 
-        <div class="ml-auto flex items-center gap-4">
+        <div class="ml-auto flex flex-wrap items-center justify-end gap-3">
+          <nav
+            class="flex rounded-lg border border-white/[0.06] bg-white/[0.04] p-0.5"
+            aria-label="交易品种"
+          >
+            <RouterLink
+              v-for="t in assetClassTabs"
+              :key="t.key"
+              :to="t.to"
+              class="whitespace-nowrap rounded-md px-2.5 py-1.5 text-xs font-medium transition"
+              :class="tabLinkClass(t.to)"
+            >
+              {{ t.label }}
+            </RouterLink>
+          </nav>
           <nav
             class="flex rounded-lg border border-white/[0.06] bg-white/[0.04] p-0.5"
             aria-label="交易类型"
@@ -872,9 +982,9 @@ const pcBottomEmptyText = computed(() => {
           <div
             class="grid grid-cols-3 border-b border-[#1f2429] px-2 py-2 text-[10px] font-medium text-[#848e9c]"
           >
-            <span class="text-left">价格(USDT)</span>
+            <span class="text-left">价格({{ activePair.quote }})</span>
             <span class="text-right">数量({{ activePair.base }})</span>
-            <span class="text-right">合计(USDT)</span>
+            <span class="text-right">合计({{ activePair.quote }})</span>
           </div>
           <div class="min-h-0 flex-1 overflow-y-auto">
             <ul v-if="obSideMode !== 'buy'">
@@ -1083,7 +1193,7 @@ const pcBottomEmptyText = computed(() => {
               <option value="10">10X</option>
               <option value="20">20X</option>
             </select>
-            <label class="block text-[11px] font-medium text-[#8e8e93]">价格 (USDT)</label>
+            <label class="block text-[11px] font-medium text-[#8e8e93]">价格 ({{ activePair.quote }})</label>
             <input
               type="text"
               :placeholder="lastPrice"
@@ -1146,7 +1256,7 @@ const pcBottomEmptyText = computed(() => {
                   v-model="takeProfitPrice"
                   type="text"
                   inputmode="decimal"
-                  placeholder="请输入止盈价格(USDT)"
+                  :placeholder="`请输入止盈价格(${activePair.quote})`"
                   class="min-w-0 flex-1 border-0 bg-transparent px-2 text-center text-xs text-white placeholder:text-[#6b6b70] focus:outline-none focus:ring-0"
                 />
                 <button
@@ -1173,7 +1283,7 @@ const pcBottomEmptyText = computed(() => {
                   v-model="stopLossPrice"
                   type="text"
                   inputmode="decimal"
-                  placeholder="请输入止损价格(USDT)"
+                  :placeholder="`请输入止损价格(${activePair.quote})`"
                   class="min-w-0 flex-1 border-0 bg-transparent px-2 text-center text-xs text-white placeholder:text-[#6b6b70] focus:outline-none focus:ring-0"
                 />
                 <button
@@ -1323,12 +1433,22 @@ const pcBottomEmptyText = computed(() => {
         <div class="flex items-stretch gap-2">
           <button
             type="button"
-            class="flex min-h-[42px] min-w-0 flex-[1.1] items-center gap-1.5 rounded-lg border border-white/[0.05] bg-[#141414] px-2.5 py-2 text-left active:bg-[#1a1a1a]"
+            class="relative flex min-h-[44px] min-w-0 flex-[1.15] touch-manipulation items-center rounded-lg border border-white/[0.05] bg-[#141414] py-2 pl-2.5 pr-8 text-left [-webkit-tap-highlight-color:transparent] active:bg-[#1a1a1a]"
+            aria-haspopup="dialog"
+            :aria-expanded="pairDrawerOpen"
+            :aria-label="`交易对与品种市场，当前 ${symbol}，${tradeAssetClassLabel}`"
             @click="openPairDrawer"
           >
-            <span class="truncate text-[14px] font-semibold leading-tight tracking-tight">{{ symbol }}</span>
-            <span class="truncate text-[11px] text-white/40">{{ modeMenuLabel }}</span>
-            <svg class="ml-auto h-3.5 w-3.5 shrink-0 text-white/35" viewBox="0 0 24 24" fill="none">
+            <span class="block min-w-0 truncate text-left leading-tight">
+              <span class="text-[14px] font-semibold tracking-tight">{{ symbol }}</span>
+              <span class="text-[11px] font-normal text-white/40"> · {{ tradeAssetClassLabel }}</span>
+            </span>
+            <svg
+              class="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/35"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
               <path
                 d="m6 9 6 6 6-6"
                 stroke="currentColor"
@@ -1340,11 +1460,12 @@ const pcBottomEmptyText = computed(() => {
           </button>
           <button
             type="button"
-            class="flex min-h-[42px] max-w-[36%] items-center gap-1 rounded-lg border border-white/[0.05] bg-[#141414] px-2.5 py-2 text-left text-[12px] font-medium text-white/90 active:bg-[#1a1a1a] sm:max-w-none"
+            class="flex min-h-[44px] max-w-[38%] touch-manipulation items-center gap-1 rounded-lg border border-white/[0.05] bg-[#141414] px-2.5 py-2 text-left text-[12px] font-medium text-white/90 [-webkit-tap-highlight-color:transparent] active:bg-[#1a1a1a] sm:max-w-none"
+            :aria-label="`选择交易类型，当前为${modeMenuLabel}`"
             @click="openModeSheet"
           >
-            <span class="truncate">{{ modeMenuLabel }}</span>
-            <svg class="ml-auto h-3.5 w-3.5 shrink-0 text-white/35" viewBox="0 0 24 24" fill="none">
+            <span class="min-w-0 flex-1 truncate">{{ modeMenuLabel }}</span>
+            <svg class="h-3.5 w-3.5 shrink-0 text-white/35" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path
                 d="m6 9 6 6 6-6"
                 stroke="currentColor"
@@ -1356,7 +1477,7 @@ const pcBottomEmptyText = computed(() => {
           </button>
           <button
             type="button"
-            class="flex min-h-[42px] min-w-[42px] shrink-0 items-center justify-center rounded-lg border border-white/[0.05] bg-[#141414] active:bg-[#1a1a1a]"
+            class="flex min-h-[44px] min-w-[44px] shrink-0 touch-manipulation items-center justify-center rounded-lg border border-white/[0.05] bg-[#141414] [-webkit-tap-highlight-color:transparent] active:bg-[#1a1a1a]"
             :class="chartExpanded ? 'text-[#4ade80] ring-1 ring-[#4ade80]/35' : 'text-white/45'"
             aria-label="展开或收起 K 线"
             @click="chartExpanded = !chartExpanded"
@@ -1589,8 +1710,12 @@ const pcBottomEmptyText = computed(() => {
           </div>
         </section>
 
-        <!-- K 线收起：参考 MDFEX 左表单 + 右盘口 -->
-        <div v-show="!chartExpanded" id="mobile-order-anchor" class="flex gap-2.5">
+        <!-- K 线收起：参考 MDFEX 左表单 + 右盘口；scroll-mt 对齐顶栏 sticky + 本页交易条，避免滚入后被挡住 -->
+        <div
+          v-show="!chartExpanded"
+          id="mobile-order-anchor"
+          class="flex scroll-mt-[7.75rem] gap-2.5"
+        >
           <div class="min-w-0 flex-[1.12] space-y-2 py-0.5 pl-0.5 pr-0">
             <div v-if="isContract" class="flex flex-wrap gap-1.5 text-[10px] text-white/45">
               <span class="rounded border border-white/[0.06] px-1.5 py-0.5">全仓</span>
@@ -1754,7 +1879,7 @@ const pcBottomEmptyText = computed(() => {
                 <span
                   class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-white/35"
                 >
-                  USDT
+                  {{ activePair.quote }}
                 </span>
               </div>
             </template>
@@ -1801,14 +1926,14 @@ const pcBottomEmptyText = computed(() => {
                   v-model="takeProfitPrice"
                   type="text"
                   inputmode="decimal"
-                  placeholder="止盈 USDT"
+                  :placeholder="`止盈 ${activePair.quote}`"
                   class="w-full rounded-md border border-white/[0.05] bg-[#141414] px-2 py-1.5 text-center text-[11px] text-white placeholder:text-white/25 focus:border-[#4ade80]/45 focus:outline-none"
                 />
                 <input
                   v-model="stopLossPrice"
                   type="text"
                   inputmode="decimal"
-                  placeholder="止损 USDT"
+                  :placeholder="`止损 ${activePair.quote}`"
                   class="w-full rounded-md border border-white/[0.05] bg-[#141414] px-2 py-1.5 text-center text-[11px] text-white placeholder:text-white/25 focus:border-[#4ade80]/45 focus:outline-none"
                 />
               </div>
@@ -1849,7 +1974,7 @@ const pcBottomEmptyText = computed(() => {
             <div
               class="grid grid-cols-2 gap-0.5 pb-1.5 text-[10px] font-medium text-white/40"
             >
-              <span>价格(USDT)</span>
+              <span>价格({{ activePair.quote }})</span>
               <span class="text-right">数量({{ activePair.base }})</span>
             </div>
             <div
@@ -2054,9 +2179,9 @@ const pcBottomEmptyText = computed(() => {
           >
             <div class="min-w-0 px-2">
               <h2 id="trade-pair-drawer-title" class="text-sm font-semibold text-lime-300">
-                交易对
+                市场与交易对
               </h2>
-              <p class="mt-0.5 text-[11px] text-[#848e9c]">选择市场</p>
+              <p class="mt-0.5 text-[11px] text-[#848e9c]">先选品种，再选具体交易对</p>
             </div>
             <button
               type="button"
@@ -2073,6 +2198,29 @@ const pcBottomEmptyText = computed(() => {
                 />
               </svg>
             </button>
+          </div>
+          <div
+            class="shrink-0 border-b border-[#1f2429] px-2 py-2.5"
+            role="tablist"
+            aria-label="交易品种"
+          >
+            <div class="grid grid-cols-3 gap-1 rounded-lg bg-[#141414] p-0.5 ring-1 ring-white/[0.06]">
+              <RouterLink
+                v-for="t in assetClassTabs"
+                :key="t.key"
+                :to="t.to"
+                role="tab"
+                :aria-selected="tradeAssetClass === t.key"
+                class="touch-manipulation rounded-md py-2 text-center text-[11px] font-semibold leading-none transition [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 focus-visible:ring-offset-1 focus-visible:ring-offset-[#141414] active:opacity-90"
+                :class="
+                  tradeAssetClass === t.key
+                    ? 'bg-white/[0.1] text-lime-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
+                    : 'text-white/45 hover:bg-white/[0.04] hover:text-white/75'
+                "
+              >
+                {{ t.label }}
+              </RouterLink>
+            </div>
           </div>
           <ul
             class="pair-drawer-scroll min-h-0 flex-1 space-y-0.5 overflow-y-auto overscroll-contain px-2 py-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]"
@@ -2202,7 +2350,7 @@ const pcBottomEmptyText = computed(() => {
               >
                 {{ t.label }}
                 <svg
-                  v-if="route.path.replace(/\/$/, '') === t.to.replace(/\/$/, '')"
+                  v-if="pathsMatch(route.path, t.to)"
                   class="h-5 w-5 text-[#a78bfa]"
                   viewBox="0 0 24 24"
                   fill="none"

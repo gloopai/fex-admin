@@ -3,21 +3,69 @@
  * @param {'/front'} prefix
  */
 
+/** 交易品种（与路由段一致） */
+export const TRADE_ASSET_CLASS_KEYS = ['crypto', 'forex', 'metal']
+
+/** 产品形态（与路由段一致） */
+export const TRADE_PRODUCT_MODE_KEYS = ['spot', 'perpetual', 'delivery']
+
+export const TRADE_ASSET_CLASS_META = {
+  crypto: { key: 'crypto', label: '加密货币' },
+  forex: { key: 'forex', label: '外汇' },
+  metal: { key: 'metal', label: '贵金属' }
+}
+
+export const TRADE_PRODUCT_MODE_META = {
+  spot: { key: 'spot', label: '现货' },
+  perpetual: { key: 'perpetual', label: '永续' },
+  delivery: { key: 'delivery', label: '交割' }
+}
+
+/**
+ * 顶栏「交易」下拉：按品种分组，每组内现货 / 永续 / 交割
+ * @param {string} prefix 如 `/front`
+ */
+export function getFrontTradeMenuGroups(prefix) {
+  return TRADE_ASSET_CLASS_KEYS.map((ac) => {
+    const asset = TRADE_ASSET_CLASS_META[ac]
+    return {
+      key: ac,
+      label: asset.label,
+      items: TRADE_PRODUCT_MODE_KEYS.map((pm) => {
+        const mode = TRADE_PRODUCT_MODE_META[pm]
+        return {
+          key: `${ac}-${pm}`,
+          label: mode.label,
+          to: `${prefix}/trade/${ac}/${pm}`,
+          assetClass: ac,
+          tradeMode: pm
+        }
+      })
+    }
+  })
+}
+
+/** 扁平列表（抽屉、active 检测等） */
+export function getFrontTradeNavLinksFlat(prefix) {
+  return getFrontTradeMenuGroups(prefix).flatMap((g) => g.items)
+}
+
+/** 默认交易落地页 */
+export function getFrontTradeDefaultPath(prefix) {
+  return `${prefix}/trade/crypto/perpetual`
+}
+
+/** @deprecated 请用 getFrontTradeMenuGroups / getFrontTradeNavLinksFlat */
+export function getFrontTradeNavLinks(prefix) {
+  return getFrontTradeNavLinksFlat(prefix)
+}
+
 /** 左侧主导航：首页、行情、资产 */
 export function getFrontMainNavLinks(prefix) {
   return [
     { key: 'home', label: '首页', to: `${prefix}/home` },
     { key: 'market', label: '行情', to: `${prefix}/market` },
     { key: 'assets', label: '资产', to: `${prefix}/personal-center/assets` }
-  ]
-}
-
-/** 交易下拉 */
-export function getFrontTradeNavLinks(prefix) {
-  return [
-    { key: 'trade-spot', label: '现货', to: `${prefix}/trade/spot` },
-    { key: 'trade-perp', label: '永续合约', to: `${prefix}/trade/perpetual` },
-    { key: 'trade-delivery', label: '交割合约', to: `${prefix}/trade/delivery` }
   ]
 }
 
@@ -29,7 +77,7 @@ export function getFrontBottomTabs(prefix) {
   return [
     { key: 'home', label: '首页', to: `${prefix}/home` },
     { key: 'market', label: '行情', to: `${prefix}/market` },
-    { key: 'trade', label: '交易', to: `${prefix}/trade/perpetual` },
+    { key: 'trade', label: '交易', to: getFrontTradeDefaultPath(prefix) },
     { key: 'assets', label: '资产', to: `${prefix}/personal-center/assets` },
     { key: 'me', label: '我的', to: `${prefix}/personal-center` }
   ]

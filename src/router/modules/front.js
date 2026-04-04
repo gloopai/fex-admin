@@ -17,25 +17,32 @@ export const frontDesktopRoutes = [
   },
   {
     path: 'trade',
-    redirect: '/front/trade/perpetual'
+    redirect: '/front/trade/crypto/perpetual'
   },
   {
     path: 'trade/spot',
-    name: 'front-trade-spot-desktop',
-    component: () => import('../../pages/front/FrontTradePage.vue'),
-    meta: { title: '现货交易', tradeMode: 'spot' }
+    redirect: '/front/trade/crypto/spot'
   },
   {
     path: 'trade/perpetual',
-    name: 'front-trade-perpetual-desktop',
-    component: () => import('../../pages/front/FrontTradePage.vue'),
-    meta: { title: '永续合约', tradeMode: 'perpetual' }
+    redirect: '/front/trade/crypto/perpetual'
   },
   {
     path: 'trade/delivery',
-    name: 'front-trade-delivery-desktop',
+    redirect: '/front/trade/crypto/delivery'
+  },
+  {
+    path: 'trade/:assetClass/:tradeMode',
+    name: 'front-trade-desktop',
     component: () => import('../../pages/front/FrontTradePage.vue'),
-    meta: { title: '交割合约', tradeMode: 'delivery' }
+    meta: { title: '交易' },
+    beforeEnter(to) {
+      const okA = new Set(['crypto', 'forex', 'metal'])
+      const okM = new Set(['spot', 'perpetual', 'delivery'])
+      if (!okA.has(to.params.assetClass) || !okM.has(to.params.tradeMode)) {
+        return { path: '/front/trade/crypto/perpetual' }
+      }
+    }
   },
   {
     path: 'assets',

@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { getFrontMainNavLinks, getFrontTradeNavLinks } from '../constants/frontNav'
+import { getFrontMainNavLinks, getFrontTradeMenuGroups } from '../constants/frontNav'
 import { getPersonalCenterShellMobileNavItems } from '../constants/personalCenterNav'
 
 const props = defineProps({
@@ -18,7 +18,7 @@ const navRoot = ref(null)
 const mobileDrawerRef = ref(null)
 
 const mainLinks = computed(() => getFrontMainNavLinks(props.prefix))
-const tradeLinks = computed(() => getFrontTradeNavLinks(props.prefix))
+const tradeMenuGroups = computed(() => getFrontTradeMenuGroups(props.prefix))
 
 const pcDrawerShortcuts = computed(() =>
   getPersonalCenterShellMobileNavItems(props.prefix).filter((i) => i.key !== 'assets')
@@ -27,11 +27,10 @@ const pcDrawerShortcuts = computed(() =>
 const pcBase = computed(() => `${props.prefix}/personal-center`)
 const assetsBase = computed(() => `${props.prefix}/personal-center/assets`)
 
-/** 抽屉：主导航（不含演示页） */
-const drawerMainNavEntries = computed(() => [
-  ...mainLinks.value.map((i) => ({ ...i, icon: i.key })),
-  ...tradeLinks.value.map((i) => ({ ...i, icon: i.key }))
-])
+/** 抽屉：首页 / 行情 / 资产 */
+const drawerPrimaryNavEntries = computed(() =>
+  mainLinks.value.map((i) => ({ ...i, icon: i.key }))
+)
 
 /** 抽屉：个人中心 */
 const drawerPersonalNavEntries = computed(() => {
@@ -75,12 +74,6 @@ function drawerIconPaths(icon) {
     market: ['M4 16l4-6 4 3 4-8 4 5', 'M4 20h16'],
     assets: [
       'M19 7V4H5v3M5 11c0 4.5 3.6 8 8 8s8-3.5 8-8m-16 0v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9'
-    ],
-    'trade-spot': ['M7 16V4m0 0L3 8m4-4 4 4M17 8v12m0 0 4-4m-4 4-4-4'],
-    'trade-perp': ['M7 4v16M12 4v16M17 4v16'],
-    'trade-delivery': [
-      'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
-      'M8 11h8'
     ],
     user: [
       'M12 12a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z',
@@ -135,7 +128,9 @@ function isMainActive(to) {
 }
 
 function isTradeSectionActive() {
-  return tradeLinks.value.some((l) => isActivePath(l.to))
+  const p = route.path
+  const base = `${props.prefix}/trade/`
+  return p.startsWith(base)
 }
 
 function linkNavClass(active) {
@@ -329,20 +324,31 @@ function drawerRowClass(item) {
               <div
                 v-show="tradeOpen"
                 id="front-trade-panel"
-                class="absolute left-0 top-full z-30 mt-1.5 min-w-[11rem] overflow-hidden rounded-md border border-[#1f2429] bg-[#1e2329] py-1 shadow-xl shadow-black/50"
+                class="absolute left-0 top-full z-30 mt-1.5 flex min-w-[22rem] divide-x divide-[#1f2429] overflow-hidden rounded-md border border-[#1f2429] bg-[#1e2329] py-1.5 shadow-xl shadow-black/50"
                 role="menu"
               >
-                <RouterLink
-                  v-for="item in tradeLinks"
-                  :key="item.key"
-                  :to="item.to"
-                  role="menuitem"
-                  class="block px-4 py-2.5 text-sm transition-colors lg:text-[0.9375rem] lg:leading-snug"
-                  :class="dropdownItemClass(item.to)"
-                  @click="tradeOpen = false"
+                <div
+                  v-for="group in tradeMenuGroups"
+                  :key="group.key"
+                  class="min-w-0 flex-1 px-0.5 first:pl-0 last:pr-0"
                 >
-                  {{ item.label }}
-                </RouterLink>
+                  <p
+                    class="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#848e9c]"
+                  >
+                    {{ group.label }}
+                  </p>
+                  <RouterLink
+                    v-for="item in group.items"
+                    :key="item.key"
+                    :to="item.to"
+                    role="menuitem"
+                    class="block px-3 py-2 text-sm transition-colors lg:text-[0.9375rem] lg:leading-snug"
+                    :class="dropdownItemClass(item.to)"
+                    @click="tradeOpen = false"
+                  >
+                    {{ item.label }}
+                  </RouterLink>
+                </div>
               </div>
             </Transition>
           </div>
@@ -401,11 +407,9 @@ function drawerRowClass(item) {
 
         <RouterLink
           :to="`${prefix}/personal-center`"
-          class="rounded-md bg-[#1f2429] px-3 py-1.5 text-sm font-medium text-[#eaecef] transition hover:bg-[#3f4652] focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 sm:px-4 sm:py-2"
+          class="rounded-lg px-3.5 py-2 text-sm font-medium text-[#eaecef] transition [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b0e11] hover:bg-[#3f4652] sm:px-4"
           :class="
-            isPersonalCenterNavActive()
-              ? 'ring-1 ring-lime-400/40 ring-offset-1 ring-offset-[#0b0e11]'
-              : ''
+            isPersonalCenterNavActive() ? 'bg-[#3f4652] text-white' : 'bg-[#1f2429]'
           "
           @click="mobileOpen = false"
         >
@@ -493,7 +497,7 @@ function drawerRowClass(item) {
               </p>
               <div class="space-y-1">
                 <RouterLink
-                  v-for="item in drawerMainNavEntries"
+                  v-for="item in drawerPrimaryNavEntries"
                   :key="item.key"
                   :to="item.to"
                   role="menuitem"
@@ -524,7 +528,7 @@ function drawerRowClass(item) {
                 class="mx-3 mb-1 mt-6 h-px bg-gradient-to-r from-transparent via-white/[0.07] to-transparent"
                 aria-hidden="true"
               />
-              <p class="mb-2.5 mt-4 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#848e9c]/90 sm:tracking-wider">
+              <p class="mb-2.5 mt-6 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#848e9c]/90 sm:tracking-wider">
                 个人中心
               </p>
               <div class="space-y-1">

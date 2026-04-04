@@ -46,6 +46,14 @@ export default createRouter({
   scrollBehavior(to, from, savedPosition) {
     if (savedPosition) return savedPosition
     if (to.hash) return { el: to.hash, behavior: 'smooth' }
+    const tradePathRe = /^\/front\/trade\/[^/]+\/[^/]+$/
+    if (
+      from?.path &&
+      tradePathRe.test(to.path) &&
+      tradePathRe.test(from.path)
+    ) {
+      return false
+    }
     return { left: 0, top: 0 }
   }
 })
