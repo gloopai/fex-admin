@@ -16,7 +16,8 @@ export function getFrontMainNavLinks(prefix) {
 export function getFrontTradeNavLinks(prefix) {
   return [
     { key: 'trade-spot', label: '现货', to: `${prefix}/trade/spot` },
-    { key: 'trade-perp', label: '永续合约', to: `${prefix}/trade/perpetual` }
+    { key: 'trade-perp', label: '永续合约', to: `${prefix}/trade/perpetual` },
+    { key: 'trade-delivery', label: '交割合约', to: `${prefix}/trade/delivery` }
   ]
 }
 
@@ -28,7 +29,7 @@ export function getFrontBottomTabs(prefix) {
   return [
     { key: 'home', label: '首页', to: `${prefix}/home` },
     { key: 'market', label: '行情', to: `${prefix}/market` },
-    { key: 'trade', label: '交易', to: `${prefix}/trade/spot` },
+    { key: 'trade', label: '交易', to: `${prefix}/trade/perpetual` },
     { key: 'assets', label: '资产', to: `${prefix}/personal-center/assets` },
     { key: 'me', label: '我的', to: `${prefix}/personal-center` }
   ]

@@ -16,16 +16,26 @@ export const frontDesktopRoutes = [
     meta: { title: '行情' }
   },
   {
+    path: 'trade',
+    redirect: '/front/trade/perpetual'
+  },
+  {
     path: 'trade/spot',
     name: 'front-trade-spot-desktop',
-    component: () => import('../../pages/front/FrontPlaceholderPage.vue'),
-    meta: { title: '现货交易' }
+    component: () => import('../../pages/front/FrontTradePage.vue'),
+    meta: { title: '现货交易', tradeMode: 'spot' }
   },
   {
     path: 'trade/perpetual',
     name: 'front-trade-perpetual-desktop',
-    component: () => import('../../pages/front/FrontPlaceholderPage.vue'),
-    meta: { title: '永续合约' }
+    component: () => import('../../pages/front/FrontTradePage.vue'),
+    meta: { title: '永续合约', tradeMode: 'perpetual' }
+  },
+  {
+    path: 'trade/delivery',
+    name: 'front-trade-delivery-desktop',
+    component: () => import('../../pages/front/FrontTradePage.vue'),
+    meta: { title: '交割合约', tradeMode: 'delivery' }
   },
   {
     path: 'assets',

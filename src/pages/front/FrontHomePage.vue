@@ -22,10 +22,10 @@ const prefix = '/front'
         资产
       </RouterLink>
       <RouterLink
-        :to="`${prefix}/trade/spot`"
+        :to="`${prefix}/trade/perpetual`"
         class="rounded-xl bg-lime-400 px-4 py-2.5 text-sm font-semibold text-black hover:bg-lime-300"
       >
-        现货交易
+        交易
       </RouterLink>
       <RouterLink
         :to="`${prefix}/personal-center`"

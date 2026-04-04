@@ -78,6 +78,10 @@ function drawerIconPaths(icon) {
     ],
     'trade-spot': ['M7 16V4m0 0L3 8m4-4 4 4M17 8v12m0 0 4-4m-4 4-4-4'],
     'trade-perp': ['M7 4v16M12 4v16M17 4v16'],
+    'trade-delivery': [
+      'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
+      'M8 11h8'
+    ],
     user: [
       'M12 12a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z',
       'M4 20.5c1.6-3.2 4.7-5 8-5s6.4 1.8 8 5'
