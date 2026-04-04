@@ -1,3 +1,44 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/**
+ * 前台路由挂载时由 FrontDesktopLayout 为 html、body 添加 .front-site。
+ * 解决移动端纵向橡皮筋、横向拖拽时露出 body 默认浅灰/白底的问题。
+ */
+html.front-site,
+html.front-site body {
+  background-color: #050505;
+}
+
+/**
+ * 注意：不要在 html/body/#app 上设 overflow-x:hidden，否则会破坏子树内 position:sticky（顶栏）。
+ * 横向裁剪放在 FrontDesktopLayout 里导航下方的内容包裹层。
+ */
+html.front-site {
+  overscroll-behavior: none;
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: none;
+}
+
+html.front-site body {
+  overscroll-behavior: none;
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: none;
+}
+
+/* 移动端：主界面（文档滚动）隐藏滚动条，仍可正常滑动 */
+@media (max-width: 1023px) {
+  html.front-site,
+  html.front-site body,
+  html.front-site #app {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  html.front-site::-webkit-scrollbar,
+  html.front-site body::-webkit-scrollbar,
+  html.front-site #app::-webkit-scrollbar {
+    display: none;
+  }
+}
