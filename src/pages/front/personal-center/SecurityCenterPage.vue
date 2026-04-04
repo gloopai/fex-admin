@@ -142,17 +142,17 @@ function onMfaCompleted() {
           {{ passwordOk ? '已设置' : '待完善' }}
         </span>
       </div>
-      <div class="mt-4 flex flex-wrap gap-2 border-t border-white/10 pt-4">
+      <div class="mt-4 flex flex-wrap gap-2.5 border-t border-white/10 pt-4">
         <button
           type="button"
-          class="rounded-lg border border-white/18 px-4 py-2 text-xs font-medium text-white/80 hover:bg-white/[0.06]"
+          class="inline-flex min-h-9 items-center justify-center rounded-lg bg-lime-400 px-4 py-2 text-xs font-semibold text-black shadow-[inset_0_1px_0_0_rgba(255,255,255,0.2)] transition [-webkit-tap-highlight-color:transparent] hover:bg-lime-300 active:bg-lime-500/90"
           @click="changePasswordOpen = true"
         >
           修改密码
         </button>
         <button
           type="button"
-          class="rounded-lg border border-white/18 px-4 py-2 text-xs font-medium text-white/80 hover:bg-white/[0.06]"
+          class="inline-flex min-h-9 items-center justify-center rounded-lg border border-white/[0.12] bg-white/[0.04] px-4 py-2 text-xs font-medium text-[#eaecef] transition [-webkit-tap-highlight-color:transparent] hover:border-lime-400/35 hover:bg-lime-400/[0.06] hover:text-white"
           @click="deviceManagementOpen = true"
         >
           设备管理
