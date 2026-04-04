@@ -44,30 +44,40 @@ html.front-site body {
 }
 
 /**
- * 前台长列表：细滚动条（交易对抽屉、主导航抽屉、PC 侧栏币对等）。
- * 放在全局，避免各组件 scoped 重复。
+ * 前台长列表 / 终端内滚动：细滚动条、深灰轨道，与 #0b0e11 / #121214 侧栏一致。
+ *（交易对抽屉、PC 盘口、下单表单、侧栏币对列表等）
  */
 .trade-pair-scroll {
   scrollbar-width: thin;
-  scrollbar-color: rgba(132, 142, 156, 0.5) rgba(255, 255, 255, 0.04);
+  scrollbar-color: rgba(132, 142, 156, 0.55) rgba(0, 0, 0, 0.2);
+  scrollbar-gutter: stable;
 }
 
 .trade-pair-scroll::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 
 .trade-pair-scroll::-webkit-scrollbar-track {
-  margin: 2px 0;
-  background: rgba(255, 255, 255, 0.04);
+  margin: 4px 2px;
+  background: rgba(0, 0, 0, 0.22);
   border-radius: 9999px;
 }
 
 .trade-pair-scroll::-webkit-scrollbar-thumb {
-  background: rgba(132, 142, 156, 0.45);
+  background: linear-gradient(
+    180deg,
+    rgba(132, 142, 156, 0.5),
+    rgba(132, 142, 156, 0.35)
+  );
   border-radius: 9999px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
 }
 
 .trade-pair-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(132, 142, 156, 0.72);
+  background: linear-gradient(
+    180deg,
+    rgba(160, 168, 180, 0.65),
+    rgba(132, 142, 156, 0.5)
+  );
 }
