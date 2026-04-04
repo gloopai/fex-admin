@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
+import FrontBindSuccessState from './FrontBindSuccessState.vue'
 import FrontDarkField from './FrontDarkField.vue'
 import FrontFlowStepHeader from './FrontFlowStepHeader.vue'
 import FrontLimeButton from './FrontLimeButton.vue'
@@ -100,8 +101,16 @@ function onFinish() {
       </template>
 
       <template v-else>
-        <p class="text-sm leading-relaxed text-emerald-100/85">手机号已绑定成功。</p>
-        <FrontLimeButton class="mt-6 w-full" @click="onFinish">完成</FrontLimeButton>
+        <FrontBindSuccessState @primary="onFinish">
+          <template #title>手机号绑定成功</template>
+          <template #description>
+            号码
+            <span class="font-medium text-emerald-100/90 tabular-nums">{{
+              phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')
+            }}</span>
+            已可用于短信验证与账户安全通知。
+          </template>
+        </FrontBindSuccessState>
       </template>
     </div>
   </div>

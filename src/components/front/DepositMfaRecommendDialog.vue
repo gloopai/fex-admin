@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
+import FrontBindSuccessState from './FrontBindSuccessState.vue'
 import FrontPopupCard from './FrontPopupCard.vue'
 import FrontPopupCloseButton from './FrontPopupCloseButton.vue'
 import FrontPopupInnerPanel from './FrontPopupInnerPanel.vue'
@@ -23,14 +24,9 @@ const emit = defineEmits([
 const mfaPhase = ref('prompt')
 const mfaBindStep = ref(1)
 const mfaOtp = ref('')
-const mfaSlideForward = ref(true)
 
 const mfaViewKey = computed(() =>
   mfaPhase.value === 'prompt' ? 'prompt' : `bind-${mfaBindStep.value}`
-)
-
-const mfaSlideTransitionName = computed(() =>
-  mfaSlideForward.value ? 'mfa-slide-fwd' : 'mfa-slide-back'
 )
 
 const otpValid = computed(() => /^\d{6}$/.test(mfaOtp.value))
@@ -39,7 +35,6 @@ function resetMfaFlow() {
   mfaPhase.value = 'prompt'
   mfaBindStep.value = 1
   mfaOtp.value = ''
-  mfaSlideForward.value = true
 }
 
 watch(() => props.modelValue, () => {
@@ -56,14 +51,12 @@ function mfaPromptSkip() {
 }
 
 function mfaPromptGoBind() {
-  mfaSlideForward.value = true
   mfaPhase.value = 'bind'
   mfaBindStep.value = 1
   mfaOtp.value = ''
 }
 
 function mfaBackToPrompt() {
-  mfaSlideForward.value = false
   mfaPhase.value = 'prompt'
   mfaBindStep.value = 1
   mfaOtp.value = ''
@@ -71,14 +64,12 @@ function mfaBackToPrompt() {
 
 function mfaBindNext() {
   if (mfaBindStep.value < 3) {
-    mfaSlideForward.value = true
     mfaBindStep.value += 1
   }
 }
 
 function mfaBindPrev() {
   if (mfaBindStep.value > 1) {
-    mfaSlideForward.value = false
     mfaBindStep.value -= 1
     mfaOtp.value = ''
   }
@@ -93,7 +84,6 @@ function copyDemoSecret() {
 
 function submitMfaOtp() {
   if (!otpValid.value) return
-  mfaSlideForward.value = true
   mfaBindStep.value = 3
 }
 
@@ -111,8 +101,13 @@ function finishMfaBind() {
     @backdrop-click="emit('backdrop-close')"
   >
     <FrontPopupCard variant="shell">
-      <Transition :name="mfaSlideTransitionName" mode="out-in">
-        <FrontPopupInnerPanel :key="mfaViewKey" max-preset="720" @click.stop>
+      <Transition name="mfa-bind-view" mode="out-in">
+        <FrontPopupInnerPanel
+          :key="mfaViewKey"
+          max-preset="720"
+          class="min-h-[min(42vh,320px)]"
+          @click.stop
+        >
           <FrontPopupCloseButton @click="close" />
           <div class="shrink-0 border-b border-white/10 px-4 pb-3 pt-4">
             <div class="flex items-start gap-3">
@@ -130,7 +125,7 @@ function finishMfaBind() {
                   <template v-if="mfaPhase === 'prompt'">建议绑定两步验证</template>
                   <template v-else-if="mfaBindStep === 1">在验证器中添加密钥</template>
                   <template v-else-if="mfaBindStep === 2">确认验证码</template>
-                  <template v-else>绑定成功</template>
+                  <template v-else>验证器已启用</template>
                 </h3>
               </div>
             </div>
@@ -208,13 +203,19 @@ function finishMfaBind() {
             </template>
 
             <template v-else>
-              <p class="text-sm leading-relaxed text-emerald-100/85">
-                两步验证已启用。请妥善保管手机与验证器应用；若更换设备，请按平台流程迁移或重新绑定。
-              </p>
+              <FrontBindSuccessState primary-label="完成" @primary="finishMfaBind">
+                <template #title>Google 验证器已启用</template>
+                <template #description>
+                  你的账户多了一层动态口令保护。请妥善保管手机与验证器应用；更换设备时请按平台流程迁移或于安全中心重新绑定。
+                </template>
+              </FrontBindSuccessState>
             </template>
           </div>
 
-          <div class="shrink-0 border-t border-white/10 px-4 pb-5 pt-4">
+          <div
+            v-if="mfaPhase === 'prompt' || (mfaPhase === 'bind' && mfaBindStep < 3)"
+            class="shrink-0 border-t border-white/10 px-4 pb-5 pt-4"
+          >
             <template v-if="mfaPhase === 'prompt'">
               <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                 <button
@@ -272,16 +273,6 @@ function finishMfaBind() {
                 </button>
               </div>
             </template>
-
-            <template v-else>
-              <button
-                type="button"
-                class="w-full rounded-lg bg-lime-400 px-4 py-2.5 text-sm font-semibold text-black hover:bg-lime-300 sm:w-auto sm:min-w-[120px]"
-                @click="finishMfaBind"
-              >
-                完成
-              </button>
-            </template>
           </div>
         </FrontPopupInnerPanel>
       </Transition>
@@ -290,42 +281,28 @@ function finishMfaBind() {
 </template>
 
 <style scoped>
-.mfa-slide-fwd-enter-active,
-.mfa-slide-fwd-leave-active,
-.mfa-slide-back-enter-active,
-.mfa-slide-back-leave-active {
-  transition: transform 0.34s cubic-bezier(0.32, 0.72, 0, 1);
+.mfa-bind-view-enter-active {
+  transition: opacity 0.16s ease-out;
 }
 
-.mfa-slide-fwd-enter-from {
-  transform: translateX(100%);
+.mfa-bind-view-leave-active {
+  transition: opacity 0.1s ease-in;
 }
 
-.mfa-slide-fwd-leave-to {
-  transform: translateX(-100%);
-}
-
-.mfa-slide-back-enter-from {
-  transform: translateX(-100%);
-}
-
-.mfa-slide-back-leave-to {
-  transform: translateX(100%);
+.mfa-bind-view-enter-from,
+.mfa-bind-view-leave-to {
+  opacity: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mfa-slide-fwd-enter-active,
-  .mfa-slide-fwd-leave-active,
-  .mfa-slide-back-enter-active,
-  .mfa-slide-back-leave-active {
+  .mfa-bind-view-enter-active,
+  .mfa-bind-view-leave-active {
     transition-duration: 0.01ms !important;
   }
 
-  .mfa-slide-fwd-enter-from,
-  .mfa-slide-fwd-leave-to,
-  .mfa-slide-back-enter-from,
-  .mfa-slide-back-leave-to {
-    transform: none !important;
+  .mfa-bind-view-enter-from,
+  .mfa-bind-view-leave-to {
+    opacity: 1 !important;
   }
 }
 </style>

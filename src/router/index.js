@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import ConsoleLayout from '../layouts/ConsoleLayout.vue'
 import FrontDesktopLayout from '../layouts/FrontDesktopLayout.vue'
 import HomeEntryPage from '../pages/HomeEntryPage.vue'
+import { useFrontAuthStore } from '../stores/frontAuth'
 import { consoleRoutes } from './modules/console'
 import { legacyRoutes } from './modules/legacy'
 import { frontDesktopRoutes } from './modules/front'
@@ -40,7 +41,7 @@ const routes = [
   }
 ]
 
-export default createRouter({
+const router = createRouter({
   history: createWebHistory(),
   routes,
   scrollBehavior(to, from, savedPosition) {
@@ -57,3 +58,31 @@ export default createRouter({
     return { left: 0, top: 0 }
   }
 })
+
+router.beforeEach((to) => {
+  const auth = useFrontAuthStore()
+  auth.ensureHydrated()
+
+  const needAuth = to.matched.some((r) => r.meta.requiresAuth)
+  if (needAuth && !auth.isLoggedIn) {
+    return {
+      path: '/front/login',
+      query: { redirect: to.fullPath }
+    }
+  }
+
+  const guestOnly = to.matched.some((r) => r.meta.guestOnly)
+  if (guestOnly && auth.isLoggedIn) {
+    const r =
+      typeof to.query.redirect === 'string' &&
+      to.query.redirect.startsWith('/front') &&
+      !to.query.redirect.startsWith('/front/login')
+        ? to.query.redirect
+        : '/front/personal-center'
+    return r
+  }
+
+  return true
+})
+
+export default router

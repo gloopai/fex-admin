@@ -1,3 +1,10 @@
+/**
+ * 前台路由（/front）。
+ * 需登录：personal-center 整树、trade/:assetClass/:tradeMode、verification-*-demo。
+ * 公开：home、market、login、register。
+ * 守卫与组合式函数：router/index.js、src/composables/useRequireFrontAuth.js
+ */
+import { FRONT_DEPOSIT_DEFAULT_SYMBOL_LOWER } from '../../constants/frontAssetCenterDemo'
 export const frontDesktopRoutes = [
   {
     path: '',
@@ -35,7 +42,7 @@ export const frontDesktopRoutes = [
     path: 'trade/:assetClass/:tradeMode',
     name: 'front-trade-desktop',
     component: () => import('../../pages/front/FrontTradePage.vue'),
-    meta: { title: '交易' },
+    meta: { title: '交易', requiresAuth: true },
     beforeEnter(to) {
       const okA = new Set(['crypto', 'forex', 'metal'])
       const okM = new Set(['spot', 'perpetual', 'delivery'])
@@ -49,7 +56,20 @@ export const frontDesktopRoutes = [
     redirect: '/front/personal-center/assets'
   },
   {
+    path: 'login',
+    name: 'front-login',
+    component: () => import('../../pages/front/FrontAuthPage.vue'),
+    meta: { title: '登录', guestOnly: true }
+  },
+  {
+    path: 'register',
+    name: 'front-register',
+    component: () => import('../../pages/front/FrontAuthPage.vue'),
+    meta: { title: '注册', guestOnly: true }
+  },
+  {
     path: 'personal-center',
+    meta: { requiresAuth: true },
     component: () => import('../../layouts/PersonalCenterShellLayout.vue'),
     children: [
       {
@@ -81,6 +101,39 @@ export const frontDesktopRoutes = [
         name: 'front-personal-assets-desktop',
         component: () => import('../../pages/front/FrontAssetsPage.vue'),
         meta: { title: '资产' }
+      },
+      {
+        path: 'assets/withdraw',
+        name: 'front-personal-assets-withdraw',
+        component: () => import('../../pages/front/personal-center/AssetsWithdrawPage.vue'),
+        meta: { title: '提币' }
+      },
+      {
+        path: 'assets/transfer',
+        name: 'front-personal-assets-transfer',
+        component: () => import('../../pages/front/personal-center/AssetsTransferPage.vue'),
+        meta: { title: '划转' }
+      },
+      {
+        path: 'assets/convert',
+        name: 'front-personal-assets-convert',
+        component: () => import('../../pages/front/personal-center/AssetsFlashConvertPage.vue'),
+        meta: { title: '闪兑' }
+      },
+      {
+        path: 'assets/deposit',
+        name: 'front-personal-assets-deposit',
+        redirect: () => ({
+          name: 'front-personal-assets-deposit-detail',
+          params: { symbol: FRONT_DEPOSIT_DEFAULT_SYMBOL_LOWER }
+        }),
+        meta: { title: '充币' }
+      },
+      {
+        path: 'assets/deposit/:symbol',
+        name: 'front-personal-assets-deposit-detail',
+        component: () => import('../../pages/front/personal-center/AssetsDepositDetailPage.vue'),
+        meta: { title: '充币' }
       },
       {
         path: 'ledger',
@@ -133,7 +186,8 @@ export const frontDesktopRoutes = [
     name: 'front-verification-permission-demo-desktop',
     component: () => import('../../pages/front/VerificationPermissionDemoPage.vue'),
     meta: {
-      title: '账户权限（PC）'
+      title: '账户权限（PC）',
+      requiresAuth: true
     }
   },
   {
@@ -141,7 +195,8 @@ export const frontDesktopRoutes = [
     name: 'front-verification-popup-demo-desktop',
     component: () => import('../../pages/front/VerificationPopupDemoPage.vue'),
     meta: {
-      title: '安全与验证（PC）'
+      title: '安全与验证（PC）',
+      requiresAuth: true
     }
   }
 ]

@@ -65,31 +65,46 @@ function navActive(item) {
       <!-- 大屏左侧导航 -->
       <aside class="hidden w-[260px] shrink-0 lg:block" aria-label="个人中心导航">
         <div class="sticky top-20 space-y-6">
-          <div class="rounded-2xl border border-white/[0.04] bg-white/[0.035] p-4">
-            <p class="text-xs font-medium uppercase tracking-wider text-white/40">菜单</p>
-            <nav class="mt-3 space-y-0.5">
+          <div class="rounded-2xl border border-white/[0.06] bg-white/[0.025] p-4">
+            <p class="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/42">
+              菜单
+            </p>
+            <nav class="mt-3 space-y-1">
               <RouterLink
                 v-for="item in primaryNav"
                 :key="item.key"
                 :to="item.to"
-                class="flex flex-col rounded-xl border px-3 py-2.5 text-left transition [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[#08090c]"
+                class="group flex items-stretch gap-3 rounded-xl py-2 pl-2 pr-3 text-left transition-colors duration-200 [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505]"
                 :class="
                   navActive(item)
-                    ? 'border-lime-400/35 bg-lime-400/[0.06]'
-                    : 'border-transparent hover:bg-white/[0.04]'
+                    ? 'bg-white/[0.055]'
+                    : 'hover:bg-white/[0.035]'
                 "
               >
                 <span
-                  class="text-sm font-medium"
-                  :class="navActive(item) ? 'text-lime-100' : 'text-white/85'"
-                >
-                  {{ item.label }}
-                </span>
-                <span
-                  class="mt-0.5 text-xs"
-                  :class="navActive(item) ? 'text-lime-100/50' : 'text-white/42'"
-                >
-                  {{ item.description }}
+                  class="mt-1.5 mb-1.5 w-[3px] shrink-0 self-stretch rounded-full transition-colors duration-200"
+                  :class="
+                    navActive(item)
+                      ? 'bg-gradient-to-b from-lime-300 to-lime-500/90'
+                      : 'bg-transparent group-hover:bg-white/[0.12]'
+                  "
+                  aria-hidden="true"
+                />
+                <span class="flex min-w-0 flex-col py-0.5">
+                  <span
+                    class="text-[15px] font-semibold leading-snug tracking-tight"
+                    :class="navActive(item) ? 'text-white' : 'text-white/[0.92]'"
+                  >
+                    {{ item.label }}
+                  </span>
+                  <span
+                    class="mt-1 text-[11px] font-normal leading-relaxed"
+                    :class="
+                      navActive(item) ? 'text-white/48' : 'text-[#848e9c] group-hover:text-white/55'
+                    "
+                  >
+                    {{ item.description }}
+                  </span>
                 </span>
               </RouterLink>
             </nav>
@@ -114,35 +129,33 @@ function navActive(item) {
       <!-- 窄屏：仅在总览页底部 — 3×3 紧凑网格；页面额外 pb 避开固定「快捷菜单」 -->
       <nav
         v-if="isPersonalOverview"
-        class="lg:hidden rounded-2xl bg-[#0b0c0e]/95 p-2.5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]"
+        class="lg:hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] p-3"
         aria-label="个人中心入口"
       >
-        <h2
-          class="mb-2 pl-0.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-white/35"
-        >
+        <h2 class="mb-2 pl-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-white/32">
           常用服务
         </h2>
-        <div class="grid grid-cols-3 gap-x-1 gap-y-1">
+        <div class="grid grid-cols-3 gap-1.5">
           <RouterLink
             v-for="item in mobileQuickNav"
             :key="`m-${item.key}`"
             :to="item.to"
-            class="group flex min-h-[4.75rem] flex-col items-center justify-center gap-1.5 rounded-xl px-1 py-2 text-center transition [-webkit-tap-highlight-color:transparent] active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505]"
+            class="group flex min-h-[4.5rem] flex-col items-center justify-center gap-1 rounded-lg px-1 py-2 text-center transition [-webkit-tap-highlight-color:transparent] active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505]"
             :class="
               navActive(item)
-                ? 'bg-lime-400/[0.11] text-lime-50'
-                : 'text-white/88 hover:bg-white/[0.055] active:bg-white/[0.08]'
+                ? 'bg-lime-400/[0.09] text-lime-50'
+                : 'text-white/82 hover:bg-white/[0.04] active:bg-white/[0.06]'
             "
           >
             <span
-              class="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-white/[0.08] text-lime-200/95 transition group-hover:bg-white/[0.12]"
-              :class="navActive(item) ? 'bg-lime-400/25 text-lime-50' : ''"
+              class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/[0.06] text-lime-200/90 transition group-hover:bg-white/[0.09]"
+              :class="navActive(item) ? 'bg-lime-400/22 text-lime-50' : ''"
               aria-hidden="true"
             >
-              <FrontStrokeIcon :name="shellQuickIcon(item.key)" size-class="h-5 w-5" />
+              <FrontStrokeIcon :name="shellQuickIcon(item.key)" size-class="h-[1.15rem] w-[1.15rem]" />
             </span>
             <span
-              class="line-clamp-2 w-full px-0.5 text-center text-[12px] font-medium leading-[1.25] text-white/86"
+              class="line-clamp-2 w-full px-0.5 text-center text-[11px] font-medium leading-tight text-white/80"
               :class="navActive(item) ? 'text-lime-50/95' : ''"
             >
               {{ item.label }}

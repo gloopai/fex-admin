@@ -14,7 +14,9 @@ const props = defineProps({
   phoneBound: { type: Boolean, default: false },
   emailBound: { type: Boolean, default: false },
   mfaBound: { type: Boolean, default: false },
-  demoSecret: { type: String, default: 'JBSWY3DPEHPK3PXP' }
+  demoSecret: { type: String, default: 'JBSWY3DPEHPK3PXP' },
+  /** 业务场景说明（如提币），展示在总览顶部 */
+  contextHint: { type: String, default: '' }
 })
 
 const emit = defineEmits([
@@ -30,13 +32,10 @@ const emit = defineEmits([
 
 /** hub | phone | email | mfa */
 const view = ref('hub')
-const slideForward = ref(true)
 
 const phoneFlowRef = ref(null)
 const emailFlowRef = ref(null)
 const mfaFlowRef = ref(null)
-
-const slideName = computed(() => (slideForward.value ? 'sec-slide-fwd' : 'sec-slide-back'))
 
 const viewKey = computed(() => view.value)
 
@@ -63,12 +62,10 @@ function closeOut() {
 }
 
 function openSub(next) {
-  slideForward.value = true
   view.value = next
 }
 
 function backToHub() {
-  slideForward.value = false
   view.value = 'hub'
   resetAllFlows()
 }
@@ -97,8 +94,13 @@ function onMfaDone() {
     @backdrop-click="emit('backdrop-close')"
   >
     <FrontPopupCard variant="shell">
-      <Transition :name="slideName" mode="out-in">
-        <FrontPopupInnerPanel :key="viewKey" max-preset="720" @click.stop>
+      <Transition name="sec-bind-view" mode="out-in">
+        <FrontPopupInnerPanel
+          :key="viewKey"
+          max-preset="720"
+          class="min-h-[min(42vh,320px)]"
+          @click.stop
+        >
           <FrontPopupCloseButton @click="closeOut" />
           <!-- 总览 -->
           <template v-if="view === 'hub'">
@@ -113,7 +115,13 @@ function onMfaDone() {
                 <div class="min-w-0 flex-1 pr-10 sm:pr-11">
                   <h2 id="security-check-title" class="text-lg font-semibold leading-snug">账号安全检测</h2>
                   <p class="mt-1.5 text-xs leading-relaxed text-white/55">
-                    建议完成手机、邮箱与两步验证，以提高账户与资金安全。点击下方项目分别进入绑定流程。
+                    手机、邮箱与谷歌验证器可任选绑定，无先后顺序。完成任意一项即可用于对应的安全验证；建议尽可能多绑以提高账户安全。
+                  </p>
+                  <p
+                    v-if="contextHint"
+                    class="mt-2 rounded-lg border border-amber-400/25 bg-amber-400/[0.07] px-3 py-2 text-xs leading-relaxed text-amber-100/90"
+                  >
+                    {{ contextHint }}
                   </p>
                 </div>
               </div>
@@ -228,42 +236,29 @@ function onMfaDone() {
 </template>
 
 <style scoped>
-.sec-slide-fwd-enter-active,
-.sec-slide-fwd-leave-active,
-.sec-slide-back-enter-active,
-.sec-slide-back-leave-active {
-  transition: transform 0.34s cubic-bezier(0.32, 0.72, 0, 1);
+/* 总览 ↔ 子绑定流程：仅淡入淡出，避免位移与「滑页」感；时长短以减少 out-in 空档 */
+.sec-bind-view-enter-active {
+  transition: opacity 0.16s ease-out;
 }
 
-.sec-slide-fwd-enter-from {
-  transform: translateX(100%);
+.sec-bind-view-leave-active {
+  transition: opacity 0.1s ease-in;
 }
 
-.sec-slide-fwd-leave-to {
-  transform: translateX(-100%);
-}
-
-.sec-slide-back-enter-from {
-  transform: translateX(-100%);
-}
-
-.sec-slide-back-leave-to {
-  transform: translateX(100%);
+.sec-bind-view-enter-from,
+.sec-bind-view-leave-to {
+  opacity: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sec-slide-fwd-enter-active,
-  .sec-slide-fwd-leave-active,
-  .sec-slide-back-enter-active,
-  .sec-slide-back-leave-active {
+  .sec-bind-view-enter-active,
+  .sec-bind-view-leave-active {
     transition-duration: 0.01ms !important;
   }
 
-  .sec-slide-fwd-enter-from,
-  .sec-slide-fwd-leave-to,
-  .sec-slide-back-enter-from,
-  .sec-slide-back-leave-to {
-    transform: none !important;
+  .sec-bind-view-enter-from,
+  .sec-bind-view-leave-to {
+    opacity: 1 !important;
   }
 }
 </style>

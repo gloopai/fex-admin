@@ -1,5 +1,8 @@
 <script setup>
 import { computed, ref } from 'vue'
+import { getFrontTradeDefaultPath } from '../../constants/frontNav'
+
+const tradeEntryTo = getFrontTradeDefaultPath('/front')
 
 const tabs = [
   { key: 'crypto', label: '加密货币' },
@@ -159,17 +162,18 @@ function formatChange(pct) {
       class="mt-3 hidden overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.03] md:block"
     >
       <div
-        class="grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,0.95fr)] gap-3 border-b border-white/[0.04] px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-white/40 sm:px-5"
+        class="grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,0.95fr)_auto] gap-3 border-b border-white/[0.04] px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-white/40 sm:px-5"
       >
         <span>品种</span>
         <span class="text-right">最新价</span>
         <span class="text-right">24h 涨跌</span>
+        <span class="text-right">操作</span>
       </div>
       <ul class="divide-y divide-white/[0.035]">
         <li
           v-for="(row, i) in filteredRows"
           :key="`${activeTab}-${row.symbol}-${i}`"
-          class="grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,0.95fr)] items-center gap-3 px-4 py-3.5 transition hover:bg-white/[0.04] sm:px-5"
+          class="grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,0.95fr)_auto] items-center gap-3 px-4 py-3.5 transition hover:bg-white/[0.04] sm:px-5"
         >
           <div class="flex min-w-0 items-center gap-3">
             <span
@@ -189,6 +193,14 @@ function formatChange(pct) {
           >
             {{ formatChange(row.changePct) }}
           </p>
+          <div class="flex justify-end">
+            <RouterLink
+              :to="tradeEntryTo"
+              class="rounded-lg border border-lime-400/25 bg-lime-400/[0.08] px-3 py-1.5 text-xs font-semibold text-lime-200 transition [-webkit-tap-highlight-color:transparent] hover:bg-lime-400/15"
+            >
+              交易
+            </RouterLink>
+          </div>
         </li>
       </ul>
       <p v-if="!filteredRows.length" class="px-5 py-12 text-center text-sm text-white/45">
@@ -224,6 +236,14 @@ function formatChange(pct) {
               {{ formatChange(row.changePct) }}
             </p>
           </div>
+        </div>
+        <div class="mt-3 flex justify-end border-t border-white/[0.06] pt-3">
+          <RouterLink
+            :to="tradeEntryTo"
+            class="rounded-lg border border-lime-400/25 bg-lime-400/[0.08] px-4 py-2 text-xs font-semibold text-lime-200 transition [-webkit-tap-highlight-color:transparent] hover:bg-lime-400/15"
+          >
+            去交易
+          </RouterLink>
         </div>
       </li>
       <li

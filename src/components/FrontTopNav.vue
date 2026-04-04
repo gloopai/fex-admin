@@ -1,6 +1,9 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { storeToRefs } from 'pinia'
+import { useRoute, useRouter } from 'vue-router'
+import { useFrontAuthStore } from '../stores/frontAuth'
+import { pathNeedsFrontAuth } from '../composables/useRequireFrontAuth'
 import {
   getFrontMainNavLinks,
   getFrontTradeMenuGroups,
@@ -14,6 +17,25 @@ const props = defineProps({
 })
 
 const route = useRoute()
+const router = useRouter()
+const frontAuth = useFrontAuthStore()
+const { isLoggedIn, email: authEmail, nickname: authNickname } = storeToRefs(frontAuth)
+
+const authDisplay = computed(() => {
+  const n = authNickname.value
+  const e = authEmail.value
+  if (n) return n
+  if (!e) return ''
+  return e.length > 22 ? `${e.slice(0, 10)}…${e.slice(-8)}` : e
+})
+
+function logoutFront() {
+  frontAuth.logout()
+  closeOverlays()
+  if (pathNeedsFrontAuth(route.path)) {
+    router.push(`${props.prefix}/home`)
+  }
+}
 
 const tradeOpen = ref(false)
 const mobileOpen = ref(false)
@@ -62,33 +84,49 @@ const drawerPrimaryNavEntries = computed(() =>
   mainLinks.value.map((i) => ({ ...i, icon: i.key }))
 )
 
-/** 抽屉：个人中心 */
+/** 抽屉：个人中心（与 shell 快捷一致，避免与 pcDrawerShortcuts 重复追加入口） */
 const drawerPersonalNavEntries = computed(() => {
   const p = props.prefix
   return [
     { key: 'pc-overview', label: '账户总览', to: `${p}/personal-center`, icon: 'user' },
-    ...pcDrawerShortcuts.value.map((i) => ({ ...i, icon: drawerPcIconKey(i.key) })),
-    {
-      key: 'pc-fees',
-      label: '费率与 VIP',
-      to: `${p}/personal-center/fees-vip`,
-      icon: 'percent'
-    },
-    {
-      key: 'pc-notify',
-      label: '消息通知',
-      to: `${p}/personal-center/notifications`,
-      icon: 'bell'
-    }
+    ...pcDrawerShortcuts.value.map((i) => ({ ...i, icon: drawerPcIconKey(i.key) }))
   ]
 })
+
+function loginRouteWithRedirect(redirectPath) {
+  return {
+    path: `${props.prefix}/login`,
+    query: { redirect: redirectPath }
+  }
+}
+
+/** 未登录：资产 → 登录带回跳；已登录：原链链 */
+const drawerPrimaryNavResolved = computed(() =>
+  drawerPrimaryNavEntries.value.map((item) => ({
+    ...item,
+    linkTo:
+      !isLoggedIn.value && item.key === 'assets'
+        ? loginRouteWithRedirect(item.to)
+        : item.to
+  }))
+)
+
+/** 未登录：交易入口 → 登录后回到对应交易页 */
+const drawerTradeLinksResolved = computed(() =>
+  drawerQuickTradeLinks.value.map((item) => ({
+    ...item,
+    linkTo: isLoggedIn.value ? item.to : loginRouteWithRedirect(item.to)
+  }))
+)
 
 function drawerPcIconKey(key) {
   const m = {
     security: 'shield',
     verify: 'badge',
     'withdraw-addresses': 'send',
+    'fees-vip': 'percent',
     referral: 'gift',
+    notifications: 'bell',
     preferences: 'sliders'
   }
   return m[key] || 'circle'
@@ -269,10 +307,10 @@ function drawerRowActive(item) {
 function drawerRowClass(item) {
   const on = drawerRowActive(item)
   return [
-    'drawer-nav-row flex w-full min-h-[2.75rem] items-center gap-3 rounded-lg px-2.5 py-2.5 text-[15px] leading-snug font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/28 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b0e11] sm:min-h-0 sm:py-2 sm:text-[14px]',
+    'drawer-nav-row flex w-full min-h-[2.5rem] items-center gap-2.5 rounded-lg px-2.5 py-2 text-[14px] leading-snug font-medium no-underline transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/28 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b0e11] sm:min-h-0 sm:py-1.5 sm:text-[13px]',
     on
-      ? 'bg-gradient-to-r from-lime-400/[0.09] via-white/[0.03] to-transparent text-lime-100'
-      : 'text-[#eaecef] hover:bg-white/[0.04]'
+      ? 'bg-gradient-to-r from-lime-400/[0.09] via-white/[0.03] to-transparent text-lime-100 visited:text-lime-100'
+      : 'text-[#eaecef] visited:text-[#eaecef] hover:bg-white/[0.04] hover:text-white'
   ]
 }
 
@@ -435,16 +473,40 @@ function drawerRowClass(item) {
           </svg>
         </button>
 
-        <RouterLink
-          :to="`${prefix}/personal-center`"
-          class="rounded-lg px-3.5 py-2 text-sm font-medium text-[#eaecef] transition [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b0e11] hover:bg-[#3f4652] sm:px-4"
-          :class="
-            isPersonalCenterNavActive() ? 'bg-[#3f4652] text-white' : 'bg-[#1f2429]'
-          "
-          @click="mobileOpen = false"
-        >
-          个人中心
-        </RouterLink>
+        <template v-if="isLoggedIn">
+          <RouterLink
+            :to="`${prefix}/personal-center`"
+            class="max-w-[11rem] truncate rounded-lg bg-[#1f2429] px-3.5 py-2 text-sm font-medium text-[#eaecef] transition [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b0e11] hover:bg-[#3f4652] sm:max-w-xs sm:px-4"
+            :class="isPersonalCenterNavActive() ? 'bg-[#3f4652] text-white' : ''"
+            :title="authEmail || undefined"
+            @click="mobileOpen = false"
+          >
+            {{ authDisplay }}
+          </RouterLink>
+          <button
+            type="button"
+            class="rounded-lg border border-white/[0.12] px-3 py-2 text-sm font-medium text-white/75 transition hover:bg-white/[0.06] hover:text-white"
+            @click="logoutFront"
+          >
+            退出
+          </button>
+        </template>
+        <template v-else>
+          <RouterLink
+            :to="`${prefix}/login`"
+            class="rounded-lg border border-white/[0.14] px-3.5 py-2 text-sm font-medium text-[#eaecef] transition [-webkit-tap-highlight-color:transparent] hover:bg-white/[0.06] sm:px-4"
+            @click="mobileOpen = false"
+          >
+            登录
+          </RouterLink>
+          <RouterLink
+            :to="`${prefix}/register`"
+            class="rounded-lg bg-lime-400 px-3.5 py-2 text-sm font-semibold text-[#0b0e11] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.2)] transition hover:bg-lime-300 sm:px-4"
+            @click="mobileOpen = false"
+          >
+            注册
+          </RouterLink>
+        </template>
       </div>
 
       <!-- 右：<lg 菜单 -->
@@ -499,48 +561,104 @@ function drawerRowClass(item) {
             class="front-drawer-panel absolute left-0 top-0 flex h-full w-[min(18rem,86vw)] max-w-[100vw] flex-col border-r border-white/[0.04] bg-[#0b0e11] shadow-[4px_0_24px_-4px_rgba(0,0,0,0.5)]"
             @click.stop
           >
+            <!-- 贴顶固定：抽屉顶栏（关菜单）+ 账号卡片（仅登录态内容） -->
             <div
-              class="flex shrink-0 items-center justify-end border-b border-white/[0.04] bg-[#0b0e11]/95 px-2 py-2 pt-[max(0.5rem,env(safe-area-inset-top,0px))]"
+              class="shrink-0 border-b border-white/[0.05] bg-[#0b0e11] px-2 pb-2.5 pt-[max(0.25rem,env(safe-area-inset-top,0px))]"
             >
-              <button
-                type="button"
-                class="rounded-lg p-2 text-[#848e9c] transition hover:bg-white/[0.08] hover:text-white"
-                aria-label="关闭菜单"
-                @click="mobileOpen = false"
+              <div class="flex justify-end">
+                <button
+                  type="button"
+                  class="rounded-lg p-2 text-white/40 transition hover:bg-white/[0.07] hover:text-white/85"
+                  aria-label="关闭菜单"
+                  @click="mobileOpen = false"
+                >
+                  <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="m6 6 12 12M18 6 6 18"
+                      stroke="currentColor"
+                      stroke-width="1.75"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                </button>
+              </div>
+              <div
+                class="mt-1 space-y-2 rounded-xl border border-white/[0.06] bg-black/25 px-3 py-2.5"
               >
-                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path
-                    d="m6 6 12 12M18 6 6 18"
-                    stroke="currentColor"
-                    stroke-width="1.75"
-                    stroke-linecap="round"
-                  />
-                </svg>
-              </button>
+                <template v-if="isLoggedIn">
+                  <p class="text-[10px] font-medium uppercase tracking-wider text-lime-400/75">
+                    当前账号
+                  </p>
+                  <p
+                    class="mt-0.5 truncate text-sm font-medium text-white/90"
+                    :title="authEmail || undefined"
+                  >
+                    {{ authDisplay }}
+                  </p>
+                  <div class="mt-2 flex flex-wrap gap-2">
+                    <RouterLink
+                      :to="`${prefix}/personal-center`"
+                      class="inline-flex min-w-[6rem] flex-1 items-center justify-center rounded-lg bg-lime-400/15 py-2 text-xs font-semibold text-lime-200 transition hover:bg-lime-400/22"
+                      @click="mobileOpen = false"
+                    >
+                      个人中心
+                    </RouterLink>
+                    <button
+                      type="button"
+                      class="inline-flex min-w-[6rem] flex-1 items-center justify-center rounded-lg border border-white/15 py-2 text-xs font-medium text-white/70 transition hover:bg-white/[0.06] hover:text-white/85"
+                      @click="logoutFront"
+                    >
+                      退出
+                    </button>
+                  </div>
+                </template>
+                <template v-else>
+                  <p class="text-[12px] leading-relaxed text-[#c8cdd3]">
+                    登录后可使用资产、交易全部功能。
+                  </p>
+                  <div class="mt-2.5 grid grid-cols-2 gap-2">
+                    <RouterLink
+                      :to="`${prefix}/login`"
+                      class="flex items-center justify-center rounded-lg border border-white/[0.14] bg-white/[0.04] py-2.5 text-sm font-medium text-[#eaecef] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] transition [-webkit-tap-highlight-color:transparent] visited:text-[#eaecef] hover:border-white/[0.22] hover:bg-white/[0.08] hover:text-white"
+                      @click="mobileOpen = false"
+                    >
+                      登录
+                    </RouterLink>
+                    <RouterLink
+                      :to="`${prefix}/register`"
+                      class="flex items-center justify-center rounded-lg bg-lime-400 py-2.5 text-sm font-semibold text-[#0b0e11] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.2)] transition [-webkit-tap-highlight-color:transparent] visited:text-[#0b0e11] hover:bg-lime-300"
+                      @click="mobileOpen = false"
+                    >
+                      注册
+                    </RouterLink>
+                  </div>
+                </template>
+              </div>
             </div>
+
             <nav
-              class="front-drawer-nav-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]"
+              class="front-drawer-nav-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-2.5 pb-[calc(0.875rem+env(safe-area-inset-bottom,0px))]"
               role="menu"
             >
-              <p class="mb-2.5 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#848e9c]/90 sm:tracking-wider">
+              <p class="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#b0b8c1] sm:tracking-wider">
                 主导航
               </p>
-              <div class="space-y-1">
+              <div class="space-y-0.5">
                 <RouterLink
-                  v-for="item in drawerPrimaryNavEntries"
+                  v-for="item in drawerPrimaryNavResolved"
                   :key="item.key"
-                  :to="item.to"
+                  :to="item.linkTo"
                   role="menuitem"
                   :class="drawerRowClass(item)"
                   @click="mobileOpen = false"
                 >
                   <span
-                    class="drawer-nav-icon flex h-8 w-8 shrink-0 items-center justify-center"
+                    class="drawer-nav-icon flex h-7 w-7 shrink-0 items-center justify-center"
                     :class="drawerRowActive(item) ? 'text-lime-300/95' : 'text-lime-400/65'"
                     aria-hidden="true"
                   >
                     <svg
-                      class="h-[18px] w-[18px]"
+                      class="h-4 w-4"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
@@ -551,33 +669,33 @@ function drawerRowClass(item) {
                       <path v-for="(d, i) in drawerIconPaths(item.icon)" :key="i" :d="d" />
                     </svg>
                   </span>
-                  <span class="min-w-0 truncate">{{ item.label }}</span>
+                  <span class="min-w-0 truncate text-current">{{ item.label }}</span>
                 </RouterLink>
               </div>
 
               <div
-                class="mx-3 mb-1 mt-6 h-px bg-gradient-to-r from-transparent via-white/[0.07] to-transparent"
+                class="mx-3 mb-0.5 mt-5 h-px bg-gradient-to-r from-transparent via-white/[0.07] to-transparent"
                 aria-hidden="true"
               />
-              <p class="mb-2.5 mt-6 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#848e9c]/90 sm:tracking-wider">
+              <p class="mb-2 mt-5 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#b0b8c1] sm:tracking-wider">
                 交易
               </p>
-              <div class="space-y-1">
+              <div class="space-y-0.5">
                 <RouterLink
-                  v-for="item in drawerQuickTradeLinks"
+                  v-for="item in drawerTradeLinksResolved"
                   :key="item.key"
-                  :to="item.to"
+                  :to="item.linkTo"
                   role="menuitem"
                   :class="drawerRowClass(item)"
                   @click="mobileOpen = false"
                 >
                   <span
-                    class="drawer-nav-icon flex h-8 w-8 shrink-0 items-center justify-center"
+                    class="drawer-nav-icon flex h-7 w-7 shrink-0 items-center justify-center"
                     :class="drawerRowActive(item) ? 'text-lime-300/95' : 'text-lime-400/65'"
                     aria-hidden="true"
                   >
                     <svg
-                      class="h-[18px] w-[18px]"
+                      class="h-4 w-4"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
@@ -588,46 +706,48 @@ function drawerRowClass(item) {
                       <path v-for="(d, i) in drawerIconPaths(item.icon)" :key="i" :d="d" />
                     </svg>
                   </span>
-                  <span class="min-w-0 truncate">{{ item.label }}</span>
+                  <span class="min-w-0 truncate text-current">{{ item.label }}</span>
                 </RouterLink>
               </div>
 
-              <div
-                class="mx-3 mb-1 mt-6 h-px bg-gradient-to-r from-transparent via-white/[0.07] to-transparent"
-                aria-hidden="true"
-              />
-              <p class="mb-2.5 mt-6 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#848e9c]/90 sm:tracking-wider">
-                个人中心
-              </p>
-              <div class="space-y-1">
-                <RouterLink
-                  v-for="item in drawerPersonalNavEntries"
-                  :key="item.key"
-                  :to="item.to"
-                  role="menuitem"
-                  :class="drawerRowClass(item)"
-                  @click="mobileOpen = false"
-                >
-                  <span
-                    class="drawer-nav-icon flex h-8 w-8 shrink-0 items-center justify-center"
-                    :class="drawerRowActive(item) ? 'text-lime-300/95' : 'text-lime-400/65'"
-                    aria-hidden="true"
+              <template v-if="isLoggedIn">
+                <div
+                  class="mx-3 mb-0.5 mt-5 h-px bg-gradient-to-r from-transparent via-white/[0.07] to-transparent"
+                  aria-hidden="true"
+                />
+                <p class="mb-2 mt-5 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#b0b8c1] sm:tracking-wider">
+                  个人中心
+                </p>
+                <div class="space-y-0.5">
+                  <RouterLink
+                    v-for="item in drawerPersonalNavEntries"
+                    :key="item.key"
+                    :to="item.to"
+                    role="menuitem"
+                    :class="drawerRowClass(item)"
+                    @click="mobileOpen = false"
                   >
-                    <svg
-                      class="h-[18px] w-[18px]"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.65"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
+                    <span
+                      class="drawer-nav-icon flex h-7 w-7 shrink-0 items-center justify-center"
+                      :class="drawerRowActive(item) ? 'text-lime-300/95' : 'text-lime-400/65'"
+                      aria-hidden="true"
                     >
-                      <path v-for="(d, i) in drawerIconPaths(item.icon)" :key="i" :d="d" />
-                    </svg>
-                  </span>
-                  <span class="min-w-0 truncate">{{ item.label }}</span>
-                </RouterLink>
-              </div>
+                      <svg
+                        class="h-4 w-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.65"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path v-for="(d, i) in drawerIconPaths(item.icon)" :key="i" :d="d" />
+                      </svg>
+                    </span>
+                    <span class="min-w-0 truncate text-current">{{ item.label }}</span>
+                  </RouterLink>
+                </div>
+              </template>
             </nav>
           </aside>
         </div>
