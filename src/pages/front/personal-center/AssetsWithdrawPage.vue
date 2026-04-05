@@ -9,13 +9,28 @@ import {
   FRONT_WITHDRAW_NETWORKS,
   networkHintWithdraw
 } from '../../../constants/frontAssetCenterDemo'
+import { useFrontAuthStore } from '../../../stores/frontAuth'
+import { useFrontSecurityStore } from '../../../stores/frontSecurity'
 
 const prefix = '/front'
 
-/** 演示：新账户默认未完成绑定；对接后从接口/Store 同步 */
-const phoneBound = ref(false)
-const emailBound = ref(false)
-const mfaBound = ref(false)
+const auth = useFrontAuthStore()
+const security = useFrontSecurityStore()
+security.ensureHydrated()
+auth.ensureHydrated()
+
+const phoneBound = computed({
+  get: () => security.currentBindings.phoneBound,
+  set: (v) => security.updateBindings({ phoneBound: v })
+})
+const emailBound = computed({
+  get: () => security.currentBindings.emailBound,
+  set: (v) => security.updateBindings({ emailBound: v })
+})
+const mfaBound = computed({
+  get: () => security.currentBindings.mfaBound,
+  set: (v) => security.updateBindings({ mfaBound: v })
+})
 
 const securityCheckOpen = ref(false)
 const withdrawAuthOpen = ref(false)

@@ -7,10 +7,26 @@ import ChangePasswordDialog from '../../../components/front/ChangePasswordDialog
 import DeviceManagementDialog from '../../../components/front/DeviceManagementDialog.vue'
 import MfaBindDialog from '../../../components/front/MfaBindDialog.vue'
 import SecurityCheckDialog from '../../../components/front/SecurityCheckDialog.vue'
+import { useFrontAuthStore } from '../../../stores/frontAuth'
+import { useFrontSecurityStore } from '../../../stores/frontSecurity'
 
-const phoneBound = ref(false)
-const emailBound = ref(false)
-const mfaBound = ref(false)
+const auth = useFrontAuthStore()
+const security = useFrontSecurityStore()
+security.ensureHydrated()
+auth.ensureHydrated()
+
+const phoneBound = computed({
+  get: () => security.currentBindings.phoneBound,
+  set: (v) => security.updateBindings({ phoneBound: v })
+})
+const emailBound = computed({
+  get: () => security.currentBindings.emailBound,
+  set: (v) => security.updateBindings({ emailBound: v })
+})
+const mfaBound = computed({
+  get: () => security.currentBindings.mfaBound,
+  set: (v) => security.updateBindings({ mfaBound: v })
+})
 const passwordOk = ref(false)
 
 const securityOverviewOpen = ref(false)
@@ -72,15 +88,15 @@ function openDedicatedDialog(key) {
 }
 
 function onPhoneCompleted() {
-  phoneBound.value = true
+  security.updateBindings({ phoneBound: true })
 }
 
 function onEmailCompleted() {
-  emailBound.value = true
+  security.updateBindings({ emailBound: true })
 }
 
 function onMfaCompleted() {
-  mfaBound.value = true
+  security.updateBindings({ mfaBound: true })
 }
 </script>
 
