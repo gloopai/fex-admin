@@ -2,6 +2,7 @@
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import FrontSearchablePopoverPicker from '../../../components/front/FrontSearchablePopoverPicker.vue'
+import SecurityCheckDialog from '../../../components/front/SecurityCheckDialog.vue'
 import {
   FRONT_DEPOSIT_COINS,
   FRONT_DEPOSIT_DEFAULT_SYMBOL_LOWER,
@@ -9,10 +10,35 @@ import {
   demoDepositAddress,
   networkHintDeposit
 } from '../../../constants/frontAssetCenterDemo'
+import { useFrontAuthStore } from '../../../stores/frontAuth'
+import { useFrontSecurityStore } from '../../../stores/frontSecurity'
 
 const prefix = '/front'
 const route = useRoute()
 const router = useRouter()
+
+const auth = useFrontAuthStore()
+const security = useFrontSecurityStore()
+auth.ensureHydrated()
+security.ensureHydrated()
+
+const securityCheckOpen = ref(false)
+
+const depositSuccessBindHint =
+  '检测到你的充币已到账。当前账号尚未绑定任何安全验证方式，为保障账户与资金安全，请至少绑定手机、邮箱或谷歌验证器中的一项。'
+
+const phoneBound = computed({
+  get: () => security.currentBindings.phoneBound,
+  set: (v) => security.updateBindings({ phoneBound: v })
+})
+const emailBound = computed({
+  get: () => security.currentBindings.emailBound,
+  set: (v) => security.updateBindings({ emailBound: v })
+})
+const mfaBound = computed({
+  get: () => security.currentBindings.mfaBound,
+  set: (v) => security.updateBindings({ mfaBound: v })
+})
 
 const networkKey = ref(FRONT_WITHDRAW_NETWORKS[0].key)
 const depositAmount = ref('')
@@ -105,7 +131,12 @@ async function copyAddress() {
 }
 
 function onQuickPay() {
-  // 演示 · 对接支付 / 入金工单后替换
+  auth.ensureHydrated()
+  security.ensureHydrated()
+  // 演示：视为快捷支付入账成功；未绑定任一安全方式时引导绑定（与提币校验一致：至少一种）
+  if (!security.hasAnyVerifyChannel) {
+    securityCheckOpen.value = true
+  }
 }
 
 onUnmounted(() => {
@@ -261,5 +292,13 @@ const addressShell =
         </button>
       </div>
     </div>
+
+    <SecurityCheckDialog
+      v-model="securityCheckOpen"
+      v-model:phone-bound="phoneBound"
+      v-model:email-bound="emailBound"
+      v-model:mfa-bound="mfaBound"
+      :context-hint="depositSuccessBindHint"
+    />
   </div>
 </template>

@@ -13,7 +13,9 @@ const props = defineProps({
   modelValue: { type: Boolean, default: false },
   phoneBound: { type: Boolean, default: false },
   emailBound: { type: Boolean, default: false },
-  mfaBound: { type: Boolean, default: false }
+  mfaBound: { type: Boolean, default: false },
+  /** withdraw：提币；login：登录成功后二次校验 */
+  variant: { type: String, default: 'withdraw' }
 })
 
 const emit = defineEmits(['update:modelValue', 'backdrop-close', 'confirmed'])
@@ -108,10 +110,23 @@ const otpMaxLen = 6
 
 const subtitleByMethod = computed(() => {
   const m = activeMethod.value
-  if (m === 'mfa') return '请打开谷歌验证器，输入 6 位动态码以确认本次提币。'
+  const isLogin = props.variant === 'login'
+  if (m === 'mfa') {
+    return isLogin
+      ? '请打开谷歌验证器，输入 6 位动态码以确认本次登录。'
+      : '请打开谷歌验证器，输入 6 位动态码以确认本次提币。'
+  }
   if (m === 'email') return '验证码将发至您绑定的邮箱；若未收到，可在下方重新获取。'
   return '验证码将发至您绑定的手机；若未收到，可在下方重新获取。'
 })
+
+const dialogTitle = computed(() =>
+  props.variant === 'login' ? '登录安全验证' : '提币安全认证'
+)
+
+const confirmButtonLabel = computed(() =>
+  props.variant === 'login' ? '验证并继续' : '验证并确认提币'
+)
 
 const fieldLabel = computed(() => {
   if (activeMethod.value === 'mfa') return '谷歌验证器动态码'
@@ -240,13 +255,17 @@ function submit() {
             </div>
             <div class="min-w-0">
               <h2 id="withdraw-auth-title" class="text-lg font-semibold leading-snug text-white">
-                提币安全认证
+                {{ dialogTitle }}
               </h2>
               <p v-if="availableMethods.length" class="mt-1.5 text-xs leading-relaxed text-white/52">
                 {{ subtitleByMethod }}
               </p>
               <p v-else class="mt-1.5 text-xs leading-relaxed text-amber-200/85">
-                未检测到已绑定的验证方式，请先完成安全绑定后再提币。
+                {{
+                  variant === 'login'
+                    ? '未检测到已绑定的验证方式，请先在安全中心完成绑定。'
+                    : '未检测到已绑定的验证方式，请先完成安全绑定后再提币。'
+                }}
               </p>
             </div>
           </div>
@@ -401,7 +420,7 @@ function submit() {
               class="rounded-lg bg-lime-400 py-2.5 text-sm font-semibold text-black transition hover:bg-lime-300 sm:px-5"
               @click="submit"
             >
-              验证并确认提币
+              {{ confirmButtonLabel }}
             </button>
           </div>
         </div>

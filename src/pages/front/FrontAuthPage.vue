@@ -1,15 +1,18 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import WithdrawAuthDialog from '../../components/front/WithdrawAuthDialog.vue'
 import {
   FRONT_DEMO_SEED_USERS,
   FRONT_WALLET_LOGIN_PROVIDERS,
   useFrontAuthStore
 } from '../../stores/frontAuth'
+import { useFrontSecurityStore } from '../../stores/frontSecurity'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useFrontAuthStore()
+const security = useFrontSecurityStore()
 
 const isRegister = computed(
   () => route.name === 'front-register' || route.query.tab === 'register'
@@ -22,6 +25,48 @@ const nickname = ref('')
 const errorMsg = ref('')
 const pending = ref(false)
 const walletPendingKey = ref(null)
+
+const loginVerifyOpen = ref(false)
+const loginVerifySessionActive = ref(false)
+const loginVerifySucceeded = ref(false)
+
+const loginVerifyBindings = computed(() => ({
+  phoneBound: security.currentBindings.phoneBound,
+  emailBound: security.currentBindings.emailBound,
+  mfaBound: security.currentBindings.mfaBound
+}))
+
+function navigateAfterAuth() {
+  const redir = typeof route.query.redirect === 'string' ? route.query.redirect : ''
+  router.replace(redir.startsWith('/front') ? redir : '/front/personal-center')
+}
+
+watch(loginVerifyOpen, (open) => {
+  if (!open) {
+    if (loginVerifySessionActive.value && !loginVerifySucceeded.value) {
+      auth.logout()
+      errorMsg.value = '需完成安全验证后才能登录'
+    }
+    loginVerifySessionActive.value = false
+    loginVerifySucceeded.value = false
+  }
+})
+
+function onLoginVerifyConfirmed() {
+  loginVerifySucceeded.value = true
+  navigateAfterAuth()
+}
+
+function maybeStartLoginSecondFactor() {
+  security.ensureHydrated()
+  if (!security.hasAnyVerifyChannel) {
+    navigateAfterAuth()
+    return
+  }
+  loginVerifySessionActive.value = true
+  loginVerifySucceeded.value = false
+  loginVerifyOpen.value = true
+}
 
 const walletProviders = FRONT_WALLET_LOGIN_PROVIDERS
 
@@ -99,8 +144,11 @@ async function onSubmit() {
       errorMsg.value = r.message
       return
     }
-    const redir = typeof route.query.redirect === 'string' ? route.query.redirect : ''
-    router.replace(redir.startsWith('/front') ? redir : '/front/personal-center')
+    if (isRegister.value) {
+      navigateAfterAuth()
+      return
+    }
+    maybeStartLoginSecondFactor()
   } finally {
     pending.value = false
   }
@@ -117,8 +165,7 @@ async function onWalletLogin(providerKey) {
       errorMsg.value = r.message
       return
     }
-    const redir = typeof route.query.redirect === 'string' ? route.query.redirect : ''
-    router.replace(redir.startsWith('/front') ? redir : '/front/personal-center')
+    maybeStartLoginSecondFactor()
   } finally {
     walletPendingKey.value = null
   }
@@ -327,5 +374,14 @@ async function onWalletLogin(providerKey) {
         </p>
       </div>
     </div>
+
+    <WithdrawAuthDialog
+      v-model="loginVerifyOpen"
+      variant="login"
+      :phone-bound="loginVerifyBindings.phoneBound"
+      :email-bound="loginVerifyBindings.emailBound"
+      :mfa-bound="loginVerifyBindings.mfaBound"
+      @confirmed="onLoginVerifyConfirmed"
+    />
   </div>
 </template>

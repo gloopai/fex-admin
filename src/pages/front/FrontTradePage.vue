@@ -8,6 +8,14 @@ import {
   TRADE_PRODUCT_MODE_META
 } from '../../constants/frontNav'
 import { FRONT_DEPOSIT_DEFAULT_SYMBOL_LOWER } from '../../constants/frontAssetCenterDemo'
+import {
+  frontSheetBackdropPaintOnly,
+  frontSheetCancelBtnClass,
+  frontSheetDragHandleClass,
+  frontSheetListItemBorderClass,
+  frontSheetListRowBtnClass,
+  frontSheetPanelShellClass
+} from '../../constants/frontBottomSheet'
 import { useRequireFrontAuth } from '../../composables/useRequireFrontAuth'
 
 const route = useRoute()
@@ -2513,18 +2521,18 @@ const pcBottomEmptyText = computed(() => {
       <Transition name="fade">
         <div
           v-if="mobilePickerOpen"
-          class="fixed inset-0 z-[62] bg-black/55 lg:hidden"
+          :class="['fixed inset-0 z-[62] lg:hidden', frontSheetBackdropPaintOnly]"
           @click="closeMobilePicker"
         />
       </Transition>
       <Transition name="slide-up">
         <div
           v-if="mobilePickerOpen"
-          class="fixed bottom-0 left-0 right-0 z-[63] max-h-[min(70vh,28rem)] flex flex-col rounded-t-2xl border border-white/[0.06] bg-[#1e2329] pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-2 shadow-[0_-16px_48px_rgba(0,0,0,0.45)] lg:hidden"
+          :class="`fixed bottom-0 left-0 right-0 z-[63] max-h-[min(70vh,28rem)] flex flex-col pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-2 lg:hidden ${frontSheetPanelShellClass}`"
           role="dialog"
           :aria-label="mobilePickerTitle"
         >
-          <div class="mx-auto mb-2 h-1 w-10 shrink-0 rounded-full bg-white/15" />
+          <div :class="['mx-auto mb-2', frontSheetDragHandleClass]" />
           <p class="shrink-0 px-4 pb-2 text-center text-sm font-semibold text-white">
             {{ mobilePickerTitle }}
           </p>
@@ -2532,17 +2540,13 @@ const pcBottomEmptyText = computed(() => {
             <li
               v-for="opt in mobilePickerOptionList"
               :key="String(opt.value)"
-              class="border-b border-white/[0.04] last:border-0"
+              :class="frontSheetListItemBorderClass"
             >
-              <button
-                type="button"
-                class="flex w-full items-center justify-between px-4 py-3.5 text-left text-base text-white/90 transition hover:bg-white/[0.04] active:bg-white/[0.06]"
-                @click="confirmMobilePick(opt.value)"
-              >
+              <button type="button" :class="frontSheetListRowBtnClass" @click="confirmMobilePick(opt.value)">
                 <span class="min-w-0 flex-1 pr-2 leading-snug">{{ opt.label }}</span>
                 <svg
                   v-if="isMobilePickerOptionSelected(opt.value)"
-                  class="h-5 w-5 shrink-0 text-[#4ade80]"
+                  class="h-5 w-5 shrink-0 text-lime-400"
                   viewBox="0 0 24 24"
                   fill="none"
                   aria-hidden="true"
@@ -2558,11 +2562,7 @@ const pcBottomEmptyText = computed(() => {
               </button>
             </li>
           </ul>
-          <button
-            type="button"
-            class="mx-3 mt-2 w-[calc(100%-1.5rem)] shrink-0 rounded-xl border border-white/[0.06] py-3 text-sm text-white/70"
-            @click="closeMobilePicker"
-          >
+          <button type="button" :class="frontSheetCancelBtnClass" @click="closeMobilePicker">
             取消
           </button>
         </div>
@@ -2571,27 +2571,27 @@ const pcBottomEmptyText = computed(() => {
 
     <Teleport to="body">
       <Transition name="fade">
-        <div v-if="modeSheetOpen" class="fixed inset-0 z-[60] bg-black/55 lg:hidden" @click="closeModeSheet" />
+        <div
+          v-if="modeSheetOpen"
+          :class="['fixed inset-0 z-[60] lg:hidden', frontSheetBackdropPaintOnly]"
+          @click="closeModeSheet"
+        />
       </Transition>
       <Transition name="slide-up">
         <div
           v-if="modeSheetOpen"
-          class="fixed bottom-0 left-0 right-0 z-[61] rounded-t-2xl border border-white/[0.06] bg-[#1e2329] pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-2 lg:hidden"
+          :class="`fixed bottom-0 left-0 right-0 z-[61] flex flex-col pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-2 lg:hidden ${frontSheetPanelShellClass}`"
           role="dialog"
           aria-label="选择交易类型"
         >
-          <div class="mx-auto mb-2 h-1 w-10 rounded-full bg-white/15" />
+          <div :class="['mx-auto mb-2', frontSheetDragHandleClass]" />
           <ul class="px-2">
-            <li v-for="t in tradeTabs" :key="t.key" class="border-b border-white/[0.04] last:border-0">
-              <button
-                type="button"
-                class="flex w-full items-center justify-between px-4 py-3.5 text-left text-base text-white/90"
-                @click="goMode(t.to)"
-              >
+            <li v-for="t in tradeTabs" :key="t.key" :class="frontSheetListItemBorderClass">
+              <button type="button" :class="frontSheetListRowBtnClass" @click="goMode(t.to)">
                 {{ t.label }}
                 <svg
                   v-if="pathsMatch(route.path, t.to)"
-                  class="h-5 w-5 text-[#a78bfa]"
+                  class="h-5 w-5 shrink-0 text-lime-400"
                   viewBox="0 0 24 24"
                   fill="none"
                 >
@@ -2606,11 +2606,7 @@ const pcBottomEmptyText = computed(() => {
               </button>
             </li>
           </ul>
-          <button
-            type="button"
-            class="mx-3 mt-2 w-[calc(100%-1.5rem)] rounded-xl border border-white/[0.06] py-3 text-sm text-white/70"
-            @click="closeModeSheet"
-          >
+          <button type="button" :class="frontSheetCancelBtnClass" @click="closeModeSheet">
             取消
           </button>
         </div>

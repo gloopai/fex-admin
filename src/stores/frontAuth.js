@@ -78,6 +78,18 @@ function normalizeEmail(email) {
   return String(email).trim().toLowerCase()
 }
 
+/**
+ * 演示环境：视为「手机 / 邮箱 / MFA 均已绑定」的邮箱列表（种子邮箱登录 + 各钱包 mock 账号）。
+ * 与安全中心、登录二次验证同源，对接接口后可删除。
+ */
+export function frontDemoSecuritySeedEmails() {
+  const emails = FRONT_DEMO_SEED_USERS.map((u) => normalizeEmail(u.email))
+  for (const p of FRONT_WALLET_LOGIN_PROVIDERS) {
+    emails.push(normalizeEmail(`wallet.${p.key}@mock.fex.local`))
+  }
+  return emails
+}
+
 /** 保证演示账号存在于本地用户表并与种子一致（幂等） */
 function mergeDemoUsersIntoStorage() {
   if (typeof localStorage === 'undefined') return
