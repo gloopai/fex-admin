@@ -109,9 +109,9 @@ const footerColumns = [
     <div class="pointer-events-none absolute inset-0 bg-[#030304]" aria-hidden="true" />
 
     <!-- 顶栏提示（与下方通栏 Hero 分离，避免整页被框在一起） -->
-    <div class="relative mx-auto max-w-6xl px-3 pt-5 min-[400px]:px-4 sm:px-5 sm:pt-6 md:pt-8 lg:px-8">
+    <div class="relative mx-auto max-w-6xl px-6 pt-5 min-[400px]:px-[1.875rem] sm:px-9 sm:pt-6 md:pt-8 lg:px-12">
       <div
-        class="mb-5 rounded-lg border border-white/[0.05] bg-white/[0.02] px-3 py-2.5 sm:mb-6 sm:px-4"
+        class="mb-5 rounded-lg border border-white/[0.05] bg-white/[0.02] px-6 py-2.5 sm:mb-6 sm:px-[1.875rem]"
         role="note"
       >
         <p
@@ -155,7 +155,7 @@ const footerColumns = [
       </div>
 
       <div
-        class="relative z-10 mx-auto flex w-full max-w-6xl min-h-[inherit] flex-col justify-end px-3 pb-10 pt-[5.25rem] min-[400px]:px-4 sm:px-5 sm:pb-14 sm:pt-28 md:pb-14 lg:px-8 lg:pb-16"
+        class="relative z-10 mx-auto flex w-full max-w-6xl min-h-[inherit] flex-col justify-end px-6 pb-10 pt-[5.25rem] min-[400px]:px-[1.875rem] sm:px-9 sm:pb-14 sm:pt-28 md:pb-14 lg:px-12 lg:pb-16"
       >
           <p
             class="mb-2.5 text-[10px] font-medium uppercase tracking-[0.18em] text-lime-400/70 sm:mb-3 sm:text-xs sm:tracking-[0.2em]"
@@ -189,13 +189,13 @@ const footerColumns = [
           <div class="mt-6 flex w-full flex-col gap-2.5 sm:mt-7 sm:w-auto sm:flex-row sm:flex-wrap sm:gap-3">
             <RouterLink
               :to="tradeDefault"
-              class="inline-flex h-12 min-h-[2.75rem] w-full items-center justify-center rounded-md bg-gradient-to-r from-lime-400 to-emerald-500 px-7 text-[15px] font-semibold text-[#0b0e11] shadow-[0_4px_24px_-6px_rgba(163,230,53,0.35)] transition hover:brightness-110 sm:h-11 sm:min-h-0 sm:w-auto sm:text-sm"
+              class="inline-flex h-12 min-h-[2.75rem] w-full items-center justify-center rounded-md bg-gradient-to-r from-lime-400 to-emerald-500 px-[2.625rem] text-[15px] font-semibold text-[#0b0e11] shadow-[0_4px_24px_-6px_rgba(163,230,53,0.35)] transition hover:brightness-110 sm:h-11 sm:min-h-0 sm:w-auto sm:text-sm"
             >
               立即交易
             </RouterLink>
             <RouterLink
               :to="`${prefix}/market`"
-              class="inline-flex h-12 min-h-[2.75rem] w-full items-center justify-center rounded-md border border-white/[0.08] bg-white/[0.03] px-7 text-[15px] font-semibold text-white/90 backdrop-blur-sm transition hover:border-white/[0.11] hover:bg-white/[0.06] sm:h-11 sm:min-h-0 sm:w-auto sm:text-sm"
+              class="inline-flex h-12 min-h-[2.75rem] w-full items-center justify-center rounded-md border border-white/[0.08] bg-white/[0.03] px-[2.625rem] text-[15px] font-semibold text-white/90 backdrop-blur-sm transition hover:border-white/[0.11] hover:bg-white/[0.06] sm:h-11 sm:min-h-0 sm:w-auto sm:text-sm"
             >
               查看行情
             </RouterLink>
@@ -203,7 +203,7 @@ const footerColumns = [
       </div>
     </section>
 
-    <div class="relative mx-auto max-w-6xl px-3 pb-14 min-[400px]:px-4 sm:px-5 md:pb-20 lg:px-8 lg:pb-24">
+    <div class="relative mx-auto max-w-6xl px-6 pb-14 min-[400px]:px-[1.875rem] sm:px-9 md:pb-20 lg:px-12 lg:pb-24">
       <!-- 双入口：暗色卡片 + 顶边青柠线 -->
       <section class="mb-12 sm:mb-16 md:mb-20" aria-labelledby="home-control">
         <h2
@@ -217,7 +217,7 @@ const footerColumns = [
             v-for="card in controlCards"
             :key="card.title"
             :to="card.to"
-            class="group relative overflow-hidden rounded-2xl border border-[#1f2429] bg-[#1e2329]/90 px-5 pb-6 pt-7 shadow-lg shadow-black/20 transition hover:border-lime-400/18 hover:bg-[#232a31] sm:px-6 sm:pb-7 sm:pt-8 md:px-8 md:pb-8 md:pt-9"
+            class="group relative overflow-hidden rounded-2xl border border-[#1f2429] bg-[#1e2329]/90 px-[1.875rem] pb-6 pt-7 shadow-lg shadow-black/20 transition hover:border-lime-400/18 hover:bg-[#232a31] sm:px-9 sm:pb-7 sm:pt-8 md:px-12 md:pb-8 md:pt-9"
           >
             <span
               class="absolute left-0 right-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-lime-400/50 to-transparent opacity-90"
@@ -297,7 +297,7 @@ const footerColumns = [
           <li v-for="a in advantageCards" :key="a.num">
             <RouterLink
               :to="a.to"
-              class="home-adv-card group relative block overflow-hidden rounded-2xl border border-[#1f2429] bg-[#151a21] px-4 pb-5 pt-6 transition hover:border-lime-400/18 hover:bg-[#1a2129] sm:px-5 sm:pb-6 sm:pt-7 md:px-6 md:pb-8 md:pt-8"
+              class="home-adv-card group relative block overflow-hidden rounded-2xl border border-[#1f2429] bg-[#151a21] px-6 pb-5 pt-6 transition hover:border-lime-400/18 hover:bg-[#1a2129] sm:px-[1.875rem] sm:pb-6 sm:pt-7 md:px-9 md:pb-8 md:pt-8"
             >
               <span
                 class="pointer-events-none absolute -right-1 bottom-0 select-none text-[4.25rem] font-black leading-none text-white/[0.04] tabular-nums sm:text-[5.25rem] md:text-[6.25rem] lg:text-[6.5rem]"
@@ -324,7 +324,7 @@ const footerColumns = [
 
       <!-- 分栏：左侧玻璃感球体示意 + 右侧文案（参考 AI/量化一屏，改为绿色系点缀） -->
       <section
-        class="mb-12 grid gap-8 rounded-2xl border border-white/[0.045] bg-[#080a0c] px-4 py-8 min-[400px]:rounded-3xl sm:mb-16 sm:gap-10 sm:px-8 sm:py-11 md:mb-20 lg:grid-cols-2 lg:items-center lg:gap-12 lg:px-10 lg:py-12"
+        class="mb-12 grid gap-8 rounded-2xl border border-white/[0.045] bg-[#080a0c] px-[1.875rem] py-8 min-[400px]:rounded-3xl sm:mb-16 sm:gap-10 sm:px-12 sm:py-11 md:mb-20 lg:grid-cols-2 lg:items-center lg:gap-12 lg:px-[3.75rem] lg:py-12"
         aria-labelledby="home-tech"
       >
         <div class="home-glass-grid mx-auto grid max-w-md grid-cols-2 gap-3 sm:gap-4" aria-hidden="true">
@@ -414,7 +414,7 @@ const footerColumns = [
         >
           生态与合作伙伴
         </h2>
-        <p class="mx-auto mt-2.5 max-w-xl px-2 text-center text-[13px] leading-relaxed text-white/45 sm:mt-3 sm:px-0 sm:text-sm md:text-base">
+        <p class="mx-auto mt-2.5 max-w-xl text-center text-[13px] leading-relaxed text-white/45 sm:mt-3 sm:text-sm md:text-base">
           安全第一。团队将持续拓展审计、数据与流动性合作，保障您的资产与信息安全。
         </p>
         <ul
@@ -423,7 +423,7 @@ const footerColumns = [
           <li
             v-for="slot in partnerSlots"
             :key="slot"
-            class="rounded-lg border border-white/[0.06] bg-white/[0.03] px-3.5 py-2.5 text-center text-[11px] font-medium leading-snug text-white/40 sm:min-w-[7.5rem] sm:px-4 sm:py-3 sm:text-xs sm:text-[13px]"
+            class="rounded-lg border border-white/[0.06] bg-white/[0.03] px-[1.3125rem] py-2.5 text-center text-[11px] font-medium leading-snug text-white/40 sm:min-w-[7.5rem] sm:px-6 sm:py-3 sm:text-xs sm:text-[13px]"
           >
             {{ slot }}
           </li>
@@ -432,7 +432,7 @@ const footerColumns = [
 
       <!-- 底 CTA -->
       <section
-        class="rounded-xl border border-[#1f2429] bg-gradient-to-b from-[#1a1f26] to-[#0e1116] px-5 py-9 text-center sm:rounded-2xl sm:px-8 sm:py-10 md:px-12 md:py-12"
+        class="rounded-xl border border-[#1f2429] bg-gradient-to-b from-[#1a1f26] to-[#0e1116] px-[1.875rem] py-9 text-center sm:rounded-2xl sm:px-12 sm:py-10 md:px-[4.5rem] md:py-12"
         aria-label="开始使用"
       >
         <p class="text-base font-semibold leading-snug text-white sm:text-lg md:text-xl">
@@ -444,20 +444,20 @@ const footerColumns = [
         <div class="mt-5 flex flex-col items-stretch justify-center gap-2.5 sm:mt-6 sm:flex-row sm:items-center sm:gap-3">
           <RouterLink
             :to="tradeDefault"
-            class="inline-flex h-12 min-h-[2.75rem] w-full items-center justify-center rounded-md bg-gradient-to-r from-lime-400 to-emerald-500 px-8 text-[15px] font-semibold text-[#0b0e11] shadow-[0_4px_20px_-6px_rgba(163,230,53,0.35)] transition hover:brightness-110 sm:h-11 sm:min-h-0 sm:w-auto sm:text-sm"
+            class="inline-flex h-12 min-h-[2.75rem] w-full items-center justify-center rounded-md bg-gradient-to-r from-lime-400 to-emerald-500 px-12 text-[15px] font-semibold text-[#0b0e11] shadow-[0_4px_20px_-6px_rgba(163,230,53,0.35)] transition hover:brightness-110 sm:h-11 sm:min-h-0 sm:w-auto sm:text-sm"
           >
             进入永续
           </RouterLink>
           <RouterLink
             :to="`${prefix}/personal-center/verification`"
-            class="inline-flex h-12 min-h-[2.75rem] w-full items-center justify-center rounded-md border border-white/[0.11] px-8 text-[15px] font-semibold text-white transition hover:border-lime-400/28 sm:h-11 sm:min-h-0 sm:w-auto sm:text-sm"
+            class="inline-flex h-12 min-h-[2.75rem] w-full items-center justify-center rounded-md border border-white/[0.11] px-12 text-[15px] font-semibold text-white transition hover:border-lime-400/28 sm:h-11 sm:min-h-0 sm:w-auto sm:text-sm"
           >
             身份认证
           </RouterLink>
         </div>
       </section>
 
-      <div class="mt-8 rounded-lg border border-white/[0.04] bg-[#080a0c] px-3 py-4 text-center sm:mt-10 sm:rounded-xl sm:px-4 sm:py-5 md:mt-12">
+      <div class="mt-8 rounded-lg border border-white/[0.04] bg-[#080a0c] px-6 py-4 text-center sm:mt-10 sm:rounded-xl sm:px-[1.875rem] sm:py-5 md:mt-12">
         <p class="text-[11px] leading-[1.65] text-white/35 sm:text-[11px] md:text-xs md:leading-relaxed">
           <span class="font-semibold text-white/45">风险提示：</span>
           数字资产及衍生品交易风险极高，可能导致本金全部损失。本页市场摘要仅供教育参考，不构成投资建议。
@@ -470,7 +470,7 @@ const footerColumns = [
       aria-label="页脚"
     >
       <div
-        class="mx-auto max-w-6xl px-3 min-[400px]:px-4 sm:px-5 lg:px-8"
+        class="mx-auto max-w-6xl px-6 min-[400px]:px-[1.875rem] sm:px-9 lg:px-12"
       >
         <div class="grid gap-10 sm:gap-12 lg:grid-cols-12 lg:gap-10 lg:items-start">
           <div class="lg:col-span-4">
