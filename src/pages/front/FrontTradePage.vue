@@ -7,6 +7,8 @@ import {
   TRADE_PRODUCT_MODE_KEYS,
   TRADE_PRODUCT_MODE_META
 } from '../../constants/frontNav'
+import { VERIFICATION_LEVEL } from '../../constants/verification'
+import VerificationRequiredDialog from '../../components/verification/VerificationRequiredDialog.vue'
 import { FRONT_DEPOSIT_DEFAULT_SYMBOL_LOWER } from '../../constants/frontAssetCenterDemo'
 import {
   frontSheetBackdropPaintOnly,
@@ -1200,6 +1202,38 @@ const klineMarketTrades = computed(() => {
 const orderToast = ref('')
 let orderToastTimer = null
 
+/** 演示：后台要求「初级认证」通过后才允许交易；持久化便于刷新后仍保持 */
+const FEX_FRONT_TRADE_KYC_APPROVED_KEY = 'fex-front-trade-kyc-approved-demo'
+const tradeKycApproved = ref(false)
+const tradeVerificationDialogOpen = ref(false)
+
+const tradeKycUserLevelForDialog = computed(() =>
+  tradeKycApproved.value ? VERIFICATION_LEVEL.BASIC : VERIFICATION_LEVEL.NONE
+)
+
+function syncTradeKycFromStorage() {
+  try {
+    tradeKycApproved.value =
+      typeof localStorage !== 'undefined' &&
+      localStorage.getItem(FEX_FRONT_TRADE_KYC_APPROVED_KEY) === '1'
+  } catch {
+    tradeKycApproved.value = false
+  }
+}
+
+function markTradeKycApprovedDemo() {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(FEX_FRONT_TRADE_KYC_APPROVED_KEY, '1')
+    }
+  } catch {
+    /* ignore */
+  }
+  tradeKycApproved.value = true
+  tradeVerificationDialogOpen.value = false
+  showTradeToast('演示：已通过初级认证，可正常提交委托')
+}
+
 function showTradeToast(message) {
   orderToast.value = message
   if (orderToastTimer) clearTimeout(orderToastTimer)
@@ -1222,6 +1256,12 @@ function validateOrderQty() {
 /** 演示环境：校验数量后提示，无真实下单 */
 function submitDemoOrder(forcedSide) {
   if (!requireAuth()) return
+  syncTradeKycFromStorage()
+  if (!tradeKycApproved.value) {
+    tradeVerificationDialogOpen.value = true
+    showTradeToast('请先完成身份认证后再交易')
+    return
+  }
   const err = validateOrderQty()
   if (err) {
     showTradeToast(err)
@@ -1272,6 +1312,7 @@ function tickClock() {
 }
 
 onMounted(() => {
+  syncTradeKycFromStorage()
   document.body.addEventListener('keydown', onBodyKeydown)
   document.addEventListener('pointerdown', onDocPointerDownPcPair, true)
   tickClock()
@@ -3614,6 +3655,28 @@ onUnmounted(() => {
         </div>
       </Transition>
     </Teleport>
+
+    <VerificationRequiredDialog
+      v-model="tradeVerificationDialogOpen"
+      :user-level="tradeKycUserLevelForDialog"
+      :required-level="VERIFICATION_LEVEL.BASIC"
+      feature-name="交易下单"
+      :verify-href="`${prefix}/personal-center/verification`"
+      dark
+    >
+      <template #afterActions>
+        <p class="text-center text-[11px] leading-relaxed text-white/50">
+          演示环境：
+          <button
+            type="button"
+            class="text-lime-300/95 underline decoration-lime-400/35 underline-offset-2 hover:text-lime-200"
+            @click="markTradeKycApprovedDemo"
+          >
+            模拟已通过初级认证
+          </button>
+        </p>
+      </template>
+    </VerificationRequiredDialog>
   </div>
 </template>
 

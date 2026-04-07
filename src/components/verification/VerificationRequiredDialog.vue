@@ -131,6 +131,9 @@ watch(
                 前往身份认证
               </a>
             </div>
+            <div v-if="$slots.afterActions" class="mt-4 border-t border-white/10 pt-4">
+              <slot name="afterActions" />
+            </div>
           </template>
 
           <!-- 已满足：说明不会拦截（仅 onlyWhenBlocked=false 时可见） -->
