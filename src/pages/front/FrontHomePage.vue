@@ -44,41 +44,6 @@ const advantageCards = [
   }
 ]
 
-/** 参考「链上新闻动态」— 静态摘要，非实时新闻承诺 */
-const newsItems = [
-  {
-    title: '现货比特币 ETF 出现连续净流入，机构风险偏好受关注',
-    tone: 'btc'
-  },
-  {
-    title: '以太坊生态 Layer2 活跃度回升，链上手续费结构分化',
-    tone: 'eth'
-  },
-  {
-    title: '主流币种波动率抬升，衍生品对冲需求同步上升',
-    tone: 'mix'
-  }
-]
-
-/** 三列卖点：样式统一，不突出中间项 */
-const tradingHighlights = [
-  {
-    title: '低点差成本',
-    desc: '紧凑价差与透明手续费设计，帮助压缩您的平均交易成本。',
-    icon: 'bolt'
-  },
-  {
-    title: '跨市场深度流动性',
-    desc: '多源深度汇聚，大额委托路径优化，力求稳定成交体验。',
-    icon: 'stack'
-  },
-  {
-    title: '高性能 API',
-    desc: '为量化与程序化策略提供稳定接口与清晰限频机制。',
-    icon: 'api'
-  }
-]
-
 const partnerSlots = [
   '安全审计合作',
   '链上数据服务',
@@ -404,102 +369,6 @@ const footerColumns = [
         </div>
       </section>
 
-      <!-- 市场动态：三列 -->
-      <section class="mb-12 sm:mb-16 md:mb-20" aria-labelledby="home-news">
-        <h2
-          id="home-news"
-          class="mb-5 text-center text-xl font-bold leading-snug tracking-tight text-white text-balance sm:mb-8 sm:text-2xl md:text-3xl"
-        >
-          市场热点摘要
-        </h2>
-        <p class="mx-auto mb-6 max-w-2xl px-1 text-center text-[13px] leading-relaxed text-white/45 sm:mb-8 sm:px-0 sm:text-sm md:text-base">
-          以下为教育性摘要示例，不构成投资观点；请独立研判行情与政策。
-        </p>
-        <ul class="grid gap-4 sm:grid-cols-3 sm:gap-4 md:gap-5">
-          <li
-            v-for="(n, idx) in newsItems"
-            :key="idx"
-            class="overflow-hidden rounded-xl border border-white/[0.05] bg-[#0c0f14] transition hover:border-lime-400/18"
-          >
-            <div
-              class="relative aspect-[16/10] w-full"
-              :class="{
-                'home-news-thumb--btc': n.tone === 'btc',
-                'home-news-thumb--eth': n.tone === 'eth',
-                'home-news-thumb--mix': n.tone === 'mix'
-              }"
-              aria-hidden="true"
-            />
-            <p class="p-3.5 text-left text-[13px] leading-snug text-white/85 sm:p-4 sm:text-sm">
-              {{ n.title }}
-            </p>
-          </li>
-        </ul>
-      </section>
-
-      <!-- 现货合约：三卡统一 -->
-      <section class="mb-12 sm:mb-16 md:mb-20" aria-labelledby="home-highlights">
-        <h2
-          id="home-highlights"
-          class="mb-7 text-center text-xl font-bold leading-snug tracking-tight text-white text-balance sm:mb-9 sm:text-2xl md:mb-10 md:text-3xl"
-        >
-          现货合约交易，轻松实现
-        </h2>
-        <ul class="grid gap-3.5 md:grid-cols-3 md:gap-5 md:items-stretch">
-          <li
-            v-for="f in tradingHighlights"
-            :key="f.title"
-            class="rounded-2xl border border-[#1f2429] bg-[#1e2329]/80 p-5 transition hover:border-white/[0.08] sm:p-6 md:p-7"
-          >
-            <div
-              class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-white/[0.05] text-lime-400/90 ring-1 ring-white/[0.04]"
-              aria-hidden="true"
-            >
-              <svg
-                v-if="f.icon === 'bolt'"
-                class="h-6 w-6"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.75"
-              >
-                <path
-                  d="M13 2 3 14h8l-1 8 10-12h-8l1-8Z"
-                  stroke-linejoin="round"
-                />
-              </svg>
-              <svg
-                v-else-if="f.icon === 'stack'"
-                class="h-6 w-6"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.75"
-              >
-                <path d="M12 2 2 7l10 5 10-5-10-5Z" stroke-linejoin="round" />
-                <path d="M2 17 12 22l10-5M2 12 12 17l10-5" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-              <svg
-                v-else
-                class="h-6 w-6"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.75"
-              >
-                <path d="M4 8h16M8 8v12M10 20h8M16 8v6" stroke-linecap="round" />
-              </svg>
-            </div>
-            <h3 class="text-[1.0625rem] font-bold leading-snug text-white sm:text-lg">
-              {{ f.title }}
-            </h3>
-            <p class="mt-2 text-[13px] leading-relaxed text-[#848e9c] sm:text-sm">
-              {{ f.desc }}
-            </p>
-          </li>
-        </ul>
-      </section>
-
       <!-- 多品种 -->
       <section class="mb-12 sm:mb-16 md:mb-20" aria-labelledby="home-markets">
         <h2
@@ -733,22 +602,6 @@ const footerColumns = [
 }
 .home-sphere--eth {
   background: radial-gradient(circle at 50% 50%, rgba(37, 99, 235, 0.45), rgba(15, 23, 42, 0.92));
-}
-
-.home-news-thumb--btc {
-  background:
-    radial-gradient(circle at 50% 50%, rgba(245, 158, 11, 0.35), transparent 55%),
-    linear-gradient(145deg, #111 0%, #1a1408 100%);
-}
-.home-news-thumb--eth {
-  background:
-    radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.4), transparent 55%),
-    linear-gradient(145deg, #0c1020 0%, #111 100%);
-}
-.home-news-thumb--mix {
-  background:
-    radial-gradient(circle at 40% 45%, rgba(163, 230, 53, 0.2), transparent 50%),
-    linear-gradient(145deg, #0a0f0a 0%, #0c1218 100%);
 }
 
 @media (prefers-reduced-motion: reduce) {

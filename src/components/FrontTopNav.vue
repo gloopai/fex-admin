@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import { useFrontAuthStore } from '../stores/frontAuth'
@@ -7,8 +7,10 @@ import { pathNeedsFrontAuth } from '../composables/useRequireFrontAuth'
 import {
   getFrontMainNavLinks,
   getFrontTradeMenuGroups,
+  TRADE_ASSET_CLASS_META,
   TRADE_PRODUCT_MODE_META
 } from '../constants/frontNav'
+import { PAIRS_BY_CLASS } from '../constants/frontTradePairs'
 import { getPersonalCenterShellMobileNavItems } from '../constants/personalCenterNav'
 
 const props = defineProps({
@@ -39,10 +41,20 @@ function logoutFront() {
 
 const tradeOpen = ref(false)
 const langOpen = ref(false)
+const downloadOpen = ref(false)
 const mobileOpen = ref(false)
+/** 移动端：主抽屉内点「语言」后从底部弹出的语言选择层 */
+const mobileLangSheetOpen = ref(false)
 const navRoot = ref(null)
 /** Teleport 抽屉，供外点关闭判断 */
 const mobileDrawerRef = ref(null)
+const mobileLangSheetRef = ref(null)
+/** 顶栏：搜索交易对弹层 */
+const searchOpen = ref(false)
+const searchQuery = ref('')
+const searchPanelRef = ref(null)
+
+let downloadLeaveTimer = null
 
 const mainLinks = computed(() => getFrontMainNavLinks(props.prefix))
 const tradeMenuGroups = computed(() => getFrontTradeMenuGroups(props.prefix))
@@ -253,28 +265,119 @@ function selectLocale(code) {
     /* ignore */
   }
   langOpen.value = false
-  mobileOpen.value = false
+  mobileLangSheetOpen.value = false
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('front-locale-change', { detail: { locale: code } }))
   }
 }
 
+/** PC：下载菜单悬停（整块热区，避免移入浮层时误关） */
+function onDownloadMouseEnter() {
+  if (downloadLeaveTimer) {
+    clearTimeout(downloadLeaveTimer)
+    downloadLeaveTimer = null
+  }
+  downloadOpen.value = true
+  tradeOpen.value = false
+  langOpen.value = false
+  searchOpen.value = false
+}
+
+function onDownloadMouseLeave() {
+  downloadLeaveTimer = setTimeout(() => {
+    downloadOpen.value = false
+    downloadLeaveTimer = null
+  }, 200)
+}
+
+/** 演示：App 下载页链接（二维码内容） */
+const appQrIosUrl = 'https://apps.apple.com/app/cryptox-pro-demo'
+const appQrAndroidUrl = 'https://play.google.com/store/apps/details?id=demo.cryptox.pro'
+const appQrIosSrc = computed(
+  () =>
+    `https://api.qrserver.com/v1/create-qr-code/?size=128x128&data=${encodeURIComponent(appQrIosUrl)}`
+)
+const appQrAndroidSrc = computed(
+  () =>
+    `https://api.qrserver.com/v1/create-qr-code/?size=128x128&data=${encodeURIComponent(appQrAndroidUrl)}`
+)
+
+/** 扁平列表供顶栏搜索（品种 + 交易对） */
+const tradePairSearchRows = computed(() => {
+  const out = []
+  for (const [ac, rows] of Object.entries(PAIRS_BY_CLASS)) {
+    const classLabel = TRADE_ASSET_CLASS_META[ac]?.label ?? ac
+    for (const row of rows) {
+      const id = `${row.base}-${row.quote}`
+      const symbolLabel = `${row.base}/${row.quote}`
+      out.push({
+        id,
+        base: row.base,
+        quote: row.quote,
+        assetClass: ac,
+        classLabel,
+        symbolLabel,
+        searchBlob: `${row.base} ${row.quote} ${id} ${symbolLabel} ${classLabel}`.toLowerCase()
+      })
+    }
+  }
+  return out
+})
+
+const filteredTradePairSearch = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  const all = tradePairSearchRows.value
+  if (!q) return all.slice(0, 60)
+  return all.filter((r) => r.searchBlob.includes(q)).slice(0, 80)
+})
+
+function openTradePairSearch() {
+  searchOpen.value = true
+  tradeOpen.value = false
+  langOpen.value = false
+  downloadOpen.value = false
+  searchQuery.value = ''
+  nextTick(() => {
+    document.getElementById('front-nav-trade-pair-search')?.focus()
+  })
+}
+
+function pickTradePairRow(row) {
+  searchOpen.value = false
+  searchQuery.value = ''
+  router.push({
+    path: `${props.prefix}/trade/${row.assetClass}/perpetual`,
+    query: { pair: row.id }
+  })
+}
+
 function toggleLangMenu() {
   const next = !langOpen.value
   langOpen.value = next
-  if (next) tradeOpen.value = false
+  if (next) {
+    tradeOpen.value = false
+    downloadOpen.value = false
+    searchOpen.value = false
+  }
 }
 
 function toggleTradeMenu() {
   const next = !tradeOpen.value
   tradeOpen.value = next
-  if (next) langOpen.value = false
+  if (next) {
+    langOpen.value = false
+    downloadOpen.value = false
+    searchOpen.value = false
+  }
 }
 
 function closeOverlays() {
   tradeOpen.value = false
   langOpen.value = false
+  downloadOpen.value = false
+  searchOpen.value = false
   mobileOpen.value = false
+  mobileLangSheetOpen.value = false
 }
 
 watch(() => route.fullPath, closeOverlays)
@@ -283,8 +386,11 @@ function closeIfDesktopBreakpoint() {
   if (typeof window === 'undefined') return
   if (window.matchMedia('(min-width: 1024px)').matches) {
     mobileOpen.value = false
+    mobileLangSheetOpen.value = false
     tradeOpen.value = false
     langOpen.value = false
+    downloadOpen.value = false
+    searchOpen.value = false
   }
 }
 
@@ -301,6 +407,8 @@ onMounted(() => {
 function onDocPointerDown(ev) {
   if (navRoot.value?.contains(ev.target)) return
   if (mobileDrawerRef.value?.contains(ev.target)) return
+  if (mobileLangSheetRef.value?.contains(ev.target)) return
+  if (searchPanelRef.value?.contains(ev.target)) return
   closeOverlays()
 }
 
@@ -312,10 +420,27 @@ function isPcOverviewActive() {
   return pathNorm(route.path) === pathNorm(pcBase.value)
 }
 
-const anyPanelOpen = computed(() => tradeOpen.value || langOpen.value || mobileOpen.value)
+const anyPanelOpen = computed(
+  () =>
+    tradeOpen.value ||
+    langOpen.value ||
+    downloadOpen.value ||
+    searchOpen.value ||
+    mobileOpen.value ||
+    mobileLangSheetOpen.value
+)
 
 function onEscape(ev) {
-  if (ev.key === 'Escape') closeOverlays()
+  if (ev.key !== 'Escape') return
+  if (mobileLangSheetOpen.value) {
+    mobileLangSheetOpen.value = false
+    return
+  }
+  if (searchOpen.value) {
+    searchOpen.value = false
+    return
+  }
+  closeOverlays()
 }
 
 watch(anyPanelOpen, (open) => {
@@ -334,10 +459,22 @@ watch(mobileOpen, (open) => {
   if (open) {
     tradeOpen.value = false
     langOpen.value = false
+    downloadOpen.value = false
+    searchOpen.value = false
+  } else {
+    mobileLangSheetOpen.value = false
   }
 })
 
+watch(searchOpen, (open) => {
+  if (typeof document === 'undefined') return
+  if (open && !mobileOpen.value) document.body.style.overflow = 'hidden'
+  if (!open && !mobileOpen.value) document.body.style.overflow = ''
+  if (!open) searchQuery.value = ''
+})
+
 onUnmounted(() => {
+  if (downloadLeaveTimer) clearTimeout(downloadLeaveTimer)
   removeMediaListener()
   document.removeEventListener('pointerdown', onDocPointerDown, true)
   window.removeEventListener('keydown', onEscape)
@@ -489,7 +626,12 @@ function drawerRowClass(item) {
         <button
           type="button"
           class="rounded-md p-2 text-[#eaecef] transition hover:bg-[#1f2429] hover:text-lime-300"
-          aria-label="搜索"
+          :class="searchOpen ? 'bg-[#1f2429] text-lime-300' : ''"
+          aria-label="搜索交易对"
+          :aria-expanded="searchOpen"
+          aria-controls="front-nav-trade-pair-dialog"
+          aria-haspopup="dialog"
+          @click="openTradePairSearch"
         >
           <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path
@@ -500,21 +642,81 @@ function drawerRowClass(item) {
             />
           </svg>
         </button>
-        <button
-          type="button"
-          class="hidden rounded-md p-2 text-[#eaecef] transition hover:bg-[#1f2429] hover:text-lime-300 xl:block"
-          aria-label="下载"
+        <div
+          class="relative hidden lg:block"
+          @mouseenter="onDownloadMouseEnter"
+          @mouseleave="onDownloadMouseLeave"
         >
-          <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path
-              d="M12 4v11m0 0-3.5-3.5M12 15l3.5-3.5M5 19h14"
-              stroke="currentColor"
-              stroke-width="1.75"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
-        </button>
+          <button
+            type="button"
+            class="rounded-md p-2 text-[#eaecef] transition hover:bg-[#1f2429] hover:text-lime-300"
+            :class="downloadOpen ? 'bg-[#1f2429] text-lime-300' : ''"
+            aria-label="下载 App"
+            aria-haspopup="true"
+            :aria-expanded="downloadOpen"
+          >
+            <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M12 4v11m0 0-3.5-3.5M12 15l3.5-3.5M5 19h14"
+                stroke="currentColor"
+                stroke-width="1.75"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+          <Transition
+            enter-active-class="transition duration-150 ease-out"
+            enter-from-class="opacity-0 -translate-y-1"
+            enter-to-class="opacity-100 translate-y-0"
+            leave-active-class="transition duration-100 ease-in"
+            leave-from-class="opacity-100 translate-y-0"
+            leave-to-class="opacity-0 -translate-y-1"
+          >
+            <div
+              v-show="downloadOpen"
+              class="absolute right-0 top-full z-30 w-[min(19rem,calc(100vw-2rem))] pt-2"
+              role="menu"
+              @mouseenter="onDownloadMouseEnter"
+              @mouseleave="onDownloadMouseLeave"
+            >
+              <div
+                class="rounded-md border border-[#1f2429] bg-[#1e2329] p-4 shadow-xl shadow-black/50"
+              >
+                <p class="mb-3 text-center text-xs font-medium text-[#848e9c]">扫码下载 App</p>
+                <div class="grid grid-cols-2 gap-4">
+                  <div class="text-center">
+                    <img
+                      :src="appQrIosSrc"
+                      alt=""
+                      width="112"
+                      height="112"
+                      class="mx-auto h-28 w-28 rounded border border-[#1f2429] bg-white p-1"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    <p class="mt-2 text-xs text-[#eaecef]">iOS</p>
+                  </div>
+                  <div class="text-center">
+                    <img
+                      :src="appQrAndroidSrc"
+                      alt=""
+                      width="112"
+                      height="112"
+                      class="mx-auto h-28 w-28 rounded border border-[#1f2429] bg-white p-1"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    <p class="mt-2 text-xs text-[#eaecef]">Android</p>
+                  </div>
+                </div>
+                <p class="mt-3 text-center text-[10px] leading-snug text-[#848e9c]/90">
+                  演示二维码，链接仅供参考
+                </p>
+              </div>
+            </div>
+          </Transition>
+        </div>
         <div class="relative hidden lg:block">
           <button
             type="button"
@@ -693,7 +895,7 @@ function drawerRowClass(item) {
             role="dialog"
             aria-modal="true"
             aria-label="菜单"
-            class="front-drawer-panel absolute left-0 top-0 flex h-full w-[min(18rem,86vw)] max-w-[100vw] flex-col border-r border-white/[0.04] bg-[#0b0e11] shadow-[4px_0_24px_-4px_rgba(0,0,0,0.5)]"
+            class="front-drawer-panel absolute left-0 top-0 flex min-h-0 h-full w-[min(18rem,86vw)] max-w-[100vw] flex-col border-r border-white/[0.04] bg-[#0b0e11] shadow-[4px_0_24px_-4px_rgba(0,0,0,0.5)]"
             @click.stop
           >
             <!-- 贴顶固定：抽屉顶栏（关菜单）+ 账号卡片（仅登录态内容） -->
@@ -772,7 +974,7 @@ function drawerRowClass(item) {
             </div>
 
             <nav
-              class="front-drawer-nav-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-2.5 pb-[calc(0.875rem+env(safe-area-inset-bottom,0px))]"
+              class="front-drawer-nav-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-2.5 pb-2"
               role="menu"
             >
               <p class="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#b0b8c1] sm:tracking-wider">
@@ -845,47 +1047,6 @@ function drawerRowClass(item) {
                 </RouterLink>
               </div>
 
-              <div
-                class="mx-3 mb-0.5 mt-5 h-px bg-gradient-to-r from-transparent via-white/[0.07] to-transparent"
-                aria-hidden="true"
-              />
-              <p class="mb-2 mt-5 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#b0b8c1] sm:tracking-wider">
-                语言
-              </p>
-              <div class="space-y-0.5 px-1">
-                <button
-                  v-for="opt in frontLangOptions"
-                  :key="opt.code"
-                  type="button"
-                  class="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-left text-[14px] font-medium leading-snug transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/28 sm:text-[13px]"
-                  :class="
-                    localeCode === opt.code
-                      ? 'bg-lime-400/[0.09] text-lime-100'
-                      : 'text-[#eaecef] hover:bg-white/[0.04] hover:text-white'
-                  "
-                  role="menuitem"
-                  :aria-current="localeCode === opt.code ? 'true' : undefined"
-                  @click="selectLocale(opt.code)"
-                >
-                  <span>{{ opt.label }}</span>
-                  <svg
-                    v-if="localeCode === opt.code"
-                    class="h-4 w-4 shrink-0 text-lime-400/90"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d="M20 6 9 17l-5-5"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
-                </button>
-              </div>
-
               <template v-if="isLoggedIn">
                 <div
                   class="mx-3 mb-0.5 mt-5 h-px bg-gradient-to-r from-transparent via-white/[0.07] to-transparent"
@@ -925,7 +1086,245 @@ function drawerRowClass(item) {
                 </div>
               </template>
             </nav>
+
+            <div
+              class="shrink-0 border-t border-white/[0.06] bg-[#0b0e11] px-2 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-1"
+            >
+              <button
+                type="button"
+                class="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-3 text-left transition [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/28 active:bg-white/[0.04]"
+                aria-haspopup="dialog"
+                :aria-expanded="mobileLangSheetOpen"
+                aria-controls="front-mobile-lang-sheet"
+                @click="mobileLangSheetOpen = true"
+              >
+                <span class="flex min-w-0 items-center gap-2.5">
+                  <span
+                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.05] text-lime-400/80"
+                    aria-hidden="true"
+                  >
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path
+                        d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"
+                        stroke="currentColor"
+                        stroke-width="1.75"
+                      />
+                      <path
+                        d="M3 12h18M12 3c2.5 3 2.5 15 0 18M12 3c-2.5 3-2.5 15 0 18"
+                        stroke="currentColor"
+                        stroke-width="1.75"
+                      />
+                    </svg>
+                  </span>
+                  <span class="min-w-0">
+                    <span class="block text-[11px] font-medium uppercase tracking-wider text-[#848e9c]">
+                      语言
+                    </span>
+                    <span class="mt-0.5 block truncate text-sm font-medium text-[#eaecef]">
+                      {{ currentLocale.label }}
+                    </span>
+                  </span>
+                </span>
+                <svg
+                  class="h-4 w-4 shrink-0 text-white/35"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="m9 6 6 6-6 6"
+                    stroke="currentColor"
+                    stroke-width="1.75"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
           </aside>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <Teleport to="body">
+      <Transition name="front-lang-sheet">
+        <div
+          v-if="mobileLangSheetOpen"
+          id="front-mobile-lang-sheet"
+          ref="mobileLangSheetRef"
+          class="fixed inset-0 z-[110] lg:hidden"
+          role="presentation"
+        >
+          <div
+            class="absolute inset-0 bg-black/50 backdrop-blur-[1px]"
+            aria-hidden="true"
+            @click="mobileLangSheetOpen = false"
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="front-mobile-lang-title"
+            class="front-lang-sheet-panel absolute bottom-0 left-0 right-0 flex max-h-[min(70vh,28rem)] flex-col overflow-hidden rounded-t-2xl border border-white/[0.08] border-b-0 bg-[#12161c] shadow-[0_-8px_32px_rgba(0,0,0,0.45)]"
+            @click.stop
+          >
+            <div class="flex shrink-0 items-center justify-between border-b border-white/[0.06] px-4 py-3">
+              <h2 id="front-mobile-lang-title" class="text-base font-semibold text-[#eaecef]">
+                选择语言
+              </h2>
+              <button
+                type="button"
+                class="rounded-lg p-2 text-white/45 transition hover:bg-white/[0.07] hover:text-white/85"
+                aria-label="关闭"
+                @click="mobileLangSheetOpen = false"
+              >
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path
+                    d="m6 6 12 12M18 6 6 18"
+                    stroke="currentColor"
+                    stroke-width="1.75"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div
+              class="front-nav-scroll-pill min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-2 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]"
+              role="listbox"
+              aria-label="语言列表"
+            >
+              <button
+                v-for="opt in frontLangOptions"
+                :id="`front-mobile-lang-${opt.code}`"
+                :key="opt.code"
+                type="button"
+                role="option"
+                class="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-3 text-left text-[15px] font-medium transition [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/28 active:bg-white/[0.04] sm:text-[14px]"
+                :class="
+                  localeCode === opt.code
+                    ? 'bg-lime-400/[0.09] text-lime-100'
+                    : 'text-[#eaecef] hover:bg-white/[0.04] hover:text-white'
+                "
+                :aria-selected="localeCode === opt.code"
+                @click="selectLocale(opt.code)"
+              >
+                <span>{{ opt.label }}</span>
+                <svg
+                  v-if="localeCode === opt.code"
+                  class="h-4 w-4 shrink-0 text-lime-400/90"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M20 6 9 17l-5-5"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <Teleport to="body">
+      <Transition name="front-search-modal">
+        <div
+          v-if="searchOpen"
+          id="front-nav-trade-pair-dialog"
+          ref="searchPanelRef"
+          class="front-search-modal-overlay fixed inset-0 z-[120] flex items-start justify-center overflow-y-auto bg-black/55 p-3 pt-[max(3.5rem,env(safe-area-inset-top))] backdrop-blur-[1px] sm:items-center sm:p-4 sm:pt-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="front-nav-trade-pair-title"
+          @click.self="searchOpen = false"
+        >
+          <div
+            class="front-search-modal-panel w-full max-w-lg rounded-xl border border-[#1f2429] bg-[#12161c] shadow-2xl shadow-black/60"
+            @click.stop
+          >
+            <div class="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
+              <h2 id="front-nav-trade-pair-title" class="text-base font-semibold text-[#eaecef]">
+                搜索交易对
+              </h2>
+              <button
+                type="button"
+                class="rounded-lg p-2 text-white/45 transition hover:bg-white/[0.07] hover:text-white/85"
+                aria-label="关闭"
+                @click="searchOpen = false"
+              >
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path
+                    d="m6 6 12 12M18 6 6 18"
+                    stroke="currentColor"
+                    stroke-width="1.75"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div class="p-3">
+              <label class="sr-only" for="front-nav-trade-pair-search">搜索交易对</label>
+              <div class="relative">
+                <svg
+                  class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#848e9c]"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM21 21l-4.3-4.3"
+                    stroke="currentColor"
+                    stroke-width="1.75"
+                    stroke-linecap="round"
+                  />
+                </svg>
+                <input
+                  id="front-nav-trade-pair-search"
+                  v-model="searchQuery"
+                  type="search"
+                  autocomplete="off"
+                  autocorrect="off"
+                  spellcheck="false"
+                  placeholder="输入代码或名称，如 BTC、ETH/USDT、黄金…"
+                  class="w-full rounded-lg border border-white/[0.08] bg-black/30 py-2.5 pl-10 pr-3 text-sm text-[#eaecef] placeholder:text-[#848e9c]/85 focus:border-lime-400/40 focus:outline-none focus:ring-2 focus:ring-lime-400/25"
+                />
+              </div>
+              <ul
+                class="front-nav-scroll-pill mt-2 max-h-[min(22rem,50vh)] overflow-y-auto overscroll-contain rounded-lg border border-white/[0.04] bg-black/20 py-1"
+                role="listbox"
+                aria-label="匹配的交易对"
+              >
+                <li
+                  v-if="filteredTradePairSearch.length === 0"
+                  class="px-4 py-10 text-center text-sm text-[#848e9c]"
+                >
+                  未找到匹配的交易对
+                </li>
+                <li v-for="row in filteredTradePairSearch" :key="`${row.assetClass}-${row.id}`">
+                  <button
+                    type="button"
+                    role="option"
+                    class="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm transition [-webkit-tap-highlight-color:transparent] hover:bg-white/[0.05] focus:outline-none focus-visible:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-lime-400/25"
+                    @click="pickTradePairRow(row)"
+                  >
+                    <span class="min-w-0 font-medium text-[#eaecef]">{{ row.symbolLabel }}</span>
+                    <span
+                      class="shrink-0 rounded-md bg-white/[0.06] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[#848e9c]"
+                    >
+                      {{ row.classLabel }}
+                    </span>
+                  </button>
+                </li>
+              </ul>
+              <p class="mt-2 px-0.5 text-[11px] leading-relaxed text-[#848e9c]/90">
+                选择后将进入对应品种的永续交易页；未登录时会先跳转登录。
+              </p>
+            </div>
+          </div>
         </div>
       </Transition>
     </Teleport>
@@ -957,7 +1356,15 @@ function drawerRowClass(item) {
   .front-drawer-enter-active,
   .front-drawer-leave-active,
   .front-drawer-enter-active .front-drawer-panel,
-  .front-drawer-leave-active .front-drawer-panel {
+  .front-drawer-leave-active .front-drawer-panel,
+  .front-lang-sheet-enter-active,
+  .front-lang-sheet-leave-active,
+  .front-lang-sheet-enter-active .front-lang-sheet-panel,
+  .front-lang-sheet-leave-active .front-lang-sheet-panel,
+  .front-search-modal-enter-active,
+  .front-search-modal-leave-active,
+  .front-search-modal-enter-active .front-search-modal-panel,
+  .front-search-modal-leave-active .front-search-modal-panel {
     transition: none;
   }
 }
@@ -970,5 +1377,99 @@ function drawerRowClass(item) {
 
 .front-drawer-nav-scroll::-webkit-scrollbar {
   display: none;
+}
+
+.front-lang-sheet-enter-active,
+.front-lang-sheet-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.front-lang-sheet-enter-active .front-lang-sheet-panel,
+.front-lang-sheet-leave-active .front-lang-sheet-panel {
+  transition: transform 0.22s ease;
+}
+
+.front-lang-sheet-enter-from,
+.front-lang-sheet-leave-to {
+  opacity: 0;
+}
+
+.front-lang-sheet-enter-from .front-lang-sheet-panel,
+.front-lang-sheet-leave-to .front-lang-sheet-panel {
+  transform: translateY(100%);
+}
+
+.front-search-modal-enter-active,
+.front-search-modal-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.front-search-modal-enter-active .front-search-modal-panel,
+.front-search-modal-leave-active .front-search-modal-panel {
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.front-search-modal-enter-from,
+.front-search-modal-leave-to {
+  opacity: 0;
+}
+
+.front-search-modal-enter-from .front-search-modal-panel,
+.front-search-modal-leave-to .front-search-modal-panel {
+  opacity: 0;
+  transform: scale(0.97) translateY(-6px);
+}
+
+/* 搜索弹层遮罩：可滚但隐藏系统滚动条（仅滚轮/触控），避免原生条 */
+.front-search-modal-overlay {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.front-search-modal-overlay::-webkit-scrollbar {
+  display: none;
+}
+
+/*
+ * 自定义胶囊滚动条（非系统默认外观）：透明轨道 + 圆角滑块 + 透明边距
+ * Firefox：thumb / track 颜色；WebKit：隐藏箭头与 corner
+ */
+.front-nav-scroll-pill {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(163, 230, 53, 0.55) transparent;
+}
+
+.front-nav-scroll-pill::-webkit-scrollbar {
+  width: 6px;
+}
+
+.front-nav-scroll-pill::-webkit-scrollbar-button,
+.front-nav-scroll-pill::-webkit-scrollbar-corner {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.front-nav-scroll-pill::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.front-nav-scroll-pill::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-color: rgba(163, 230, 53, 0.38);
+  background-clip: padding-box;
+  min-height: 2.5rem;
+}
+
+.front-nav-scroll-pill::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(190, 242, 100, 0.55);
+  background-clip: padding-box;
+}
+
+.front-nav-scroll-pill::-webkit-scrollbar-thumb:active {
+  background-color: rgba(163, 230, 53, 0.7);
 }
 </style>
