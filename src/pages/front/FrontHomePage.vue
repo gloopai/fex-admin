@@ -105,6 +105,38 @@ const tradeModes = [
     to: `${prefix}/trade/crypto/delivery`
   }
 ]
+
+const footerYear = new Date().getFullYear()
+
+const footerColumns = [
+  {
+    title: '交易',
+    links: [
+      { label: 'U 本位永续', to: `${prefix}/trade/crypto/perpetual` },
+      { label: '现货', to: `${prefix}/trade/crypto/spot` },
+      { label: '交割合约', to: `${prefix}/trade/crypto/delivery` },
+      { label: '行情', to: `${prefix}/market` }
+    ]
+  },
+  {
+    title: '账户与服务',
+    links: [
+      { label: '资产中心', to: `${prefix}/personal-center/assets` },
+      { label: '身份认证', to: `${prefix}/personal-center/verification` },
+      { label: '安全中心', to: `${prefix}/personal-center/security` },
+      { label: '费率与 VIP', to: `${prefix}/personal-center/fees-vip` }
+    ]
+  },
+  {
+    title: '账户入口',
+    links: [
+      { label: '注册', to: `${prefix}/register` },
+      { label: '登录', to: `${prefix}/login` },
+      { label: '推荐计划', to: `${prefix}/personal-center/referral` },
+      { label: '消息通知', to: `${prefix}/personal-center/notifications` }
+    ]
+  }
+]
 </script>
 
 <template>
@@ -563,6 +595,81 @@ const tradeModes = [
         </p>
       </div>
     </div>
+
+    <footer
+      class="relative border-t border-white/[0.07] bg-[#010102] pb-[calc(1rem+env(safe-area-inset-bottom,0px))] pt-12 sm:pt-14 md:pt-16"
+      aria-label="页脚"
+    >
+      <div
+        class="mx-auto max-w-6xl px-3 min-[400px]:px-4 sm:px-5 lg:px-8"
+      >
+        <div class="grid gap-10 sm:gap-12 lg:grid-cols-12 lg:gap-10 lg:items-start">
+          <div class="lg:col-span-4">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-lime-400/75">CryptoX Pro</p>
+            <p class="mt-3 max-w-sm text-[13px] leading-relaxed text-white/45 sm:text-sm">
+              面向全球用户的数字资产交易平台。现货、合约与账户安全能力持续迭代；演示环境数据仅供参考。
+            </p>
+            <div
+              class="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-white/[0.06] pt-5 text-[11px] text-white/35 sm:text-xs"
+            >
+              <span class="inline-flex items-center gap-1.5">
+                <span class="h-1.5 w-1.5 rounded-full bg-emerald-400/80" aria-hidden="true" />
+                系统监控 · 演示
+              </span>
+              <span class="text-white/20">|</span>
+              <span>7×24 风控校验（示意）</span>
+            </div>
+          </div>
+          <div
+            class="grid grid-cols-2 gap-8 sm:grid-cols-3 sm:gap-6 lg:col-span-8 lg:grid-cols-3"
+          >
+            <div v-for="col in footerColumns" :key="col.title">
+              <p class="text-[11px] font-semibold uppercase tracking-wider text-white/50">
+                {{ col.title }}
+              </p>
+              <ul class="mt-3 space-y-2.5">
+                <li v-for="link in col.links" :key="link.to">
+                  <RouterLink
+                    :to="link.to"
+                    class="text-[13px] text-white/55 transition hover:text-lime-300/90 sm:text-sm"
+                  >
+                    {{ link.label }}
+                  </RouterLink>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="mt-10 flex flex-col gap-4 border-t border-white/[0.06] pt-8 sm:mt-12 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:pt-10"
+        >
+          <p class="text-center text-[11px] leading-relaxed text-white/35 sm:text-left sm:text-xs">
+            © {{ footerYear }} CryptoX Pro. 保留所有权利。本站点为产品演示，不构成任何要约。
+          </p>
+          <nav
+            class="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[11px] text-white/40 sm:justify-end sm:text-xs"
+            aria-label="法律与条款"
+          >
+            <a
+              href="#"
+              class="transition hover:text-white/65"
+              @click.prevent
+            >用户协议</a>
+            <a
+              href="#"
+              class="transition hover:text-white/65"
+              @click.prevent
+            >隐私政策</a>
+            <a
+              href="#"
+              class="transition hover:text-white/65"
+              @click.prevent
+            >免责声明</a>
+          </nav>
+        </div>
+      </div>
+    </footer>
   </div>
 </template>
 

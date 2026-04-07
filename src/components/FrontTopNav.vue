@@ -38,6 +38,7 @@ function logoutFront() {
 }
 
 const tradeOpen = ref(false)
+const langOpen = ref(false)
 const mobileOpen = ref(false)
 const navRoot = ref(null)
 /** Teleport 抽屉，供外点关闭判断 */
@@ -217,8 +218,62 @@ function tradeTriggerClass() {
   return linkNavClass(tradeOpen.value || isTradeSectionActive())
 }
 
+/** 演示：语言偏好存本地；接入 i18n 后可与 vue-i18n locale 同步 */
+const FRONT_LANG_STORAGE_KEY = 'fex-front-locale-pref'
+const frontLangOptions = [
+  { code: 'zh-CN', label: '简体中文', short: '简中' },
+  { code: 'zh-TW', label: '繁體中文', short: '繁中' },
+  { code: 'en', label: 'English', short: 'EN' },
+  { code: 'ja', label: '日本語', short: 'JA' },
+  { code: 'ko', label: '한국어', short: 'KO' }
+]
+
+const localeCode = ref('zh-CN')
+
+const currentLocale = computed(
+  () => frontLangOptions.find((o) => o.code === localeCode.value) || frontLangOptions[0]
+)
+
+function readStoredLocale() {
+  try {
+    const s = localStorage.getItem(FRONT_LANG_STORAGE_KEY)
+    if (s && frontLangOptions.some((o) => o.code === s)) return s
+  } catch {
+    /* ignore */
+  }
+  return 'zh-CN'
+}
+
+function selectLocale(code) {
+  if (!frontLangOptions.some((o) => o.code === code)) return
+  localeCode.value = code
+  try {
+    localStorage.setItem(FRONT_LANG_STORAGE_KEY, code)
+  } catch {
+    /* ignore */
+  }
+  langOpen.value = false
+  mobileOpen.value = false
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('front-locale-change', { detail: { locale: code } }))
+  }
+}
+
+function toggleLangMenu() {
+  const next = !langOpen.value
+  langOpen.value = next
+  if (next) tradeOpen.value = false
+}
+
+function toggleTradeMenu() {
+  const next = !tradeOpen.value
+  tradeOpen.value = next
+  if (next) langOpen.value = false
+}
+
 function closeOverlays() {
   tradeOpen.value = false
+  langOpen.value = false
   mobileOpen.value = false
 }
 
@@ -229,12 +284,14 @@ function closeIfDesktopBreakpoint() {
   if (window.matchMedia('(min-width: 1024px)').matches) {
     mobileOpen.value = false
     tradeOpen.value = false
+    langOpen.value = false
   }
 }
 
 let removeMediaListener = () => {}
 
 onMounted(() => {
+  localeCode.value = readStoredLocale()
   const mq = window.matchMedia('(min-width: 1024px)')
   const onChange = () => closeIfDesktopBreakpoint()
   mq.addEventListener('change', onChange)
@@ -255,7 +312,7 @@ function isPcOverviewActive() {
   return pathNorm(route.path) === pathNorm(pcBase.value)
 }
 
-const anyPanelOpen = computed(() => tradeOpen.value || mobileOpen.value)
+const anyPanelOpen = computed(() => tradeOpen.value || langOpen.value || mobileOpen.value)
 
 function onEscape(ev) {
   if (ev.key === 'Escape') closeOverlays()
@@ -274,6 +331,10 @@ watch(anyPanelOpen, (open) => {
 watch(mobileOpen, (open) => {
   if (typeof document === 'undefined') return
   document.body.style.overflow = open ? 'hidden' : ''
+  if (open) {
+    tradeOpen.value = false
+    langOpen.value = false
+  }
 })
 
 onUnmounted(() => {
@@ -362,7 +423,7 @@ function drawerRowClass(item) {
               :aria-expanded="tradeOpen"
               aria-haspopup="true"
               aria-controls="front-trade-panel"
-              @click="tradeOpen = !tradeOpen"
+              @click="toggleTradeMenu"
             >
               交易
               <svg
@@ -454,24 +515,98 @@ function drawerRowClass(item) {
             />
           </svg>
         </button>
-        <button
-          type="button"
-          class="hidden rounded-md p-2 text-[#eaecef] transition hover:bg-[#1f2429] hover:text-lime-300 xl:block"
-          aria-label="语言"
-        >
-          <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path
-              d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"
-              stroke="currentColor"
-              stroke-width="1.75"
-            />
-            <path
-              d="M3 12h18M12 3c2.5 3 2.5 15 0 18M12 3c-2.5 3-2.5 15 0 18"
-              stroke="currentColor"
-              stroke-width="1.75"
-            />
-          </svg>
-        </button>
+        <div class="relative hidden lg:block">
+          <button
+            type="button"
+            class="inline-flex items-center gap-1 rounded-md py-2 pl-2 pr-1.5 text-[#eaecef] transition hover:bg-[#1f2429] hover:text-lime-300"
+            :class="langOpen ? 'bg-[#1f2429] text-lime-300' : ''"
+            :aria-expanded="langOpen"
+            aria-haspopup="listbox"
+            aria-controls="front-lang-panel"
+            :aria-label="`语言，当前 ${currentLocale.label}`"
+            @click="toggleLangMenu"
+          >
+            <svg class="h-[18px] w-[18px] shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"
+                stroke="currentColor"
+                stroke-width="1.75"
+              />
+              <path
+                d="M3 12h18M12 3c2.5 3 2.5 15 0 18M12 3c-2.5 3-2.5 15 0 18"
+                stroke="currentColor"
+                stroke-width="1.75"
+              />
+            </svg>
+            <span class="hidden max-w-[4.5rem] truncate text-xs font-medium xl:inline">
+              {{ currentLocale.short }}
+            </span>
+            <svg
+              class="h-3 w-3 shrink-0 opacity-70 transition-transform duration-200"
+              :class="langOpen ? 'rotate-180' : ''"
+              viewBox="0 0 12 12"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="M3 4.5 6 7.5 9 4.5"
+                stroke="currentColor"
+                stroke-width="1.25"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+          <Transition
+            enter-active-class="transition duration-150 ease-out"
+            enter-from-class="opacity-0 -translate-y-1"
+            enter-to-class="opacity-100 translate-y-0"
+            leave-active-class="transition duration-100 ease-in"
+            leave-from-class="opacity-100 translate-y-0"
+            leave-to-class="opacity-0 -translate-y-1"
+          >
+            <div
+              v-show="langOpen"
+              id="front-lang-panel"
+              class="absolute right-0 top-full z-30 mt-1.5 min-w-[11rem] overflow-hidden rounded-md border border-[#1f2429] bg-[#1e2329] py-1 shadow-xl shadow-black/50"
+              role="listbox"
+              @click.stop
+            >
+              <button
+                v-for="opt in frontLangOptions"
+                :id="`front-lang-${opt.code}`"
+                :key="opt.code"
+                type="button"
+                role="option"
+                class="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm transition lg:text-[0.9375rem]"
+                :class="
+                  localeCode === opt.code
+                    ? 'bg-lime-400/12 text-lime-300'
+                    : 'text-[#eaecef] hover:bg-white/[0.06]'
+                "
+                :aria-selected="localeCode === opt.code"
+                @click="selectLocale(opt.code)"
+              >
+                <span>{{ opt.label }}</span>
+                <svg
+                  v-if="localeCode === opt.code"
+                  class="h-4 w-4 shrink-0 text-lime-400/90"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M20 6 9 17l-5-5"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
+          </Transition>
+        </div>
 
         <template v-if="isLoggedIn">
           <RouterLink
@@ -708,6 +843,47 @@ function drawerRowClass(item) {
                   </span>
                   <span class="min-w-0 truncate text-current">{{ item.label }}</span>
                 </RouterLink>
+              </div>
+
+              <div
+                class="mx-3 mb-0.5 mt-5 h-px bg-gradient-to-r from-transparent via-white/[0.07] to-transparent"
+                aria-hidden="true"
+              />
+              <p class="mb-2 mt-5 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#b0b8c1] sm:tracking-wider">
+                语言
+              </p>
+              <div class="space-y-0.5 px-1">
+                <button
+                  v-for="opt in frontLangOptions"
+                  :key="opt.code"
+                  type="button"
+                  class="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-left text-[14px] font-medium leading-snug transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/28 sm:text-[13px]"
+                  :class="
+                    localeCode === opt.code
+                      ? 'bg-lime-400/[0.09] text-lime-100'
+                      : 'text-[#eaecef] hover:bg-white/[0.04] hover:text-white'
+                  "
+                  role="menuitem"
+                  :aria-current="localeCode === opt.code ? 'true' : undefined"
+                  @click="selectLocale(opt.code)"
+                >
+                  <span>{{ opt.label }}</span>
+                  <svg
+                    v-if="localeCode === opt.code"
+                    class="h-4 w-4 shrink-0 text-lime-400/90"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M20 6 9 17l-5-5"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </button>
               </div>
 
               <template v-if="isLoggedIn">

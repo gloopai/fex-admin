@@ -32,11 +32,12 @@ export const FRONT_DEPOSIT_COINS = [
 export const FRONT_DEPOSIT_DEFAULT_SYMBOL_LOWER = FRONT_DEPOSIT_COINS[0].symbol.toLowerCase()
 
 /** 提币可选币种（与充币列表可对齐） */
-export const FRONT_WITHDRAW_ASSETS = FRONT_DEPOSIT_COINS.map((c) => ({
-  symbol: c.symbol,
-  /** 演示可用余额 */
-  balance: c.symbol === 'USDC' ? '2.512345' : '0'
-}))
+export const FRONT_WITHDRAW_ASSETS = FRONT_DEPOSIT_COINS.map((c) => {
+  const balance = c.symbol === 'USDC' ? '2.512345' : '0'
+  /** 演示：可提币 ≤ 余额（差额可视为冻结/在途等） */
+  const withdrawable = c.symbol === 'USDC' ? '2.312345' : '0'
+  return { symbol: c.symbol, balance, withdrawable }
+})
 
 const ADDR = {
   ethereum: '0x068b94aB79A1234567890abcdef1234567890ab',

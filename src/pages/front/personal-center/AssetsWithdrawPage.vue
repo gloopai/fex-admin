@@ -72,14 +72,19 @@ const selectedNetwork = computed(
 const networkHint = computed(() => networkHintWithdraw(selectedNetwork.value.label))
 
 const balanceLine = computed(
-  () => `余额: ${selectedAsset.value.balance}${selectedAsset.value.symbol}`
+  () => `余额 ${selectedAsset.value.balance} ${selectedAsset.value.symbol}`
+)
+
+const withdrawableLine = computed(
+  () =>
+    `可提币 ${selectedAsset.value.withdrawable ?? selectedAsset.value.balance} ${selectedAsset.value.symbol}`
 )
 
 const assetSelectOptions = computed(() =>
   FRONT_WITHDRAW_ASSETS.map((a) => ({
     value: a.symbol,
     label: a.symbol,
-    hint: `余额 ${a.balance}`
+    hint: `余额 ${a.balance} · 可提 ${a.withdrawable ?? a.balance}`
   }))
 )
 
@@ -92,7 +97,7 @@ watch([address, amount], () => {
 })
 
 function fillMax() {
-  amount.value = selectedAsset.value.balance
+  amount.value = selectedAsset.value.withdrawable ?? selectedAsset.value.balance
 }
 
 function parseAmountNum(raw) {
@@ -111,9 +116,9 @@ function onSubmit() {
     submitError.value = '请输入有效的提币数量'
     return
   }
-  const maxBal = Number(selectedAsset.value.balance)
-  if (Number.isFinite(maxBal) && amt > maxBal) {
-    submitError.value = '提币数量不能超过可用余额'
+  const maxWd = Number(selectedAsset.value.withdrawable ?? selectedAsset.value.balance)
+  if (Number.isFinite(maxWd) && amt > maxWd) {
+    submitError.value = '提币数量不能超过可提币数量'
     return
   }
   submitError.value = ''
@@ -287,8 +292,11 @@ const labelBase =
                   全部
                 </button>
               </div>
-              <p class="mt-1.5 text-[11px] text-white/38 sm:text-xs lg:text-[13px] lg:text-white/42">
-                {{ balanceLine }}
+              <p
+                class="mt-1.5 flex flex-nowrap items-center justify-between gap-2 text-[11px] leading-snug text-white/38 sm:text-xs lg:text-[13px] lg:text-white/42"
+              >
+                <span class="min-w-0 truncate">{{ balanceLine }}</span>
+                <span class="shrink-0 font-medium text-lime-300/85">{{ withdrawableLine }}</span>
               </p>
             </div>
 
