@@ -556,7 +556,8 @@ watch(
   () => {
     pcBottomTab.value = pcBottomTabs.value[0].key
     if (tradeMode.value === 'spot') positionSide.value = 'long'
-  }
+  },
+  { immediate: true }
 )
 
 function openPairDrawer() {
