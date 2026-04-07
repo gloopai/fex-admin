@@ -15,7 +15,6 @@ const formData = ref({
   displayName: '',
   iconUrl: '',
   status: VIP_LEVEL_STATUS.ENABLED,
-  minCreditScore: 0,
   description: ''
 })
 
@@ -82,7 +81,6 @@ const openAddModal = () => {
     displayName: '',
     iconUrl: '',
     status: VIP_LEVEL_STATUS.ENABLED,
-    minCreditScore: 0,
     description: ''
   }
   iconPreview.value = ''
@@ -99,7 +97,6 @@ const openEditModal = (vip) => {
     displayName: vip.displayName,
     iconUrl: vip.iconUrl || '',
     status: vip.status,
-    minCreditScore: vip.minCreditScore,
     description: vip.description
   }
   iconPreview.value = vip.iconUrl || ''
@@ -211,7 +208,6 @@ const sortedVipLevels = computed(() => {
               <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">名称</th>
               <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">显示名称</th>
               <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">图标</th>
-              <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">最低信用分</th>
               <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">状态</th>
               <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">操作</th>
             </tr>
@@ -249,11 +245,6 @@ const sortedVipLevels = computed(() => {
                   />
                 </div>
                 <span v-else class="text-xs text-slate-400">-</span>
-              </td>
-
-              <!-- 最低信用分 -->
-              <td class="px-4 py-3 text-center">
-                <span class="text-sm font-medium text-slate-700">{{ vip.minCreditScore }}</span>
               </td>
 
               <!-- 状态 -->
@@ -440,21 +431,8 @@ const sortedVipLevels = computed(() => {
                         </div>
                       </div>
 
-                      <!-- 最低信用分 | 状态 -->
-                      <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1.5">最低信用分</label>
-                        <div class="relative">
-                          <input
-                            v-model.number="formData.minCreditScore"
-                            type="number"
-                            min="0"
-                            max="800"
-                            class="ant-input w-full !py-2 pr-10"
-                          />
-                          <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">分</span>
-                        </div>
-                      </div>
-                      <div>
+                      <!-- 状态 -->
+                      <div class="sm:col-span-2">
                         <label class="block text-sm font-medium text-slate-700 mb-1.5">状态</label>
                         <select v-model="formData.status" class="ant-select w-full !py-2">
                           <option value="enabled">启用</option>

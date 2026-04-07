@@ -2,7 +2,6 @@
 import { computed, ref, watch } from 'vue'
 import { USER_STATUS, USER_ROLE, USER_KYC_STATUS } from '../../constants/user'
 import UserOperations from './UserOperations.vue'
-import { getVipLevelByCreditScore } from '../../mock/vip'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -36,9 +35,8 @@ const kycConfig = {
 }
 
 const vipLevel = computed(() => {
-  const score = Number(props.user?.creditScore ?? 0)
-  const v = getVipLevelByCreditScore(score)
-  return v?.level ?? 0
+  const n = Number(props.user?.vipLevel ?? 0)
+  return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0
 })
 
 const vipLabel = computed(() => {

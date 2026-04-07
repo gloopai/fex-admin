@@ -9,6 +9,7 @@ const generateUser = (id, overrides = {}) => ({
   status: USER_STATUS.ACTIVE,
   kycStatus: USER_KYC_STATUS.VERIFIED,
   isVip: false,
+  vipLevel: 0,
   creditScore: Math.floor(Math.random() * 200) + 600, // 600-800分
   balance: Math.floor(Math.random() * 100000),
   frozenBalance: Math.floor(Math.random() * 10000),
@@ -31,6 +32,7 @@ export const usersList = [
     status: USER_STATUS.ACTIVE,
     kycStatus: USER_KYC_STATUS.VERIFIED,
     isVip: true,
+    vipLevel: 5,
     creditScore: 780,
     balance: 500000,
     frozenBalance: 0,
@@ -47,6 +49,7 @@ export const usersList = [
     status: USER_STATUS.ACTIVE,
     kycStatus: USER_KYC_STATUS.VERIFIED,
     isVip: true,
+    vipLevel: 4,
     creditScore: 750,
     balance: 350000,
     frozenBalance: 50000,
@@ -155,6 +158,7 @@ export const usersList = [
     status: USER_STATUS.ACTIVE,
     kycStatus: USER_KYC_STATUS.VERIFIED,
     isVip: true,
+    vipLevel: 4,
     creditScore: 760,
     balance: 268000,
     frozenBalance: 35000,
@@ -170,6 +174,7 @@ export const usersList = [
     status: USER_STATUS.ACTIVE,
     kycStatus: USER_KYC_STATUS.VERIFIED,
     isVip: true,
+    vipLevel: 5,
     creditScore: 790,
     balance: 520000,
     frozenBalance: 80000,
@@ -249,6 +254,7 @@ export const usersList = [
     status: USER_STATUS.ACTIVE,
     kycStatus: USER_KYC_STATUS.VERIFIED,
     isVip: true,
+    vipLevel: 3,
     creditScore: 770,
     balance: 260000,
     frozenBalance: 0,
@@ -287,11 +293,13 @@ for (let i = 1011; i <= 1080; i++) {
   const role = roles[Math.floor(Math.random() * roles.length)]
   const parentIndex = Math.floor(Math.random() * agentIds.length)
   
+  const isVip = Math.random() > 0.8 // 20% VIP
   usersList.push(generateUser(i, {
     role: role,
     status: statuses[Math.floor(Math.random() * statuses.length)],
     kycStatus: kycStatuses[Math.floor(Math.random() * kycStatuses.length)],
-    isVip: Math.random() > 0.8, // 20% VIP
+    isVip,
+    vipLevel: isVip ? Math.floor(Math.random() * 5) + 1 : 0,
     parentId: role === USER_ROLE.AGENT ? null : agentIds[parentIndex],
     parentUsername: role === USER_ROLE.AGENT ? null : agentNames[parentIndex]
   }))

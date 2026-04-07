@@ -62,7 +62,6 @@ onMounted(fetchLogs)
 
 // 升级原因配置
 const upgradeReasonConfig = {
-  [VIP_UPGRADE_REASON.CREDIT_SCORE]: { text: '信用分达标', class: 'bg-emerald-100 text-emerald-700' },
   [VIP_UPGRADE_REASON.RECHARGE]: { text: '充值升级', class: 'bg-blue-100 text-blue-700' },
   [VIP_UPGRADE_REASON.MANUAL]: { text: '手动升级', class: 'bg-amber-100 text-amber-700' }
 }
@@ -80,13 +79,11 @@ const vipLevelOptions = computed(() => {
 // 统计信息
 const statistics = computed(() => {
   const total = vipUpgradeLogs.length
-  const byCreditScore = vipUpgradeLogs.filter(u => u.upgradeReason === VIP_UPGRADE_REASON.CREDIT_SCORE).length
   const byRecharge = vipUpgradeLogs.filter(u => u.upgradeReason === VIP_UPGRADE_REASON.RECHARGE).length
   const byManual = vipUpgradeLogs.filter(u => u.upgradeReason === VIP_UPGRADE_REASON.MANUAL).length
 
   return [
     { label: '总升级记录', value: total.toLocaleString(), class: 'text-blue-600' },
-    { label: '信用分达标', value: byCreditScore.toLocaleString(), class: 'text-emerald-600' },
     { label: '充值升级', value: byRecharge.toLocaleString(), class: 'text-purple-600' },
     { label: '手动升级', value: byManual.toLocaleString(), class: 'text-amber-600' }
   ]
@@ -144,7 +141,7 @@ const exportData = () => {
     </div>
 
     <!-- 统计卡片 -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div
         v-for="(stat, index) in statistics"
         :key="index"
@@ -285,7 +282,6 @@ const exportData = () => {
               <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">用户</th>
               <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">等级变化</th>
               <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">升级原因</th>
-              <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">当时信用分</th>
               <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">充值金额</th>
               <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">备注</th>
               <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">时间</th>
@@ -333,11 +329,6 @@ const exportData = () => {
                 </span>
               </td>
 
-              <!-- 当时信用分 -->
-              <td class="px-4 py-3 text-center">
-                <span class="text-sm font-medium text-slate-700">{{ upgrade.creditScore }}</span>
-              </td>
-
               <!-- 充值金额 -->
               <td class="px-4 py-3">
                 <span v-if="upgrade.rechargeAmount" class="text-sm text-slate-700 font-medium">
@@ -359,7 +350,7 @@ const exportData = () => {
 
             <!-- 空状态 -->
             <tr v-if="!loading && logs.length === 0">
-              <td colspan="7" class="px-4 py-12 text-center">
+              <td colspan="6" class="px-4 py-12 text-center">
                 <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>

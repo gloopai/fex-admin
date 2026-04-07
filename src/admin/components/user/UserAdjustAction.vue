@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { vipLevels, getVipLevelByCreditScore } from '../../mock/vip'
+import { vipLevels } from '../../mock/vip'
 import { getAllCreditScoreConfig } from '../../mock/creditScore'
 import { CREDIT_SCORE_CONFIG_KEYS, CREDIT_SCORE_CHANGE_TYPE } from '../../constants/creditScore'
 
@@ -31,14 +31,13 @@ const activeVipOptions = computed(() => {
     .sort((a, b) => a.level - b.level)
     .map((v) => ({
       level: v.level,
-      label: v.level === 0 ? '普通用户' : `VIP${v.level}（${v.displayName}）`,
-      minCreditScore: v.minCreditScore
+      label: v.level === 0 ? '普通用户' : `VIP${v.level}（${v.displayName}）`
     }))
 })
 
 const currentVipLevel = computed(() => {
-  const score = Number(props.user?.creditScore ?? 0)
-  return getVipLevelByCreditScore(score)?.level ?? 0
+  const n = Number(props.user?.vipLevel ?? 0)
+  return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0
 })
 
 const showModal = ref(false)
