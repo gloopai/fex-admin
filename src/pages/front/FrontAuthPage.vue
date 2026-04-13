@@ -1,6 +1,7 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { getSiteConfigSnapshot, SITE_CONFIG_STORAGE_KEY } from '../../admin/mock/siteConfig'
 import WithdrawAuthDialog from '../../components/front/WithdrawAuthDialog.vue'
 import {
   FRONT_DEMO_SEED_USERS,
@@ -25,6 +26,31 @@ const nickname = ref('')
 const errorMsg = ref('')
 const pending = ref(false)
 const walletPendingKey = ref(null)
+
+const inviteCode = ref('')
+
+/** 简易图形验证码（前端模拟，与站点配置 loginCaptchaEnabled 联动） */
+const CAPTCHA_CHARS = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'
+const captchaChallenge = ref('')
+const captchaInput = ref('')
+const captchaCharStyles = ref([])
+
+function randomCaptchaString(len = 4) {
+  let s = ''
+  for (let i = 0; i < len; i += 1) {
+    s += CAPTCHA_CHARS[Math.floor(Math.random() * CAPTCHA_CHARS.length)]
+  }
+  return s
+}
+
+function regenerateCaptcha() {
+  const code = randomCaptchaString(4)
+  captchaChallenge.value = code
+  captchaInput.value = ''
+  captchaCharStyles.value = code.split('').map(() => ({
+    transform: `rotate(${Math.random() * 22 - 11}deg) translateY(${Math.random() * 4 - 2}px)`
+  }))
+}
 
 const loginVerifyOpen = ref(false)
 const loginVerifySessionActive = ref(false)
@@ -70,6 +96,41 @@ function maybeStartLoginSecondFactor() {
 
 const walletProviders = FRONT_WALLET_LOGIN_PROVIDERS
 
+const walletLoginEnabled = ref(true)
+const loginCaptchaEnabled = ref(false)
+const inviteCodeRequired = ref(false)
+
+function refreshSiteAuthSettings() {
+  const c = getSiteConfigSnapshot()
+  walletLoginEnabled.value = c.walletLoginEnabled !== false
+  loginCaptchaEnabled.value = c.loginCaptchaEnabled === true
+  inviteCodeRequired.value = c.inviteCodeRequired === true
+  if (loginCaptchaEnabled.value) {
+    regenerateCaptcha()
+  } else {
+    captchaChallenge.value = ''
+    captchaInput.value = ''
+    captchaCharStyles.value = []
+  }
+}
+
+const onSiteConfigStorage = (e) => {
+  if (e.key === SITE_CONFIG_STORAGE_KEY) refreshSiteAuthSettings()
+}
+
+const onAdminSiteConfigUpdated = () => refreshSiteAuthSettings()
+
+onMounted(() => {
+  refreshSiteAuthSettings()
+  window.addEventListener('storage', onSiteConfigStorage)
+  window.addEventListener('admin-site-config-updated', onAdminSiteConfigUpdated)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('storage', onSiteConfigStorage)
+  window.removeEventListener('admin-site-config-updated', onAdminSiteConfigUpdated)
+})
+
 const walletAccentClass = {
   metamask: 'from-orange-400/90 to-orange-600/80',
   walletconnect: 'from-sky-400/85 to-blue-600/75',
@@ -95,6 +156,11 @@ watch(
   isRegister,
   (reg) => {
     errorMsg.value = ''
+    inviteCode.value = ''
+    if (loginCaptchaEnabled.value) regenerateCaptcha()
+    else {
+      captchaInput.value = ''
+    }
     if (reg) {
       email.value = ''
       password.value = ''
@@ -113,6 +179,9 @@ const title = computed(() => (isRegister.value ? '创建账户' : '欢迎回来'
 const subtitle = computed(() => {
   if (isRegister.value) {
     return '邮箱注册即可开始'
+  }
+  if (!walletLoginEnabled.value) {
+    return '使用邮箱登录'
   }
   return '邮箱登录，或使用下方钱包登录（本机模拟）'
 })
@@ -133,6 +202,19 @@ function switchToRegister() {
 
 async function onSubmit() {
   errorMsg.value = ''
+  if (inviteCodeRequired.value && !inviteCode.value.trim()) {
+    errorMsg.value = '请填写邀请码'
+    return
+  }
+  if (loginCaptchaEnabled.value) {
+    const a = captchaInput.value.trim().toUpperCase()
+    const b = captchaChallenge.value.toUpperCase()
+    if (!a || a !== b) {
+      errorMsg.value = '验证码错误，请重试'
+      regenerateCaptcha()
+      return
+    }
+  }
   pending.value = true
   try {
     await Promise.resolve()
@@ -304,6 +386,54 @@ async function onWalletLogin(providerKey) {
             />
           </div>
 
+          <div v-if="inviteCodeRequired">
+            <label class="mb-0.5 block text-sm font-medium text-white/55 sm:text-[11px] sm:text-white/45"
+              >邀请码</label
+            >
+            <input
+              v-model="inviteCode"
+              type="text"
+              autocomplete="off"
+              :required="inviteCodeRequired"
+              placeholder="请输入邀请码"
+              class="w-full rounded-lg border border-white/[0.1] bg-black/40 px-3 py-3 text-base text-white placeholder:text-white/35 focus:border-lime-400/45 focus:outline-none focus:ring-1 focus:ring-lime-400/25 sm:py-2 sm:text-sm sm:placeholder:text-white/30"
+            />
+          </div>
+
+          <div v-if="loginCaptchaEnabled && captchaChallenge" class="space-y-1.5">
+            <label class="mb-0.5 block text-sm font-medium text-white/55 sm:text-[11px] sm:text-white/45"
+              >验证码</label
+            >
+            <div class="flex gap-2 sm:items-stretch">
+              <div
+                class="relative flex h-11 min-w-0 flex-1 items-center justify-center gap-0.5 overflow-hidden rounded-lg border border-white/[0.12] bg-[linear-gradient(135deg,rgba(255,255,255,0.04)_0%,rgba(0,0,0,0.35)_100%)] px-2 font-mono text-lg font-bold tracking-[0.2em] text-white/95 sm:h-10 sm:text-base"
+                aria-hidden="true"
+              >
+                <span
+                  v-for="(ch, i) in captchaChallenge"
+                  :key="`${captchaChallenge}-${i}`"
+                  class="inline-block select-none"
+                  :style="captchaCharStyles[i] || {}"
+                >{{ ch }}</span>
+              </div>
+              <button
+                type="button"
+                class="shrink-0 rounded-lg border border-white/[0.12] bg-white/[0.06] px-3 py-2 text-xs font-medium text-white/80 transition hover:bg-white/[0.1] sm:py-0 sm:text-[11px]"
+                @click="regenerateCaptcha"
+              >
+                换一张
+              </button>
+            </div>
+            <input
+              v-model="captchaInput"
+              type="text"
+              autocomplete="off"
+              maxlength="8"
+              placeholder="输入上方字符，不区分大小写"
+              class="w-full rounded-lg border border-white/[0.1] bg-black/40 px-3 py-3 text-base text-white placeholder:text-white/35 focus:border-lime-400/45 focus:outline-none focus:ring-1 focus:ring-lime-400/25 sm:py-2 sm:text-sm sm:placeholder:text-white/30"
+            />
+          </div>
+
           <button
             type="submit"
             class="mx-auto flex w-full max-w-[16.5rem] items-center justify-center rounded-lg bg-lime-400 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-60 sm:max-w-[15rem] sm:py-2 sm:text-sm"
@@ -313,7 +443,7 @@ async function onWalletLogin(providerKey) {
           </button>
         </form>
 
-        <template v-if="!isRegister">
+        <template v-if="!isRegister && walletLoginEnabled">
           <div class="relative my-3">
             <div class="absolute inset-0 flex items-center" aria-hidden="true">
               <div class="w-full border-t border-white/[0.06]"></div>

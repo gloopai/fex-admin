@@ -382,9 +382,13 @@ export const consoleRoutes = [
     component: () => import('../../pages/admin/agent/AgentManagementPage.vue')
   },
   {
+    path: 'agent/level-commission',
+    name: 'agent-level-commission',
+    component: () => import('../../pages/admin/agent/AgentLevelCommissionPage.vue')
+  },
+  {
     path: 'agent/applications',
-    name: 'agent-applications',
-    component: () => import('../../pages/admin/agent/AgentApplicationPage.vue')
+    redirect: '/admin/agent/management'
   },
   {
     path: 'agent/referral-config',
@@ -400,6 +404,15 @@ export const consoleRoutes = [
     path: 'agent/referral-statistics',
     name: 'agent-referral-statistics',
     component: () => import('../../pages/admin/agent/ReferralStatisticsPage.vue')
+  },
+  {
+    path: 'system/site-config',
+    name: 'system-site-config',
+    component: () => import('../../pages/admin/system/SiteConfigPage.vue'),
+    meta: {
+      title: '系统设置 / 站点配置',
+      desc: '维护站点名称、Logo 等品牌展示信息。'
+    }
   },
   {
     path: 'system/error-codes',

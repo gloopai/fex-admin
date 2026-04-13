@@ -1,14 +1,33 @@
-import { REFERRAL_TYPE, COMMISSION_STATUS } from '../constants/referral'
+import { REFERRAL_TYPE, COMMISSION_STATUS, DEFAULT_REFERRAL_CONFIG } from '../constants/referral'
 
-// 模拟分销配置
-export const mockReferralConfig = {
-  autoExecute: true,
-  depositFirstOnly: false,
-  depositCommissionRates: '0.1',
-  periodicCommissionRates: '',
-  lendingCommissionRates: '',
-  aiQuantCommissionRates: ''
+/** 合并默认、迁移旧版 periodic → delivery、补齐布尔开关 */
+export function normalizeReferralConfig(raw) {
+  const o = { ...DEFAULT_REFERRAL_CONFIG, ...(raw && typeof raw === 'object' ? raw : {}) }
+  const legacy = o.periodicCommissionRates
+  if (
+    (!o.deliveryCommissionRates || !String(o.deliveryCommissionRates).trim()) &&
+    typeof legacy === 'string' &&
+    legacy.trim()
+  ) {
+    o.deliveryCommissionRates = legacy
+  }
+  const boolKeys = [
+    'commissionDepositEnabled',
+    'commissionPerpetualEnabled',
+    'commissionDeliveryEnabled',
+    'commissionSpotEnabled',
+    'commissionAiQuantEnabled',
+    'commissionLendingEnabled',
+    'commissionBorrowingEnabled'
+  ]
+  for (const k of boolKeys) {
+    if (typeof o[k] !== 'boolean') o[k] = DEFAULT_REFERRAL_CONFIG[k]
+  }
+  if ('periodicCommissionRates' in o) delete o.periodicCommissionRates
+  return o
 }
+
+export const mockReferralConfig = normalizeReferralConfig({})
 
 // 模拟分佣记录
 export const mockCommissionRecords = [
@@ -221,9 +240,11 @@ export const referralApi = {
   getReferralConfig: () => {
     return new Promise((resolve) => {
       setTimeout(() => {
+        const data = normalizeReferralConfig(mockReferralConfig)
+        Object.assign(mockReferralConfig, data)
         resolve({
           success: true,
-          data: mockReferralConfig
+          data: { ...data }
         })
       }, 300)
     })
@@ -233,7 +254,8 @@ export const referralApi = {
   updateReferralConfig: (config) => {
     return new Promise((resolve) => {
       setTimeout(() => {
-        Object.assign(mockReferralConfig, config)
+        const next = normalizeReferralConfig(config)
+        Object.assign(mockReferralConfig, next)
         resolve({
           success: true,
           message: '配置已保存'

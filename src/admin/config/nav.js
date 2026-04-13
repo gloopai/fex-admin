@@ -33,7 +33,7 @@ export const navTree = [
     icon: 'users-group',
     children: [
       { title: '代理列表', path: '/admin/agent/management' },
-      { title: '代理申请审核', path: '/admin/agent/applications' },
+      { title: '代理等级佣金', path: '/admin/agent/level-commission' },
       { title: '裂变分销配置', path: '/admin/agent/referral-config' },
       { title: '裂变分佣记录', path: '/admin/agent/referral-commission' },
       { title: '裂变分销统计', path: '/admin/agent/referral-statistics' }
@@ -130,7 +130,7 @@ export const navTree = [
     title: '系统设置',
     icon: 'spark',
     children: [
-      
+      { title: '站点配置', path: '/admin/system/site-config' },
       { title: '错误码管理', path: '/admin/system/error-codes' }
     ]
   },

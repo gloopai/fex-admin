@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, reactive, watch } from 'vue'
 import { mockAgentStats, agentApi } from '../../../admin/mock/agent'
-import { AGENT_STATUS, AGENT_LEVEL, AGENT_STATUS_OPTIONS, AGENT_LEVEL_OPTIONS } from '../../../admin/constants/agent'
+import { AGENT_STATUS, AGENT_LEVEL, AGENT_STATUS_OPTIONS, AGENT_LEVEL_OPTIONS, mergeAgentLevelCommissionOptions } from '../../../admin/constants/agent'
 
 // 搜索和筛选
 const searchKeyword = ref('')
@@ -29,6 +29,12 @@ const upgradeForm = ref({
 
 // 统计数据
 const stats = ref(mockAgentStats)
+
+/** 后台配置的等级佣金比例，用于「添加代理」下拉展示 */
+const levelCommissionRates = ref({})
+const levelOptionsWithCommission = computed(() =>
+  mergeAgentLevelCommissionOptions(levelCommissionRates.value)
+)
 
 // 代理列表
 const agentList = ref([])
@@ -76,8 +82,14 @@ watch(() => pagination.currentPage, () => {
 })
 
 // 组件加载时获取数据
-onMounted(() => {
+onMounted(async () => {
   loadAgentList()
+  try {
+    const res = await agentApi.getAgentLevelCommissionRates()
+    if (res.success) levelCommissionRates.value = res.data
+  } catch (e) {
+    console.error('Failed to load agent level commission rates:', e)
+  }
 })
 
 // 统计卡片
@@ -208,7 +220,7 @@ const formatDate = (dateString) => {
     <div class="flex justify-between items-center">
       <div>
         <h1 class="text-2xl font-bold text-slate-900">代理管理</h1>
-        <p class="mt-1 text-sm text-slate-500">管理平台代理用户，升级普通用户为代理</p>
+        <p class="mt-1 text-sm text-slate-500">代理由后台手动指定用户并设置等级，不支持用户自助申请</p>
       </div>
     </div>
 
@@ -244,7 +256,7 @@ const formatDate = (dateString) => {
           @click="openUpgradeModal"
           class="ant-btn ant-btn-primary"
         >
-          + 升级为代理
+          + 添加代理
         </button>
       </div>
 
@@ -452,10 +464,10 @@ const formatDate = (dateString) => {
       </div>
     </div>
 
-    <!-- 升级为代理弹窗 -->
+    <!-- 添加代理弹窗 -->
     <div v-if="showUpgradeModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
-        <h3 class="text-lg font-semibold text-slate-900 mb-5">升级用户为代理</h3>
+        <h3 class="text-lg font-semibold text-slate-900 mb-5">添加代理</h3>
         
         <div class="space-y-4">
           <div>
@@ -474,7 +486,7 @@ const formatDate = (dateString) => {
               v-model="upgradeForm.level"
               class="ant-select"
             >
-              <option v-for="level in AGENT_LEVEL_OPTIONS" :key="level.value" :value="level.value">
+              <option v-for="level in levelOptionsWithCommission" :key="level.value" :value="level.value">
                 {{ level.label }} (佣金比例: {{ (level.commissionRate * 100).toFixed(0) }}%)
               </option>
             </select>
@@ -492,7 +504,7 @@ const formatDate = (dateString) => {
             @click="handleUpgrade"
             class="ant-btn ant-btn-primary"
           >
-            确认升级
+            确认添加
           </button>
         </div>
       </div>

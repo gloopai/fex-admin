@@ -1,4 +1,6 @@
-import { AGENT_STATUS, AGENT_LEVEL, AGENT_APPLICATION_STATUS } from '../constants/agent'
+import { AGENT_STATUS, AGENT_LEVEL, DEFAULT_AGENT_LEVEL_COMMISSION_RATES } from '../constants/agent'
+
+let agentLevelCommissionRates = { ...DEFAULT_AGENT_LEVEL_COMMISSION_RATES }
 
 // 模拟代理列表数据
 export const mockAgentList = [
@@ -79,62 +81,6 @@ export const mockAgentList = [
   }
 ]
 
-// 模拟代理申请列表
-export const mockAgentApplications = [
-  {
-    id: 1,
-    uid: 200001,
-    username: 'user_chen',
-    email: 'chen@example.com',
-    phone: '+86 188****1234',
-    reason: '有丰富的行业资源和推广渠道，希望成为平台代理，推广产品。',
-    status: AGENT_APPLICATION_STATUS.PENDING,
-    appliedAt: '2026-03-08 10:30:00',
-    reviewedAt: null,
-    reviewedBy: null,
-    reviewNote: null
-  },
-  {
-    id: 2,
-    uid: 200002,
-    username: 'user_huang',
-    email: 'huang@example.com',
-    phone: '+86 188****5678',
-    reason: '拥有大型社区用户群体，日活跃用户超过5000人。',
-    status: AGENT_APPLICATION_STATUS.PENDING,
-    appliedAt: '2026-03-07 15:20:00',
-    reviewedAt: null,
-    reviewedBy: null,
-    reviewNote: null
-  },
-  {
-    id: 3,
-    uid: 200003,
-    username: 'user_zhou',
-    email: 'zhou@example.com',
-    phone: '+86 188****9012',
-    reason: '目前运营多个加密货币相关的自媒体账号，粉丝累计超10万。',
-    status: AGENT_APPLICATION_STATUS.APPROVED,
-    appliedAt: '2026-03-05 09:15:00',
-    reviewedAt: '2026-03-06 10:30:00',
-    reviewedBy: 'admin001',
-    reviewNote: '资质符合要求，批准成为代理'
-  },
-  {
-    id: 4,
-    uid: 200004,
-    username: 'user_wu',
-    email: 'wu@example.com',
-    phone: '+86 188****3456',
-    reason: '想试试做代理赚点钱。',
-    status: AGENT_APPLICATION_STATUS.REJECTED,
-    appliedAt: '2026-03-04 14:40:00',
-    reviewedAt: '2026-03-05 09:00:00',
-    reviewedBy: 'admin001',
-    reviewNote: '申请理由不充分，资源不足'
-  }
-]
-
 // 模拟代理统计数据
 export const mockAgentStats = {
   totalAgents: 1245,
@@ -144,8 +90,7 @@ export const mockAgentStats = {
   totalReferrals: 45678,
   totalCommission: 1256780.50,
   monthCommission: 98450.30,
-  todayCommission: 3520.80,
-  pendingApplications: 23
+  todayCommission: 3520.80
 }
 
 // 模拟代理详情
@@ -204,54 +149,31 @@ const generateMockAgents = () => {
 
 const extendedAgentList = generateMockAgents()
 
-// 模拟更多代理申请数据以便测试分页
-const generateMockApplications = () => {
-  const applications = [...mockAgentApplications]
-  for (let i = 5; i <= 25; i++) {
-    applications.push({
-      id: i,
-      uid: 200000 + i,
-      username: `user_apply_${i}`,
-      email: `apply${i}@example.com`,
-      phone: `+86 188****${Math.floor(Math.random() * 9000) + 1000}`,
-      reason: `这是第 ${i} 个用户的代理申请理由，希望能通过。`,
-      status: Object.values(AGENT_APPLICATION_STATUS)[Math.floor(Math.random() * Object.values(AGENT_APPLICATION_STATUS).length)],
-      appliedAt: `2026-03-${Math.floor(Math.random() * 10) + 1} 10:30:00`,
-      reviewedAt: null,
-      reviewedBy: null,
-      reviewNote: null
-    })
-  }
-  return applications
-}
-
-const extendedApplicationList = generateMockApplications()
-
 // API 模拟函数
 export const agentApi = {
   // 获取代理列表
   getAgentList: (params) => {
     const { page = 1, pageSize = 10, searchKeyword = '', status = 'all', level = 'all' } = params
-    
+
     return new Promise((resolve) => {
       setTimeout(() => {
         let list = [...extendedAgentList]
-        
+
         // 搜索关键词
         if (searchKeyword.trim()) {
           const keyword = searchKeyword.toLowerCase()
-          list = list.filter(agent => 
+          list = list.filter(agent =>
             agent.username.toLowerCase().includes(keyword) ||
             agent.email.toLowerCase().includes(keyword) ||
             agent.uid.toString().includes(keyword)
           )
         }
-        
+
         // 状态筛选
         if (status !== 'all') {
           list = list.filter(agent => agent.status === status)
         }
-        
+
         // 等级筛选
         if (level !== 'all') {
           list = list.filter(agent => agent.level === level)
@@ -275,66 +197,13 @@ export const agentApi = {
     })
   },
 
-  // 获取代理申请列表
-  getApplicationList: (params) => {
-    const { page = 1, pageSize = 10, searchKeyword = '', status = 'all' } = params
-
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        let list = [...extendedApplicationList]
-
-        // 搜索关键词
-        if (searchKeyword.trim()) {
-          const keyword = searchKeyword.toLowerCase()
-          list = list.filter(app => 
-            app.username.toLowerCase().includes(keyword) ||
-            app.email.toLowerCase().includes(keyword) ||
-            app.uid.toString().includes(keyword)
-          )
-        }
-
-        // 状态筛选
-        if (status !== 'all') {
-          list = list.filter(app => app.status === status)
-        }
-
-        const total = list.length
-        const start = (page - 1) * pageSize
-        const end = start + pageSize
-        const paginatedList = list.slice(start, end)
-
-        resolve({
-          success: true,
-          data: {
-            list: paginatedList,
-            total: total,
-            page: page,
-            pageSize: pageSize
-          }
-        })
-      }, 300)
-    })
-  },
-
-  // 审批代理申请
-  reviewApplication: (id, action, note) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          success: true,
-          message: action === 'approve' ? '申请已通过' : '申请已拒绝'
-        })
-      }, 500)
-    })
-  },
-
-  // 升级用户为代理
+  // 将指定用户设为代理（后台手动添加）
   upgradeToAgent: (uid, level) => {
     return new Promise((resolve) => {
       setTimeout(() => {
         resolve({
           success: true,
-          message: '用户已成功升级为代理'
+          message: '已将该用户设为代理'
         })
       }, 500)
     })
@@ -385,6 +254,38 @@ export const agentApi = {
           data: mockAgentStats
         })
       }, 300)
+    })
+  },
+
+  /** 各代理等级对应的佣金比例（0～1），供后台配置与添加代理时展示 */
+  getAgentLevelCommissionRates: () => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          success: true,
+          data: { ...agentLevelCommissionRates }
+        })
+      }, 200)
+    })
+  },
+
+  saveAgentLevelCommissionRates: (rates) => {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const next = { ...DEFAULT_AGENT_LEVEL_COMMISSION_RATES, ...rates }
+        for (const key of Object.values(AGENT_LEVEL)) {
+          const v = next[key]
+          if (typeof v !== 'number' || Number.isNaN(v) || v < 0 || v > 1) {
+            reject(new Error(`等级 ${key} 的比例须为 0～1 之间的数字`))
+            return
+          }
+        }
+        agentLevelCommissionRates = next
+        resolve({
+          success: true,
+          message: '代理等级佣金比例已保存'
+        })
+      }, 400)
     })
   }
 }

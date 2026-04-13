@@ -77,20 +77,35 @@ export const STATS_PERIOD_OPTIONS = [
 
 // 分销配置字段
 export const REFERRAL_CONFIG_FIELDS = {
-  AUTO_EXECUTE: 'autoExecute',                    // 是否自动执行分佣
-  DEPOSIT_FIRST_ONLY: 'depositFirstOnly',         // 充值分销第一次才有
-  DEPOSIT_COMMISSION_RATES: 'depositCommissionRates',     // 充值佣金比例
-  PERIODIC_COMMISSION_RATES: 'periodicCommissionRates',   // 周期产品佣金比例
-  LENDING_COMMISSION_RATES: 'lendingCommissionRates',     // 理财佣金比例
-  AI_QUANT_COMMISSION_RATES: 'aiQuantCommissionRates'     // AI量化佣金比例
+  AUTO_EXECUTE: 'autoExecute',
+  DEPOSIT_FIRST_ONLY: 'depositFirstOnly',
+  DEPOSIT_COMMISSION_RATES: 'depositCommissionRates',
+  /** 交割合约（旧版 periodicCommissionRates 会迁移至此） */
+  DELIVERY_COMMISSION_RATES: 'deliveryCommissionRates',
+  PERPETUAL_COMMISSION_RATES: 'perpetualCommissionRates',
+  SPOT_COMMISSION_RATES: 'spotCommissionRates',
+  LENDING_COMMISSION_RATES: 'lendingCommissionRates',
+  BORROWING_COMMISSION_RATES: 'borrowingCommissionRates',
+  AI_QUANT_COMMISSION_RATES: 'aiQuantCommissionRates'
 }
 
-// 默认分销配置
+// 默认分销配置（含各产品线是否参与记佣）
 export const DEFAULT_REFERRAL_CONFIG = {
   autoExecute: true,
   depositFirstOnly: false,
+  /** 是否对该产品线产生的订单/流水记佣 */
+  commissionDepositEnabled: true,
+  commissionPerpetualEnabled: false,
+  commissionDeliveryEnabled: false,
+  commissionSpotEnabled: false,
+  commissionAiQuantEnabled: false,
+  commissionLendingEnabled: false,
+  commissionBorrowingEnabled: false,
   depositCommissionRates: '0.1',
-  periodicCommissionRates: '',
+  perpetualCommissionRates: '',
+  deliveryCommissionRates: '',
+  spotCommissionRates: '',
+  aiQuantCommissionRates: '',
   lendingCommissionRates: '',
-  aiQuantCommissionRates: ''
+  borrowingCommissionRates: ''
 }

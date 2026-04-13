@@ -1,5 +1,6 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { getSiteConfigSnapshot } from '../mock/siteConfig'
 import { navTree } from '../config/nav'
 import SidebarNode from './SidebarNode.vue'
 
@@ -11,6 +12,37 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close'])
+
+const siteName = ref('CryptoX Pro')
+const siteTagline = ref('')
+const siteLogoUrlPc = ref('')
+const siteLogoUrlMobile = ref('')
+
+/** 宽屏侧栏：优先 PC Logo，否则移动端 */
+const logoForDesktop = computed(
+  () => siteLogoUrlPc.value || siteLogoUrlMobile.value || ''
+)
+/** 窄屏抽屉：优先移动端 Logo，否则 PC */
+const logoForMobile = computed(
+  () => siteLogoUrlMobile.value || siteLogoUrlPc.value || ''
+)
+
+const applySiteBranding = () => {
+  const c = getSiteConfigSnapshot()
+  siteName.value = c.siteName || 'CryptoX Pro'
+  siteTagline.value = c.tagline || ''
+  siteLogoUrlPc.value = c.logoUrlPc || ''
+  siteLogoUrlMobile.value = c.logoUrlMobile || ''
+}
+
+onMounted(() => {
+  applySiteBranding()
+  window.addEventListener('admin-site-config-updated', applySiteBranding)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('admin-site-config-updated', applySiteBranding)
+})
 
 const sidebarClass = computed(() => {
   if (props.mobileOpen) return 'translate-x-0'
@@ -25,14 +57,35 @@ const sidebarClass = computed(() => {
   >
     <div class="flex h-full flex-col">
       <div class="flex items-center justify-between gap-3 border-b border-slate-200/70 px-5 py-4">
-        <div class="flex items-center gap-3">
-          <div class="grid h-8 w-8 place-items-center rounded-lg bg-antd-primary text-white">
-            <svg viewBox="0 0 20 20" class="h-4 w-4" fill="none">
+        <div class="flex min-w-0 items-center gap-3">
+          <div
+            class="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-lg bg-antd-primary text-white"
+            :class="{ 'bg-white ring-1 ring-slate-200': logoForDesktop || logoForMobile }"
+          >
+            <img
+              v-if="logoForDesktop"
+              :src="logoForDesktop"
+              alt=""
+              class="hidden h-full w-full object-contain lg:block"
+            />
+            <img
+              v-if="logoForMobile"
+              :src="logoForMobile"
+              alt=""
+              class="h-full w-full object-contain lg:hidden"
+            />
+            <svg
+              v-if="!logoForDesktop && !logoForMobile"
+              viewBox="0 0 20 20"
+              class="h-4 w-4"
+              fill="none"
+            >
               <path d="M4 13L8 9L10.8 11.8L15.8 6.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </div>
-          <div>
-            <p class="text-lg leading-none font-bold text-slate-900">CryptoX Pro</p>
+          <div class="min-w-0">
+            <p class="truncate text-lg leading-none font-bold text-slate-900">{{ siteName }}</p>
+            <p v-if="siteTagline" class="mt-0.5 truncate text-[11px] leading-tight text-slate-500">{{ siteTagline }}</p>
           </div>
         </div>
 
