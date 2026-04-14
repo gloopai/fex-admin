@@ -1,10 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import {
-  DEFAULT_I18N_BLOCK,
-  FRONT_LOCALE_CATALOG,
-  PHONE_DIAL_PRESETS
-} from '../../../admin/constants/i18nCatalog'
+import { DEFAULT_I18N_BLOCK } from '../../../admin/constants/i18nCatalog'
 import { DEFAULT_SITE_CONFIG, DEFAULT_SMTP_CONFIG, siteConfigApi } from '../../../admin/mock/siteConfig'
 
 const config = ref({
@@ -25,8 +21,7 @@ const tabs = [
   { key: 'basic', label: '基础设置' },
   { key: 'login', label: '登录设置' },
   { key: 'seo', label: 'SEO 设置' },
-  { key: 'smtp', label: '邮件服务 (SMTP)' },
-  { key: 'i18n', label: '国际化' }
+  { key: 'smtp', label: '邮件服务 (SMTP)' }
 ]
 
 const testRecipient = ref('')
@@ -52,19 +47,6 @@ const saveConfig = async () => {
   if (!config.value.siteName.trim()) {
     alert('请输入站点名称')
     return
-  }
-  if (config.value.languageSettingsEnabled) {
-    const i18n = config.value.i18n
-    if (!i18n?.enabledLocales?.length) {
-      alert('请至少在前台启用一种语言')
-      activeTab.value = 'i18n'
-      return
-    }
-    if (!i18n.enabledLocales.includes(i18n.defaultLocale)) {
-      alert('默认语言必须从已启用的语言中选择')
-      activeTab.value = 'i18n'
-      return
-    }
   }
 
   const smtp = config.value.smtp
@@ -139,20 +121,6 @@ const clearLogoPc = () => {
 const clearLogoMobile = () => {
   config.value.logoUrlMobile = ''
   if (fileInputMobile.value) fileInputMobile.value.value = ''
-}
-
-function toggleLocale(code, checked) {
-  const cur = new Set(config.value.i18n.enabledLocales || [])
-  if (checked) cur.add(code)
-  else cur.delete(code)
-  config.value.i18n.enabledLocales = [...cur]
-}
-
-function toggleDial(dial, checked) {
-  const cur = new Set(config.value.allowedDialCodes || [])
-  if (checked) cur.add(dial)
-  else cur.delete(dial)
-  config.value.allowedDialCodes = [...cur]
 }
 
 const sendTestMail = async () => {
@@ -327,7 +295,7 @@ onMounted(() => {
         <!-- 登录设置 -->
         <div v-show="activeTab === 'login'" class="space-y-4">
           <p class="text-sm text-slate-500">
-            「登录」与「语言」为独立开关。关闭自定义登录配置时，前台采用系统默认策略（钱包登录开启、图形验证码与邀请码关闭、手机区号仅支持 +86）；开启后可按下方项分别配置并生效于前台。
+            配置钱包登录、图形验证码与邀请码等。手机国际区号请在侧栏「语言与区号」菜单中勾选；此处「启用自定义登录配置」关闭时，前台登录仍使用内置默认（含区号仅 +86）。
           </p>
 
           <div class="flex items-start justify-between gap-4 rounded-lg border border-slate-100 bg-slate-50/80 px-4 py-3">
@@ -415,28 +383,6 @@ onMounted(() => {
                 class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
               />
             </button>
-          </div>
-
-          <div>
-            <label class="mb-2 block text-sm font-medium text-slate-700">允许的电话区号</label>
-            <p class="mb-2 text-xs text-slate-500">
-              前台「手机登录」与安全中心「绑定手机」可选区号；用户仅可从已勾选的区号中选择。
-            </p>
-            <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              <label
-                v-for="row in PHONE_DIAL_PRESETS"
-                :key="row.dial"
-                class="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-100 bg-white px-3 py-2 text-sm"
-              >
-                <input
-                  type="checkbox"
-                  class="rounded border-slate-300"
-                  :checked="config.allowedDialCodes?.includes(row.dial)"
-                  @change="toggleDial(row.dial, $event.target.checked)"
-                />
-                <span>{{ row.label }}</span>
-              </label>
-            </div>
           </div>
           </template>
         </div>
@@ -633,85 +579,6 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- 国际化 -->
-        <div v-show="activeTab === 'i18n'" class="space-y-6">
-          <p class="text-sm text-slate-500">
-            与「登录」模块独立配置。关闭自定义语言配置时，前台固定为简体中文并隐藏语言切换入口；开启后可配置前台可选语言、默认语言及是否在顶栏显示语言切换。
-          </p>
-
-          <div class="flex items-start justify-between gap-4 rounded-lg border border-slate-100 bg-slate-50/80 px-4 py-3">
-            <div class="min-w-0 flex-1">
-              <p class="text-sm font-medium text-slate-900">启用自定义语言配置</p>
-              <p class="mt-1 text-xs text-slate-500">关闭后前台固定简体中文，并隐藏语言切换入口。</p>
-            </div>
-            <button
-              type="button"
-              :class="config.languageSettingsEnabled ? 'bg-blue-600' : 'bg-slate-200'"
-              class="relative mt-0.5 inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none"
-              :aria-pressed="config.languageSettingsEnabled"
-              aria-label="切换启用自定义语言配置"
-              @click="config.languageSettingsEnabled = !config.languageSettingsEnabled"
-            >
-              <span
-                :class="config.languageSettingsEnabled ? 'translate-x-5' : 'translate-x-0'"
-                class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-              />
-            </button>
-          </div>
-
-          <template v-if="config.languageSettingsEnabled">
-          <div>
-            <label class="mb-2 block text-sm font-medium text-slate-700">前台启用语言</label>
-            <div class="flex flex-wrap gap-3">
-              <label
-                v-for="loc in FRONT_LOCALE_CATALOG"
-                :key="loc.code"
-                class="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm"
-              >
-                <input
-                  type="checkbox"
-                  class="rounded border-slate-300"
-                  :checked="config.i18n.enabledLocales?.includes(loc.code)"
-                  @change="toggleLocale(loc.code, $event.target.checked)"
-                />
-                <span>{{ loc.label }}</span>
-              </label>
-            </div>
-          </div>
-
-          <div>
-            <label class="mb-2 block text-sm font-medium text-slate-700">默认语言</label>
-            <select v-model="config.i18n.defaultLocale" class="ant-select max-w-md">
-              <option
-                v-for="loc in FRONT_LOCALE_CATALOG.filter((l) => config.i18n.enabledLocales?.includes(l.code))"
-                :key="loc.code"
-                :value="loc.code"
-              >
-                {{ loc.label }}
-              </option>
-            </select>
-          </div>
-
-          <div class="flex items-start justify-between gap-4 rounded-lg border border-slate-100 bg-slate-50/80 px-4 py-3">
-            <div class="min-w-0 flex-1">
-              <p class="text-sm font-medium text-slate-900">前台显示语言切换</p>
-              <p class="mt-1 text-xs text-slate-500">关闭后顶栏与移动端菜单中的语言入口将隐藏（仍可使用默认语言）。</p>
-            </div>
-            <button
-              type="button"
-              :class="config.i18n.languageSwitcherEnabled ? 'bg-blue-600' : 'bg-slate-200'"
-              class="relative mt-0.5 inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none"
-              :aria-pressed="config.i18n.languageSwitcherEnabled"
-              @click="config.i18n.languageSwitcherEnabled = !config.i18n.languageSwitcherEnabled"
-            >
-              <span
-                :class="config.i18n.languageSwitcherEnabled ? 'translate-x-5' : 'translate-x-0'"
-                class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-              />
-            </button>
-          </div>
-          </template>
-        </div>
       </div>
     </div>
   </div>

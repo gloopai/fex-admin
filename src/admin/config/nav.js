@@ -131,6 +131,7 @@ export const navTree = [
     icon: 'spark',
     children: [
       { title: '站点配置', path: '/admin/system/site-config' },
+      { title: '语言与区号', path: '/admin/system/locale-settings' },
       { title: '错误码管理', path: '/admin/system/error-codes' }
     ]
   },

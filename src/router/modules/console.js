@@ -415,6 +415,15 @@ export const consoleRoutes = [
     }
   },
   {
+    path: 'system/locale-settings',
+    name: 'system-locale-settings',
+    component: () => import('../../pages/admin/system/LocaleSettingsPage.vue'),
+    meta: {
+      title: '系统设置 / 语言与区号',
+      desc: '配置前台可选语言、默认语言与手机国际区号。'
+    }
+  },
+  {
     path: 'system/error-codes',
     name: 'system-error-codes',
     component: () => import('../../pages/admin/system/ErrorCodePage.vue')
