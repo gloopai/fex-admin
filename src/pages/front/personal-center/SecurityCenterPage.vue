@@ -27,8 +27,6 @@ const mfaBound = computed({
   get: () => security.currentBindings.mfaBound,
   set: (v) => security.updateBindings({ mfaBound: v })
 })
-const passwordOk = ref(false)
-
 const securityOverviewOpen = ref(false)
 const phoneDialogOpen = ref(false)
 const emailDialogOpen = ref(false)
@@ -67,7 +65,8 @@ const items = computed(() => [
 ])
 
 const doneCount = computed(() => items.value.filter((i) => i.ok).length)
-const score = computed(() => Math.min(100, 36 + doneCount.value * 22 + (passwordOk.value ? 18 : 0)))
+/** 已登录即视为已设登录密码，计入基础分；验证项每项 +22 */
+const score = computed(() => Math.min(100, 54 + doneCount.value * 22))
 
 function openSecurityOverview() {
   securityOverviewOpen.value = true
@@ -148,16 +147,6 @@ function onMfaCompleted() {
             <p class="mt-1 text-xs text-white/50">建议定期更换，勿与其他网站共用密码。</p>
           </div>
         </div>
-        <span
-          class="rounded-full border px-2.5 py-1 text-xs font-medium"
-          :class="
-            passwordOk
-              ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200'
-              : 'border-amber-400/40 bg-amber-400/10 text-amber-200'
-          "
-        >
-          {{ passwordOk ? '已设置' : '待完善' }}
-        </span>
       </div>
       <div class="mt-4 flex flex-wrap gap-2.5 border-t border-white/10 pt-4">
         <button

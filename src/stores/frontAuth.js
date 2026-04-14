@@ -43,7 +43,6 @@ export const FRONT_WALLET_LOGIN_PROVIDERS = [
 ]
 
 const WALLET_ONLY_PASSWORD = '__wallet_mock__'
-
 function shortWalletAddress(addr) {
   const s = String(addr)
   if (s.length < 12) return s
@@ -76,6 +75,17 @@ function saveUsers(users) {
 
 function normalizeEmail(email) {
   return String(email).trim().toLowerCase()
+}
+
+/**
+ * 与 `loginWithPhone` 使用同一合成邮箱键，便于手机号登录/找回一致。
+ * @param {string} dialCode 如 +86
+ * @param {string} nationalRaw 本地号码（可含非数字，会剥离）
+ */
+export function buildSyntheticPhoneUserEmail(dialCode, nationalRaw) {
+  const dc = String(dialCode || '+86').trim() || '+86'
+  const digits = String(nationalRaw).replace(/\D/g, '')
+  return normalizeEmail(`phone.${dc.replace(/\+/g, '')}.${digits}@mock.fex.local`)
 }
 
 /**
@@ -173,6 +183,38 @@ export const useFrontAuthStore = defineStore('frontAuth', {
      * 模拟钱包一键登录：写入本地会话。真实接入时需调 provider、签名 message、换新 token。
      * @param {string} providerKey {@link FRONT_WALLET_LOGIN_PROVIDERS}[].key
      */
+    /**
+     * 演示：国际区号 + 本地号码登录（与站点配置「区号手机号」联动）。
+     * 会话邮箱为合成地址，仅用于本地 mock。
+     */
+    loginWithPhone(dialCode, nationalDigits, password) {
+      mergeDemoUsersIntoStorage()
+      if (!password || String(password).length < 6) {
+        return { ok: false, message: '密码至少 6 位' }
+      }
+      const dc = String(dialCode || '+86').trim() || '+86'
+      const digits = String(nationalDigits).replace(/\D/g, '')
+      if (digits.length < 5 || digits.length > 15) {
+        return { ok: false, message: '请输入有效的手机号码' }
+      }
+      const synthetic = buildSyntheticPhoneUserEmail(dc, digits)
+      const users = loadUsers()
+      let row = users.find((u) => u.email === synthetic)
+      const nick = `${dc} · ${digits.slice(-4)}`
+      const pwd = String(password)
+      if (!row) {
+        row = { email: synthetic, password: pwd, nickname: nick }
+        users.push(row)
+        saveUsers(users)
+      } else if (row.password !== pwd) {
+        return { ok: false, message: '密码错误' }
+      }
+      this.email = synthetic
+      this.nickname = row.nickname || nick
+      this.token = `mock_phone_${Date.now()}`
+      this.persistSession()
+      return { ok: true }
+    },
     loginWithMockWallet(providerKey) {
       mergeDemoUsersIntoStorage()
       const meta = FRONT_WALLET_LOGIN_PROVIDERS.find((p) => p.key === providerKey)
@@ -199,8 +241,12 @@ export const useFrontAuthStore = defineStore('frontAuth', {
       this.persistSession()
       return { ok: true }
     },
-    register(email, password, confirmPassword, nickname) {
+    register(email, password, confirmPassword, nickname, verificationCode) {
       mergeDemoUsersIntoStorage()
+      const c = String(verificationCode ?? '').trim()
+      if (!/^\d{6}$/.test(c)) {
+        return { ok: false, message: '请输入 6 位数字验证码' }
+      }
       const e = normalizeEmail(email)
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) {
         return { ok: false, message: '请输入有效邮箱' }
@@ -224,6 +270,41 @@ export const useFrontAuthStore = defineStore('frontAuth', {
       this.persistSession()
       return { ok: true }
     },
+    /**
+     * 手机号注册：合成邮箱键与 `loginWithPhone` 一致。
+     */
+    registerWithPhone(dialCode, nationalDigits, password, confirmPassword, nickname, verificationCode) {
+      mergeDemoUsersIntoStorage()
+      const c = String(verificationCode ?? '').trim()
+      if (!/^\d{6}$/.test(c)) {
+        return { ok: false, message: '请输入 6 位数字验证码' }
+      }
+      if (!password || String(password).length < 6) {
+        return { ok: false, message: '密码至少 6 位' }
+      }
+      if (password !== confirmPassword) {
+        return { ok: false, message: '两次密码不一致' }
+      }
+      const dc = String(dialCode || '+86').trim() || '+86'
+      const digits = String(nationalDigits).replace(/\D/g, '')
+      if (digits.length < 5 || digits.length > 15) {
+        return { ok: false, message: '请输入有效的手机号码' }
+      }
+      const synthetic = buildSyntheticPhoneUserEmail(dc, digits)
+      const users = loadUsers()
+      if (users.some((u) => u.email === synthetic)) {
+        return { ok: false, message: '该手机号已注册，请直接登录' }
+      }
+      const nick =
+        (nickname && String(nickname).trim()) || `${dc} · ${digits.slice(-4)}`
+      users.push({ email: synthetic, password: String(password), nickname: nick })
+      saveUsers(users)
+      this.email = synthetic
+      this.nickname = nick
+      this.token = `mock_phone_reg_${Date.now()}`
+      this.persistSession()
+      return { ok: true }
+    },
     logout() {
       this.email = null
       this.nickname = null
@@ -231,6 +312,110 @@ export const useFrontAuthStore = defineStore('frontAuth', {
       if (typeof localStorage !== 'undefined') {
         localStorage.removeItem(SESSION_KEY)
       }
+    },
+    /**
+     * 找回密码前校验账号是否存在于本机用户表（演示）。
+     * @param {{ channel: 'email'|'phone', email?: string, dial?: string, nationalDigits?: string }} p
+     */
+    /**
+     * 注册前校验「收码目标」：邮箱/手机号格式正确且尚未注册（用于发送验证码）。
+     * @param {{ channel: 'email'|'phone', email?: string, dial?: string, nationalDigits?: string }} p
+     */
+    validateRegisterVerificationTarget(p) {
+      mergeDemoUsersIntoStorage()
+      const users = loadUsers()
+      if (p.channel === 'email') {
+        const e = normalizeEmail(String(p.email ?? ''))
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) {
+          return { ok: false, message: '请输入有效邮箱' }
+        }
+        if (users.some((u) => u.email === e)) {
+          return { ok: false, message: '该邮箱已注册，请直接登录' }
+        }
+        return { ok: true }
+      }
+      const dc = String(p.dial || '+86').trim() || '+86'
+      const digits = String(p.nationalDigits ?? '').replace(/\D/g, '')
+      if (digits.length < 5 || digits.length > 15) {
+        return { ok: false, message: '请输入有效的手机号码' }
+      }
+      const synthetic = buildSyntheticPhoneUserEmail(dc, digits)
+      if (users.some((u) => u.email === synthetic)) {
+        return { ok: false, message: '该手机号已注册，请直接登录' }
+      }
+      return { ok: true }
+    },
+    validateResetAccountExists(p) {
+      mergeDemoUsersIntoStorage()
+      const users = loadUsers()
+      if (p.channel === 'email') {
+        const e = normalizeEmail(String(p.email ?? ''))
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) {
+          return { ok: false, message: '请输入有效邮箱' }
+        }
+        if (!users.some((u) => u.email === e)) {
+          return { ok: false, message: '该邮箱尚未在本机注册' }
+        }
+        return { ok: true }
+      }
+      const dc = String(p.dial || '+86').trim() || '+86'
+      const digits = String(p.nationalDigits ?? '').replace(/\D/g, '')
+      if (digits.length < 5 || digits.length > 15) {
+        return { ok: false, message: '请输入有效的手机号码' }
+      }
+      const synthetic = buildSyntheticPhoneUserEmail(dc, digits)
+      if (!users.some((u) => u.email === synthetic)) {
+        return { ok: false, message: '该手机号尚未在本机注册' }
+      }
+      return { ok: true }
+    },
+    /**
+     * 验证码 + 新密码重置（演示：任意 6 位数字视为通过；真实环境应对接短信/邮件校验）。
+     */
+    resetPasswordWithVerification(p) {
+      mergeDemoUsersIntoStorage()
+      const {
+        channel,
+        email,
+        dial,
+        nationalDigits,
+        code,
+        newPassword,
+        confirmPassword
+      } = p
+      const pre = this.validateResetAccountExists({
+        channel,
+        email,
+        dial,
+        nationalDigits
+      })
+      if (!pre.ok) return pre
+      const c = String(code ?? '').trim()
+      if (!/^\d{6}$/.test(c)) {
+        return { ok: false, message: '请输入 6 位数字验证码' }
+      }
+      if (!newPassword || String(newPassword).length < 6) {
+        return { ok: false, message: '新密码至少 6 位' }
+      }
+      if (String(newPassword) !== String(confirmPassword)) {
+        return { ok: false, message: '两次新密码不一致' }
+      }
+      const users = loadUsers()
+      let targetEmail
+      if (channel === 'email') {
+        targetEmail = normalizeEmail(String(email ?? ''))
+      } else {
+        const dc = String(dial || '+86').trim() || '+86'
+        const digits = String(nationalDigits ?? '').replace(/\D/g, '')
+        targetEmail = buildSyntheticPhoneUserEmail(dc, digits)
+      }
+      const i = users.findIndex((u) => u.email === targetEmail)
+      if (i === -1) {
+        return { ok: false, message: '账号不存在' }
+      }
+      users[i] = { ...users[i], password: String(newPassword) }
+      saveUsers(users)
+      return { ok: true, message: '密码已重置，请使用新密码登录' }
     }
   }
 })

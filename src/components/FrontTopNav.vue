@@ -12,6 +12,12 @@ import {
 } from '../constants/frontNav'
 import { PAIRS_BY_CLASS } from '../constants/frontTradePairs'
 import { getPersonalCenterShellMobileNavItems } from '../constants/personalCenterNav'
+import { FRONT_LOCALE_CATALOG } from '../admin/constants/i18nCatalog'
+import {
+  FRONT_LANG_STORAGE_KEY,
+  resolveFrontLocalePreference,
+  useFrontSiteI18n
+} from '../composables/useFrontSiteI18n'
 
 const props = defineProps({
   /** 固定为 `/front`（旧 /m 会重定向至 /front） */
@@ -230,34 +236,24 @@ function tradeTriggerClass() {
   return linkNavClass(tradeOpen.value || isTradeSectionActive())
 }
 
-/** 演示：语言偏好存本地；接入 i18n 后可与 vue-i18n locale 同步 */
-const FRONT_LANG_STORAGE_KEY = 'fex-front-locale-pref'
-const frontLangOptions = [
-  { code: 'zh-CN', label: '简体中文', short: '简中' },
-  { code: 'zh-TW', label: '繁體中文', short: '繁中' },
-  { code: 'en', label: 'English', short: 'EN' },
-  { code: 'ja', label: '日本語', short: 'JA' },
-  { code: 'ko', label: '한국어', short: 'KO' }
-]
+const { localeOptionsForNav, languageSwitcherEnabled } = useFrontSiteI18n()
+
+/** 管理台启用的语言；若为空则回退为全量目录（不应出现） */
+const frontLangOptions = computed(() =>
+  localeOptionsForNav.value.length ? localeOptionsForNav.value : FRONT_LOCALE_CATALOG
+)
 
 const localeCode = ref('zh-CN')
 
 const currentLocale = computed(
-  () => frontLangOptions.find((o) => o.code === localeCode.value) || frontLangOptions[0]
+  () =>
+    frontLangOptions.value.find((o) => o.code === localeCode.value) ||
+    frontLangOptions.value[0] ||
+    FRONT_LOCALE_CATALOG[0]
 )
 
-function readStoredLocale() {
-  try {
-    const s = localStorage.getItem(FRONT_LANG_STORAGE_KEY)
-    if (s && frontLangOptions.some((o) => o.code === s)) return s
-  } catch {
-    /* ignore */
-  }
-  return 'zh-CN'
-}
-
 function selectLocale(code) {
-  if (!frontLangOptions.some((o) => o.code === code)) return
+  if (!frontLangOptions.value.some((o) => o.code === code)) return
   localeCode.value = code
   try {
     localStorage.setItem(FRONT_LANG_STORAGE_KEY, code)
@@ -396,8 +392,34 @@ function closeIfDesktopBreakpoint() {
 
 let removeMediaListener = () => {}
 
+watch(
+  () => frontLangOptions.value.map((o) => o.code).join(','),
+  () => {
+    const opts = frontLangOptions.value
+    if (opts.length && !opts.some((o) => o.code === localeCode.value)) {
+      const code = opts[0].code
+      localeCode.value = code
+      try {
+        localStorage.setItem(FRONT_LANG_STORAGE_KEY, code)
+      } catch {
+        /* ignore */
+      }
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('front-locale-change', { detail: { locale: code } }))
+      }
+    }
+  }
+)
+
+watch(languageSwitcherEnabled, (on) => {
+  if (!on) {
+    langOpen.value = false
+    mobileLangSheetOpen.value = false
+  }
+})
+
 onMounted(() => {
-  localeCode.value = readStoredLocale()
+  localeCode.value = resolveFrontLocalePreference()
   const mq = window.matchMedia('(min-width: 1024px)')
   const onChange = () => closeIfDesktopBreakpoint()
   mq.addEventListener('change', onChange)
@@ -717,7 +739,7 @@ function drawerRowClass(item) {
             </div>
           </Transition>
         </div>
-        <div class="relative hidden lg:block">
+        <div v-if="languageSwitcherEnabled" class="relative hidden lg:block">
           <button
             type="button"
             class="inline-flex items-center gap-1 rounded-md py-2 pl-2 pr-1.5 text-[#eaecef] transition hover:bg-[#1f2429] hover:text-lime-300"
@@ -1088,6 +1110,7 @@ function drawerRowClass(item) {
             </nav>
 
             <div
+              v-if="languageSwitcherEnabled"
               class="shrink-0 border-t border-white/[0.06] bg-[#0b0e11] px-2 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-1"
             >
               <button
@@ -1149,7 +1172,7 @@ function drawerRowClass(item) {
     <Teleport to="body">
       <Transition name="front-lang-sheet">
         <div
-          v-if="mobileLangSheetOpen"
+          v-if="languageSwitcherEnabled && mobileLangSheetOpen"
           id="front-mobile-lang-sheet"
           ref="mobileLangSheetRef"
           class="fixed inset-0 z-[110] lg:hidden"

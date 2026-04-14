@@ -3,17 +3,31 @@ import { onMounted, onUnmounted } from 'vue'
 import CrossPlatformFloatNav from '../components/CrossPlatformFloatNav.vue'
 import FrontBottomTabBar from '../components/FrontBottomTabBar.vue'
 import FrontTopNav from '../components/FrontTopNav.vue'
+import { bumpFrontSiteI18n } from '../composables/useFrontSiteI18n'
+import { SITE_CONFIG_STORAGE_KEY } from '../admin/mock/siteConfig'
 
 /** 与 tailwind.css 中 html.front-site 规则对应：统一文档底色、禁止拉出浅底/白边 */
 const FRONT_DOC_CLASS = 'front-site'
 
+function onSiteConfigStorage(e) {
+  if (e.key === SITE_CONFIG_STORAGE_KEY) bumpFrontSiteI18n()
+}
+
+function onAdminSiteConfigUpdated() {
+  bumpFrontSiteI18n()
+}
+
 onMounted(() => {
   document.documentElement.classList.add(FRONT_DOC_CLASS)
   document.body.classList.add(FRONT_DOC_CLASS)
+  window.addEventListener('storage', onSiteConfigStorage)
+  window.addEventListener('admin-site-config-updated', onAdminSiteConfigUpdated)
 })
 onUnmounted(() => {
   document.documentElement.classList.remove(FRONT_DOC_CLASS)
   document.body.classList.remove(FRONT_DOC_CLASS)
+  window.removeEventListener('storage', onSiteConfigStorage)
+  window.removeEventListener('admin-site-config-updated', onAdminSiteConfigUpdated)
 })
 </script>
 

@@ -1,7 +1,7 @@
 /**
  * 前台路由（/front）。
  * 需登录：personal-center 整树、trade/:assetClass/:tradeMode、verification-*-demo。
- * 公开：home、market、login、register。
+ * 公开：home、market、login、register、reset-password。
  * 守卫与组合式函数：router/index.js、src/composables/useRequireFrontAuth.js
  */
 import { FRONT_DEPOSIT_DEFAULT_SYMBOL_LOWER } from '../../constants/frontAssetCenterDemo'
@@ -66,6 +66,12 @@ export const frontDesktopRoutes = [
     name: 'front-register',
     component: () => import('../../pages/front/FrontAuthPage.vue'),
     meta: { title: '注册', guestOnly: true }
+  },
+  {
+    path: 'reset-password',
+    name: 'front-reset-password',
+    component: () => import('../../pages/front/FrontResetPasswordPage.vue'),
+    meta: { title: '重置密码', guestOnly: true }
   },
   {
     path: 'personal-center',
