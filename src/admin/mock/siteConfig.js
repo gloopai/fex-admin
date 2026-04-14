@@ -4,16 +4,166 @@ import {
   PHONE_DIAL_PRESETS
 } from '../constants/i18nCatalog'
 
+const VALID_DIAL = new Set(PHONE_DIAL_PRESETS.map((x) => x.dial))
+
+function newSmsChannelId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return `sms_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`
+}
+
+function parseSmsConfigObject(cfg) {
+  if (typeof cfg === 'string') {
+    try {
+      const parsed = JSON.parse(cfg)
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? { ...parsed } : {}
+    } catch {
+      return {}
+    }
+  }
+  if (cfg && typeof cfg === 'object' && !Array.isArray(cfg)) {
+    return { ...cfg }
+  }
+  return {}
+}
+
+/**
+ * 从旧版「每区号一条」结构迁移为通道列表（同一区号可多条）。
+ * @param {Record<string, { enabled?: boolean, provider?: string, config?: unknown }>|undefined} legacy
+ * @returns {Array<{ id: string, dial: string, name: string, enabled: boolean, provider: string, config: Record<string, unknown> }>}
+ */
+function migrateSmsChannelsFromLegacyByDial(legacy) {
+  /** @type {Array<{ id: string, dial: string, name: string, enabled: boolean, provider: string, config: Record<string, unknown> }>} */
+  const list = []
+  if (!legacy || typeof legacy !== 'object') return list
+  for (const p of PHONE_DIAL_PRESETS) {
+    const row = legacy[p.dial]
+    if (!row || typeof row !== 'object') continue
+    const enabled = typeof row.enabled === 'boolean' ? row.enabled : false
+    const provider = typeof row.provider === 'string' ? row.provider.trim() : ''
+    const config = parseSmsConfigObject(row.config)
+    if (!enabled && !provider && Object.keys(config).length === 0) continue
+    list.push({
+      id: `mig_${p.dial.replace(/[^\d+]/g, '')}`,
+      dial: p.dial,
+      name: '',
+      enabled,
+      provider: provider || 'custom',
+      config
+    })
+  }
+  return list
+}
+
+/**
+ * 归一化短信通道列表（演示存于站点配置；生产应由后端加密敏感字段）。
+ * @param {unknown} raw
+ * @param {boolean} [explicitKey] 存储中是否显式包含 smsChannels 字段（用于区分「未迁移」与「用户清空」）
+ * @param {Record<string, unknown>|undefined} legacyByDial
+ */
+export function normalizeSmsChannelsList(raw, explicitKey, legacyByDial) {
+  /** @type {Array<{ id: string, dial: string, name: string, enabled: boolean, provider: string, config: Record<string, unknown> }>} */
+  const fromArray = []
+  if (Array.isArray(raw)) {
+    for (const row of raw) {
+      if (!row || typeof row !== 'object') continue
+      const dial = String(row.dial || '').trim()
+      if (!VALID_DIAL.has(dial)) continue
+      fromArray.push({
+        id: typeof row.id === 'string' && row.id.trim() ? row.id.trim() : newSmsChannelId(),
+        dial,
+        name: typeof row.name === 'string' ? row.name.trim() : '',
+        enabled: typeof row.enabled === 'boolean' ? row.enabled : true,
+        provider: typeof row.provider === 'string' ? row.provider.trim() : '',
+        config: parseSmsConfigObject(row.config)
+      })
+    }
+    if (fromArray.length > 0 || explicitKey) {
+      return fromArray
+    }
+  }
+  return migrateSmsChannelsFromLegacyByDial(
+    legacyByDial && typeof legacyByDial === 'object' ? legacyByDial : undefined
+  )
+}
+
+/** 短信通道演示数据（全新环境默认；已写入 localStorage 的站点配置不受影响） */
+const DEFAULT_SMS_CHANNELS_DEMO = normalizeSmsChannelsList(
+  [
+    {
+      id: 'demo-sms-cn-aliyun',
+      dial: '+86',
+      name: '国内·阿里云',
+      enabled: true,
+      provider: 'aliyun',
+      config: {
+        regionId: 'cn-hangzhou',
+        signName: 'CryptoX 演示',
+        templateCode: 'SMS_DEMO_001',
+        accessKeyId: 'LTAI****************',
+        remark: '密钥由服务端保管，此处仅演示字段'
+      }
+    },
+    {
+      id: 'demo-sms-cn-tencent',
+      dial: '+86',
+      name: '国内·腾讯云（备用）',
+      enabled: true,
+      provider: 'tencent',
+      config: {
+        sdkAppId: '1400000000',
+        signName: 'CryptoX 演示',
+        templateId: '1234567',
+        secretId: 'AKID****************',
+        remark: '同区号多通道示例'
+      }
+    },
+    {
+      id: 'demo-sms-hk-twilio',
+      dial: '+852',
+      name: '香港 Twilio',
+      enabled: true,
+      provider: 'twilio',
+      config: {
+        accountSid: 'ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+        messagingServiceSid: 'MGxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+        remark: '国际通道示例'
+      }
+    },
+    {
+      id: 'demo-sms-sg-custom',
+      dial: '+65',
+      name: '新加坡·自定义网关',
+      enabled: false,
+      provider: 'custom',
+      config: {
+        endpoint: 'https://sms.example.com/v1/send',
+        apiKey: '***',
+        remark: '停用状态示例'
+      }
+    }
+  ],
+  true,
+  undefined
+)
+
 export const SITE_CONFIG_STORAGE_KEY = 'fex-admin-site-config'
 
 const STORAGE_KEY = SITE_CONFIG_STORAGE_KEY
 
 const VALID_LOCALE_CODES = new Set(FRONT_LOCALE_CATALOG.map((x) => x.code))
-const VALID_DIAL = new Set(PHONE_DIAL_PRESETS.map((x) => x.dial))
 
-/** SMTP 默认结构（演示持久化；生产环境密码应由后端加密存储） */
+function newSmtpAccountId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return `smtp_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`
+}
+
+/** SMTP 单条账户结构（演示持久化；生产环境密码应由后端加密存储） */
 export const DEFAULT_SMTP_CONFIG = {
-  /** 是否启用系统发信 */
+  /** 是否启用该账户发信 */
   enabled: false,
   host: '',
   port: 587,
@@ -28,6 +178,118 @@ export const DEFAULT_SMTP_CONFIG = {
   /** 可选，回复地址 */
   replyTo: ''
 }
+
+function normalizeSmtp(raw) {
+  const d = { ...DEFAULT_SMTP_CONFIG }
+  if (!raw || typeof raw !== 'object') return d
+  const portNum = Number(raw.port)
+  return {
+    enabled: typeof raw.enabled === 'boolean' ? raw.enabled : d.enabled,
+    host: typeof raw.host === 'string' ? raw.host.trim() : '',
+    port: Number.isFinite(portNum) ? Math.min(65535, Math.max(1, Math.round(portNum))) : d.port,
+    encryption: ['none', 'tls', 'ssl'].includes(raw.encryption) ? raw.encryption : d.encryption,
+    username: typeof raw.username === 'string' ? raw.username : '',
+    password: typeof raw.password === 'string' ? raw.password : '',
+    fromName: typeof raw.fromName === 'string' ? raw.fromName.trim() : '',
+    fromEmail: typeof raw.fromEmail === 'string' ? raw.fromEmail.trim() : '',
+    replyTo: typeof raw.replyTo === 'string' ? raw.replyTo.trim() : ''
+  }
+}
+
+function normalizeSmtpAccountRow(row) {
+  const n = normalizeSmtp(row)
+  return {
+    id:
+      row && typeof row.id === 'string' && row.id.trim()
+        ? row.id.trim()
+        : newSmtpAccountId(),
+    name: row && typeof row.name === 'string' ? row.name.trim() : '',
+    enabled: n.enabled,
+    host: n.host,
+    port: n.port,
+    encryption: n.encryption,
+    username: n.username,
+    password: n.password,
+    fromName: n.fromName,
+    fromEmail: n.fromEmail,
+    replyTo: n.replyTo
+  }
+}
+
+/** 全站同时仅允许一条 SMTP 处于启用状态（按数组顺序保留第一条启用的）。 */
+function enforceSingleEnabledSmtpAccount(list) {
+  if (!Array.isArray(list) || list.length === 0) return list
+  let seen = false
+  return list.map((row) => {
+    if (!row.enabled) return row
+    if (seen) return { ...row, enabled: false }
+    seen = true
+    return row
+  })
+}
+
+/**
+ * 多条 SMTP 账户；旧版单对象 `smtp` 在 normalizeSiteConfig 中迁移。
+ * @param {unknown} raw
+ * @param {boolean} [explicitKey]
+ * @param {Record<string, unknown>|undefined} legacySmtp
+ */
+export function normalizeSmtpAccountsList(raw, explicitKey, legacySmtp) {
+  /** @type {ReturnType<typeof normalizeSmtpAccountRow>[]} */
+  const fromArray = []
+  if (Array.isArray(raw)) {
+    for (const row of raw) {
+      if (!row || typeof row !== 'object') continue
+      fromArray.push(normalizeSmtpAccountRow(row))
+    }
+    if (fromArray.length > 0 || explicitKey) {
+      return enforceSingleEnabledSmtpAccount(fromArray)
+    }
+  }
+  if (legacySmtp && typeof legacySmtp === 'object' && !Array.isArray(legacySmtp)) {
+    return enforceSingleEnabledSmtpAccount([
+      normalizeSmtpAccountRow({
+        id: 'mig-smtp-legacy',
+        name: '',
+        ...legacySmtp
+      })
+    ])
+  }
+  return []
+}
+
+const DEFAULT_SMTP_ACCOUNTS_DEMO = normalizeSmtpAccountsList(
+  [
+    {
+      id: 'demo-smtp-primary',
+      name: '系统通知（主）',
+      enabled: true,
+      host: 'smtp.example.com',
+      port: 587,
+      encryption: 'tls',
+      username: 'notify@example.com',
+      password: '***',
+      fromName: 'CryptoX 演示',
+      fromEmail: 'noreply@example.com',
+      replyTo: ''
+    },
+    {
+      id: 'demo-smtp-backup',
+      name: '备用发信',
+      enabled: false,
+      host: 'smtp-backup.example.com',
+      port: 465,
+      encryption: 'ssl',
+      username: '',
+      password: '',
+      fromName: '',
+      fromEmail: 'backup@example.com',
+      replyTo: ''
+    }
+  ],
+  true,
+  undefined
+)
 
 export const DEFAULT_SITE_CONFIG = {
   siteName: 'CryptoX Pro',
@@ -57,10 +319,12 @@ export const DEFAULT_SITE_CONFIG = {
   allowedDialCodes: ['+86'],
   /** 启用后，以下多语言配置才会应用到前台；关闭则固定简体中文并隐藏语言切换 */
   languageSettingsEnabled: true,
-  /** 邮件服务器（SMTP） */
-  smtp: { ...DEFAULT_SMTP_CONFIG },
+  /** 邮件服务器（SMTP）多账户，可多条并分别启用 */
+  smtpAccounts: DEFAULT_SMTP_ACCOUNTS_DEMO,
   /** 多语言（languageSettingsEnabled 为 true 时生效） */
-  i18n: { ...DEFAULT_I18N_BLOCK }
+  i18n: { ...DEFAULT_I18N_BLOCK },
+  /** 短信通道列表（同一国际区号可配置多条；演示存本地，生产应由后端保管密钥） */
+  smsChannels: DEFAULT_SMS_CHANNELS_DEMO
 }
 
 function readStored() {
@@ -71,23 +335,6 @@ function readStored() {
     return typeof parsed === 'object' && parsed ? parsed : null
   } catch {
     return null
-  }
-}
-
-function normalizeSmtp(raw) {
-  const d = { ...DEFAULT_SMTP_CONFIG }
-  if (!raw || typeof raw !== 'object') return d
-  const portNum = Number(raw.port)
-  return {
-    enabled: typeof raw.enabled === 'boolean' ? raw.enabled : d.enabled,
-    host: typeof raw.host === 'string' ? raw.host.trim() : '',
-    port: Number.isFinite(portNum) ? Math.min(65535, Math.max(1, Math.round(portNum))) : d.port,
-    encryption: ['none', 'tls', 'ssl'].includes(raw.encryption) ? raw.encryption : d.encryption,
-    username: typeof raw.username === 'string' ? raw.username : '',
-    password: typeof raw.password === 'string' ? raw.password : '',
-    fromName: typeof raw.fromName === 'string' ? raw.fromName.trim() : '',
-    fromEmail: typeof raw.fromEmail === 'string' ? raw.fromEmail.trim() : '',
-    replyTo: typeof raw.replyTo === 'string' ? raw.replyTo.trim() : ''
   }
 }
 
@@ -130,8 +377,24 @@ function normalizeSiteConfig(raw) {
       ? merged.languageSettingsEnabled
       : DEFAULT_SITE_CONFIG.languageSettingsEnabled
   merged.allowedDialCodes = normalizeAllowedDialCodes(merged.allowedDialCodes)
-  merged.smtp = normalizeSmtp(merged.smtp)
+  const rawObj = raw && typeof raw === 'object' ? raw : {}
+  const explicitSmtpAccounts = Object.prototype.hasOwnProperty.call(rawObj, 'smtpAccounts')
+  const needsSmtpMigration =
+    !explicitSmtpAccounts && merged.smtp && typeof merged.smtp === 'object'
+  merged.smtpAccounts = normalizeSmtpAccountsList(
+    needsSmtpMigration ? [] : merged.smtpAccounts,
+    explicitSmtpAccounts,
+    needsSmtpMigration ? merged.smtp : undefined
+  )
+  if ('smtp' in merged) delete merged.smtp
   merged.i18n = normalizeI18n(merged.i18n)
+  const explicitSmsChannels = Object.prototype.hasOwnProperty.call(rawObj, 'smsChannels')
+  merged.smsChannels = normalizeSmsChannelsList(
+    merged.smsChannels,
+    explicitSmsChannels,
+    merged.smsChannelsByDial
+  )
+  if ('smsChannelsByDial' in merged) delete merged.smsChannelsByDial
   const legacy = merged.logoUrl
   if (typeof legacy === 'string' && legacy && !merged.logoUrlPc && !merged.logoUrlMobile) {
     merged.logoUrlPc = legacy
@@ -163,6 +426,15 @@ export const siteConfigApi = {
   updateSiteConfig: (config) =>
     new Promise((resolve) => {
       setTimeout(() => {
+        const prev = memory
+        const smsChannelsPayload =
+          config.smsChannels !== undefined
+            ? normalizeSmsChannelsList(config.smsChannels, true, config.smsChannelsByDial)
+            : prev.smsChannels
+        const smtpAccountsPayload =
+          config.smtpAccounts !== undefined
+            ? normalizeSmtpAccountsList(config.smtpAccounts, true, config.smtp)
+            : prev.smtpAccounts
         memory = normalizeSiteConfig({
           ...DEFAULT_SITE_CONFIG,
           siteName: String(config.siteName ?? '').trim() || DEFAULT_SITE_CONFIG.siteName,
@@ -194,8 +466,9 @@ export const siteConfigApi = {
               ? config.languageSettingsEnabled
               : DEFAULT_SITE_CONFIG.languageSettingsEnabled,
           allowedDialCodes: normalizeAllowedDialCodes(config.allowedDialCodes),
-          smtp: normalizeSmtp(config.smtp),
-          i18n: normalizeI18n(config.i18n)
+          smtpAccounts: smtpAccountsPayload,
+          i18n: normalizeI18n(config.i18n),
+          smsChannels: smsChannelsPayload
         })
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(memory))
@@ -211,23 +484,38 @@ export const siteConfigApi = {
 
   /**
    * 发送测试邮件（演示：不真正连接 SMTP，仅校验必填项）
-   * @param {{ to: string }} params
+   * @param {{ to: string, smtpAccountId?: string }} params
    */
   testSmtp: (params) =>
     new Promise((resolve, reject) => {
       setTimeout(() => {
         const to = String(params?.to ?? '').trim()
+        const accountId = params?.smtpAccountId != null ? String(params.smtpAccountId).trim() : ''
         if (!to) {
           reject(new Error('请填写收件人邮箱'))
           return
         }
-        const s = memory.smtp || normalizeSmtp(null)
-        if (!s.enabled) {
-          reject(new Error('请先在上方开启「启用 SMTP」并保存配置'))
+        const accounts = memory.smtpAccounts || []
+        let s = null
+        if (accountId) {
+          s = accounts.find((a) => a.id === accountId)
+        } else {
+          s = accounts.find((a) => a.enabled)
+        }
+        if (!s) {
+          reject(new Error('未找到可用的 SMTP 账户，请先添加并保存'))
           return
         }
-        if (!s.host) {
+        if (!s.enabled) {
+          reject(new Error('请先在列表中启用该 SMTP 账户并保存'))
+          return
+        }
+        if (!String(s.host ?? '').trim()) {
           reject(new Error('请填写 SMTP 服务器地址'))
+          return
+        }
+        if (!String(s.fromEmail ?? '').trim()) {
+          reject(new Error('请填写发件人邮箱'))
           return
         }
         resolve({

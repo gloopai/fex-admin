@@ -1,6 +1,5 @@
-import { AGENT_STATUS, AGENT_LEVEL, DEFAULT_AGENT_LEVEL_COMMISSION_RATES } from '../constants/agent'
-
-let agentLevelCommissionRates = { ...DEFAULT_AGENT_LEVEL_COMMISSION_RATES }
+import { AGENT_STATUS } from '../constants/agent'
+import { normalizeAgentProductCommission } from './agentCommission'
 
 // 模拟代理列表数据
 export const mockAgentList = [
@@ -10,14 +9,16 @@ export const mockAgentList = [
     username: 'agent_zhang',
     email: 'zhang@example.com',
     phone: '+86 138****8888',
-    level: AGENT_LEVEL.LEVEL_1,
     status: AGENT_STATUS.ACTIVE,
     totalReferrals: 156,
     directReferrals: 45,
-    totalCommission: 12580.50,
-    monthCommission: 1280.30,
+    totalCommission: 12580.5,
+    monthCommission: 1280.3,
     createdAt: '2025-01-15 10:30:00',
-    lastActiveAt: '2026-03-08 14:20:00'
+    lastActiveAt: '2026-03-08 14:20:00',
+    productCommission: normalizeAgentProductCommission({
+      agentDepositCommissionRate: '0.12'
+    })
   },
   {
     id: 2,
@@ -25,14 +26,14 @@ export const mockAgentList = [
     username: 'agent_wang',
     email: 'wang@example.com',
     phone: '+86 139****6666',
-    level: AGENT_LEVEL.LEVEL_2,
     status: AGENT_STATUS.ACTIVE,
     totalReferrals: 89,
     directReferrals: 28,
-    totalCommission: 8450.80,
-    monthCommission: 950.60,
+    totalCommission: 8450.8,
+    monthCommission: 950.6,
     createdAt: '2025-02-10 09:15:00',
-    lastActiveAt: '2026-03-07 16:45:00'
+    lastActiveAt: '2026-03-07 16:45:00',
+    productCommission: normalizeAgentProductCommission({})
   },
   {
     id: 3,
@@ -40,14 +41,14 @@ export const mockAgentList = [
     username: 'agent_li',
     email: 'li@example.com',
     phone: '+86 137****5555',
-    level: AGENT_LEVEL.LEVEL_1,
     status: AGENT_STATUS.INACTIVE,
     totalReferrals: 23,
     directReferrals: 12,
-    totalCommission: 2340.20,
+    totalCommission: 2340.2,
     monthCommission: 0,
     createdAt: '2025-03-05 14:20:00',
-    lastActiveAt: '2026-01-20 10:30:00'
+    lastActiveAt: '2026-01-20 10:30:00',
+    productCommission: normalizeAgentProductCommission({})
   },
   {
     id: 4,
@@ -55,14 +56,17 @@ export const mockAgentList = [
     username: 'agent_zhao',
     email: 'zhao@example.com',
     phone: '+86 136****9999',
-    level: AGENT_LEVEL.LEVEL_3,
     status: AGENT_STATUS.ACTIVE,
     totalReferrals: 201,
     directReferrals: 65,
-    totalCommission: 18760.40,
-    monthCommission: 2150.90,
+    totalCommission: 18760.4,
+    monthCommission: 2150.9,
     createdAt: '2024-12-01 08:00:00',
-    lastActiveAt: '2026-03-09 09:10:00'
+    lastActiveAt: '2026-03-09 09:10:00',
+    productCommission: normalizeAgentProductCommission({
+      agentPerpetualCommissionEnabled: true,
+      agentPerpetualCommissionRate: '0.05'
+    })
   },
   {
     id: 5,
@@ -70,14 +74,14 @@ export const mockAgentList = [
     username: 'agent_sun',
     email: 'sun@example.com',
     phone: '+86 135****7777',
-    level: AGENT_LEVEL.LEVEL_2,
     status: AGENT_STATUS.SUSPENDED,
     totalReferrals: 45,
     directReferrals: 18,
-    totalCommission: 4520.10,
+    totalCommission: 4520.1,
     monthCommission: 0,
     createdAt: '2025-02-20 11:30:00',
-    lastActiveAt: '2026-02-15 13:20:00'
+    lastActiveAt: '2026-02-15 13:20:00',
+    productCommission: normalizeAgentProductCommission({})
   }
 ]
 
@@ -88,16 +92,17 @@ export const mockAgentStats = {
   inactiveAgents: 203,
   suspendedAgents: 55,
   totalReferrals: 45678,
-  totalCommission: 1256780.50,
-  monthCommission: 98450.30,
-  todayCommission: 3520.80
+  totalCommission: 1256780.5,
+  monthCommission: 98450.3,
+  todayCommission: 3520.8
 }
 
 // 模拟代理详情
 export const mockAgentDetail = (uid) => {
-  const agent = mockAgentList.find(a => a.uid === uid) || mockAgentList[0]
+  const agent = mockAgentList.find((a) => a.uid === uid) || mockAgentList[0]
   return {
     ...agent,
+    productCommission: normalizeAgentProductCommission(agent.productCommission),
     referralTree: [
       {
         level: 1,
@@ -134,14 +139,14 @@ const generateMockAgents = () => {
       username: `agent_user_${i}`,
       email: `user${i}@example.com`,
       phone: `+86 13${Math.floor(Math.random() * 10)}****${Math.floor(Math.random() * 9000) + 1000}`,
-      level: Object.values(AGENT_LEVEL)[Math.floor(Math.random() * Object.values(AGENT_LEVEL).length)],
       status: Object.values(AGENT_STATUS)[Math.floor(Math.random() * Object.values(AGENT_STATUS).length)],
       totalReferrals: Math.floor(Math.random() * 300),
       directReferrals: Math.floor(Math.random() * 100),
       totalCommission: Math.floor(Math.random() * 20000),
       monthCommission: Math.floor(Math.random() * 3000),
       createdAt: `2025-${Math.floor(Math.random() * 12) + 1}-${Math.floor(Math.random() * 28) + 1} 10:00:00`,
-      lastActiveAt: '2026-03-08 14:20:00'
+      lastActiveAt: '2026-03-08 14:20:00',
+      productCommission: normalizeAgentProductCommission({})
     })
   }
   return agents
@@ -149,34 +154,34 @@ const generateMockAgents = () => {
 
 const extendedAgentList = generateMockAgents()
 
+function patchAgentListItem(a) {
+  return {
+    ...a,
+    productCommission: normalizeAgentProductCommission(a.productCommission)
+  }
+}
+
 // API 模拟函数
 export const agentApi = {
-  // 获取代理列表
   getAgentList: (params) => {
-    const { page = 1, pageSize = 10, searchKeyword = '', status = 'all', level = 'all' } = params
+    const { page = 1, pageSize = 10, searchKeyword = '', status = 'all' } = params
 
     return new Promise((resolve) => {
       setTimeout(() => {
-        let list = [...extendedAgentList]
+        let list = extendedAgentList.map(patchAgentListItem)
 
-        // 搜索关键词
         if (searchKeyword.trim()) {
           const keyword = searchKeyword.toLowerCase()
-          list = list.filter(agent =>
-            agent.username.toLowerCase().includes(keyword) ||
-            agent.email.toLowerCase().includes(keyword) ||
-            agent.uid.toString().includes(keyword)
+          list = list.filter(
+            (agent) =>
+              agent.username.toLowerCase().includes(keyword) ||
+              agent.email.toLowerCase().includes(keyword) ||
+              agent.uid.toString().includes(keyword)
           )
         }
 
-        // 状态筛选
         if (status !== 'all') {
-          list = list.filter(agent => agent.status === status)
-        }
-
-        // 等级筛选
-        if (level !== 'all') {
-          list = list.filter(agent => agent.level === level)
+          list = list.filter((agent) => agent.status === status)
         }
 
         const total = list.length
@@ -197,8 +202,7 @@ export const agentApi = {
     })
   },
 
-  // 将指定用户设为代理（后台手动添加）
-  upgradeToAgent: (uid, level) => {
+  upgradeToAgent: (uid) => {
     return new Promise((resolve) => {
       setTimeout(() => {
         resolve({
@@ -209,7 +213,6 @@ export const agentApi = {
     })
   },
 
-  // 更新代理状态
   updateAgentStatus: (uid, status) => {
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -221,19 +224,6 @@ export const agentApi = {
     })
   },
 
-  // 更新代理等级
-  updateAgentLevel: (uid, level) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          success: true,
-          message: '代理等级已更新'
-        })
-      }, 500)
-    })
-  },
-
-  // 获取代理详情
   getAgentDetail: (uid) => {
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -245,7 +235,29 @@ export const agentApi = {
     })
   },
 
-  // 获取代理统计
+  updateAgentProductCommission: (uid, productCommission) => {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const agent = extendedAgentList.find((a) => a.uid === uid)
+        if (!agent) {
+          reject(new Error('未找到该代理'))
+          return
+        }
+        try {
+          agent.productCommission = normalizeAgentProductCommission(productCommission)
+        } catch (e) {
+          reject(e)
+          return
+        }
+        resolve({
+          success: true,
+          message: '代理产品线记佣已保存',
+          data: { ...agent, productCommission: agent.productCommission }
+        })
+      }, 400)
+    })
+  },
+
   getAgentStats: () => {
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -255,37 +267,7 @@ export const agentApi = {
         })
       }, 300)
     })
-  },
-
-  /** 各代理等级对应的佣金比例（0～1），供后台配置与添加代理时展示 */
-  getAgentLevelCommissionRates: () => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          success: true,
-          data: { ...agentLevelCommissionRates }
-        })
-      }, 200)
-    })
-  },
-
-  saveAgentLevelCommissionRates: (rates) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const next = { ...DEFAULT_AGENT_LEVEL_COMMISSION_RATES, ...rates }
-        for (const key of Object.values(AGENT_LEVEL)) {
-          const v = next[key]
-          if (typeof v !== 'number' || Number.isNaN(v) || v < 0 || v > 1) {
-            reject(new Error(`等级 ${key} 的比例须为 0～1 之间的数字`))
-            return
-          }
-        }
-        agentLevelCommissionRates = next
-        resolve({
-          success: true,
-          message: '代理等级佣金比例已保存'
-        })
-      }, 400)
-    })
   }
 }
+
+export { normalizeAgentProductCommission } from './agentCommission'

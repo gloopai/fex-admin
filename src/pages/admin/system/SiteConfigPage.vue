@@ -1,11 +1,10 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { DEFAULT_I18N_BLOCK } from '../../../admin/constants/i18nCatalog'
-import { DEFAULT_SITE_CONFIG, DEFAULT_SMTP_CONFIG, siteConfigApi } from '../../../admin/mock/siteConfig'
+import { DEFAULT_SITE_CONFIG, siteConfigApi } from '../../../admin/mock/siteConfig'
 
 const config = ref({
   ...DEFAULT_SITE_CONFIG,
-  smtp: { ...DEFAULT_SMTP_CONFIG },
   i18n: { ...DEFAULT_I18N_BLOCK }
 })
 const isSaving = ref(false)
@@ -20,12 +19,8 @@ const activeTab = ref('basic')
 const tabs = [
   { key: 'basic', label: '基础设置' },
   { key: 'login', label: '登录设置' },
-  { key: 'seo', label: 'SEO 设置' },
-  { key: 'smtp', label: '邮件服务 (SMTP)' }
+  { key: 'seo', label: 'SEO 设置' }
 ]
-
-const testRecipient = ref('')
-const isTestingSmtp = ref(false)
 
 const loadConfig = async () => {
   loading.value = true
@@ -33,7 +28,6 @@ const loadConfig = async () => {
     const result = await siteConfigApi.getSiteConfig()
     if (result.success) {
       config.value = { ...DEFAULT_SITE_CONFIG, ...result.data }
-      config.value.smtp = { ...DEFAULT_SMTP_CONFIG, ...(config.value.smtp || {}) }
       config.value.i18n = { ...DEFAULT_I18N_BLOCK, ...(config.value.i18n || {}) }
     }
   } catch (e) {
@@ -49,19 +43,6 @@ const saveConfig = async () => {
     return
   }
 
-  const smtp = config.value.smtp
-  if (smtp?.enabled) {
-    if (!String(smtp.host ?? '').trim()) {
-      alert('已启用 SMTP，请填写服务器地址')
-      activeTab.value = 'smtp'
-      return
-    }
-    if (!String(smtp.fromEmail ?? '').trim()) {
-      alert('已启用 SMTP，请填写发件人邮箱')
-      activeTab.value = 'smtp'
-      return
-    }
-  }
   isSaving.value = true
   try {
     const result = await siteConfigApi.updateSiteConfig(config.value)
@@ -80,7 +61,6 @@ const resetToDefault = () => {
   if (!confirm('确认恢复为默认配置？将清空已保存的本地站点信息。')) return
   config.value = {
     ...DEFAULT_SITE_CONFIG,
-    smtp: { ...DEFAULT_SMTP_CONFIG },
     i18n: { ...DEFAULT_I18N_BLOCK }
   }
   siteConfigApi.updateSiteConfig(config.value).then((r) => {
@@ -121,18 +101,6 @@ const clearLogoPc = () => {
 const clearLogoMobile = () => {
   config.value.logoUrlMobile = ''
   if (fileInputMobile.value) fileInputMobile.value.value = ''
-}
-
-const sendTestMail = async () => {
-  isTestingSmtp.value = true
-  try {
-    const result = await siteConfigApi.testSmtp({ to: testRecipient.value })
-    if (result.success) alert(result.message)
-  } catch (e) {
-    alert(e?.message || '发送失败')
-  } finally {
-    isTestingSmtp.value = false
-  }
 }
 
 onMounted(() => {
@@ -438,144 +406,6 @@ onMounted(() => {
               placeholder="https://... 建议 1200×630"
             />
             <p class="mt-1.5 text-xs text-slate-500">og:image，用于链接分享预览。</p>
-          </div>
-        </div>
-
-        <!-- 邮件服务 SMTP -->
-        <div v-show="activeTab === 'smtp'" class="space-y-6">
-          <p class="text-sm text-slate-500">
-            配置系统发信使用的 SMTP 服务器（验证码、通知邮件等）。当前为本地持久化示例，生产环境应由后端保存并加密凭证。
-          </p>
-
-          <div class="flex items-start justify-between gap-4 rounded-lg border border-slate-100 bg-slate-50/80 px-4 py-3">
-            <div class="min-w-0 flex-1">
-              <p class="text-sm font-medium text-slate-900">启用 SMTP</p>
-              <p class="mt-1 text-xs text-slate-500">关闭后系统不会尝试通过 SMTP 发信（仍以服务端逻辑为准）。</p>
-            </div>
-            <button
-              type="button"
-              :class="config.smtp?.enabled ? 'bg-blue-600' : 'bg-slate-200'"
-              class="relative mt-0.5 inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none"
-              :aria-pressed="config.smtp?.enabled"
-              aria-label="切换启用 SMTP"
-              @click="config.smtp.enabled = !config.smtp.enabled"
-            >
-              <span
-                :class="config.smtp?.enabled ? 'translate-x-5' : 'translate-x-0'"
-                class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-              />
-            </button>
-          </div>
-
-          <div class="grid gap-5 md:grid-cols-2">
-            <div class="md:col-span-2">
-              <label class="mb-2 block text-sm font-medium text-slate-700">SMTP 服务器</label>
-              <input
-                v-model="config.smtp.host"
-                type="text"
-                class="ant-input max-w-xl"
-                placeholder="例如：smtp.example.com"
-                :disabled="!config.smtp?.enabled"
-                autocomplete="off"
-              />
-            </div>
-            <div>
-              <label class="mb-2 block text-sm font-medium text-slate-700">端口</label>
-              <input
-                v-model.number="config.smtp.port"
-                type="number"
-                min="1"
-                max="65535"
-                class="ant-input max-w-xs"
-                :disabled="!config.smtp?.enabled"
-              />
-            </div>
-            <div>
-              <label class="mb-2 block text-sm font-medium text-slate-700">加密方式</label>
-              <select
-                v-model="config.smtp.encryption"
-                class="ant-select max-w-xs"
-                :disabled="!config.smtp?.enabled"
-              >
-                <option value="none">无</option>
-                <option value="tls">TLS（常用 587）</option>
-                <option value="ssl">SSL（常用 465）</option>
-              </select>
-            </div>
-            <div>
-              <label class="mb-2 block text-sm font-medium text-slate-700">用户名</label>
-              <input
-                v-model="config.smtp.username"
-                type="text"
-                class="ant-input max-w-xl"
-                placeholder="SMTP 认证用户名"
-                :disabled="!config.smtp?.enabled"
-                autocomplete="off"
-              />
-            </div>
-            <div>
-              <label class="mb-2 block text-sm font-medium text-slate-700">密码</label>
-              <input
-                v-model="config.smtp.password"
-                type="password"
-                class="ant-input max-w-xl"
-                placeholder="SMTP 认证密码"
-                :disabled="!config.smtp?.enabled"
-                autocomplete="new-password"
-              />
-              <p class="mt-1 text-xs text-amber-700/90">演示数据存于浏览器本地；上线后请勿在前端明文长期保存密码。</p>
-            </div>
-            <div>
-              <label class="mb-2 block text-sm font-medium text-slate-700">发件人名称</label>
-              <input
-                v-model="config.smtp.fromName"
-                type="text"
-                class="ant-input max-w-xl"
-                placeholder="例如：CryptoX 通知"
-                :disabled="!config.smtp?.enabled"
-              />
-            </div>
-            <div>
-              <label class="mb-2 block text-sm font-medium text-slate-700">发件人邮箱</label>
-              <input
-                v-model="config.smtp.fromEmail"
-                type="email"
-                class="ant-input max-w-xl"
-                placeholder="noreply@example.com"
-                :disabled="!config.smtp?.enabled"
-              />
-            </div>
-            <div class="md:col-span-2">
-              <label class="mb-2 block text-sm font-medium text-slate-700">回复地址（可选）</label>
-              <input
-                v-model="config.smtp.replyTo"
-                type="email"
-                class="ant-input max-w-xl"
-                placeholder="留空则默认使用发件人邮箱"
-                :disabled="!config.smtp?.enabled"
-              />
-            </div>
-          </div>
-
-          <div class="rounded-lg border border-dashed border-slate-200 bg-slate-50/50 p-4">
-            <p class="text-sm font-medium text-slate-800">发送测试邮件</p>
-            <p class="mt-1 text-xs text-slate-500">保存配置后，可填写收件人验证连通性（演示为模拟成功）。</p>
-            <div class="mt-3 flex flex-wrap items-center gap-2">
-              <input
-                v-model="testRecipient"
-                type="email"
-                class="ant-input max-w-md"
-                placeholder="收件人邮箱"
-              />
-              <button
-                type="button"
-                class="ant-btn"
-                :disabled="isTestingSmtp"
-                @click="sendTestMail"
-              >
-                {{ isTestingSmtp ? '发送中…' : '发送测试邮件' }}
-              </button>
-            </div>
           </div>
         </div>
 

@@ -30,22 +30,22 @@ export const COMMISSION_STATUS_OPTIONS = [
   { value: COMMISSION_STATUS.CANCELLED, label: '已取消', color: 'gray' }
 ]
 
-// 分销层级
+// 分销层级（裂变固定为三级：直属、二级、三级上级）
+export const REFERRAL_MAX_LEVELS = 3
+
 export const REFERRAL_LEVEL = {
   LEVEL_1: 1,
   LEVEL_2: 2,
-  LEVEL_3: 3,
-  LEVEL_4: 4,
-  LEVEL_5: 5
+  LEVEL_3: 3
 }
 
-// 分佣记录表格列
+// 分佣记录表格列（裂变邀请链；字段名 agent* 为历史兼容，语义为邀请链上级）
 export const COMMISSION_TABLE_COLUMNS = [
   { key: 'id', label: '记录ID', width: 120 },
-  { key: 'agentUid', label: '代理UID', width: 120 },
-  { key: 'agentUsername', label: '代理用户名', width: 150 },
-  { key: 'referralUid', label: '被推荐人UID', width: 120 },
-  { key: 'referralUsername', label: '被推荐人', width: 150 },
+  { key: 'agentUid', label: '上级UID', width: 120 },
+  { key: 'agentUsername', label: '上级用户名', width: 150 },
+  { key: 'referralUid', label: '被邀请人UID', width: 120 },
+  { key: 'referralUsername', label: '被邀请人', width: 150 },
   { key: 'type', label: '分销类型', width: 120 },
   { key: 'level', label: '分销层级', width: 100 },
   { key: 'amount', label: '订单金额（USDT）', width: 150 },
@@ -89,7 +89,7 @@ export const REFERRAL_CONFIG_FIELDS = {
   AI_QUANT_COMMISSION_RATES: 'aiQuantCommissionRates'
 }
 
-// 默认分销配置（含各产品线是否参与记佣）
+// 默认「裂变邀请链」分销配置（含各产品线是否参与记佣；与代理等级配置无关）
 export const DEFAULT_REFERRAL_CONFIG = {
   autoExecute: true,
   depositFirstOnly: false,
@@ -101,11 +101,12 @@ export const DEFAULT_REFERRAL_CONFIG = {
   commissionAiQuantEnabled: false,
   commissionLendingEnabled: false,
   commissionBorrowingEnabled: false,
-  depositCommissionRates: '0.1',
-  perpetualCommissionRates: '',
-  deliveryCommissionRates: '',
-  spotCommissionRates: '',
-  aiQuantCommissionRates: '',
-  lendingCommissionRates: '',
-  borrowingCommissionRates: ''
+  /** 各线均为「一级,二级,三级」三个比例（0～1），不足补 0 */
+  depositCommissionRates: '0.1,0.05,0.02',
+  perpetualCommissionRates: '0,0,0',
+  deliveryCommissionRates: '0,0,0',
+  spotCommissionRates: '0,0,0',
+  aiQuantCommissionRates: '0,0,0',
+  lendingCommissionRates: '0,0,0',
+  borrowingCommissionRates: '0,0,0'
 }

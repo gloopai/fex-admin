@@ -194,8 +194,10 @@ const formatDate = (dateString) => {
     <!-- 页面标题 -->
     <div class="flex justify-between items-center">
       <div>
-        <h1 class="text-2xl font-bold text-slate-900">分佣记录</h1>
-        <p class="mt-1 text-sm text-slate-500">查看和管理所有分佣记录</p>
+        <h1 class="text-2xl font-bold text-slate-900">裂变分佣记录</h1>
+        <p class="mt-1 text-sm text-slate-500">
+          查看邀请裂变关系产生的分佣流水与发放状态。
+        </p>
       </div>
     </div>
 
@@ -211,102 +213,70 @@ const formatDate = (dateString) => {
       </div>
     </div>
 
-    <!-- 分佣记录卡片 (包含筛选和表格) -->
+    <!-- 分佣记录：标题 + 筛选 + 操作同一行 -->
     <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm relative min-h-[400px]">
-      <div class="flex items-center justify-between border-b border-slate-200 p-4 bg-white">
-        <h3 class="text-base font-semibold text-slate-900">记录列表</h3>
-        <div class="flex items-center gap-3">
+      <div
+        class="flex flex-wrap items-center gap-3 justify-between border-b border-slate-200 p-4 md:px-6 bg-slate-50/30"
+      >
+        <div class="flex flex-wrap items-center gap-3 flex-1 min-w-0">
+          <h3 class="text-base font-semibold text-slate-900 shrink-0">记录列表</h3>
+          <select v-model="statusFilter" class="ant-select !w-32" @change="handleSearch">
+            <option value="all">全部状态</option>
+            <option v-for="status in COMMISSION_STATUS_OPTIONS" :key="status.value" :value="status.value">
+              {{ status.label }}
+            </option>
+          </select>
+
+          <select v-model="typeFilter" class="ant-select !w-36" @change="handleSearch">
+            <option value="all">全部类型</option>
+            <option v-for="type in REFERRAL_TYPE_OPTIONS" :key="type.value" :value="type.value">
+              {{ type.label }}
+            </option>
+          </select>
+
+          <select v-model="levelFilter" class="ant-select !w-28" @change="handleSearch">
+            <option value="all">全部层级</option>
+            <option value="1">一级</option>
+            <option value="2">二级</option>
+            <option value="3">三级</option>
+          </select>
+
+          <div class="relative min-w-[180px] max-w-xl flex-1 basis-[200px]">
+            <input
+              v-model="searchKeyword"
+              type="text"
+              placeholder="记录ID、上级 UID、被邀请人…"
+              class="ant-input pl-9"
+              @keyup.enter="handleSearch"
+            />
+            <svg
+              viewBox="0 0 20 20"
+              class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400"
+              fill="none"
+            >
+              <circle cx="9" cy="9" r="5.8" stroke="currentColor" stroke-width="1.6" />
+              <path d="M13.6 13.6L16.4 16.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+            </svg>
+          </div>
+
+          <button type="button" class="ant-btn ant-btn-primary shrink-0" @click="handleSearch">搜索</button>
+          <button type="button" class="ant-btn shrink-0" @click="handleReset">重置</button>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 shrink-0">
           <button
             v-if="selectedRecords.length > 0"
+            type="button"
             @click="batchExecute"
             class="ant-btn ant-btn-primary !bg-emerald-600 !border-emerald-600"
           >
             批量执行 ({{ selectedRecords.length }})
           </button>
-          <button
-            @click="exportData"
-            class="ant-btn"
-          >
-            <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button type="button" class="ant-btn inline-flex items-center gap-2" @click="exportData">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
             导出数据
           </button>
-        </div>
-      </div>
-
-      <!-- 筛选栏 -->
-      <div class="p-4 border-b border-slate-100 bg-slate-50/30">
-        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <div class="flex flex-col space-y-1.5">
-            <label class="text-xs font-medium text-slate-500 ml-1">关键词搜索</label>
-            <input
-              v-model="searchKeyword"
-              type="text"
-              placeholder="ID、代理或用户..."
-              class="ant-input !py-1.5"
-              @keyup.enter="handleSearch"
-            />
-          </div>
-          
-          <div class="flex flex-col space-y-1.5">
-            <label class="text-xs font-medium text-slate-500 ml-1">状态筛选</label>
-            <select
-              v-model="statusFilter"
-              class="ant-select !py-1.5"
-              @change="handleSearch"
-            >
-              <option value="all">全部状态</option>
-              <option v-for="status in COMMISSION_STATUS_OPTIONS" :key="status.value" :value="status.value">
-                {{ status.label }}
-              </option>
-            </select>
-          </div>
-          
-          <div class="flex flex-col space-y-1.5">
-            <label class="text-xs font-medium text-slate-500 ml-1">类型筛选</label>
-            <select
-              v-model="typeFilter"
-              class="ant-select !py-1.5"
-              @change="handleSearch"
-            >
-              <option value="all">全部类型</option>
-              <option v-for="type in REFERRAL_TYPE_OPTIONS" :key="type.value" :value="type.value">
-                {{ type.label }}
-              </option>
-            </select>
-          </div>
-          
-          <div class="flex flex-col space-y-1.5">
-            <label class="text-xs font-medium text-slate-500 ml-1">层级筛选</label>
-            <select
-              v-model="levelFilter"
-              class="ant-select !py-1.5"
-              @change="handleSearch"
-            >
-              <option value="all">全部层级</option>
-              <option value="1">一级</option>
-              <option value="2">二级</option>
-              <option value="3">三级</option>
-              <option value="4">四级</option>
-              <option value="5">五级</option>
-            </select>
-          </div>
-
-          <div class="flex items-end space-x-2">
-            <button
-              @click="handleSearch"
-              class="ant-btn ant-btn-primary flex-1 !h-[34px]"
-            >
-              搜索
-            </button>
-            <button
-              @click="handleReset"
-              class="ant-btn flex-1 !h-[34px]"
-            >
-              重置
-            </button>
-          </div>
         </div>
       </div>
 
@@ -328,8 +298,8 @@ const formatDate = (dateString) => {
                 />
               </th>
               <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">记录ID</th>
-              <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">代理信息</th>
-              <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">贡献用户</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">上级（获益方）</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">被邀请人</th>
               <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">分佣详情</th>
               <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">状态</th>
               <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">时间</th>

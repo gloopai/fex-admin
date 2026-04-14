@@ -6,11 +6,10 @@ import {
   FRONT_LOCALE_CATALOG,
   PHONE_DIAL_PRESETS
 } from '../../../admin/constants/i18nCatalog'
-import { DEFAULT_SITE_CONFIG, DEFAULT_SMTP_CONFIG, siteConfigApi } from '../../../admin/mock/siteConfig'
+import { DEFAULT_SITE_CONFIG, siteConfigApi } from '../../../admin/mock/siteConfig'
 
 const config = ref({
   ...DEFAULT_SITE_CONFIG,
-  smtp: { ...DEFAULT_SMTP_CONFIG },
   i18n: { ...DEFAULT_I18N_BLOCK }
 })
 const loading = ref(true)
@@ -29,7 +28,6 @@ const loadConfig = async () => {
     const result = await siteConfigApi.getSiteConfig()
     if (result.success) {
       config.value = { ...DEFAULT_SITE_CONFIG, ...result.data }
-      config.value.smtp = { ...DEFAULT_SMTP_CONFIG, ...(config.value.smtp || {}) }
       config.value.i18n = { ...DEFAULT_I18N_BLOCK, ...(config.value.i18n || {}) }
     }
   } catch (e) {

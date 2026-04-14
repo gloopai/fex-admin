@@ -33,7 +33,7 @@ export const navTree = [
     icon: 'users-group',
     children: [
       { title: '代理列表', path: '/admin/agent/management' },
-      { title: '代理等级佣金', path: '/admin/agent/level-commission' },
+      { title: '代理记佣配置', path: '/admin/agent/agent-commission-config' },
       { title: '裂变分销配置', path: '/admin/agent/referral-config' },
       { title: '裂变分佣记录', path: '/admin/agent/referral-commission' },
       { title: '裂变分销统计', path: '/admin/agent/referral-statistics' }
@@ -42,7 +42,6 @@ export const navTree = [
   {
     title: '永续合约',
     icon: 'contract',
-    defaultOpen: true,
     children: [
       { title: '合约产品', path: '/admin/perpetual/overview' },
       { title: '杠杆模板', path: '/admin/perpetual/leverage-template' },
@@ -131,6 +130,8 @@ export const navTree = [
     icon: 'spark',
     children: [
       { title: '站点配置', path: '/admin/system/site-config' },
+      { title: '短信通道', path: '/admin/system/sms-channels' },
+      { title: '邮件服务 (SMTP)', path: '/admin/system/smtp-settings' },
       { title: '语言与区号', path: '/admin/system/locale-settings' },
       { title: '错误码管理', path: '/admin/system/error-codes' }
     ]

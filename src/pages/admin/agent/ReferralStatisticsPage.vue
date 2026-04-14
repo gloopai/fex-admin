@@ -45,26 +45,30 @@ onMounted(() => {
   <div class="space-y-6">
     <!-- 页面标题 -->
     <div>
-      <h1 class="text-2xl font-bold text-slate-900">分销统计</h1>
-      <p class="mt-1 text-sm text-slate-500">查看分销数据和业绩分析</p>
+      <h1 class="text-2xl font-bold text-slate-900">裂变分销统计</h1>
+      <p class="mt-1 text-sm text-slate-500">
+        按时间查看裂变分佣与相关订单的汇总数据。
+      </p>
     </div>
 
-    <!-- 周期选择 -->
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-      <div class="flex items-center gap-2">
-        <button
-          v-for="period in STATS_PERIOD_OPTIONS"
-          :key="period.value"
-          @click="changePeriod(period.value)"
-          :class="selectedPeriod === period.value 
-            ? 'ant-btn-primary' 
-            : ''"
-          class="ant-btn"
-        >
-          {{ period.label }}
-        </button>
+    <!-- 统计周期（工具条样式对齐交割订单筛选栏） -->
+    <article class="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+      <div class="flex flex-wrap items-center gap-3 border-b border-slate-200 p-4 md:px-6 bg-slate-50/30">
+        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0">统计周期</span>
+        <div class="flex flex-wrap gap-2">
+          <button
+            v-for="period in STATS_PERIOD_OPTIONS"
+            :key="period.value"
+            type="button"
+            @click="changePeriod(period.value)"
+            :class="selectedPeriod === period.value ? 'ant-btn-primary' : ''"
+            class="ant-btn"
+          >
+            {{ period.label }}
+          </button>
+        </div>
       </div>
-    </div>
+    </article>
 
     <!-- 总览统计 -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -161,13 +165,14 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Top代理排行 -->
+    <!-- Top 邀请收益排行 -->
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div class="px-6 py-4 border-b border-slate-100 bg-white">
         <h3 class="text-base font-semibold text-slate-900 flex items-center">
           <span class="w-1.5 h-1.5 bg-amber-500 rounded-full mr-2"></span>
-          Top 代理排行榜
+          Top 邀请收益排行
         </h3>
+        <p class="mt-1 text-xs text-slate-500">作为邀请上级获得分佣最多的用户排行。</p>
       </div>
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-100">

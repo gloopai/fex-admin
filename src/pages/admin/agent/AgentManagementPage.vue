@@ -1,15 +1,13 @@
 <script setup>
 import { ref, computed, onMounted, reactive, watch } from 'vue'
-import { mockAgentStats, agentApi } from '../../../admin/mock/agent'
-import { AGENT_STATUS, AGENT_LEVEL, AGENT_STATUS_OPTIONS, AGENT_LEVEL_OPTIONS, mergeAgentLevelCommissionOptions } from '../../../admin/constants/agent'
+import { mockAgentStats, agentApi, normalizeAgentProductCommission } from '../../../admin/mock/agent'
+import { AGENT_STATUS, AGENT_STATUS_OPTIONS, AGENT_ROLE_LABEL } from '../../../admin/constants/agent'
+import { AGENT_PRODUCT_LINE_DEFS, AGENT_PRODUCT_GROUPS, normalizeAgentLineRate } from '../../../admin/constants/agentCommission'
 
-// 搜索和筛选
 const searchKeyword = ref('')
 const statusFilter = ref('all')
-const levelFilter = ref('all')
 const loading = ref(false)
 
-// 分页
 const pagination = reactive({
   currentPage: 1,
   pageSize: 10,
@@ -18,37 +16,104 @@ const pagination = reactive({
 
 const totalPages = computed(() => Math.ceil(pagination.total / pagination.pageSize))
 
-// 模态状态
 const showUpgradeModal = ref(false)
 const showDetailModal = ref(false)
+const showCommissionModal = ref(false)
 const selectedAgent = ref(null)
 const upgradeForm = ref({
-  uid: '',
-  level: AGENT_LEVEL.LEVEL_1
+  uid: ''
 })
 
-// 统计数据
+const commissionDraft = ref(null)
+const commissionTargetUid = ref(null)
+const commissionSaving = ref(false)
+const commissionLoading = ref(false)
+
+const BORDER_ACCENT = {
+  blue: 'border-l-blue-500',
+  indigo: 'border-l-indigo-500',
+  violet: 'border-l-violet-500',
+  orange: 'border-l-orange-500',
+  amber: 'border-l-amber-500',
+  emerald: 'border-l-emerald-500',
+  rose: 'border-l-rose-500'
+}
+
 const stats = ref(mockAgentStats)
 
-/** 后台配置的等级佣金比例，用于「添加代理」下拉展示 */
-const levelCommissionRates = ref({})
-const levelOptionsWithCommission = computed(() =>
-  mergeAgentLevelCommissionOptions(levelCommissionRates.value)
-)
-
-// 代理列表
 const agentList = ref([])
 
-// 加载代理列表
+function lineByKey(key) {
+  return AGENT_PRODUCT_LINE_DEFS.find((p) => p.key === key)
+}
+
+function linesInAgentGroup(group) {
+  return group.lineKeys.map((k) => lineByKey(k)).filter(Boolean)
+}
+
+function groupGridClass(group) {
+  const n = group.lineKeys.length
+  if (n <= 1) return 'grid-cols-1'
+  if (n === 2) return 'grid-cols-1 md:grid-cols-2'
+  return 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3'
+}
+
+function rateNumForDraft(line) {
+  if (!commissionDraft.value) return 0
+  return parseFloat(normalizeAgentLineRate(commissionDraft.value[line.rateKey]))
+}
+
+function setDraftRate(line, raw) {
+  if (!commissionDraft.value) return
+  const v = raw == null ? '' : String(raw).trim()
+  let n = parseFloat(v)
+  if (v === '' || Number.isNaN(n)) n = 0
+  commissionDraft.value[line.rateKey] = normalizeAgentLineRate(n)
+}
+
+function isLineEnabledDraft(line) {
+  return commissionDraft.value && commissionDraft.value[line.enabledKey] === true
+}
+
+function toggleLineDraft(line) {
+  if (!commissionDraft.value) return
+  commissionDraft.value[line.enabledKey] = !commissionDraft.value[line.enabledKey]
+}
+
+function validateDraftCommission() {
+  const d = commissionDraft.value
+  if (!d) return false
+  const validateOne = (rateStr) => {
+    const n = parseFloat(normalizeAgentLineRate(rateStr))
+    return !Number.isNaN(n) && n >= 0 && n <= 1
+  }
+  for (const line of AGENT_PRODUCT_LINE_DEFS) {
+    if (!d[line.enabledKey]) continue
+    d[line.rateKey] = normalizeAgentLineRate(d[line.rateKey])
+    if (!validateOne(d[line.rateKey])) {
+      alert(`「${line.title}」已开启记佣：比例须为 0～1 之间的小数。`)
+      return false
+    }
+  }
+  for (const line of AGENT_PRODUCT_LINE_DEFS) {
+    if (d[line.enabledKey]) continue
+    const raw = d[line.rateKey]
+    if (raw != null && String(raw).trim() && !validateOne(raw)) {
+      alert(`「${line.title}」比例格式有误，请修正或清空。`)
+      return false
+    }
+  }
+  return true
+}
+
 const loadAgentList = async () => {
   loading.value = true
   try {
-    const result = await agentApi.getAgentList({ 
-      page: pagination.currentPage, 
+    const result = await agentApi.getAgentList({
+      page: pagination.currentPage,
       pageSize: pagination.pageSize,
       searchKeyword: searchKeyword.value,
-      status: statusFilter.value,
-      level: levelFilter.value
+      status: statusFilter.value
     })
     if (result.success) {
       agentList.value = result.data.list
@@ -61,38 +126,26 @@ const loadAgentList = async () => {
   }
 }
 
-// 搜索处理
 const handleSearch = () => {
   pagination.currentPage = 1
   loadAgentList()
 }
 
-// 重置处理
 const handleReset = () => {
   searchKeyword.value = ''
   statusFilter.value = 'all'
-  levelFilter.value = 'all'
   pagination.currentPage = 1
   loadAgentList()
 }
 
-// 监听页码变化
 watch(() => pagination.currentPage, () => {
   loadAgentList()
 })
 
-// 组件加载时获取数据
-onMounted(async () => {
+onMounted(() => {
   loadAgentList()
-  try {
-    const res = await agentApi.getAgentLevelCommissionRates()
-    if (res.success) levelCommissionRates.value = res.data
-  } catch (e) {
-    console.error('Failed to load agent level commission rates:', e)
-  }
 })
 
-// 统计卡片
 const statCards = computed(() => [
   {
     label: '总代理数',
@@ -124,38 +177,27 @@ const statCards = computed(() => [
   }
 ])
 
-// 获取状态配置
 const getStatusConfig = (status) => {
-  const config = AGENT_STATUS_OPTIONS.find(s => s.value === status)
+  const config = AGENT_STATUS_OPTIONS.find((s) => s.value === status)
   return {
     text: config?.label || status,
     color: config?.color || 'gray'
   }
 }
 
-// 获取等级配置
-const getLevelConfig = (level) => {
-  const config = AGENT_LEVEL_OPTIONS.find(l => l.value === level)
-  return config?.label || level
-}
-
-// 打开升级弹窗
 const openUpgradeModal = () => {
   upgradeForm.value = {
-    uid: '',
-    level: AGENT_LEVEL.LEVEL_1
+    uid: ''
   }
   showUpgradeModal.value = true
 }
 
-// 升级用户为代理
 const handleUpgrade = async () => {
   try {
-    const result = await agentApi.upgradeToAgent(upgradeForm.value.uid, upgradeForm.value.level)
+    const result = await agentApi.upgradeToAgent(upgradeForm.value.uid)
     if (result.success) {
       alert(result.message)
       showUpgradeModal.value = false
-      // 重新加载列表
       loadAgentList()
     }
   } catch (error) {
@@ -163,12 +205,11 @@ const handleUpgrade = async () => {
   }
 }
 
-// 更新代理状态
 const updateStatus = async (agent, newStatus) => {
   if (!confirm(`确认${newStatus === AGENT_STATUS.SUSPENDED ? '暂停' : '激活'}该代理？`)) {
     return
   }
-  
+
   try {
     const result = await agentApi.updateAgentStatus(agent.uid, newStatus)
     if (result.success) {
@@ -180,29 +221,70 @@ const updateStatus = async (agent, newStatus) => {
   }
 }
 
-// 更新代理等级
-const updateLevel = async (agent) => {
-  const newLevel = prompt('请输入新等级（level_1 到 level_5）', agent.level)
-  if (!newLevel || newLevel === agent.level) return
-  
-  try {
-    const result = await agentApi.updateAgentLevel(agent.uid, newLevel)
-    if (result.success) {
-      agent.level = newLevel
-      alert(result.message)
-    }
-  } catch (error) {
-    alert('操作失败：' + error.message)
-  }
-}
-
-// 查看详情
 const viewDetail = async (agent) => {
   selectedAgent.value = agent
   showDetailModal.value = true
+  try {
+    const res = await agentApi.getAgentDetail(agent.uid)
+    if (res.success) {
+      selectedAgent.value = res.data
+    }
+  } catch (e) {
+    console.error(e)
+  }
 }
 
-// 格式化日期
+const openCommissionConfig = async (agent) => {
+  commissionLoading.value = true
+  commissionDraft.value = null
+  commissionTargetUid.value = agent.uid
+  try {
+    const res = await agentApi.getAgentDetail(agent.uid)
+    if (res.success) {
+      commissionDraft.value = normalizeAgentProductCommission(res.data.productCommission)
+      showCommissionModal.value = true
+    }
+  } catch (e) {
+    alert('加载代理记佣失败')
+    console.error(e)
+  } finally {
+    commissionLoading.value = false
+  }
+}
+
+const closeCommissionModal = () => {
+  showCommissionModal.value = false
+  commissionDraft.value = null
+  commissionTargetUid.value = null
+}
+
+const saveCommissionConfig = async () => {
+  const uid = commissionTargetUid.value
+  if (!uid || !commissionDraft.value) return
+  if (!validateDraftCommission()) return
+  commissionSaving.value = true
+  try {
+    const payload = normalizeAgentProductCommission({ ...commissionDraft.value })
+    const res = await agentApi.updateAgentProductCommission(uid, payload)
+    if (res.success) {
+      alert(res.message)
+      const row = agentList.value.find((a) => a.uid === uid)
+      if (row && res.data?.productCommission) {
+        row.productCommission = res.data.productCommission
+      }
+      if (selectedAgent.value?.uid === uid && res.data?.productCommission) {
+        selectedAgent.value.productCommission = res.data.productCommission
+      }
+      closeCommissionModal()
+      loadAgentList()
+    }
+  } catch (e) {
+    alert(e.message || '保存失败')
+  } finally {
+    commissionSaving.value = false
+  }
+}
+
 const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString('zh-CN', {
     year: 'numeric',
@@ -216,15 +298,15 @@ const formatDate = (dateString) => {
 
 <template>
   <div class="space-y-6">
-    <!-- 页面标题 -->
     <div class="flex justify-between items-center">
       <div>
         <h1 class="text-2xl font-bold text-slate-900">代理管理</h1>
-        <p class="mt-1 text-sm text-slate-500">代理由后台手动指定用户并设置等级，不支持用户自助申请</p>
+        <p class="mt-1 text-sm text-slate-500">
+          查看与管理后台代理：启用/暂停、各产品线一级记佣等。
+        </p>
       </div>
     </div>
 
-    <!-- 统计卡片 -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       <div
         v-for="card in statCards"
@@ -239,89 +321,61 @@ const formatDate = (dateString) => {
               {{ card.trend }}
             </p>
           </div>
-          <div :class="`w-12 h-12 bg-${card.color}-50 rounded-xl flex items-center justify-center border border-${card.color}-100 transition-all hover:scale-105 font-medium`">
-             <div :class="`w-6 h-6 bg-${card.color}-500 rounded-lg shadow-sm opacity-80 text-white flex items-center justify-center text-xs font-bold italic font-medium`">
-               {{ card.label.charAt(0) }}
-             </div>
+          <div
+            :class="`w-12 h-12 bg-${card.color}-50 rounded-xl flex items-center justify-center border border-${card.color}-100 transition-all hover:scale-105 font-medium`"
+          >
+            <div
+              :class="`w-6 h-6 bg-${card.color}-500 rounded-lg shadow-sm opacity-80 text-white flex items-center justify-center text-xs font-bold italic font-medium`"
+            >
+              {{ card.label.charAt(0) }}
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 代理列表卡片 (包含筛选和表格) -->
     <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm relative min-h-[400px]">
-      <div class="flex items-center justify-between border-b border-slate-200 p-4 bg-white">
-        <h3 class="text-base font-semibold text-slate-900">代理列表</h3>
-        <button
-          @click="openUpgradeModal"
-          class="ant-btn ant-btn-primary"
-        >
-          + 添加代理
-        </button>
-      </div>
+      <div
+        class="flex flex-wrap items-center gap-3 justify-between border-b border-slate-200 p-4 md:px-6 bg-slate-50/30"
+      >
+        <div class="flex flex-wrap items-center gap-3 flex-1 min-w-0">
+          <h3 class="text-base font-semibold text-slate-900 shrink-0">代理列表</h3>
+          <select v-model="statusFilter" class="ant-select !w-36" @change="handleSearch">
+            <option value="all">全部状态</option>
+            <option v-for="status in AGENT_STATUS_OPTIONS" :key="status.value" :value="status.value">
+              {{ status.label }}
+            </option>
+          </select>
 
-      <!-- 筛选栏 -->
-      <div class="p-4 border-b border-slate-100 bg-slate-50/30">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div class="flex flex-col space-y-1.5">
-            <label class="text-xs font-medium text-slate-500 ml-1">关键词搜索</label>
+          <div class="relative min-w-[180px] max-w-xl flex-1 basis-[200px]">
             <input
               v-model="searchKeyword"
               type="text"
-              placeholder="UID、用户名或邮箱..."
-              class="ant-input !py-1.5"
+              placeholder="搜索 UID、用户名或邮箱…"
+              class="ant-input pl-9"
               @keyup.enter="handleSearch"
             />
-          </div>
-          
-          <div class="flex flex-col space-y-1.5">
-            <label class="text-xs font-medium text-slate-500 ml-1">状态筛选</label>
-            <select
-              v-model="statusFilter"
-              class="ant-select !py-1.5"
-              @change="handleSearch"
+            <svg
+              viewBox="0 0 20 20"
+              class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400"
+              fill="none"
             >
-              <option value="all">全部状态</option>
-              <option v-for="status in AGENT_STATUS_OPTIONS" :key="status.value" :value="status.value">
-                {{ status.label }}
-              </option>
-            </select>
-          </div>
-          
-          <div class="flex flex-col space-y-1.5">
-            <label class="text-xs font-medium text-slate-500 ml-1">等级筛选</label>
-            <select
-              v-model="levelFilter"
-              class="ant-select !py-1.5"
-              @change="handleSearch"
-            >
-              <option value="all">全部等级</option>
-              <option v-for="level in AGENT_LEVEL_OPTIONS" :key="level.value" :value="level.value">
-                {{ level.label }}
-              </option>
-            </select>
+              <circle cx="9" cy="9" r="5.8" stroke="currentColor" stroke-width="1.6" />
+              <path d="M13.6 13.6L16.4 16.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+            </svg>
           </div>
 
-          <div class="flex items-end space-x-2">
-            <button
-              @click="handleSearch"
-              class="ant-btn ant-btn-primary flex-1 !h-[34px]"
-            >
-              搜索
-            </button>
-            <button
-              @click="handleReset"
-              class="ant-btn flex-1 !h-[34px]"
-            >
-              重置
-            </button>
-          </div>
+          <button type="button" class="ant-btn ant-btn-primary shrink-0" @click="handleSearch">搜索</button>
+          <button type="button" class="ant-btn shrink-0" @click="handleReset">重置</button>
         </div>
+        <button type="button" class="ant-btn ant-btn-primary shrink-0" @click="openUpgradeModal">+ 添加代理</button>
       </div>
 
       <div class="overflow-x-auto">
-        <!-- 加载遮罩 -->
-        <div v-if="loading" class="absolute inset-0 bg-white/60 z-10 flex items-center justify-center">
+        <div
+          v-if="loading"
+          class="absolute inset-0 bg-white/60 z-10 flex items-center justify-center"
+        >
           <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
         </div>
 
@@ -330,7 +384,6 @@ const formatDate = (dateString) => {
             <tr>
               <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">UID</th>
               <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">用户信息</th>
-              <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">等级</th>
               <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">状态</th>
               <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">推荐人数</th>
               <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">累计佣金</th>
@@ -348,12 +401,7 @@ const formatDate = (dateString) => {
                 <div class="text-sm text-gray-500">{{ agent.email }}</div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
-                  {{ getLevelConfig(agent.level) }}
-                </span>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span 
+                <span
                   :class="`px-2 py-1 text-xs font-semibold rounded-full bg-${getStatusConfig(agent.status).color}-100 text-${getStatusConfig(agent.status).color}-800`"
                 >
                   {{ getStatusConfig(agent.status).text }}
@@ -371,50 +419,38 @@ const formatDate = (dateString) => {
                 {{ formatDate(agent.createdAt) }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                <button
-                  @click="viewDetail(agent)"
-                  class="text-blue-600 hover:text-blue-900"
-                >
-                  详情
-                </button>
-                <button
-                  @click="updateLevel(agent)"
-                  class="text-purple-600 hover:text-purple-900"
-                >
-                  等级
+                <button type="button" class="text-blue-600 hover:text-blue-900" @click="viewDetail(agent)">详情</button>
+                <button type="button" class="text-violet-600 hover:text-violet-900" @click="openCommissionConfig(agent)">
+                  记佣配置
                 </button>
                 <button
                   v-if="agent.status === AGENT_STATUS.ACTIVE"
-                  @click="updateStatus(agent, AGENT_STATUS.SUSPENDED)"
+                  type="button"
                   class="text-yellow-600 hover:text-yellow-900"
+                  @click="updateStatus(agent, AGENT_STATUS.SUSPENDED)"
                 >
                   暂停
                 </button>
-                <button
-                  v-else
-                  @click="updateStatus(agent, AGENT_STATUS.ACTIVE)"
-                  class="text-green-600 hover:text-green-900"
-                >
+                <button v-else type="button" class="text-green-600 hover:text-green-900" @click="updateStatus(agent, AGENT_STATUS.ACTIVE)">
                   激活
                 </button>
               </td>
             </tr>
             <tr v-if="agentList.length === 0 && !loading">
-              <td colspan="8" class="px-6 py-10 text-center text-gray-500">
-                暂无代理数据
-              </td>
+              <td colspan="7" class="px-6 py-10 text-center text-gray-500">暂无代理数据</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <!-- 分页 -->
-      <div v-if="pagination.total > 0" class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+      <div
+        v-if="pagination.total > 0"
+        class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between"
+      >
         <div class="text-sm text-slate-700">
-          共 <span class="font-medium">{{ pagination.total }}</span> 条记录，
-          每页显示
-          <select 
-            v-model="pagination.pageSize" 
+          共 <span class="font-medium">{{ pagination.total }}</span> 条记录， 每页显示
+          <select
+            v-model="pagination.pageSize"
             class="ant-select !w-16 !h-7 !py-0 !px-1 text-xs"
             @change="handleSearch"
           >
@@ -427,36 +463,40 @@ const formatDate = (dateString) => {
         </div>
         <div class="flex items-center space-x-2">
           <button
-            @click="pagination.currentPage--"
-            :disabled="pagination.currentPage === 1 || loading"
+            type="button"
             class="ant-btn !h-8 !px-3 !text-xs disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            :disabled="pagination.currentPage === 1 || loading"
+            @click="pagination.currentPage--"
           >
             上一页
           </button>
-          
+
           <div class="flex items-center space-x-1">
             <template v-for="page in totalPages" :key="page">
               <button
                 v-if="page === 1 || page === totalPages || (page >= pagination.currentPage - 1 && page <= pagination.currentPage + 1)"
-                @click="pagination.currentPage = page"
+                type="button"
                 :class="[
                   'ant-btn !h-8 !w-8 !p-0 !text-xs transition-colors',
-                  pagination.currentPage === page 
-                    ? 'ant-btn-primary' 
-                    : ''
+                  pagination.currentPage === page ? 'ant-btn-primary' : ''
                 ]"
+                @click="pagination.currentPage = page"
               >
                 {{ page }}
               </button>
               <span v-else-if="page === 2 && pagination.currentPage > 3" class="text-slate-400 text-xs px-1">...</span>
-              <span v-else-if="page === totalPages - 1 && pagination.currentPage < totalPages - 2" class="text-slate-400 text-xs px-1">...</span>
+              <span
+                v-else-if="page === totalPages - 1 && pagination.currentPage < totalPages - 2"
+                class="text-slate-400 text-xs px-1"
+              >...</span>
             </template>
           </div>
 
           <button
-            @click="pagination.currentPage++"
-            :disabled="pagination.currentPage === totalPages || loading"
+            type="button"
             class="ant-btn !h-8 !px-3 !text-xs disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            :disabled="pagination.currentPage === totalPages || loading"
+            @click="pagination.currentPage++"
           >
             下一页
           </button>
@@ -464,68 +504,145 @@ const formatDate = (dateString) => {
       </div>
     </div>
 
-    <!-- 添加代理弹窗 -->
+    <!-- 添加代理 -->
     <div v-if="showUpgradeModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
         <h3 class="text-lg font-semibold text-slate-900 mb-5">添加代理</h3>
-        
+
         <div class="space-y-4">
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-2">用户 UID</label>
-            <input
-              v-model="upgradeForm.uid"
-              type="text"
-              placeholder="请输入用户 UID"
-              class="ant-input"
-            />
+            <input v-model="upgradeForm.uid" type="text" placeholder="请输入用户 UID" class="ant-input" />
           </div>
-          
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-2">代理等级</label>
-            <select
-              v-model="upgradeForm.level"
-              class="ant-select"
-            >
-              <option v-for="level in levelOptionsWithCommission" :key="level.value" :value="level.value">
-                {{ level.label }} (佣金比例: {{ (level.commissionRate * 100).toFixed(0) }}%)
-              </option>
-            </select>
-          </div>
+          <p class="text-xs text-slate-500 leading-relaxed">
+            添加后可在列表中打开「记佣配置」调整该代理各产品线比例；未单独配置时使用代理记佣全局默认。
+          </p>
         </div>
-        
+
         <div class="mt-8 flex justify-end space-x-3">
-          <button
-            @click="showUpgradeModal = false"
-            class="ant-btn"
-          >
-            取消
-          </button>
-          <button
-            @click="handleUpgrade"
-            class="ant-btn ant-btn-primary"
-          >
-            确认添加
-          </button>
+          <button type="button" class="ant-btn" @click="showUpgradeModal = false">取消</button>
+          <button type="button" class="ant-btn ant-btn-primary" @click="handleUpgrade">确认添加</button>
         </div>
       </div>
     </div>
 
-    <!-- 详情弹窗 -->
-    <div v-if="showDetailModal && selectedAgent" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div class="flex justify-between items-start mb-6 border-b border-slate-100 pb-4">
-          <h3 class="text-lg font-semibold text-slate-900">代理详情</h3>
-          <button @click="showDetailModal = false" class="text-slate-400 hover:text-slate-600 transition-colors">
+    <!-- 产品线记佣 -->
+    <div
+      v-if="showCommissionModal"
+      class="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 overflow-y-auto"
+    >
+      <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-4xl max-h-[92vh] overflow-y-auto my-4">
+        <div class="flex justify-between items-start mb-4 border-b border-slate-100 pb-3">
+          <div>
+            <h3 class="text-lg font-semibold text-slate-900">代理产品线记佣</h3>
+            <p class="mt-1 text-sm text-slate-500">
+              UID {{ commissionTargetUid }} · 代理线仅一级比例 · 各产品线可单独开关
+            </p>
+          </div>
+          <button type="button" class="text-slate-400 hover:text-slate-600" @click="closeCommissionModal">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
-        
+
+        <div v-if="commissionLoading" class="py-20 flex justify-center">
+          <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-violet-600"></div>
+        </div>
+
+        <div v-else-if="commissionDraft" class="space-y-8">
+          <div v-for="group in AGENT_PRODUCT_GROUPS" :key="group.id">
+            <div class="mb-3 flex flex-wrap items-end gap-2 border-b border-slate-100 pb-2">
+              <h4 class="text-sm font-semibold text-slate-900">{{ group.name }}</h4>
+              <span class="text-xs text-slate-500">{{ group.blurb }}</span>
+            </div>
+            <div class="grid w-full gap-4" :class="groupGridClass(group)">
+              <div
+                v-for="line in linesInAgentGroup(group)"
+                :key="line.key"
+                class="flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm"
+                :class="['border-l-4', BORDER_ACCENT[line.theme]]"
+              >
+                <div class="flex items-start justify-between gap-3 border-b border-slate-100 bg-slate-50/50 px-4 py-3">
+                  <div class="min-w-0">
+                    <h5 class="text-sm font-semibold text-slate-900">{{ line.title }}</h5>
+                  </div>
+                  <div class="flex shrink-0 flex-col items-end gap-0.5">
+                    <span class="text-[10px] font-medium uppercase tracking-wide text-slate-400">记佣</span>
+                    <button
+                      type="button"
+                      :class="isLineEnabledDraft(line) ? 'bg-blue-600' : 'bg-slate-200'"
+                      class="relative inline-flex h-6 w-11 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none"
+                      @click="toggleLineDraft(line)"
+                    >
+                      <span
+                        :class="isLineEnabledDraft(line) ? 'translate-x-5' : 'translate-x-0'"
+                        class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition"
+                      />
+                    </button>
+                  </div>
+                </div>
+
+                <div class="flex flex-1 flex-col p-4" :class="{ 'bg-slate-50/40': !isLineEnabledDraft(line) }">
+                  <template v-if="isLineEnabledDraft(line)">
+                    <label class="mt-2 block text-xs font-medium text-slate-700" :for="'ac-rate-' + line.key">比例（0～1）</label>
+                    <input
+                      :id="'ac-rate-' + line.key"
+                      type="number"
+                      min="0"
+                      max="1"
+                      step="0.001"
+                      class="ant-input mt-1 w-full max-w-[200px] text-sm"
+                      :value="rateNumForDraft(line)"
+                      @input="setDraftRate(line, $event.target.value)"
+                    />
+                    <p class="mt-2 text-[11px] text-slate-500">
+                      约 {{ (rateNumForDraft(line) * 100).toFixed(2) }}%
+                    </p>
+                  </template>
+                  <p v-else class="text-sm text-slate-500">未参与记佣</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2 border-t border-slate-100 pt-4">
+            <button type="button" class="ant-btn" @click="closeCommissionModal">取消</button>
+            <button
+              type="button"
+              class="ant-btn ant-btn-primary"
+              :disabled="commissionSaving"
+              @click="saveCommissionConfig"
+            >
+              {{ commissionSaving ? '保存中…' : '保存' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 详情 -->
+    <div v-if="showDetailModal && selectedAgent" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-start mb-6 border-b border-slate-100 pb-4">
+          <h3 class="text-lg font-semibold text-slate-900">代理详情</h3>
+          <button type="button" class="text-slate-400 hover:text-slate-600 transition-colors" @click="showDetailModal = false">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-8">
           <div class="flex flex-col">
             <span class="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wider">UID</span>
             <p class="font-mono text-slate-900 font-semibold">{{ selectedAgent.uid }}</p>
+          </div>
+          <div class="flex flex-col">
+            <span class="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wider">身份</span>
+            <span class="inline-flex w-fit px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 text-slate-800 border border-slate-200">
+              {{ AGENT_ROLE_LABEL }}
+            </span>
           </div>
           <div class="flex flex-col">
             <span class="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wider">用户名</span>
@@ -540,14 +657,8 @@ const formatDate = (dateString) => {
             <p class="text-slate-900 font-semibold">{{ selectedAgent.phone }}</p>
           </div>
           <div class="flex flex-col">
-            <span class="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wider">代理等级</span>
-            <span class="inline-flex w-fit px-2.5 py-1 text-xs font-bold rounded-lg bg-purple-50 text-purple-700 border border-purple-100">
-              {{ getLevelConfig(selectedAgent.level) }}
-            </span>
-          </div>
-          <div class="flex flex-col">
             <span class="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wider">状态</span>
-            <span 
+            <span
               :class="`inline-flex w-fit px-2.5 py-1 text-xs font-bold rounded-lg bg-${getStatusConfig(selectedAgent.status).color}-50 text-${getStatusConfig(selectedAgent.status).color}-700 border border-${getStatusConfig(selectedAgent.status).color}-100`"
             >
               {{ getStatusConfig(selectedAgent.status).text }}
@@ -579,13 +690,18 @@ const formatDate = (dateString) => {
           </div>
         </div>
 
-        <div class="mt-10 pt-6 border-t border-slate-100">
-          <button 
-            @click="showDetailModal = false"
-            class="ant-btn w-full !h-10"
+        <div class="mt-8 flex flex-col gap-2 sm:flex-row">
+          <button
+            type="button"
+            class="ant-btn ant-btn-primary flex-1 !h-10"
+            @click="
+              showDetailModal = false;
+              openCommissionConfig(selectedAgent);
+            "
           >
-            关闭详情
+            编辑产品线记佣
           </button>
+          <button type="button" class="ant-btn flex-1 !h-10" @click="showDetailModal = false">关闭</button>
         </div>
       </div>
     </div>
@@ -593,5 +709,7 @@ const formatDate = (dateString) => {
 </template>
 
 <style scoped>
-/* 自定义样式 */
+button:focus {
+  outline: none;
+}
 </style>

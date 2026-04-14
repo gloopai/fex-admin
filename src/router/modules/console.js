@@ -383,27 +383,47 @@ export const consoleRoutes = [
   },
   {
     path: 'agent/level-commission',
-    name: 'agent-level-commission',
-    component: () => import('../../pages/admin/agent/AgentLevelCommissionPage.vue')
+    redirect: '/admin/agent/management'
   },
   {
     path: 'agent/applications',
     redirect: '/admin/agent/management'
   },
   {
+    path: 'agent/agent-commission-config',
+    name: 'agent-commission-config',
+    component: () => import('../../pages/admin/agent/AgentCommissionConfigPage.vue'),
+    meta: {
+      title: '代理/分销 / 代理记佣配置',
+      desc: '代理业务分佣默认比例与全局规则。'
+    }
+  },
+  {
     path: 'agent/referral-config',
     name: 'agent-referral-config',
-    component: () => import('../../pages/admin/agent/ReferralConfigPage.vue')
+    component: () => import('../../pages/admin/agent/ReferralConfigPage.vue'),
+    meta: {
+      title: '代理/分销 / 裂变分销配置',
+      desc: '邀请裂变多级分佣规则配置。'
+    }
   },
   {
     path: 'agent/referral-commission',
     name: 'agent-referral-commission',
-    component: () => import('../../pages/admin/agent/ReferralCommissionPage.vue')
+    component: () => import('../../pages/admin/agent/ReferralCommissionPage.vue'),
+    meta: {
+      title: '代理/分销 / 裂变分佣记录',
+      desc: '裂变分佣记录查询与状态管理。'
+    }
   },
   {
     path: 'agent/referral-statistics',
     name: 'agent-referral-statistics',
-    component: () => import('../../pages/admin/agent/ReferralStatisticsPage.vue')
+    component: () => import('../../pages/admin/agent/ReferralStatisticsPage.vue'),
+    meta: {
+      title: '代理/分销 / 裂变分销统计',
+      desc: '裂变分佣与订单汇总统计。'
+    }
   },
   {
     path: 'system/site-config',
@@ -412,6 +432,24 @@ export const consoleRoutes = [
     meta: {
       title: '系统设置 / 站点配置',
       desc: '维护站点名称、Logo 等品牌展示信息。'
+    }
+  },
+  {
+    path: 'system/sms-channels',
+    name: 'system-sms-channels',
+    component: () => import('../../pages/admin/system/SmsChannelsPage.vue'),
+    meta: {
+      title: '系统设置 / 短信通道',
+      desc: '按国际区号配置短信服务商与接口参数。'
+    }
+  },
+  {
+    path: 'system/smtp-settings',
+    name: 'system-smtp-settings',
+    component: () => import('../../pages/admin/system/SmtpSettingsPage.vue'),
+    meta: {
+      title: '系统设置 / 邮件服务 (SMTP)',
+      desc: '配置多条 SMTP 发信账户并分别启用。'
     }
   },
   {

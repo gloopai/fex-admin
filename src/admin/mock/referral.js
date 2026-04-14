@@ -1,6 +1,39 @@
-import { REFERRAL_TYPE, COMMISSION_STATUS, DEFAULT_REFERRAL_CONFIG } from '../constants/referral'
+import {
+  REFERRAL_MAX_LEVELS,
+  REFERRAL_TYPE,
+  COMMISSION_STATUS,
+  DEFAULT_REFERRAL_CONFIG
+} from '../constants/referral'
 
-/** 合并默认、迁移旧版 periodic → delivery、补齐布尔开关 */
+const COMMISSION_RATE_KEYS = [
+  'depositCommissionRates',
+  'perpetualCommissionRates',
+  'deliveryCommissionRates',
+  'spotCommissionRates',
+  'aiQuantCommissionRates',
+  'lendingCommissionRates',
+  'borrowingCommissionRates'
+]
+
+/** 将任意旧格式规范为恰好三级比例（超出部分丢弃，不足补 0） */
+export function normalizeCommissionRatesTriple(val) {
+  const parts = String(val ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => s !== '')
+  const nums = []
+  for (let i = 0; i < REFERRAL_MAX_LEVELS; i++) {
+    if (i < parts.length) {
+      const n = parseFloat(parts[i])
+      nums.push(Number.isFinite(n) && n >= 0 && n <= 1 ? n : 0)
+    } else {
+      nums.push(0)
+    }
+  }
+  return nums.join(',')
+}
+
+/** 合并默认、迁移旧版 periodic → delivery、补齐布尔开关；比例固定三级 */
 export function normalizeReferralConfig(raw) {
   const o = { ...DEFAULT_REFERRAL_CONFIG, ...(raw && typeof raw === 'object' ? raw : {}) }
   const legacy = o.periodicCommissionRates
@@ -24,6 +57,11 @@ export function normalizeReferralConfig(raw) {
     if (typeof o[k] !== 'boolean') o[k] = DEFAULT_REFERRAL_CONFIG[k]
   }
   if ('periodicCommissionRates' in o) delete o.periodicCommissionRates
+  for (const k of COMMISSION_RATE_KEYS) {
+    if (k in o) {
+      o[k] = normalizeCommissionRatesTriple(o[k])
+    }
+  }
   return o
 }
 
@@ -162,11 +200,9 @@ export const mockReferralStats = {
     { type: REFERRAL_TYPE.PERIODIC, count: 2199, commission: 139209.50, rate: 11.1 }
   ],
   byLevel: [
-    { level: 1, count: 8234, commission: 780450.30, rate: 62.1 },
-    { level: 2, count: 4567, commission: 320180.20, rate: 25.5 },
-    { level: 3, count: 2345, commission: 120100.00, rate: 9.5 },
-    { level: 4, count: 432, commission: 28050.00, rate: 2.2 },
-    { level: 5, count: 100, commission: 8000.00, rate: 0.7 }
+    { level: 1, count: 8234, commission: 780450.3, rate: 62.1 },
+    { level: 2, count: 4567, commission: 320180.2, rate: 25.5 },
+    { level: 3, count: 2877, commission: 156150.0, rate: 12.4 }
   ],
   topAgents: [
     { uid: 100004, username: 'agent_zhao', commission: 18760.40, orders: 201 },

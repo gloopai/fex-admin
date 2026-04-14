@@ -1,9 +1,16 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { mockReferralConfig, referralApi } from '../../../admin/mock/referral'
-import { DEFAULT_REFERRAL_CONFIG } from '../../../admin/constants/referral'
+import {
+  mockReferralConfig,
+  referralApi,
+  normalizeReferralConfig,
+  normalizeCommissionRatesTriple
+} from '../../../admin/mock/referral'
+import { DEFAULT_REFERRAL_CONFIG, REFERRAL_MAX_LEVELS } from '../../../admin/constants/referral'
 
-const config = ref({ ...mockReferralConfig })
+const config = ref(normalizeReferralConfig({ ...mockReferralConfig }))
+
+const RATE_LEVEL_INDEXES = [0, 1, 2]
 const isSaving = ref(false)
 const demoBaseAmount = ref(10000)
 
@@ -122,18 +129,28 @@ function groupGridClass(group) {
   return 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3'
 }
 
+/** 固定三级，每项为 0～1 */
 function parseRatesString(str) {
-  if (!str || typeof str !== 'string' || !str.trim()) return []
-  return str
-    .split(',')
-    .map((v) => v.trim())
-    .filter(Boolean)
-    .map((v) => parseFloat(v))
-    .filter((n) => !Number.isNaN(n) && n >= 0 && n <= 1)
+  const normalized = normalizeCommissionRatesTriple(str)
+  return normalized.split(',').map((v) => parseFloat(v))
 }
 
 function ratesFor(line) {
   return parseRatesString(config.value[line.ratesKey])
+}
+
+function clampRate01(n) {
+  if (!Number.isFinite(n) || Number.isNaN(n)) return 0
+  return Math.max(0, Math.min(1, n))
+}
+
+function setRateAt(line, index, raw) {
+  const parts = parseRatesString(config.value[line.ratesKey])
+  const v = raw == null ? '' : String(raw).trim()
+  let n = parseFloat(v)
+  if (v === '' || Number.isNaN(n)) n = 0
+  parts[index] = clampRate01(n)
+  config.value[line.ratesKey] = parts.join(',')
 }
 
 function formatUsdt(n) {
@@ -145,7 +162,9 @@ function formatUsdt(n) {
 function commissionPreviewLines(rates, base) {
   const b = Number(base)
   if (Number.isNaN(b) || b <= 0) return []
-  return rates.map((r, i) => ({
+  const triple = rates.slice(0, REFERRAL_MAX_LEVELS)
+  while (triple.length < REFERRAL_MAX_LEVELS) triple.push(0)
+  return triple.map((r, i) => ({
     level: i + 1,
     rate: r,
     ratePct: (r * 100).toFixed(2),
@@ -165,7 +184,7 @@ const loadConfig = async () => {
   try {
     const result = await referralApi.getReferralConfig()
     if (result.success) {
-      config.value = result.data
+      config.value = normalizeReferralConfig(result.data)
     }
   } catch (error) {
     console.error('Failed to load config:', error)
@@ -173,43 +192,38 @@ const loadConfig = async () => {
 }
 
 const saveConfig = async () => {
-  const validateRates = (rates) => {
-    if (!rates || !String(rates).trim()) return true
-    const values = String(rates)
-      .split(',')
-      .map((v) => v.trim())
-      .filter(Boolean)
-    return values.every((v) => {
-      const num = parseFloat(v)
-      return !Number.isNaN(num) && num >= 0 && num <= 1
-    })
+  const validateTriple = (ratesStr) => {
+    const triple = parseRatesString(ratesStr)
+    return (
+      triple.length === REFERRAL_MAX_LEVELS &&
+      triple.every((n) => !Number.isNaN(n) && n >= 0 && n <= 1)
+    )
   }
 
   for (const line of PRODUCT_LINES) {
     if (!config.value[line.enabledKey]) continue
-    const rates = config.value[line.ratesKey]
-    if (!rates || !String(rates).trim()) {
-      alert(`「${line.title}」已开启记佣，请填写多级比例，或关闭该业务线的记佣开关。`)
-      return
-    }
-    if (!validateRates(rates)) {
-      alert(`「${line.title}」佣金比例格式错误：请输入 0～1 之间的小数，多级用英文逗号分隔。`)
+    const rates = normalizeCommissionRatesTriple(config.value[line.ratesKey])
+    config.value[line.ratesKey] = rates
+    if (!validateTriple(rates)) {
+      alert(`「${line.title}」已开启记佣：一级 / 二级 / 三级比例须均为 0～1 之间的小数。`)
       return
     }
   }
 
   for (const line of PRODUCT_LINES) {
     if (config.value[line.enabledKey]) continue
-    const rates = config.value[line.ratesKey]
-    if (rates && String(rates).trim() && !validateRates(rates)) {
+    const raw = config.value[line.ratesKey]
+    if (raw != null && String(raw).trim() && !validateTriple(normalizeCommissionRatesTriple(raw))) {
       alert(`「${line.title}」比例格式有误，请修正或清空。`)
       return
     }
   }
 
+  const payload = normalizeReferralConfig({ ...config.value })
+
   isSaving.value = true
   try {
-    const result = await referralApi.updateReferralConfig(config.value)
+    const result = await referralApi.updateReferralConfig(payload)
     if (result.success) {
       alert(result.message)
     }
@@ -222,7 +236,7 @@ const saveConfig = async () => {
 
 const resetConfig = () => {
   if (confirm('确认重置为默认配置？')) {
-    config.value = { ...DEFAULT_REFERRAL_CONFIG }
+    config.value = normalizeReferralConfig({ ...DEFAULT_REFERRAL_CONFIG })
   }
 }
 
@@ -238,9 +252,12 @@ onMounted(() => {
       <div class="min-w-0 flex-1">
         <h1 class="text-2xl font-bold tracking-tight text-slate-900">裂变分销设置</h1>
         <p class="mt-2 text-sm leading-relaxed text-slate-600">
+          配置用户邀请/裂变关系下的分佣规则：各产品线是否记佣、三级上级比例，以及裂变侧全局开关。
+        </p>
+        <p class="mt-2 text-sm leading-relaxed text-slate-600">
           配置步骤：<span class="font-medium text-slate-800">① 理解计佣公式</span> →
-          <span class="font-medium text-slate-800">② 设置全局规则</span> →
-          <span class="font-medium text-slate-800">③ 按产品线打开记佣并填写多级比例</span>。
+          <span class="font-medium text-slate-800">② 裂变全局规则</span> →
+          <span class="font-medium text-slate-800">③ 按产品线打开记佣并填写三级比例</span>。
         </p>
       </div>
       <div class="flex shrink-0 gap-2">
@@ -272,7 +289,7 @@ onMounted(() => {
           </p>
           <p class="mt-3 text-xs leading-relaxed text-slate-600">
             <strong class="text-slate-700">A</strong>：本条订单的计佣基数（各产品线含义见下方卡片）。<br />
-            <strong class="text-slate-700">rᵢ</strong>：配置里从左数第 i 个比例，取值 0～1（如 0.1 = 10%）。
+            <strong class="text-slate-700">rᵢ</strong>：第 i 级上级对应比例（i 为 1～3），取值 0～1（如 0.1 = 10%）。
           </p>
         </div>
         <div class="text-sm leading-relaxed text-slate-600">
@@ -284,7 +301,7 @@ onMounted(() => {
             </li>
             <li class="flex gap-2">
               <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-300" />
-              <span>多级比例用<strong class="text-slate-800">英文逗号</strong>分隔，依次为一级、二级、三级…</span>
+              <span>每条产品线固定<strong class="text-slate-800">三个比例</strong>：一级、二级、三级上级；某级可为 0。</span>
             </li>
             <li class="flex gap-2">
               <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-300" />
@@ -299,13 +316,14 @@ onMounted(() => {
     <section class="rounded-xl border border-slate-200 bg-white">
       <div class="flex items-baseline gap-2 border-b border-slate-100 px-5 py-4">
         <span class="text-xs font-semibold text-slate-400">②</span>
-        <h2 class="text-base font-semibold text-slate-900">全局规则</h2>
+        <h2 class="text-base font-semibold text-slate-900">裂变全局规则</h2>
+        <p class="mt-1 text-xs text-slate-500">以下开关仅作用于邀请链分佣。</p>
       </div>
       <div class="divide-y divide-slate-100">
         <div class="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p class="text-sm font-medium text-slate-900">自动执行分佣</p>
-            <p class="mt-1 text-sm text-slate-500">满足条件时系统自动计算并发放；关闭则需人工处理分佣记录。</p>
+            <p class="text-sm font-medium text-slate-900">自动执行裂变分佣</p>
+            <p class="mt-1 text-sm text-slate-500">满足条件时系统自动计算并发放邀请链佣金；关闭则需人工处理分佣记录。</p>
           </div>
           <button
             type="button"
@@ -321,8 +339,8 @@ onMounted(() => {
         </div>
         <div class="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p class="text-sm font-medium text-slate-900">仅首笔充值参与分销</p>
-            <p class="mt-1 text-sm text-slate-500">仅影响「充值」产品线：开启后只对用户首次成功充值按该线比例计佣。</p>
+            <p class="text-sm font-medium text-slate-900">仅首笔充值参与裂变分佣</p>
+            <p class="mt-1 text-sm text-slate-500">仅影响「充值」产品线的邀请链计佣：开启后只对被邀请用户首次成功充值按该线比例计佣。</p>
           </div>
           <button
             type="button"
@@ -345,8 +363,8 @@ onMounted(() => {
         <div class="flex items-baseline gap-2">
           <span class="text-xs font-semibold text-slate-400">③</span>
           <div>
-            <h2 class="text-base font-semibold text-slate-900">产品线记佣</h2>
-            <p class="mt-0.5 text-sm text-slate-500">按分组找到业务 → 打开「参与记佣」→ 填写多级比例。</p>
+            <h2 class="text-base font-semibold text-slate-900">产品线 · 邀请链记佣</h2>
+            <p class="mt-0.5 text-sm text-slate-500">按邀请关系为三级上级设置分佣比例。</p>
           </div>
         </div>
         <div class="flex flex-col gap-1 sm:items-end">
@@ -408,40 +426,51 @@ onMounted(() => {
                 </div>
 
                 <template v-if="isLineEnabled(line)">
-                  <label class="mt-4 block text-xs font-medium text-slate-700">多级比例（0～1，逗号分隔）</label>
-                  <input
-                    v-model="config[line.ratesKey]"
-                    type="text"
-                    class="ant-input mt-1.5 w-full text-sm"
-                    placeholder="例：0.1, 0.05, 0.03"
-                  />
+                  <p class="mt-4 text-xs font-medium text-slate-700">三级比例（0～1，可为 0）</p>
+                  <div class="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <label
+                      v-for="idx in RATE_LEVEL_INDEXES"
+                      :key="line.key + '-lvl-' + idx"
+                      :for="line.key + '-rate-' + idx"
+                      class="block"
+                    >
+                      <span class="text-xs text-slate-600">{{ idx + 1 }} 级上级</span>
+                      <input
+                        :id="line.key + '-rate-' + idx"
+                        type="number"
+                        min="0"
+                        max="1"
+                        step="0.001"
+                        class="ant-input mt-1 w-full text-sm"
+                        :value="ratesFor(line)[idx]"
+                        @input="setRateAt(line, idx, $event.target.value)"
+                      />
+                    </label>
+                  </div>
 
-                  <template v-if="ratesFor(line).length">
-                    <div class="mt-4 space-y-2">
-                      <p class="text-[11px] font-medium text-slate-500">比例预览</p>
-                      <div class="flex flex-wrap gap-1.5">
-                        <span
-                          v-for="(rate, index) in ratesFor(line)"
-                          :key="line.key + '-r-' + index"
-                          class="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-700"
-                        >
-                          {{ index + 1 }} 级 {{ (rate * 100).toFixed(2) }}%
-                        </span>
-                      </div>
-                      <div class="rounded-md border border-slate-100 bg-slate-50 px-3 py-2 text-[11px] text-slate-800">
-                        <p class="font-medium text-slate-700">示例 · 基数 {{ formatUsdt(demoBaseAmount) }} USDT</p>
-                        <ul class="mt-1.5 space-y-0.5 font-mono text-[11px]">
-                          <li
-                            v-for="row in commissionPreviewLines(ratesFor(line), demoBaseAmount)"
-                            :key="line.key + '-ex-' + row.level"
-                          >
-                            {{ row.level }} 级上级：{{ formatUsdt(row.commission) }} USDT
-                          </li>
-                        </ul>
-                      </div>
+                  <div class="mt-4 space-y-2">
+                    <p class="text-[11px] font-medium text-slate-500">比例预览</p>
+                    <div class="flex flex-wrap gap-1.5">
+                      <span
+                        v-for="(rate, index) in ratesFor(line)"
+                        :key="line.key + '-r-' + index"
+                        class="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-700"
+                      >
+                        {{ index + 1 }} 级 {{ (rate * 100).toFixed(2) }}%
+                      </span>
                     </div>
-                  </template>
-                  <p v-else class="mt-3 text-xs text-amber-700">已开启记佣，请填写比例。</p>
+                    <div class="rounded-md border border-slate-100 bg-slate-50 px-3 py-2 text-[11px] text-slate-800">
+                      <p class="font-medium text-slate-700">示例 · 基数 {{ formatUsdt(demoBaseAmount) }} USDT</p>
+                      <ul class="mt-1.5 space-y-0.5 font-mono text-[11px]">
+                        <li
+                          v-for="row in commissionPreviewLines(ratesFor(line), demoBaseAmount)"
+                          :key="line.key + '-ex-' + row.level"
+                        >
+                          {{ row.level }} 级上级：{{ formatUsdt(row.commission) }} USDT
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
                 </template>
                 <p v-else class="mt-3 text-sm text-slate-500">未参与记佣，不产生裂变佣金。</p>
               </div>
@@ -455,8 +484,8 @@ onMounted(() => {
     <footer class="rounded-lg border border-slate-200 bg-slate-50 px-5 py-4 text-sm text-slate-600">
       <p class="font-medium text-slate-800">保存前请确认</p>
       <ul class="mt-2 list-inside list-disc space-y-1 text-slate-600">
-        <li>已开启记佣的产品线必须填写至少一级比例，否则会提示无法保存。</li>
-        <li>比例为 0～1 的小数；关闭记佣后已填比例可保留，但不会参与结算。</li>
+        <li>已开启记佣的产品线须填写一级、二级、三级比例（均为 0～1，某级可为 0）。</li>
+        <li>裂变分销固定三级，不再支持四级及以上；关闭记佣后已填比例可保留，但不会参与结算。</li>
       </ul>
     </footer>
   </div>
