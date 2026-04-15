@@ -60,11 +60,11 @@ export function useFrontSiteI18n() {
     refreshSiteConfig()
   })
 
-  const loginSettingsEnabled = computed(() => siteConfig.value.loginSettingsEnabled !== false)
+  const phoneLoginEnabled = computed(() => siteConfig.value.phoneLoginEnabled !== false)
   const languageSettingsEnabled = computed(() => siteConfig.value.languageSettingsEnabled !== false)
 
   const allowedDialPresets = computed(() => {
-    const codes = loginSettingsEnabled.value
+    const codes = phoneLoginEnabled.value
       ? (() => {
           const list = siteConfig.value.allowedDialCodes
           return Array.isArray(list) && list.length ? list : DEFAULT_DIAL_CODES
@@ -104,7 +104,7 @@ export function useFrontSiteI18n() {
   return {
     siteConfig,
     refreshSiteConfig,
-    loginSettingsEnabled,
+    phoneLoginEnabled,
     languageSettingsEnabled,
     allowedDialPresets,
     enabledLocales,

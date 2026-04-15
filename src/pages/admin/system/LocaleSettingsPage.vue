@@ -237,10 +237,10 @@ onMounted(() => {
         <!-- 手机区号 -->
         <section v-show="activeTab === 'dial'" class="space-y-4">
           <div
-            v-if="!config.loginSettingsEnabled"
+            v-if="!config.phoneLoginEnabled"
             class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
           >
-            当前未启用「自定义登录配置」，前台手机区号固定为 +86。需要按下方列表展示时，请前往
+            当前未启用「手机号码登录」，前台手机区号固定为 +86。需要按下方列表展示时，请前往
             <RouterLink class="font-medium text-blue-800 underline-offset-2 hover:underline" to="/admin/system/site-config">
               登录设置
             </RouterLink>

@@ -33,6 +33,7 @@ export const navTree = [
     icon: 'users-group',
     children: [
       { title: '代理列表', path: '/admin/agent/management' },
+      { title: '代理报表', path: '/admin/agent/agent-report' },
       { title: '代理记佣配置', path: '/admin/agent/agent-commission-config' },
       { title: '裂变分销配置', path: '/admin/agent/referral-config' },
       { title: '裂变分佣记录', path: '/admin/agent/referral-commission' },

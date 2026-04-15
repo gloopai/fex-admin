@@ -382,6 +382,15 @@ export const consoleRoutes = [
     component: () => import('../../pages/admin/agent/AgentManagementPage.vue')
   },
   {
+    path: 'agent/agent-report',
+    name: 'agent-agent-report',
+    component: () => import('../../pages/admin/agent/AgentReportPage.vue'),
+    meta: {
+      title: '代理/分销 / 代理报表',
+      desc: '按日查看代理渠道佣金汇总，并查看当日产生佣金的代理列表。'
+    }
+  },
+  {
     path: 'agent/level-commission',
     redirect: '/admin/agent/management'
   },

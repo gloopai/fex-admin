@@ -11,7 +11,6 @@ export const mockAgentList = [
     phone: '+86 138****8888',
     status: AGENT_STATUS.ACTIVE,
     totalReferrals: 156,
-    directReferrals: 45,
     totalCommission: 12580.5,
     monthCommission: 1280.3,
     createdAt: '2025-01-15 10:30:00',
@@ -28,7 +27,6 @@ export const mockAgentList = [
     phone: '+86 139****6666',
     status: AGENT_STATUS.ACTIVE,
     totalReferrals: 89,
-    directReferrals: 28,
     totalCommission: 8450.8,
     monthCommission: 950.6,
     createdAt: '2025-02-10 09:15:00',
@@ -43,7 +41,6 @@ export const mockAgentList = [
     phone: '+86 137****5555',
     status: AGENT_STATUS.INACTIVE,
     totalReferrals: 23,
-    directReferrals: 12,
     totalCommission: 2340.2,
     monthCommission: 0,
     createdAt: '2025-03-05 14:20:00',
@@ -58,7 +55,6 @@ export const mockAgentList = [
     phone: '+86 136****9999',
     status: AGENT_STATUS.ACTIVE,
     totalReferrals: 201,
-    directReferrals: 65,
     totalCommission: 18760.4,
     monthCommission: 2150.9,
     createdAt: '2024-12-01 08:00:00',
@@ -76,7 +72,6 @@ export const mockAgentList = [
     phone: '+86 135****7777',
     status: AGENT_STATUS.SUSPENDED,
     totalReferrals: 45,
-    directReferrals: 18,
     totalCommission: 4520.1,
     monthCommission: 0,
     createdAt: '2025-02-20 11:30:00',
@@ -103,21 +98,12 @@ export const mockAgentDetail = (uid) => {
   return {
     ...agent,
     productCommission: normalizeAgentProductCommission(agent.productCommission),
+    /** 代理仅一级，名下推荐用户总数即 totalReferrals */
     referralTree: [
       {
         level: 1,
-        count: agent.directReferrals,
-        commission: agent.totalCommission * 0.5
-      },
-      {
-        level: 2,
-        count: Math.floor(agent.totalReferrals * 0.3),
-        commission: agent.totalCommission * 0.3
-      },
-      {
-        level: 3,
-        count: Math.floor(agent.totalReferrals * 0.2),
-        commission: agent.totalCommission * 0.2
+        count: agent.totalReferrals,
+        commission: agent.totalCommission
       }
     ],
     performanceByType: [
@@ -141,7 +127,6 @@ const generateMockAgents = () => {
       phone: `+86 13${Math.floor(Math.random() * 10)}****${Math.floor(Math.random() * 9000) + 1000}`,
       status: Object.values(AGENT_STATUS)[Math.floor(Math.random() * Object.values(AGENT_STATUS).length)],
       totalReferrals: Math.floor(Math.random() * 300),
-      directReferrals: Math.floor(Math.random() * 100),
       totalCommission: Math.floor(Math.random() * 20000),
       monthCommission: Math.floor(Math.random() * 3000),
       createdAt: `2025-${Math.floor(Math.random() * 12) + 1}-${Math.floor(Math.random() * 28) + 1} 10:00:00`,

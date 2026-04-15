@@ -263,30 +263,29 @@ onMounted(() => {
         <!-- 登录设置 -->
         <div v-show="activeTab === 'login'" class="space-y-4">
           <p class="text-sm text-slate-500">
-            配置钱包登录、图形验证码与邀请码等。手机国际区号请在侧栏「语言与区号」菜单中勾选；此处「启用自定义登录配置」关闭时，前台登录仍使用内置默认（含区号仅 +86）。
+            配置手机号登录、钱包登录、图形验证码与邀请码等。
           </p>
 
           <div class="flex items-start justify-between gap-4 rounded-lg border border-slate-100 bg-slate-50/80 px-4 py-3">
             <div class="min-w-0 flex-1">
-              <p class="text-sm font-medium text-slate-900">启用自定义登录配置</p>
-              <p class="mt-1 text-xs text-slate-500">关闭后前台忽略下方选项，使用内置默认。</p>
+              <p class="text-sm font-medium text-slate-900">手机号码登录</p>
+              <p class="mt-1 text-xs text-slate-500">关闭后前台隐藏手机号登录与手机号注册，仅保留邮箱方式。</p>
             </div>
             <button
               type="button"
-              :class="config.loginSettingsEnabled ? 'bg-blue-600' : 'bg-slate-200'"
+              :class="config.phoneLoginEnabled ? 'bg-blue-600' : 'bg-slate-200'"
               class="relative mt-0.5 inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none"
-              :aria-pressed="config.loginSettingsEnabled"
-              aria-label="切换启用自定义登录配置"
-              @click="config.loginSettingsEnabled = !config.loginSettingsEnabled"
+              :aria-pressed="config.phoneLoginEnabled"
+              aria-label="切换手机号码登录"
+              @click="config.phoneLoginEnabled = !config.phoneLoginEnabled"
             >
               <span
-                :class="config.loginSettingsEnabled ? 'translate-x-5' : 'translate-x-0'"
+                :class="config.phoneLoginEnabled ? 'translate-x-5' : 'translate-x-0'"
                 class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
               />
             </button>
           </div>
 
-          <template v-if="config.loginSettingsEnabled">
           <div class="flex items-start justify-between gap-4 rounded-lg border border-slate-100 bg-slate-50/80 px-4 py-3">
             <div class="min-w-0 flex-1">
               <p class="text-sm font-medium text-slate-900">区块链钱包登录</p>
@@ -352,14 +351,10 @@ onMounted(() => {
               />
             </button>
           </div>
-          </template>
         </div>
 
         <!-- SEO 设置 -->
         <div v-show="activeTab === 'seo'" class="space-y-6">
-          <p class="text-sm text-slate-500">
-            以下字段供全站 TDK 与 Open Graph 使用；当前为本地存储，接入 SSR 或后端时在 HTML head 中输出对应 meta。
-          </p>
 
           <div>
             <label class="mb-2 block text-sm font-medium text-slate-700">默认页面标题</label>

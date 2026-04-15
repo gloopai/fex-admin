@@ -248,10 +248,7 @@ onMounted(() => {
               <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-300" />
               <span>每条产品线可单独关闭记佣；关闭后该业务不产生代理线佣金（比例可保留）。</span>
             </li>
-            <li class="flex gap-2">
-              <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-300" />
-              <span>代理线不设多级上级，每条线仅一个比例 r。</span>
-            </li>
+
             <li class="flex gap-2">
               <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-300" />
               <span>下方示例仅用于核对公式，实际以订单与结算规则为准。</span>

@@ -188,20 +188,16 @@ function maybeStartLoginSecondFactor() {
 const walletProviders = FRONT_WALLET_LOGIN_PROVIDERS
 
 const walletLoginEnabled = ref(true)
+const phoneLoginEnabled = ref(true)
 const loginCaptchaEnabled = ref(false)
 const inviteCodeRequired = ref(false)
 
 function refreshSiteAuthSettings() {
   const c = getSiteConfigSnapshot()
-  if (c.loginSettingsEnabled === false) {
-    walletLoginEnabled.value = true
-    loginCaptchaEnabled.value = false
-    inviteCodeRequired.value = false
-  } else {
-    walletLoginEnabled.value = c.walletLoginEnabled !== false
-    loginCaptchaEnabled.value = c.loginCaptchaEnabled === true
-    inviteCodeRequired.value = c.inviteCodeRequired === true
-  }
+  phoneLoginEnabled.value = c.phoneLoginEnabled !== false
+  walletLoginEnabled.value = c.walletLoginEnabled !== false
+  loginCaptchaEnabled.value = c.loginCaptchaEnabled === true
+  inviteCodeRequired.value = c.inviteCodeRequired === true
   if (loginCaptchaEnabled.value) {
     regenerateCaptcha()
   } else {
@@ -216,6 +212,13 @@ const onSiteConfigStorage = (e) => {
 }
 
 const onAdminSiteConfigUpdated = () => refreshSiteAuthSettings()
+
+watch(phoneLoginEnabled, (on) => {
+  if (!on) {
+    loginMode.value = 'email'
+    registerMode.value = 'email'
+  }
+})
 
 onMounted(() => {
   refreshSiteAuthSettings()
@@ -445,7 +448,7 @@ async function onPickWalletProvider(providerKey) {
         </div>
 
         <div
-          v-if="isRegister"
+          v-if="isRegister && phoneLoginEnabled"
           class="mb-4 flex rounded-xl border border-white/[0.07] bg-black/40 p-1 shadow-inner shadow-black/20"
           role="tablist"
           aria-label="注册方式"
@@ -481,7 +484,7 @@ async function onPickWalletProvider(providerKey) {
         </div>
 
         <div
-          v-if="!isRegister"
+          v-if="!isRegister && phoneLoginEnabled"
           class="mb-4 flex rounded-xl border border-white/[0.07] bg-black/40 p-1 shadow-inner shadow-black/20"
           role="tablist"
           aria-label="登录方式"

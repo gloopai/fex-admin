@@ -17,8 +17,12 @@ import VerificationRequiredBanner from '../../components/verification/Verificati
 import VerificationRequiredInline from '../../components/verification/VerificationRequiredInline.vue'
 import VerificationRequiredDialog from '../../components/verification/VerificationRequiredDialog.vue'
 import VerificationRequiredEmpty from '../../components/verification/VerificationRequiredEmpty.vue'
+import FrontStrokeIcon from '../../components/front/FrontStrokeIcon.vue'
 
 const verifyHref = '/front/personal-center/verification'
+
+/** 下拉框专用：与真实权限 key 区分，表示「已完成认证但后台关闭出金」策略弹窗演示 */
+const DEMO_POLICY_WITHDRAW_KEY = 'demoPolicyWithdrawDisabled'
 
 /** 模拟当前用户认证等级 */
 const simulatedUserLevel = ref(VERIFICATION_LEVEL.NONE)
@@ -29,9 +33,20 @@ const simulatedTargetLevel = ref(VERIFICATION_LEVEL.ADVANCED)
 /** 与后台配置表同一套权限项（canDeposit / canWithdraw / …） */
 const selectedPermissionKey = ref('canPerpetualContract')
 
-const moduleBundle = computed(() =>
-  getVerificationModulePromptBundle(verificationConfig, selectedPermissionKey.value)
-)
+const moduleBundle = computed(() => {
+  if (selectedPermissionKey.value === DEMO_POLICY_WITHDRAW_KEY) {
+    const b = getVerificationModulePromptBundle(verificationConfig, 'canWithdraw')
+    return {
+      ...b,
+      isPolicyWithdrawDemo: true,
+      adminLabel: `${VERIFICATION_PERMISSION_ADMIN_LABEL.canWithdraw}（策略关闭 · 演示）`
+    }
+  }
+  return {
+    ...getVerificationModulePromptBundle(verificationConfig, selectedPermissionKey.value),
+    isPolicyWithdrawDemo: false
+  }
+})
 
 /** 配置推导的最低等级（随模块变化，可与模拟目标对照） */
 const configDerivedLevel = computed(() => moduleBundle.value.requiredLevel)
@@ -61,14 +76,20 @@ function syncTargetToConfig() {
   simulatedTargetLevel.value = effectiveTargetFromConfig(configDerivedLevel.value)
 }
 
-const permissionOptions = computed(() =>
-  VERIFICATION_PERMISSION_KEYS.map((key) => ({
+const permissionOptions = computed(() => [
+  ...VERIFICATION_PERMISSION_KEYS.map((key) => ({
     value: key,
     label: VERIFICATION_PERMISSION_ADMIN_LABEL[key]
-  }))
-)
+  })),
+  { value: DEMO_POLICY_WITHDRAW_KEY, label: '演示：高级认证但后台关闭出金' }
+])
 
 const showDialog = ref(false)
+const showPolicyWithdrawDialog = ref(false)
+
+function closePolicyWithdrawDialog() {
+  showPolicyWithdrawDialog.value = false
+}
 
 const levelOptions = [
   { value: VERIFICATION_LEVEL.NONE, label: '未认证' },
@@ -153,6 +174,13 @@ const levelOptions = [
         </p>
         <p class="mt-1 text-white/55">
           {{ moduleBundle.contextHint }}
+        </p>
+        <p
+          v-if="moduleBundle.isPolicyWithdrawDemo"
+          class="mt-2 border-t border-white/10 pt-2 text-amber-200/90"
+        >
+          当前为<strong class="font-medium text-amber-100/95">策略限制演示</strong>：认证等级已够，但后台关闭「允许出金」。请使用下方第 5
+          节弹窗预览提示文案（非「去认证」类拦截）。
         </p>
         <p
           v-if="simulatedTargetLevel === VERIFICATION_LEVEL.NONE"
@@ -254,6 +282,97 @@ const levelOptions = [
       </p>
     </section>
 
+    <!-- 5. 与认证等级无关：后台关闭「允许出金」（弹窗，与第 4 节同形态） -->
+    <section class="mb-10">
+      <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
+        5. 弹窗：已完成高级认证，但后台不允许出金
+      </h2>
+      <p class="mb-4 text-xs leading-relaxed text-white/55">
+        与「未满足认证等级」不同：用户可能已是<strong class="font-medium text-white/75">高级认证</strong>，但后台关闭了<strong class="font-medium text-amber-200/90">允许出金</strong>。请在上方「模拟业务模块」选择<strong class="text-white/80">「演示：高级认证但后台关闭出金」</strong>后，点击下方按钮预览弹窗（无「去认证」引导）。
+      </p>
+
+      <button
+        type="button"
+        class="rounded-lg border border-amber-400/45 bg-amber-400/15 px-4 py-2 text-sm font-medium text-amber-100 hover:bg-amber-400/25 disabled:cursor-not-allowed disabled:opacity-40"
+        :disabled="!moduleBundle.isPolicyWithdrawDemo"
+        @click="showPolicyWithdrawDialog = true"
+      >
+        打开出金策略提示
+      </button>
+      <p v-if="!moduleBundle.isPolicyWithdrawDemo" class="mt-2 text-xs text-white/40">
+        请先在上文 select 中选择「演示：高级认证但后台关闭出金」。
+      </p>
+      <p v-else class="mt-2 text-xs text-white/45">
+        模拟用户点击「提币 / 出金」被策略拦截；布局与第 4 节 <code class="rounded bg-white/10 px-1 py-0.5 text-[11px] text-lime-200/90">VerificationRequiredDialog</code> 一致（PC 居中 / 移动端底部抽屉）。
+      </p>
+    </section>
+
+    <Teleport to="body">
+      <Transition name="policy-wd-dlg">
+        <div
+          v-if="showPolicyWithdrawDialog"
+          class="fixed inset-0 z-[100] flex items-end justify-center px-4 pb-4 sm:items-center sm:p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="policy-wd-dialog-title"
+        >
+          <div
+            class="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
+            aria-hidden="true"
+            @click="closePolicyWithdrawDialog"
+          />
+          <div
+            class="relative z-[101] w-full max-w-md max-h-[90vh] overflow-y-auto rounded-t-2xl border border-amber-400/25 bg-[#121212] px-4 pb-6 pt-5 text-white shadow-2xl sm:rounded-2xl sm:p-6 sm:px-6"
+            @click.stop
+          >
+            <div class="mx-auto mb-4 hidden h-1 w-10 rounded-full bg-white/20 sm:hidden" aria-hidden="true" />
+
+            <div class="flex items-start justify-between gap-3">
+              <div
+                class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-400/35 bg-amber-500/15 text-amber-200"
+                aria-hidden="true"
+              >
+                <FrontStrokeIcon name="shield" size-class="h-5 w-5" />
+              </div>
+              <button
+                type="button"
+                class="rounded-lg p-1.5 text-white/50 transition hover:bg-white/10 hover:text-white"
+                aria-label="关闭"
+                @click="closePolicyWithdrawDialog"
+              >
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <h2 id="policy-wd-dialog-title" class="mt-2 text-lg font-semibold leading-snug text-amber-50">
+              暂无法出金
+            </h2>
+            <p class="mt-2 text-sm leading-relaxed text-amber-100/85">
+              您已完成高级身份认证，但当前账户根据平台策略暂不可发起出金。如有疑问请联系客服或等待审核结果。
+            </p>
+            <p
+              v-if="simulatedUserLevel === VERIFICATION_LEVEL.ADVANCED"
+              class="mt-2 text-xs text-white/50"
+            >
+              当前模拟等级为「高级认证」，与此场景一致。
+            </p>
+
+            <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                class="rounded-lg border border-white/20 px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/10"
+                @click="closePolicyWithdrawDialog"
+              >
+                知道了
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
     <VerificationRequiredDialog
       v-model="showDialog"
       :user-level="simulatedUserLevel"
@@ -265,3 +384,28 @@ const levelOptions = [
 
 </div>
 </template>
+
+<style scoped>
+.policy-wd-dlg-enter-active,
+.policy-wd-dlg-leave-active {
+  transition: opacity 0.2s ease;
+}
+.policy-wd-dlg-enter-active .relative,
+.policy-wd-dlg-leave-active .relative {
+  transition: transform 0.25s ease, opacity 0.2s ease;
+}
+.policy-wd-dlg-enter-from,
+.policy-wd-dlg-leave-to {
+  opacity: 0;
+}
+.policy-wd-dlg-enter-from .relative,
+.policy-wd-dlg-leave-to .relative {
+  transform: translateY(12px);
+}
+@media (min-width: 640px) {
+  .policy-wd-dlg-enter-from .relative,
+  .policy-wd-dlg-leave-to .relative {
+    transform: scale(0.96);
+  }
+}
+</style>

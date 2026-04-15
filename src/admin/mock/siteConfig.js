@@ -313,9 +313,9 @@ export const DEFAULT_SITE_CONFIG = {
   loginCaptchaEnabled: false,
   /** 登录与注册是否必填邀请码 */
   inviteCodeRequired: false,
-  /** 启用后，以下登录与手机区号配置才会应用到前台；关闭则使用内置默认 */
-  loginSettingsEnabled: true,
-  /** 手机登录/安全绑定可选区号（loginSettingsEnabled 为 true 时生效） */
+  /** 是否在前台开放手机号登录与手机号注册；关闭后仅保留邮箱登录/注册，区号列表仍仅 +86 */
+  phoneLoginEnabled: true,
+  /** 手机登录/安全绑定可选区号（phoneLoginEnabled 为 true 时生效） */
   allowedDialCodes: ['+86'],
   /** 启用后，以下多语言配置才会应用到前台；关闭则固定简体中文并隐藏语言切换 */
   languageSettingsEnabled: true,
@@ -366,18 +366,24 @@ function normalizeI18n(raw) {
 
 function normalizeSiteConfig(raw) {
   const merged = { ...DEFAULT_SITE_CONFIG, ...(raw && typeof raw === 'object' ? raw : {}) }
+  const rawObj = raw && typeof raw === 'object' ? raw : {}
   const nestedDials = raw?.i18n && Array.isArray(raw.i18n.allowedDialCodes) ? raw.i18n.allowedDialCodes : null
   if (nestedDials && nestedDials.length && (!raw?.allowedDialCodes || !Array.isArray(raw.allowedDialCodes))) {
     merged.allowedDialCodes = nestedDials
   }
-  merged.loginSettingsEnabled =
-    typeof merged.loginSettingsEnabled === 'boolean' ? merged.loginSettingsEnabled : DEFAULT_SITE_CONFIG.loginSettingsEnabled
+  if (!Object.prototype.hasOwnProperty.call(rawObj, 'phoneLoginEnabled')) {
+    if (typeof rawObj.loginSettingsEnabled === 'boolean') {
+      merged.phoneLoginEnabled = rawObj.loginSettingsEnabled
+    }
+  } else if (typeof merged.phoneLoginEnabled !== 'boolean') {
+    merged.phoneLoginEnabled = DEFAULT_SITE_CONFIG.phoneLoginEnabled
+  }
+  if ('loginSettingsEnabled' in merged) delete merged.loginSettingsEnabled
   merged.languageSettingsEnabled =
     typeof merged.languageSettingsEnabled === 'boolean'
       ? merged.languageSettingsEnabled
       : DEFAULT_SITE_CONFIG.languageSettingsEnabled
   merged.allowedDialCodes = normalizeAllowedDialCodes(merged.allowedDialCodes)
-  const rawObj = raw && typeof raw === 'object' ? raw : {}
   const explicitSmtpAccounts = Object.prototype.hasOwnProperty.call(rawObj, 'smtpAccounts')
   const needsSmtpMigration =
     !explicitSmtpAccounts && merged.smtp && typeof merged.smtp === 'object'
@@ -457,10 +463,10 @@ export const siteConfigApi = {
             typeof config.inviteCodeRequired === 'boolean'
               ? config.inviteCodeRequired
               : DEFAULT_SITE_CONFIG.inviteCodeRequired,
-          loginSettingsEnabled:
-            typeof config.loginSettingsEnabled === 'boolean'
-              ? config.loginSettingsEnabled
-              : DEFAULT_SITE_CONFIG.loginSettingsEnabled,
+          phoneLoginEnabled:
+            typeof config.phoneLoginEnabled === 'boolean'
+              ? config.phoneLoginEnabled
+              : DEFAULT_SITE_CONFIG.phoneLoginEnabled,
           languageSettingsEnabled:
             typeof config.languageSettingsEnabled === 'boolean'
               ? config.languageSettingsEnabled

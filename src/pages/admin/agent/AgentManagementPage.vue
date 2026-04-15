@@ -1,6 +1,6 @@
 <script setup>
-import { ref, computed, onMounted, reactive, watch } from 'vue'
-import { mockAgentStats, agentApi, normalizeAgentProductCommission } from '../../../admin/mock/agent'
+import { ref, computed, onMounted, onUnmounted, reactive, watch } from 'vue'
+import { agentApi, normalizeAgentProductCommission } from '../../../admin/mock/agent'
 import { AGENT_STATUS, AGENT_STATUS_OPTIONS, AGENT_ROLE_LABEL } from '../../../admin/constants/agent'
 import { AGENT_PRODUCT_LINE_DEFS, AGENT_PRODUCT_GROUPS, normalizeAgentLineRate } from '../../../admin/constants/agentCommission'
 
@@ -29,18 +29,6 @@ const commissionTargetUid = ref(null)
 const commissionSaving = ref(false)
 const commissionLoading = ref(false)
 
-const BORDER_ACCENT = {
-  blue: 'border-l-blue-500',
-  indigo: 'border-l-indigo-500',
-  violet: 'border-l-violet-500',
-  orange: 'border-l-orange-500',
-  amber: 'border-l-amber-500',
-  emerald: 'border-l-emerald-500',
-  rose: 'border-l-rose-500'
-}
-
-const stats = ref(mockAgentStats)
-
 const agentList = ref([])
 
 function lineByKey(key) {
@@ -49,13 +37,6 @@ function lineByKey(key) {
 
 function linesInAgentGroup(group) {
   return group.lineKeys.map((k) => lineByKey(k)).filter(Boolean)
-}
-
-function groupGridClass(group) {
-  const n = group.lineKeys.length
-  if (n <= 1) return 'grid-cols-1'
-  if (n === 2) return 'grid-cols-1 md:grid-cols-2'
-  return 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3'
 }
 
 function rateNumForDraft(line) {
@@ -146,37 +127,6 @@ onMounted(() => {
   loadAgentList()
 })
 
-const statCards = computed(() => [
-  {
-    label: '总代理数',
-    value: stats.value.totalAgents.toLocaleString(),
-    trend: `+${stats.value.activeAgents} 活跃`,
-    color: 'blue',
-    good: true
-  },
-  {
-    label: '总推荐人数',
-    value: stats.value.totalReferrals.toLocaleString(),
-    trend: '累计推荐用户',
-    color: 'purple',
-    good: true
-  },
-  {
-    label: '累计佣金',
-    value: `$${stats.value.totalCommission.toLocaleString()}`,
-    trend: `本月 $${stats.value.monthCommission.toLocaleString()}`,
-    color: 'green',
-    good: true
-  },
-  {
-    label: '今日佣金',
-    value: `$${stats.value.todayCommission.toLocaleString()}`,
-    trend: '实时数据',
-    color: 'yellow',
-    good: true
-  }
-])
-
 const getStatusConfig = (status) => {
   const config = AGENT_STATUS_OPTIONS.find((s) => s.value === status)
   return {
@@ -235,14 +185,16 @@ const viewDetail = async (agent) => {
 }
 
 const openCommissionConfig = async (agent) => {
-  commissionLoading.value = true
-  commissionDraft.value = null
   commissionTargetUid.value = agent.uid
+  commissionDraft.value = null
+  commissionLoading.value = true
+  showCommissionModal.value = true
   try {
     const res = await agentApi.getAgentDetail(agent.uid)
     if (res.success) {
       commissionDraft.value = normalizeAgentProductCommission(res.data.productCommission)
-      showCommissionModal.value = true
+    } else {
+      alert('加载失败')
     }
   } catch (e) {
     alert('加载代理记佣失败')
@@ -257,6 +209,25 @@ const closeCommissionModal = () => {
   commissionDraft.value = null
   commissionTargetUid.value = null
 }
+
+let commissionEscOff = null
+watch(showCommissionModal, (open) => {
+  commissionEscOff?.()
+  commissionEscOff = null
+  if (!open) return
+  const onKey = (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      closeCommissionModal()
+    }
+  }
+  document.addEventListener('keydown', onKey, true)
+  commissionEscOff = () => document.removeEventListener('keydown', onKey, true)
+})
+
+onUnmounted(() => {
+  commissionEscOff?.()
+})
 
 const saveCommissionConfig = async () => {
   const uid = commissionTargetUid.value
@@ -304,33 +275,6 @@ const formatDate = (dateString) => {
         <p class="mt-1 text-sm text-slate-500">
           查看与管理后台代理：启用/暂停、各产品线一级记佣等。
         </p>
-      </div>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div
-        v-for="card in statCards"
-        :key="card.label"
-        class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm"
-      >
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm text-slate-600 font-medium">{{ card.label }}</p>
-            <p class="mt-2 text-2xl font-bold text-slate-900">{{ card.value }}</p>
-            <p class="mt-1 text-xs font-medium" :class="card.good ? 'text-emerald-600' : 'text-slate-500'">
-              {{ card.trend }}
-            </p>
-          </div>
-          <div
-            :class="`w-12 h-12 bg-${card.color}-50 rounded-xl flex items-center justify-center border border-${card.color}-100 transition-all hover:scale-105 font-medium`"
-          >
-            <div
-              :class="`w-6 h-6 bg-${card.color}-500 rounded-lg shadow-sm opacity-80 text-white flex items-center justify-center text-xs font-bold italic font-medium`"
-            >
-              {{ card.label.charAt(0) }}
-            </div>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -408,8 +352,7 @@ const formatDate = (dateString) => {
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                <div>总计: {{ agent.totalReferrals }}</div>
-                <div class="text-xs text-gray-500">直推: {{ agent.directReferrals }}</div>
+                {{ agent.totalReferrals }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 <div class="font-semibold">${{ agent.totalCommission.toLocaleString() }}</div>
@@ -504,8 +447,12 @@ const formatDate = (dateString) => {
       </div>
     </div>
 
-    <!-- 添加代理 -->
-    <div v-if="showUpgradeModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <!-- 添加代理（Teleport：避免遮罩被 main 滚动区裁成仅内容区） -->
+    <Teleport to="body">
+      <div
+        v-if="showUpgradeModal"
+        class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
+      >
       <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
         <h3 class="text-lg font-semibold text-slate-900 mb-5">添加代理</h3>
 
@@ -524,105 +471,145 @@ const formatDate = (dateString) => {
           <button type="button" class="ant-btn ant-btn-primary" @click="handleUpgrade">确认添加</button>
         </div>
       </div>
-    </div>
+      </div>
+    </Teleport>
 
-    <!-- 产品线记佣 -->
+    <!-- 产品线记佣（紧凑行式布局；底栏固定，避免无法取消） -->
+    <Teleport to="body">
     <div
       v-if="showCommissionModal"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 overflow-y-auto"
+      class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-3 sm:p-4"
+      @click.self="closeCommissionModal"
     >
-      <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-4xl max-h-[92vh] overflow-y-auto my-4">
-        <div class="flex justify-between items-start mb-4 border-b border-slate-100 pb-3">
-          <div>
-            <h3 class="text-lg font-semibold text-slate-900">代理产品线记佣</h3>
-            <p class="mt-1 text-sm text-slate-500">
-              UID {{ commissionTargetUid }} · 代理线仅一级比例 · 各产品线可单独开关
-            </p>
+      <div
+        class="flex max-h-[min(88vh,920px)] w-full max-w-3xl flex-col overflow-hidden rounded-xl bg-white shadow-xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="commission-modal-title"
+        @click.stop
+      >
+        <div class="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 sm:px-5">
+          <div class="min-w-0">
+            <h3 id="commission-modal-title" class="text-base font-semibold text-slate-900">代理产品线记佣</h3>
+            <p class="mt-0.5 font-mono text-xs text-slate-500">UID {{ commissionTargetUid }}</p>
           </div>
-          <button type="button" class="text-slate-400 hover:text-slate-600" @click="closeCommissionModal">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button
+            type="button"
+            class="shrink-0 rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+            aria-label="关闭"
+            @click="closeCommissionModal"
+          >
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        <div v-if="commissionLoading" class="py-20 flex justify-center">
-          <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-violet-600"></div>
+        <div v-if="commissionLoading" class="flex min-h-[12rem] flex-1 flex-col items-center justify-center px-4 py-10">
+          <div class="h-9 w-9 animate-spin rounded-full border-2 border-slate-200 border-t-violet-600"></div>
+          <p class="mt-3 text-xs text-slate-500">加载中…</p>
         </div>
 
-        <div v-else-if="commissionDraft" class="space-y-8">
-          <div v-for="group in AGENT_PRODUCT_GROUPS" :key="group.id">
-            <div class="mb-3 flex flex-wrap items-end gap-2 border-b border-slate-100 pb-2">
-              <h4 class="text-sm font-semibold text-slate-900">{{ group.name }}</h4>
-              <span class="text-xs text-slate-500">{{ group.blurb }}</span>
-            </div>
-            <div class="grid w-full gap-4" :class="groupGridClass(group)">
+        <div v-else-if="commissionDraft" class="min-h-0 flex-1 overflow-y-auto px-4 py-3 sm:px-5">
+          <div class="space-y-3">
+            <div v-for="group in AGENT_PRODUCT_GROUPS" :key="group.id" class="overflow-hidden rounded-lg border border-slate-200">
               <div
-                v-for="line in linesInAgentGroup(group)"
-                :key="line.key"
-                class="flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm"
-                :class="['border-l-4', BORDER_ACCENT[line.theme]]"
+                class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-slate-100 bg-slate-50/90 px-3 py-2"
               >
-                <div class="flex items-start justify-between gap-3 border-b border-slate-100 bg-slate-50/50 px-4 py-3">
-                  <div class="min-w-0">
-                    <h5 class="text-sm font-semibold text-slate-900">{{ line.title }}</h5>
-                  </div>
-                  <div class="flex shrink-0 flex-col items-end gap-0.5">
-                    <span class="text-[10px] font-medium uppercase tracking-wide text-slate-400">记佣</span>
-                    <button
-                      type="button"
-                      :class="isLineEnabledDraft(line) ? 'bg-blue-600' : 'bg-slate-200'"
-                      class="relative inline-flex h-6 w-11 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none"
-                      @click="toggleLineDraft(line)"
-                    >
-                      <span
-                        :class="isLineEnabledDraft(line) ? 'translate-x-5' : 'translate-x-0'"
-                        class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition"
-                      />
-                    </button>
-                  </div>
-                </div>
-
-                <div class="flex flex-1 flex-col p-4" :class="{ 'bg-slate-50/40': !isLineEnabledDraft(line) }">
-                  <template v-if="isLineEnabledDraft(line)">
-                    <label class="mt-2 block text-xs font-medium text-slate-700" :for="'ac-rate-' + line.key">比例（0～1）</label>
-                    <input
-                      :id="'ac-rate-' + line.key"
-                      type="number"
-                      min="0"
-                      max="1"
-                      step="0.001"
-                      class="ant-input mt-1 w-full max-w-[200px] text-sm"
-                      :value="rateNumForDraft(line)"
-                      @input="setDraftRate(line, $event.target.value)"
-                    />
-                    <p class="mt-2 text-[11px] text-slate-500">
-                      约 {{ (rateNumForDraft(line) * 100).toFixed(2) }}%
-                    </p>
-                  </template>
-                  <p v-else class="text-sm text-slate-500">未参与记佣</p>
-                </div>
+                <h4 class="text-xs font-semibold uppercase tracking-wide text-slate-700">{{ group.name }}</h4>
+                <p class="text-[11px] leading-snug text-slate-500">{{ group.blurb }}</p>
               </div>
+              <ul class="divide-y divide-slate-100 bg-white">
+                <li
+                  v-for="line in linesInAgentGroup(group)"
+                  :key="line.key"
+                  class="flex flex-col gap-2.5 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:py-2"
+                  :class="isLineEnabledDraft(line) ? 'bg-slate-50/60' : ''"
+                >
+                  <p class="min-w-0 flex-1 text-sm font-medium leading-snug text-slate-900">
+                    {{ line.title }}
+                  </p>
+
+                  <div
+                    class="flex flex-wrap items-center gap-x-3 gap-y-2 sm:min-w-0 sm:flex-nowrap sm:justify-end sm:pl-2"
+                  >
+                    <!-- 开关单独一区，与比例输入用竖线隔开，避免视觉上「开关跑进输入框」 -->
+                    <div class="flex shrink-0 items-center gap-2">
+                      <span class="w-7 shrink-0 text-right text-[11px] text-slate-400">记佣</span>
+                      <button
+                        type="button"
+                        :class="isLineEnabledDraft(line) ? 'bg-blue-600' : 'bg-slate-200'"
+                        class="relative z-[1] inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none"
+                        @click.stop="toggleLineDraft(line)"
+                      >
+                        <span
+                          :class="isLineEnabledDraft(line) ? 'translate-x-4' : 'translate-x-0'"
+                          class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition"
+                        />
+                      </button>
+                    </div>
+
+                    <div
+                      class="flex min-h-8 min-w-0 flex-1 items-center gap-2 sm:min-w-[12.5rem] sm:flex-initial sm:border-l sm:border-slate-200 sm:pl-3"
+                    >
+                      <template v-if="isLineEnabledDraft(line)">
+                        <label class="sr-only" :for="'ac-rate-' + line.key">比例 r（0～1）</label>
+                        <div
+                          class="inline-flex h-8 max-w-full items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2 shadow-sm"
+                        >
+                          <span class="select-none text-[11px] font-medium text-slate-400">r</span>
+                          <input
+                            :id="'ac-rate-' + line.key"
+                            type="number"
+                            min="0"
+                            max="1"
+                            step="0.001"
+                            class="h-6 w-[5.5rem] max-w-full border-0 bg-transparent p-0 text-right text-sm font-medium tabular-nums text-slate-800 outline-none ring-0 [appearance:textfield] placeholder:text-slate-300 focus:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                            :value="rateNumForDraft(line)"
+                            @input="setDraftRate(line, $event.target.value)"
+                          />
+                        </div>
+                        <span class="shrink-0 text-xs tabular-nums text-slate-500" title="折算百分比">
+                          ≈ {{ (rateNumForDraft(line) * 100).toFixed(2) }}%
+                        </span>
+                      </template>
+                      <span v-else class="w-full text-right text-xs text-slate-400 sm:min-w-[8rem]">
+                        未参与记佣
+                      </span>
+                    </div>
+                  </div>
+                </li>
+              </ul>
             </div>
           </div>
+        </div>
 
-          <div class="flex justify-end gap-2 border-t border-slate-100 pt-4">
-            <button type="button" class="ant-btn" @click="closeCommissionModal">取消</button>
-            <button
-              type="button"
-              class="ant-btn ant-btn-primary"
-              :disabled="commissionSaving"
-              @click="saveCommissionConfig"
-            >
-              {{ commissionSaving ? '保存中…' : '保存' }}
-            </button>
-          </div>
+        <div v-else class="flex min-h-[8rem] flex-1 flex-col items-center justify-center px-4 py-8 text-center">
+          <p class="text-sm text-slate-500">未能加载记佣数据，请关闭后重试。</p>
+        </div>
+
+        <div class="flex shrink-0 justify-end gap-2 border-t border-slate-100 bg-slate-50/50 px-4 py-3 sm:px-5">
+          <button type="button" class="ant-btn !h-9" @click="closeCommissionModal">取消</button>
+          <button
+            v-if="commissionDraft"
+            type="button"
+            class="ant-btn ant-btn-primary !h-9 min-w-[5.5rem]"
+            :disabled="commissionSaving || commissionLoading"
+            @click="saveCommissionConfig"
+          >
+            {{ commissionSaving ? '保存中…' : '保存' }}
+          </button>
         </div>
       </div>
     </div>
+    </Teleport>
 
     <!-- 详情 -->
-    <div v-if="showDetailModal && selectedAgent" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <Teleport to="body">
+    <div
+      v-if="showDetailModal && selectedAgent"
+      class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
+    >
       <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div class="flex justify-between items-start mb-6 border-b border-slate-100 pb-4">
           <h3 class="text-lg font-semibold text-slate-900">代理详情</h3>
@@ -665,12 +652,8 @@ const formatDate = (dateString) => {
             </span>
           </div>
           <div class="flex flex-col">
-            <span class="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wider">总推荐人数</span>
+            <span class="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wider">推荐人数</span>
             <p class="text-slate-900 font-bold text-lg">{{ selectedAgent.totalReferrals }}</p>
-          </div>
-          <div class="flex flex-col">
-            <span class="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wider">直推人数</span>
-            <p class="text-slate-900 font-bold text-lg">{{ selectedAgent.directReferrals }}</p>
           </div>
           <div class="flex flex-col">
             <span class="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wider">累计佣金</span>
@@ -705,6 +688,7 @@ const formatDate = (dateString) => {
         </div>
       </div>
     </div>
+    </Teleport>
   </div>
 </template>
 
