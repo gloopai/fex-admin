@@ -17,6 +17,7 @@ import VerificationRequiredBanner from '../../components/verification/Verificati
 import VerificationRequiredInline from '../../components/verification/VerificationRequiredInline.vue'
 import VerificationRequiredDialog from '../../components/verification/VerificationRequiredDialog.vue'
 import VerificationRequiredEmpty from '../../components/verification/VerificationRequiredEmpty.vue'
+import PolicyBlockedEmpty from '../../components/verification/PolicyBlockedEmpty.vue'
 import FrontStrokeIcon from '../../components/front/FrontStrokeIcon.vue'
 
 const verifyHref = '/front/personal-center/verification'
@@ -179,8 +180,8 @@ const levelOptions = [
           v-if="moduleBundle.isPolicyWithdrawDemo"
           class="mt-2 border-t border-white/10 pt-2 text-amber-200/90"
         >
-          当前为<strong class="font-medium text-amber-100/95">策略限制演示</strong>：认证等级已够，但后台关闭「允许提币」。请使用下方第 5
-          节弹窗预览提示文案（非「去认证」类拦截）。
+          当前为<strong class="font-medium text-amber-100/95">策略限制演示</strong>：认证等级已够，但后台关闭「允许提币」。第 3 节空状态为
+          <code class="rounded bg-white/10 px-1 py-0.5 text-amber-200/90">PolicyBlockedEmpty</code>；第 5 节为同名策略弹窗（非「去认证」类拦截）。
         </p>
         <p
           v-if="simulatedTargetLevel === VERIFICATION_LEVEL.NONE"
@@ -240,7 +241,21 @@ const levelOptions = [
       <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
         3. 空状态（居中占位）
       </h2>
+      <p class="mb-3 text-xs text-white/50">
+        <span v-if="moduleBundle.isPolicyWithdrawDemo">
+          当前为<strong class="text-amber-200/90">策略限制 · 提币</strong>：展示
+          <code class="rounded bg-white/10 px-1 py-0.5 text-[11px] text-amber-200/90">PolicyBlockedEmpty</code>（琥珀色，无「去认证」）。
+        </span>
+        <span v-else>
+          认证不足时展示
+          <code class="rounded bg-white/10 px-1 py-0.5 text-[11px] text-lime-200/90">VerificationRequiredEmpty</code>（翠绿）。
+        </span>
+        在上方 select 选择「演示：高级认证但后台关闭提币」可切换为策略空状态。
+      </p>
+
+      <PolicyBlockedEmpty v-if="moduleBundle.isPolicyWithdrawDemo" :dark="true" />
       <VerificationRequiredEmpty
+        v-else
         :user-level="simulatedUserLevel"
         :required-level="simulatedTargetLevel"
         :feature-name="moduleBundle.emptyFeature"
@@ -248,11 +263,13 @@ const levelOptions = [
         :dark="true"
       />
       <p class="mt-3 text-xs text-white/45">
-        用于无数据列表、整页功能入口等；满足等级时不渲染。可设置 <code class="rounded bg-white/10 px-1 py-0.5 text-[11px] text-lime-200/90">fill</code> 撑满父级高度。
+        认证类空状态：满足等级时不渲染。策略类空状态：在业务判断为「策略关闭提币」时展示，与认证是否完成无关。
       </p>
       <div class="mt-6 rounded-xl border border-dashed border-white/20 bg-black/20 p-2">
         <p class="mb-2 px-2 pt-1 text-[11px] text-white/40">fill 示例（模拟「{{ moduleBundle.emptyListDemoTitle }}」列表区域）</p>
+        <PolicyBlockedEmpty v-if="moduleBundle.isPolicyWithdrawDemo" :dark="true" fill />
         <VerificationRequiredEmpty
+          v-else
           :user-level="simulatedUserLevel"
           :required-level="simulatedTargetLevel"
           :feature-name="moduleBundle.emptyListDemoTitle"
