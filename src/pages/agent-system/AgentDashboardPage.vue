@@ -56,7 +56,10 @@ const s = agentDashboardSummary
           <RouterLink class="text-emerald-300/95 hover:underline" to="/agent-system/daily-report">数据日报 · 按日交易与佣金</RouterLink>
         </li>
         <li>
-          <RouterLink class="text-emerald-300/95 hover:underline" to="/agent-system/commission">佣金结算 · 查看账期与打款状态</RouterLink>
+          <RouterLink class="text-emerald-300/95 hover:underline" to="/agent-system/commission-rates">记佣比例 · 各产品线一级比例</RouterLink>
+        </li>
+        <li>
+          <RouterLink class="text-emerald-300/95 hover:underline" to="/agent-system/commission">佣金结算 · 账期与打款记录</RouterLink>
         </li>
       </ul>
     </div>

@@ -46,6 +46,12 @@ export const agentSystemRoutes = [
         meta: { title: '团队管理' }
       },
       {
+        path: 'commission-rates',
+        name: 'agent-commission-rates',
+        component: () => import('../../pages/agent-system/AgentCommissionRatesPage.vue'),
+        meta: { title: '记佣比例' }
+      },
+      {
         path: 'commission',
         name: 'agent-commission',
         component: () => import('../../pages/agent-system/AgentCommissionPage.vue'),
