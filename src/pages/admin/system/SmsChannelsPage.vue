@@ -160,7 +160,7 @@ onMounted(() => {
       <div>
         <h1 class="text-2xl font-bold text-slate-900">短信通道</h1>
         <p class="mt-1 text-sm text-slate-500">
-          按国际区号维护多条短信通道；配置存于本地站点数据（演示），生产环境应由服务端保管密钥。前台可选区号见
+          按国际区号维护多条短信通道；
           <RouterLink to="/admin/system/locale-settings" class="text-indigo-600 hover:underline">
             语言与区号
           </RouterLink>

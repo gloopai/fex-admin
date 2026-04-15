@@ -88,23 +88,15 @@ function setDefaultLocale(code) {
   config.value.i18n.defaultLocale = code
 }
 
-function toggleAllLocales(checked) {
-  if (checked) {
-    config.value.i18n.enabledLocales = FRONT_LOCALE_CATALOG.map((l) => l.code)
-  } else {
-    config.value.i18n.enabledLocales = ['zh-CN']
-  }
+function selectAllLocales() {
+  config.value.i18n.enabledLocales = FRONT_LOCALE_CATALOG.map((l) => l.code)
   if (!config.value.i18n.enabledLocales.includes(config.value.i18n.defaultLocale)) {
     config.value.i18n.defaultLocale = config.value.i18n.enabledLocales[0]
   }
 }
 
-function toggleAllDials(checked) {
-  if (checked) {
-    config.value.allowedDialCodes = PHONE_DIAL_PRESETS.map((p) => p.dial)
-  } else {
-    config.value.allowedDialCodes = ['+86']
-  }
+function selectAllDialCodes() {
+  config.value.allowedDialCodes = PHONE_DIAL_PRESETS.map((p) => p.dial)
 }
 
 onMounted(() => {
@@ -164,12 +156,8 @@ onMounted(() => {
             <div class="flex flex-wrap items-center justify-between gap-2">
               <label class="text-sm font-medium text-slate-700">系统支持的语言</label>
               <div class="flex flex-wrap gap-2 text-xs">
-                <button type="button" class="text-blue-600 hover:underline" @click="toggleAllLocales(true)">
+                <button type="button" class="text-blue-600 hover:underline" @click="selectAllLocales">
                   全选
-                </button>
-                <span class="text-slate-300">|</span>
-                <button type="button" class="text-blue-600 hover:underline" @click="toggleAllLocales(false)">
-                  仅保留简体中文
                 </button>
               </div>
             </div>
@@ -210,7 +198,7 @@ onMounted(() => {
                 </tbody>
               </table>
             </div>
-            <p class="text-xs text-slate-500">新访客与未保存过偏好的用户将使用「默认」语言；需在已启用的语言中指定其一。</p>
+            <!-- <p class="text-xs text-slate-500">新访客与未保存过偏好的用户将使用「默认」语言；需在已启用的语言中指定其一。</p> -->
 
             <div class="flex items-start justify-between gap-4 rounded-lg border border-slate-100 bg-slate-50/80 px-4 py-3">
               <div class="min-w-0 flex-1">
@@ -249,11 +237,7 @@ onMounted(() => {
           <div class="flex flex-wrap items-center justify-between gap-2">
             <span class="text-sm font-medium text-slate-700">可选区号列表</span>
             <div class="flex flex-wrap gap-2 text-xs">
-              <button type="button" class="text-blue-600 hover:underline" @click="toggleAllDials(true)">全选</button>
-              <span class="text-slate-300">|</span>
-              <button type="button" class="text-blue-600 hover:underline" @click="toggleAllDials(false)">
-                仅中国大陆 +86
-              </button>
+              <button type="button" class="text-blue-600 hover:underline" @click="selectAllDialCodes">全选</button>
             </div>
           </div>
           <div class="overflow-x-auto overflow-hidden rounded-lg border border-slate-200">
@@ -281,7 +265,7 @@ onMounted(() => {
               </tbody>
             </table>
           </div>
-          <p class="text-xs text-slate-500">至少保留一个区号；若全部取消，保存后会自动保留 +86。</p>
+          <!-- <p class="text-xs text-slate-500">至少保留一个区号；若全部取消，保存后会自动保留 +86。</p> -->
         </section>
       </div>
 
