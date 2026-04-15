@@ -1,5 +1,5 @@
 /**
- * 前台导航链接（/front）。「更多」演示入口在右下角 CrossPlatformFloatNav。
+ * 前台导航链接（/front）。「更多」入口在右下角 CrossPlatformFloatNav；平台入口另含管理台、代理系统。
  * @param {'/front'} prefix
  */
 
@@ -83,7 +83,7 @@ export function getFrontBottomTabs(prefix) {
   ]
 }
 
-/** 演示 / 工具入口（更多） */
+/** 更多链接（工具与扩展页） */
 export function getFrontMoreDemoLinks(prefix) {
   return [
     { key: 'verify', label: '身份认证', to: `${prefix}/personal-center/verification` },

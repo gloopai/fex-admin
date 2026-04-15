@@ -11,7 +11,8 @@ const rootRef = ref(null)
 
 const platformEntries = [
   { key: 'admin', label: '管理台', to: '/admin' },
-  { key: 'front', label: '前台', to: '/front/home' }
+  { key: 'front', label: '前台', to: '/front/home' },
+  { key: 'agent-system', label: '代理系统', to: '/agent-system/dashboard' }
 ]
 
 const moreLinks = computed(() => getFrontMoreDemoLinks('/front'))
@@ -19,6 +20,7 @@ const moreLinks = computed(() => getFrontMoreDemoLinks('/front'))
 const currentEntry = computed(() => {
   if (route.path.startsWith('/admin')) return 'admin'
   if (route.path.startsWith('/front')) return 'front'
+  if (route.path.startsWith('/agent-system')) return 'agent-system'
   return ''
 })
 
@@ -112,7 +114,7 @@ function platformRowClass(key) {
 
         <div class="mx-2 my-2 border-t border-white/10" role="separator" />
 
-        <div class="px-3 pb-1 text-[10px] font-semibold tracking-wide text-white/40">更多（演示）</div>
+        <div class="px-3 pb-1 text-[10px] font-semibold tracking-wide text-white/40">更多</div>
         <RouterLink
           v-for="item in moreLinks"
           :key="item.key"

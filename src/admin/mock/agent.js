@@ -16,7 +16,20 @@ export const mockAgentList = [
     createdAt: '2025-01-15 10:30:00',
     lastActiveAt: '2026-03-08 14:20:00',
     productCommission: normalizeAgentProductCommission({
-      agentDepositCommissionRate: '0.12'
+      agentDepositCommissionEnabled: true,
+      agentDepositCommissionRate: '0.12',
+      agentPerpetualCommissionEnabled: true,
+      agentPerpetualCommissionRate: '0.35',
+      agentDeliveryCommissionEnabled: true,
+      agentDeliveryCommissionRate: '0.28',
+      agentSpotCommissionEnabled: true,
+      agentSpotCommissionRate: '0.22',
+      agentAiQuantCommissionEnabled: true,
+      agentAiQuantCommissionRate: '0.15',
+      agentLendingCommissionEnabled: true,
+      agentLendingCommissionRate: '0.10',
+      agentBorrowingCommissionEnabled: false,
+      agentBorrowingCommissionRate: '0'
     })
   },
   {

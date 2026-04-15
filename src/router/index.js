@@ -2,7 +2,9 @@ import { createRouter, createWebHistory } from 'vue-router'
 import ConsoleLayout from '../layouts/ConsoleLayout.vue'
 import FrontDesktopLayout from '../layouts/FrontDesktopLayout.vue'
 import HomeEntryPage from '../pages/HomeEntryPage.vue'
+import { useAgentAuthStore } from '../stores/agentAuth'
 import { useFrontAuthStore } from '../stores/frontAuth'
+import { agentSystemRoutes } from './modules/agentSystem'
 import { consoleRoutes } from './modules/console'
 import { legacyRoutes } from './modules/legacy'
 import { frontDesktopRoutes } from './modules/front'
@@ -26,6 +28,7 @@ const routes = [
     component: FrontDesktopLayout,
     children: frontDesktopRoutes
   },
+  ...agentSystemRoutes,
   /** 旧 /m 路径重定向到统一响应式前台 */
   {
     path: '/m',
@@ -60,6 +63,30 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
+  const agentAuth = useAgentAuthStore()
+  agentAuth.ensureHydrated()
+
+  if (to.path.startsWith('/agent-system')) {
+    const needAgent = to.matched.some((r) => r.meta.agentRequiresAuth)
+    if (needAgent && !agentAuth.isLoggedIn) {
+      return {
+        path: '/agent-system/login',
+        query: { redirect: to.fullPath }
+      }
+    }
+    const guestAgent = to.matched.some((r) => r.meta.agentGuestOnly)
+    if (guestAgent && agentAuth.isLoggedIn) {
+      const r =
+        typeof to.query.redirect === 'string' &&
+        to.query.redirect.startsWith('/agent-system') &&
+        !to.query.redirect.startsWith('/agent-system/login')
+          ? to.query.redirect
+          : '/agent-system/dashboard'
+      return r
+    }
+    return true
+  }
+
   const auth = useFrontAuthStore()
   auth.ensureHydrated()
 
