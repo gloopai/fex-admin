@@ -21,7 +21,7 @@ import FrontStrokeIcon from '../../components/front/FrontStrokeIcon.vue'
 
 const verifyHref = '/front/personal-center/verification'
 
-/** 下拉框专用：与真实权限 key 区分，表示「已完成认证但后台关闭出金」策略弹窗演示 */
+/** 下拉框专用：与真实权限 key 区分，表示「已完成认证但后台关闭提币」策略弹窗演示 */
 const DEMO_POLICY_WITHDRAW_KEY = 'demoPolicyWithdrawDisabled'
 
 /** 模拟当前用户认证等级 */
@@ -39,7 +39,7 @@ const moduleBundle = computed(() => {
     return {
       ...b,
       isPolicyWithdrawDemo: true,
-      adminLabel: `${VERIFICATION_PERMISSION_ADMIN_LABEL.canWithdraw}（策略关闭 · 演示）`
+      adminLabel: '允许提币（策略关闭 · 演示）'
     }
   }
   return {
@@ -81,7 +81,7 @@ const permissionOptions = computed(() => [
     value: key,
     label: VERIFICATION_PERMISSION_ADMIN_LABEL[key]
   })),
-  { value: DEMO_POLICY_WITHDRAW_KEY, label: '演示：高级认证但后台关闭出金' }
+  { value: DEMO_POLICY_WITHDRAW_KEY, label: '演示：高级认证但后台关闭提币' }
 ])
 
 const showDialog = ref(false)
@@ -179,7 +179,7 @@ const levelOptions = [
           v-if="moduleBundle.isPolicyWithdrawDemo"
           class="mt-2 border-t border-white/10 pt-2 text-amber-200/90"
         >
-          当前为<strong class="font-medium text-amber-100/95">策略限制演示</strong>：认证等级已够，但后台关闭「允许出金」。请使用下方第 5
+          当前为<strong class="font-medium text-amber-100/95">策略限制演示</strong>：认证等级已够，但后台关闭「允许提币」。请使用下方第 5
           节弹窗预览提示文案（非「去认证」类拦截）。
         </p>
         <p
@@ -282,13 +282,13 @@ const levelOptions = [
       </p>
     </section>
 
-    <!-- 5. 与认证等级无关：后台关闭「允许出金」（弹窗，与第 4 节同形态） -->
+    <!-- 5. 与认证等级无关：后台关闭「允许提币」（弹窗，与第 4 节同形态） -->
     <section class="mb-10">
       <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
-        5. 弹窗：已完成高级认证，但后台不允许出金
+        5. 弹窗：已完成高级认证，但后台不允许提币
       </h2>
       <p class="mb-4 text-xs leading-relaxed text-white/55">
-        与「未满足认证等级」不同：用户可能已是<strong class="font-medium text-white/75">高级认证</strong>，但后台关闭了<strong class="font-medium text-amber-200/90">允许出金</strong>。请在上方「模拟业务模块」选择<strong class="text-white/80">「演示：高级认证但后台关闭出金」</strong>后，点击下方按钮预览弹窗（无「去认证」引导）。
+        与「未满足认证等级」不同：用户可能已是<strong class="font-medium text-white/75">高级认证</strong>，但后台关闭了<strong class="font-medium text-amber-200/90">允许提币</strong>。请在上方「模拟业务模块」选择<strong class="text-white/80">「演示：高级认证但后台关闭提币」</strong>后，点击下方按钮预览弹窗（无「去认证」引导）。
       </p>
 
       <button
@@ -297,13 +297,13 @@ const levelOptions = [
         :disabled="!moduleBundle.isPolicyWithdrawDemo"
         @click="showPolicyWithdrawDialog = true"
       >
-        打开出金策略提示
+        打开提币策略提示
       </button>
       <p v-if="!moduleBundle.isPolicyWithdrawDemo" class="mt-2 text-xs text-white/40">
-        请先在上文 select 中选择「演示：高级认证但后台关闭出金」。
+        请先在上文 select 中选择「演示：高级认证但后台关闭提币」。
       </p>
       <p v-else class="mt-2 text-xs text-white/45">
-        模拟用户点击「提币 / 出金」被策略拦截；布局与第 4 节 <code class="rounded bg-white/10 px-1 py-0.5 text-[11px] text-lime-200/90">VerificationRequiredDialog</code> 一致（PC 居中 / 移动端底部抽屉）。
+        模拟用户点击「提币」被策略拦截；布局与第 4 节 <code class="rounded bg-white/10 px-1 py-0.5 text-[11px] text-lime-200/90">VerificationRequiredDialog</code> 一致（PC 居中 / 移动端底部抽屉）。
       </p>
     </section>
 
@@ -347,10 +347,10 @@ const levelOptions = [
             </div>
 
             <h2 id="policy-wd-dialog-title" class="mt-2 text-lg font-semibold leading-snug text-amber-50">
-              暂无法出金
+              暂无法提币
             </h2>
             <p class="mt-2 text-sm leading-relaxed text-amber-100/85">
-              您已完成高级身份认证，但当前账户根据平台策略暂不可发起出金。如有疑问请联系客服或等待审核结果。
+              您已完成高级身份认证，但当前账户根据平台策略暂不可发起提币。如有疑问请联系客服或等待审核结果。
             </p>
             <p
               v-if="simulatedUserLevel === VERIFICATION_LEVEL.ADVANCED"
