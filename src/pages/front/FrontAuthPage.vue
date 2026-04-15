@@ -813,12 +813,12 @@ async function onPickWalletProvider(providerKey) {
           </button>
         </p>
 
-        <p class="mt-3 text-center text-xs leading-snug text-white/38 sm:text-[9px] sm:text-white/32">
+        <!-- <p class="mt-3 text-center text-xs leading-snug text-white/38 sm:text-[9px] sm:text-white/32">
           演示：钱包未接真实扩展；账号仅存本机 ·
           <code class="rounded bg-white/[0.06] px-1 py-px text-[11px] text-white/55 sm:text-[9px] sm:text-white/45"
             >frontAuth</code
           >
-        </p>
+        </p> -->
       </div>
     </div>
 
