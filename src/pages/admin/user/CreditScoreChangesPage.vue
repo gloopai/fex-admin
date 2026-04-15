@@ -1,7 +1,51 @@
 <script setup>
 import { ref, computed, onMounted, watch, reactive } from 'vue'
-import { getCreditScoreChanges, creditScoreChanges } from '../../../admin/mock/creditScore'
-import { CREDIT_SCORE_CHANGE_TYPE, CREDIT_SCORE_CHANGE_TYPE_OPTIONS } from '../../../admin/constants/creditScore'
+import {
+  getCreditScoreChanges,
+  creditScoreChanges,
+  creditScoreAuditList
+} from '../../../admin/mock/creditScore'
+import {
+  CREDIT_SCORE_CHANGE_TYPE,
+  CREDIT_SCORE_CHANGE_TYPE_OPTIONS,
+  CREDIT_SCORE_AUDIT_STATUS
+} from '../../../admin/constants/creditScore'
+import CreditScoreAuditDrawer from '../../../admin/components/credit-score-audit/CreditScoreAuditDrawer.vue'
+
+/** 将变动日志行转为审核抽屉所需结构，并尽量关联审核库中的记录以展示历史审核信息 */
+function buildAuditFromChange(change) {
+  const matched = creditScoreAuditList.find(
+    (a) =>
+      a.userId === change.userId &&
+      a.beforeScore === change.beforeScore &&
+      a.afterScore === change.afterScore &&
+      a.changeAmount === change.changeAmount &&
+      a.changeType === change.changeType
+  )
+  if (matched) {
+    return { ...matched }
+  }
+  return {
+    id: change.id,
+    userId: change.userId,
+    username: change.username,
+    email: `${change.username}@example.com`,
+    changeType: change.changeType,
+    beforeScore: change.beforeScore,
+    afterScore: change.afterScore,
+    changeAmount: change.changeAmount,
+    relatedAmount: change.relatedAmount ?? null,
+    reason: change.reason,
+    applyOperatorId: change.operatorId,
+    applyOperatorName: change.operatorName,
+    applyTime: change.createdAt,
+    auditStatus: CREDIT_SCORE_AUDIT_STATUS.AUTO_APPROVED,
+    auditTime: change.createdAt,
+    auditorId: null,
+    auditorName: '—',
+    auditNote: '系统自动生效，无人工审核记录'
+  }
+}
 
 // 搜索和筛选
 const searchKeyword = ref('')
@@ -118,6 +162,20 @@ const resetFilters = () => {
 // 导出数据
 const exportData = () => {
   alert('导出功能待实现')
+}
+
+// 变动详情抽屉（含「历史审核信息」，与「信用分变动审核」页待处理抽屉区分）
+const showChangeDetail = ref(false)
+const selectedAuditPayload = ref(null)
+
+const openChangeDetail = (change) => {
+  selectedAuditPayload.value = buildAuditFromChange(change)
+  showChangeDetail.value = true
+}
+
+const closeChangeDetail = () => {
+  showChangeDetail.value = false
+  selectedAuditPayload.value = null
 }
 </script>
 
@@ -243,6 +301,7 @@ const exportData = () => {
               <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">原因</th>
               <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">操作人</th>
               <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">时间</th>
+              <th class="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">操作</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-200">
@@ -312,11 +371,20 @@ const exportData = () => {
               <td class="px-4 py-3">
                 <span class="text-sm text-slate-600">{{ formatDateTime(change.createdAt) }}</span>
               </td>
+              <td class="px-4 py-3 text-right">
+                <button
+                  type="button"
+                  class="text-sm font-medium text-blue-600 hover:text-blue-800"
+                  @click="openChangeDetail(change)"
+                >
+                  查看
+                </button>
+              </td>
             </tr>
 
             <!-- 空状态 -->
             <tr v-if="!loading && changes.length === 0">
-              <td colspan="9" class="px-4 py-12 text-center">
+              <td colspan="10" class="px-4 py-12 text-center">
                 <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
@@ -350,5 +418,13 @@ const exportData = () => {
         </div>
       </div>
     </div>
+
+    <CreditScoreAuditDrawer
+      :visible="showChangeDetail"
+      :audit="selectedAuditPayload"
+      :show-audit-history-section="true"
+      read-only
+      @close="closeChangeDetail"
+    />
   </section>
 </template>

@@ -67,7 +67,7 @@ watch(
     <Transition name="vreq-dlg">
       <div
         v-if="overlayVisible"
-        class="fixed inset-0 z-[100] flex items-end justify-center px-4 pb-4 sm:items-center sm:p-4"
+        class="fixed inset-0 z-[100] flex min-h-[100dvh] w-screen max-w-[100vw] items-end justify-center px-4 pb-4 sm:items-center sm:p-4"
         role="dialog"
         aria-modal="true"
         aria-labelledby="vreq-dialog-title"

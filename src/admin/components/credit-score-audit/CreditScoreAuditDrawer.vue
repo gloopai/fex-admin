@@ -4,7 +4,11 @@ import { CREDIT_SCORE_CHANGE_TYPE, CREDIT_SCORE_AUDIT_STATUS } from '../../const
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
-  audit: { type: Object, default: null }
+  audit: { type: Object, default: null },
+  /** 是否展示「历史审核信息」区块（信用分变动日志里查看详情时为 true；待审核处理时为 false） */
+  showAuditHistorySection: { type: Boolean, default: false },
+  /** 仅查看：隐藏通过/拒绝操作区 */
+  readOnly: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['close', 'submit'])
@@ -101,11 +105,12 @@ const submitAudit = () => {
 </script>
 
 <template>
-  <Transition name="audit-drawer">
-    <div
-      v-if="visible && audit && selectedAuditContext"
-      class="fixed inset-0 z-40 bg-slate-900/35"
-    >
+  <Teleport to="body">
+    <Transition name="audit-drawer">
+      <div
+        v-if="visible && audit && selectedAuditContext"
+        class="fixed inset-0 z-[100] min-h-[100dvh] w-screen max-w-[100vw] bg-slate-900/35"
+      >
       <section class="audit-drawer-panel flex h-[88vh] w-full flex-col overflow-hidden rounded-b-2xl border-b border-slate-200 bg-slate-50 shadow-2xl">
         <div class="border-b border-slate-200 bg-gradient-to-r from-white to-slate-100 px-5 py-4">
           <div class="flex items-start justify-between gap-4">
@@ -200,7 +205,7 @@ const submitAudit = () => {
               </section>
             </div>
 
-            <section class="rounded-xl border border-slate-200 bg-white p-4">
+            <section v-if="showAuditHistorySection" class="rounded-xl border border-slate-200 bg-white p-4">
               <div class="text-xs text-slate-500">历史审核信息</div>
               <div class="mt-3 grid grid-cols-1 gap-2 text-sm md:grid-cols-2">
                 <div class="rounded-lg bg-slate-50 px-3 py-2">
@@ -216,11 +221,27 @@ const submitAudit = () => {
         </div>
 
         <section class="shrink-0 border-t border-slate-200 bg-white px-5 py-4">
+          <template v-if="readOnly">
+            <div class="flex justify-end">
+              <button type="button" class="ant-btn" @click="handleClose">关闭</button>
+            </div>
+          </template>
+          <template v-else>
           <div class="text-xs text-slate-500">审核操作</div>
           <div class="mt-3 flex flex-wrap justify-end gap-2">
             <button type="button" class="ant-btn" @click="handleClose">关闭</button>
-            <button type="button" class="ant-btn ant-btn-primary" @click="startAuditAction('approve')">通过</button>
-            <button type="button" class="ant-btn ant-btn-danger" @click="startAuditAction('reject')">拒绝</button>
+            <button
+              v-if="audit.auditStatus === CREDIT_SCORE_AUDIT_STATUS.PENDING"
+              type="button"
+              class="ant-btn ant-btn-primary"
+              @click="startAuditAction('approve')"
+            >通过</button>
+            <button
+              v-if="audit.auditStatus === CREDIT_SCORE_AUDIT_STATUS.PENDING"
+              type="button"
+              class="ant-btn ant-btn-danger"
+              @click="startAuditAction('reject')"
+            >拒绝</button>
           </div>
 
           <div v-if="auditAction" class="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
@@ -252,10 +273,12 @@ const submitAudit = () => {
               <button type="button" class="ant-btn" @click="auditAction = null">取消</button>
             </div>
           </div>
+          </template>
         </section>
       </section>
-    </div>
-  </Transition>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <style scoped>
