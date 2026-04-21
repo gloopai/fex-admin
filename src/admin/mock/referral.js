@@ -2,8 +2,94 @@ import {
   REFERRAL_MAX_LEVELS,
   REFERRAL_TYPE,
   COMMISSION_STATUS,
-  DEFAULT_REFERRAL_CONFIG
+  DEFAULT_REFERRAL_CONFIG,
+  REFERRAL_COMMISSION_CREDIT_TO,
+  REFERRAL_SETTLEMENT_CYCLE,
+  normalizeReferralSettlementTimeLocal,
+  getReferralCreditToLabel,
+  getReferralSettlementCycleLabel,
+  getReferralSettlementScheduleLine,
+  getReferralSettlementNotifyLine,
+  getReferralSettlementNotifyShort
 } from '../constants/referral'
+
+const VALID_REFERRAL_CREDIT_TO = new Set(Object.values(REFERRAL_COMMISSION_CREDIT_TO))
+
+function formatCompletedAt() {
+  const d = new Date()
+  const p = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
+}
+
+function round2(n) {
+  return Math.round((Number(n) || 0) * 100) / 100
+}
+
+function computeCommissionAggregates(list) {
+  let pendingCount = 0
+  let completedCount = 0
+  let failedCount = 0
+  let processingCount = 0
+  let cancelledCount = 0
+  let totalCommission = 0
+  let completedCommission = 0
+  for (const r of list) {
+    const c = Number(r.commission) || 0
+    totalCommission += c
+    switch (r.status) {
+      case COMMISSION_STATUS.PENDING:
+        pendingCount++
+        break
+      case COMMISSION_STATUS.COMPLETED:
+        completedCount++
+        completedCommission += c
+        break
+      case COMMISSION_STATUS.FAILED:
+        failedCount++
+        break
+      case COMMISSION_STATUS.PROCESSING:
+        processingCount++
+        break
+      case COMMISSION_STATUS.CANCELLED:
+        cancelledCount++
+        break
+      default:
+        break
+    }
+  }
+  return {
+    totalRecords: list.length,
+    pendingCount,
+    completedCount,
+    failedCount,
+    processingCount,
+    cancelledCount,
+    totalCommission: round2(totalCommission),
+    completedCommission: round2(completedCommission)
+  }
+}
+
+function enrichCommissionRecord(record, cfg) {
+  const creditKey = record.appliedCreditTo ?? cfg.referralCommissionCreditTo
+  const cycleKey = record.appliedSettlementCycle ?? cfg.referralSettlementCycle
+
+  return {
+    ...record,
+    _settlement: {
+      creditLabel: getReferralCreditToLabel(creditKey),
+      settlementCycleLabel: getReferralSettlementCycleLabel(cycleKey),
+      settlementScheduleLabel: getReferralSettlementScheduleLine(cfg),
+      settlementNotifyShort: getReferralSettlementNotifyShort(cfg),
+      creditTxnId: record.creditTxnId ?? record.mockCreditTxnId ?? null
+    }
+  }
+}
+
+function buildExecuteSuccessMessage(cfg, rec) {
+  const credit = getReferralCreditToLabel(cfg.referralCommissionCreditTo)
+  const time = normalizeReferralSettlementTimeLocal(cfg.referralSettlementTimeLocal)
+  return `发放成功，已入账「${credit}」（每自然日，${time} 日切）。流水号：${rec.creditTxnId}。`
+}
 
 const COMMISSION_RATE_KEYS = [
   'depositCommissionRates',
@@ -56,6 +142,20 @@ export function normalizeReferralConfig(raw) {
   for (const k of boolKeys) {
     if (typeof o[k] !== 'boolean') o[k] = DEFAULT_REFERRAL_CONFIG[k]
   }
+  if (!VALID_REFERRAL_CREDIT_TO.has(o.referralCommissionCreditTo)) {
+    o.referralCommissionCreditTo = DEFAULT_REFERRAL_CONFIG.referralCommissionCreditTo
+  }
+  o.referralSettlementCycle = REFERRAL_SETTLEMENT_CYCLE.CALENDAR_DAY
+  o.referralSettlementTimeLocal = normalizeReferralSettlementTimeLocal(o.referralSettlementTimeLocal)
+  const notifyKeys = [
+    'referralNotifyAfterSettlementEmail',
+    'referralNotifyAfterSettlementSite',
+    'referralNotifyAfterSettlementSms'
+  ]
+  for (const k of notifyKeys) {
+    o[k] = o[k] === true
+  }
+  if ('referralWithdrawMode' in o) delete o.referralWithdrawMode
   if ('periodicCommissionRates' in o) delete o.periodicCommissionRates
   for (const k of COMMISSION_RATE_KEYS) {
     if (k in o) {
@@ -337,15 +437,33 @@ export const referralApi = {
         const total = list.length
         const start = (page - 1) * pageSize
         const end = start + pageSize
-        const paginatedList = list.slice(start, end)
+        const cfg = normalizeReferralConfig(mockReferralConfig)
+        const aggregates = computeCommissionAggregates(list)
+        const paginatedList = list
+          .slice(start, end)
+          .map((r) => enrichCommissionRecord(r, cfg))
 
         resolve({
           success: true,
           data: {
             list: paginatedList,
-            total: total,
-            page: page,
-            pageSize: pageSize
+            total,
+            page,
+            pageSize,
+            aggregates,
+            settlementGlobal: {
+              referralCommissionCreditTo: cfg.referralCommissionCreditTo,
+              creditLabel: getReferralCreditToLabel(cfg.referralCommissionCreditTo),
+              referralSettlementCycle: cfg.referralSettlementCycle,
+              referralSettlementTimeLocal: cfg.referralSettlementTimeLocal,
+              referralNotifyAfterSettlementEmail: cfg.referralNotifyAfterSettlementEmail,
+              referralNotifyAfterSettlementSite: cfg.referralNotifyAfterSettlementSite,
+              referralNotifyAfterSettlementSms: cfg.referralNotifyAfterSettlementSms,
+              settlementCycleLabel: getReferralSettlementCycleLabel(cfg.referralSettlementCycle),
+              settlementScheduleLabel: getReferralSettlementScheduleLine(cfg),
+              settlementNotifyLine: getReferralSettlementNotifyLine(cfg),
+              settlementNotifyShort: getReferralSettlementNotifyShort(cfg)
+            }
           }
         })
       }, 300)
@@ -376,15 +494,34 @@ export const referralApi = {
     })
   },
 
-  // 手动执行分佣
+  // 手动执行分佣：写入入账快照与调账流水号
   executeCommission: (recordId) => {
     return new Promise((resolve) => {
       setTimeout(() => {
+        const rec = extendedCommissionRecords.find((r) => r.id === recordId)
+        if (!rec) {
+          resolve({ success: false, message: '未找到该分佣记录' })
+          return
+        }
+        if (
+          rec.status !== COMMISSION_STATUS.PENDING &&
+          rec.status !== COMMISSION_STATUS.FAILED
+        ) {
+          resolve({ success: false, message: '仅「待发放」或「失败」状态可执行' })
+          return
+        }
+        const cfg = normalizeReferralConfig(mockReferralConfig)
+        rec.status = COMMISSION_STATUS.COMPLETED
+        rec.completedAt = formatCompletedAt()
+        rec.appliedCreditTo = cfg.referralCommissionCreditTo
+        rec.appliedSettlementCycle = cfg.referralSettlementCycle
+        rec.creditTxnId = `RF-CR-${Date.now()}`
         resolve({
           success: true,
-          message: '分佣执行成功'
+          message: buildExecuteSuccessMessage(cfg, rec),
+          data: { recordId, creditTxnId: rec.creditTxnId }
         })
-      }, 500)
+      }, 450)
     })
   },
 
@@ -392,11 +529,37 @@ export const referralApi = {
   batchExecuteCommission: (recordIds) => {
     return new Promise((resolve) => {
       setTimeout(() => {
+        const cfg = normalizeReferralConfig(mockReferralConfig)
+        let n = 0
+        const txns = []
+        for (const id of recordIds) {
+          const rec = extendedCommissionRecords.find((r) => r.id === id)
+          if (
+            !rec ||
+            (rec.status !== COMMISSION_STATUS.PENDING && rec.status !== COMMISSION_STATUS.FAILED)
+          ) {
+            continue
+          }
+          rec.status = COMMISSION_STATUS.COMPLETED
+          rec.completedAt = formatCompletedAt()
+          rec.appliedCreditTo = cfg.referralCommissionCreditTo
+          rec.appliedSettlementCycle = cfg.referralSettlementCycle
+          rec.creditTxnId = `RF-CR-${Date.now()}-${n}`
+          txns.push(rec.creditTxnId)
+          n++
+        }
+        const credit = getReferralCreditToLabel(cfg.referralCommissionCreditTo)
+        const time = normalizeReferralSettlementTimeLocal(cfg.referralSettlementTimeLocal)
+        const preview = txns.slice(0, 2).join('、')
         resolve({
           success: true,
-          message: `成功执行${recordIds.length}条分佣记录`
+          message:
+            n > 0
+              ? `已批量发放 ${n} 笔，入账「${credit}」（每自然日 ${time} 日切）。流水号示例：${preview}${txns.length > 2 ? '…' : ''}`
+              : '没有可执行的记录（需为待发放或失败状态）',
+          data: { count: n, creditTxnIds: txns }
         })
-      }, 800)
+      }, 600)
     })
   }
 }

@@ -1,7 +1,19 @@
 <script setup>
 import { ref, computed, onMounted, reactive, watch } from 'vue'
 import { referralApi } from '../../../admin/mock/referral'
-import { COMMISSION_STATUS, COMMISSION_STATUS_OPTIONS, REFERRAL_TYPE_OPTIONS } from '../../../admin/constants/referral'
+import {
+  COMMISSION_STATUS,
+  COMMISSION_STATUS_OPTIONS,
+  REFERRAL_TYPE_OPTIONS
+} from '../../../admin/constants/referral'
+
+const STATUS_BADGE_CLASS = {
+  yellow: 'bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-200',
+  blue: 'bg-blue-50 text-blue-800 ring-1 ring-inset ring-blue-200',
+  green: 'bg-emerald-50 text-emerald-800 ring-1 ring-inset ring-emerald-200',
+  red: 'bg-red-50 text-red-800 ring-1 ring-inset ring-red-200',
+  gray: 'bg-slate-50 text-slate-600 ring-1 ring-inset ring-slate-200'
+}
 
 // 搜索和筛选
 const searchKeyword = ref('')
@@ -21,6 +33,8 @@ const totalPages = computed(() => Math.ceil(pagination.total / pagination.pageSi
 
 // 记录列表
 const recordList = ref([])
+const aggregates = ref(null)
+const settlementGlobal = ref(null)
 
 // 加载分佣记录
 const loadCommissionRecords = async () => {
@@ -37,6 +51,8 @@ const loadCommissionRecords = async () => {
     if (result.success) {
       recordList.value = result.data.list
       pagination.total = result.data.total
+      aggregates.value = result.data.aggregates ?? null
+      settlementGlobal.value = result.data.settlementGlobal ?? null
     }
   } catch (error) {
     console.error('Failed to load commission records:', error)
@@ -74,17 +90,44 @@ onMounted(() => {
 // 选中的记录
 const selectedRecords = ref([])
 
-// 统计数据
+// 统计数据（与当前筛选条件一致的全量聚合，非仅当前页）
 const stats = computed(() => {
-  // 在分页场景下，全量统计应该由后端 API 提供。目前 Mock 环境暂用分页总数演示。
+  const a = aggregates.value
+  if (!a) {
+    return [
+      { label: '总记录数', value: '—', colorKey: 'blue' },
+      { label: '待发放', value: '—', colorKey: 'yellow' },
+      { label: '已完成', value: '—', colorKey: 'green' },
+      { label: '筛选内累计佣金', value: '—', colorKey: 'purple' },
+      { label: '已发放佣金', value: '—', colorKey: 'green' }
+    ]
+  }
   return [
-    { label: '总记录数', value: pagination.total, color: 'blue' },
-    { label: '待发放', value: '-', color: 'yellow' },
-    { label: '已完成', value: '-', color: 'green' },
-    { label: '累计佣金', value: '-', color: 'purple' },
-    { label: '已发放佣金', value: '-', color: 'green' }
+    { label: '总记录数', value: a.totalRecords, colorKey: 'blue' },
+    { label: '待发放', value: a.pendingCount, colorKey: 'yellow' },
+    { label: '已完成', value: a.completedCount, colorKey: 'green' },
+    {
+      label: '筛选内累计佣金',
+      value: `$${a.totalCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      colorKey: 'purple'
+    },
+    {
+      label: '已发放佣金',
+      value: `$${a.completedCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      colorKey: 'green'
+    }
   ]
 })
+
+const statValueClass = (colorKey) => {
+  const map = {
+    blue: 'text-blue-600',
+    yellow: 'text-amber-600',
+    green: 'text-emerald-600',
+    purple: 'text-violet-600'
+  }
+  return map[colorKey] || 'text-slate-700'
+}
 
 // 获取状态配置
 const getStatusConfig = (status) => {
@@ -131,11 +174,9 @@ const executeCommission = async (recordId) => {
   try {
     const result = await referralApi.executeCommission(recordId)
     if (result.success) {
-      const record = recordList.value.find(r => r.id === recordId)
-      if (record) {
-        record.status = COMMISSION_STATUS.COMPLETED
-        record.completedAt = new Date().toISOString()
-      }
+      alert(result.message)
+      await loadCommissionRecords()
+    } else if (result.message) {
       alert(result.message)
     }
   } catch (error) {
@@ -155,15 +196,10 @@ const batchExecute = async () => {
   try {
     const result = await referralApi.batchExecuteCommission(selectedRecords.value)
     if (result.success) {
-      // 更新所有选中记录的状态
-      selectedRecords.value.forEach(id => {
-        const record = recordList.value.find(r => r.id === id)
-        if (record) {
-          record.status = COMMISSION_STATUS.COMPLETED
-          record.completedAt = new Date().toISOString()
-        }
-      })
       selectedRecords.value = []
+      alert(result.message)
+      await loadCommissionRecords()
+    } else if (result.message) {
       alert(result.message)
     }
   } catch (error) {
@@ -179,7 +215,9 @@ const exportData = () => {
 // 格式化日期
 const formatDate = (dateString) => {
   if (!dateString) return '-'
-  return new Date(dateString).toLocaleDateString('zh-CN', {
+  const d = new Date(dateString.includes('T') ? dateString : `${dateString.replace(' ', 'T')}`)
+  if (Number.isNaN(d.getTime())) return dateString
+  return d.toLocaleString('zh-CN', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -187,29 +225,48 @@ const formatDate = (dateString) => {
     minute: '2-digit'
   })
 }
+
+const statusBadgeClass = (status) => {
+  const color = getStatusConfig(status).color
+  return STATUS_BADGE_CLASS[color] || STATUS_BADGE_CLASS.gray
+}
 </script>
 
 <template>
   <div class="space-y-6">
     <!-- 页面标题 -->
-    <div class="flex justify-between items-center">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
         <h1 class="text-2xl font-bold text-slate-900">裂变分佣记录</h1>
-        <p class="mt-1 text-sm text-slate-500">
-          查看邀请裂变关系产生的分佣流水与发放状态。
-        </p>
+        <p class="mt-1 text-sm text-slate-500">邀请链分佣流水；执行发放时按「裂变分销设置 → 资金入账」写入入账快照。</p>
       </div>
+      <router-link
+        to="/admin/agent/referral-config"
+        class="ant-btn inline-flex shrink-0 items-center justify-center no-underline"
+      >
+        裂变分销设置
+      </router-link>
+    </div>
+
+    <div v-if="settlementGlobal" class="space-y-0.5 text-sm text-slate-600">
+      <p>
+        当前入账：<span class="font-medium text-slate-800">{{ settlementGlobal.creditLabel }}</span>
+      </p>
+      <p>
+        结算安排：<span class="font-medium text-slate-800">{{ settlementGlobal.settlementScheduleLabel }}</span>
+      </p>
+      <p class="text-xs text-slate-500">{{ settlementGlobal.settlementNotifyLine }}</p>
     </div>
 
     <!-- 统计卡片 -->
-    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-5">
       <div
         v-for="stat in stats"
         :key="stat.label"
-        class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm"
+        class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
       >
-        <p class="text-xs text-slate-500 font-medium">{{ stat.label }}</p>
-        <p class="mt-1 text-xl font-bold" :class="`text-${stat.color === 'yellow' ? 'amber' : (stat.color === 'green' ? 'emerald' : (stat.color === 'purple' ? 'purple' : 'blue'))}-600`">{{ stat.value }}</p>
+        <p class="text-xs font-medium text-slate-500">{{ stat.label }}</p>
+        <p class="mt-1 text-xl font-bold tabular-nums" :class="statValueClass(stat.colorKey)">{{ stat.value }}</p>
       </div>
     </div>
 
@@ -301,6 +358,9 @@ const formatDate = (dateString) => {
               <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">上级（获益方）</th>
               <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">被邀请人</th>
               <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">分佣详情</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider min-w-[9rem]">
+                入账
+              </th>
               <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">状态</th>
               <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">时间</th>
               <th class="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">操作</th>
@@ -338,10 +398,18 @@ const formatDate = (dateString) => {
                   佣金: ${{ record.commission.toLocaleString() }}
                 </div>
               </td>
+              <td class="px-6 py-4 align-top text-xs text-slate-700">
+                <template v-if="record._settlement">
+                  <p class="font-medium text-slate-900">{{ record._settlement.creditLabel }}</p>
+                  <p class="mt-0.5 text-[11px] text-slate-500">{{ record._settlement.settlementScheduleLabel }}</p>
+                  <p class="mt-0.5 text-[10px] text-slate-500">{{ record._settlement.settlementNotifyShort }}</p>
+                  <p v-if="record._settlement.creditTxnId" class="mt-1 font-mono text-[10px] text-slate-400">
+                    {{ record._settlement.creditTxnId }}
+                  </p>
+                </template>
+              </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <span 
-                  :class="`px-2 py-1 text-xs font-semibold rounded-full bg-${getStatusConfig(record.status).color}-100 text-${getStatusConfig(record.status).color}-800`"
-                >
+                <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="statusBadgeClass(record.status)">
                   {{ getStatusConfig(record.status).text }}
                 </span>
               </td>
@@ -354,6 +422,7 @@ const formatDate = (dateString) => {
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <button
                   v-if="record.status === COMMISSION_STATUS.PENDING || record.status === COMMISSION_STATUS.FAILED"
+                  type="button"
                   @click="executeCommission(record.id)"
                   class="text-green-600 hover:text-green-900"
                 >
@@ -363,7 +432,7 @@ const formatDate = (dateString) => {
               </td>
             </tr>
             <tr v-if="recordList.length === 0 && !loading">
-              <td colspan="8" class="px-6 py-10 text-center text-gray-500">
+              <td colspan="9" class="px-6 py-10 text-center text-gray-500">
                 暂无分佣记录
               </td>
             </tr>

@@ -1,6 +1,6 @@
 import { mockReferralStats } from './referral'
 
-/** 与裂变统计 Top 排行同源，便于演示数据一致 */
+/** 与裂变统计 Top 排行同源，便于 UID 与排行对齐 */
 const INVITER_POOL = mockReferralStats.topAgents.map((a) => ({
   uid: a.uid,
   username: a.username,

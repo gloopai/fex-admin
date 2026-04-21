@@ -79,6 +79,12 @@ export const STATS_PERIOD_OPTIONS = [
 export const REFERRAL_CONFIG_FIELDS = {
   AUTO_EXECUTE: 'autoExecute',
   DEPOSIT_FIRST_ONLY: 'depositFirstOnly',
+  REFERRAL_COMMISSION_CREDIT_TO: 'referralCommissionCreditTo',
+  REFERRAL_SETTLEMENT_CYCLE: 'referralSettlementCycle',
+  REFERRAL_SETTLEMENT_TIME_LOCAL: 'referralSettlementTimeLocal',
+  REFERRAL_NOTIFY_AFTER_SETTLEMENT_EMAIL: 'referralNotifyAfterSettlementEmail',
+  REFERRAL_NOTIFY_AFTER_SETTLEMENT_SITE: 'referralNotifyAfterSettlementSite',
+  REFERRAL_NOTIFY_AFTER_SETTLEMENT_SMS: 'referralNotifyAfterSettlementSms',
   DEPOSIT_COMMISSION_RATES: 'depositCommissionRates',
   /** 交割合约（旧版 periodicCommissionRates 会迁移至此） */
   DELIVERY_COMMISSION_RATES: 'deliveryCommissionRates',
@@ -89,10 +95,94 @@ export const REFERRAL_CONFIG_FIELDS = {
   AI_QUANT_COMMISSION_RATES: 'aiQuantCommissionRates'
 }
 
+/**
+ * 裂变佣金记入上级用户的余额类型（与站内钱包/账务模型对齐；入账路由由账务服务执行）
+ */
+export const REFERRAL_COMMISSION_CREDIT_TO = {
+  SPOT_AVAILABLE: 'spot_available',
+  FUNDING: 'funding'
+}
+
+export const REFERRAL_COMMISSION_CREDIT_TO_OPTIONS = [
+  {
+    value: REFERRAL_COMMISSION_CREDIT_TO.SPOT_AVAILABLE,
+    label: '现货 USDT 可用',
+    hint: '记入上级用户现货 USDT 可用余额，与站内现货资产及出金规则一致。'
+  },
+  {
+    value: REFERRAL_COMMISSION_CREDIT_TO.FUNDING,
+    label: '资金账户',
+    hint: '记入上级用户资金账户余额。'
+  }
+]
+
+/** 裂变佣金结算：仅支持按自然日日结（周/月为历史兼容，读入时一律收敛为日结） */
+export const REFERRAL_SETTLEMENT_CYCLE = {
+  CALENDAR_DAY: 'calendar_day'
+}
+
+const LEGACY_SETTLEMENT_CYCLE_TO_DAY = {
+  calendar_week: REFERRAL_SETTLEMENT_CYCLE.CALENDAR_DAY,
+  calendar_month: REFERRAL_SETTLEMENT_CYCLE.CALENDAR_DAY
+}
+
+export function normalizeReferralSettlementTimeLocal(raw) {
+  const fallback = '02:00'
+  const s = String(raw ?? '').trim()
+  const m = /^(\d{1,2}):(\d{2})$/.exec(s)
+  if (!m) return fallback
+  let h = parseInt(m[1], 10)
+  let min = parseInt(m[2], 10)
+  if (!Number.isFinite(h) || !Number.isFinite(min)) return fallback
+  h = Math.max(0, Math.min(23, h))
+  min = Math.max(0, Math.min(59, min))
+  return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`
+}
+
+export function getReferralSettlementCycleLabel(value) {
+  const v = LEGACY_SETTLEMENT_CYCLE_TO_DAY[value] ?? value
+  if (v === REFERRAL_SETTLEMENT_CYCLE.CALENDAR_DAY) return '每自然日'
+  return String(value)
+}
+
+/** 每自然日 + 日结时刻（后台约定为平台默认时区，与账务任务一致） */
+export function getReferralSettlementScheduleLine(cfg) {
+  if (!cfg || typeof cfg !== 'object') return ''
+  const time = normalizeReferralSettlementTimeLocal(cfg.referralSettlementTimeLocal)
+  return `每自然日，每日 ${time} 执行日结（平台默认时区）`
+}
+
+export function getReferralSettlementNotifyLine(cfg) {
+  if (!cfg || typeof cfg !== 'object') return ''
+  const parts = []
+  if (cfg.referralNotifyAfterSettlementEmail === true) parts.push('邮件')
+  if (cfg.referralNotifyAfterSettlementSite === true) parts.push('站内信')
+  if (cfg.referralNotifyAfterSettlementSms === true) parts.push('手机短信')
+  if (parts.length === 0) return '结算完成后不向用户推送通知。'
+  return `结算完成后向用户发送：${parts.join('、')}。`
+}
+
+/** 列表等紧凑展示 */
+export function getReferralSettlementNotifyShort(cfg) {
+  if (!cfg || typeof cfg !== 'object') return '推送：无'
+  const parts = []
+  if (cfg.referralNotifyAfterSettlementEmail === true) parts.push('邮件')
+  if (cfg.referralNotifyAfterSettlementSite === true) parts.push('站内信')
+  if (cfg.referralNotifyAfterSettlementSms === true) parts.push('短信')
+  return parts.length ? `推送：${parts.join('、')}` : '推送：无'
+}
+
 // 默认「裂变邀请链」分销配置（含各产品线是否参与记佣；与代理等级配置无关）
 export const DEFAULT_REFERRAL_CONFIG = {
   autoExecute: true,
   depositFirstOnly: false,
+  referralCommissionCreditTo: REFERRAL_COMMISSION_CREDIT_TO.SPOT_AVAILABLE,
+  referralSettlementCycle: REFERRAL_SETTLEMENT_CYCLE.CALENDAR_DAY,
+  /** 自然日日结触发时刻，24 小时制 HH:mm，与平台默认时区一致 */
+  referralSettlementTimeLocal: '02:00',
+  referralNotifyAfterSettlementEmail: false,
+  referralNotifyAfterSettlementSite: false,
+  referralNotifyAfterSettlementSms: false,
   /** 是否对该产品线产生的订单/流水记佣 */
   commissionDepositEnabled: true,
   commissionPerpetualEnabled: false,
@@ -109,4 +199,28 @@ export const DEFAULT_REFERRAL_CONFIG = {
   aiQuantCommissionRates: '0,0,0',
   lendingCommissionRates: '0,0,0',
   borrowingCommissionRates: '0,0,0'
+}
+
+/** 已下线的入账类型在展示时映射到仍在用的枚举，便于旧数据展示 */
+const LEGACY_REFERRAL_CREDIT_TO = {
+  commission_wallet: REFERRAL_COMMISSION_CREDIT_TO.SPOT_AVAILABLE,
+  pending_ledger: REFERRAL_COMMISSION_CREDIT_TO.FUNDING
+}
+
+export function getReferralCreditToLabel(value) {
+  const key = LEGACY_REFERRAL_CREDIT_TO[value] ?? value
+  return REFERRAL_COMMISSION_CREDIT_TO_OPTIONS.find((o) => o.value === key)?.label ?? String(value)
+}
+
+/** 个人中心邀请页：与当前后台「资金入账」配置一致的简短说明 */
+export function getReferralSettlementUserBullets(cfg) {
+  if (!cfg || typeof cfg !== 'object') return []
+  const creditLabel = getReferralCreditToLabel(cfg.referralCommissionCreditTo)
+  const schedule = getReferralSettlementScheduleLine(cfg)
+  const notify = getReferralSettlementNotifyLine(cfg)
+  return [
+    `返现将记入「${creditLabel}」。${schedule}。`,
+    notify,
+    '具体到账时间以订单结算与站内通知为准。'
+  ]
 }

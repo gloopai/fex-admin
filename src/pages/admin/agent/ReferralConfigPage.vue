@@ -6,9 +6,15 @@ import {
   normalizeReferralConfig,
   normalizeCommissionRatesTriple
 } from '../../../admin/mock/referral'
-import { DEFAULT_REFERRAL_CONFIG, REFERRAL_MAX_LEVELS } from '../../../admin/constants/referral'
+import {
+  DEFAULT_REFERRAL_CONFIG,
+  REFERRAL_MAX_LEVELS,
+  REFERRAL_COMMISSION_CREDIT_TO_OPTIONS
+} from '../../../admin/constants/referral'
 
 const config = ref(normalizeReferralConfig({ ...mockReferralConfig }))
+/** 分佣规则 | 资金入账 */
+const activeTab = ref('rules')
 
 const RATE_LEVEL_INDEXES = [0, 1, 2]
 const isSaving = ref(false)
@@ -252,12 +258,7 @@ onMounted(() => {
       <div class="min-w-0 flex-1">
         <h1 class="text-2xl font-bold tracking-tight text-slate-900">裂变分销设置</h1>
         <p class="mt-2 text-sm leading-relaxed text-slate-600">
-          配置用户邀请/裂变关系下的分佣规则：各产品线是否记佣、三级上级比例，以及裂变侧全局开关。
-        </p>
-        <p class="mt-2 text-sm leading-relaxed text-slate-600">
-          配置步骤：<span class="font-medium text-slate-800">① 理解计佣公式</span> →
-          <span class="font-medium text-slate-800">② 裂变全局规则</span> →
-          <span class="font-medium text-slate-800">③ 按产品线打开记佣并填写三级比例</span>。
+          邀请链分佣比例、全局开关与佣金入账位置。使用下方 Tab 切换。
         </p>
       </div>
       <div class="flex shrink-0 gap-2">
@@ -268,6 +269,34 @@ onMounted(() => {
       </div>
     </header>
 
+    <nav class="flex gap-0 border-b border-slate-200" aria-label="裂变分销设置分区">
+      <button
+        type="button"
+        class="border-b-2 px-4 py-3 text-sm font-medium transition-colors -mb-px"
+        :class="
+          activeTab === 'rules'
+            ? 'border-blue-600 text-blue-700'
+            : 'border-transparent text-slate-500 hover:text-slate-800'
+        "
+        @click="activeTab = 'rules'"
+      >
+        分佣规则
+      </button>
+      <button
+        type="button"
+        class="border-b-2 px-4 py-3 text-sm font-medium transition-colors -mb-px"
+        :class="
+          activeTab === 'settlement'
+            ? 'border-blue-600 text-blue-700'
+            : 'border-transparent text-slate-500 hover:text-slate-800'
+        "
+        @click="activeTab = 'settlement'"
+      >
+        资金入账
+      </button>
+    </nav>
+
+    <div v-show="activeTab === 'rules'" class="space-y-8">
     <!-- ① 公式说明 -->
     <section class="rounded-xl border border-slate-200 bg-white">
       <div class="flex items-baseline gap-2 border-b border-slate-100 px-5 py-4">
@@ -480,14 +509,89 @@ onMounted(() => {
       </div>
     </section>
 
-    <!-- 底部说明 -->
     <footer class="rounded-lg border border-slate-200 bg-slate-50 px-5 py-4 text-sm text-slate-600">
       <p class="font-medium text-slate-800">保存前请确认</p>
       <ul class="mt-2 list-inside list-disc space-y-1 text-slate-600">
         <li>已开启记佣的产品线须填写一级、二级、三级比例（均为 0～1，某级可为 0）。</li>
-        <li>裂变分销固定三级，不再支持四级及以上；关闭记佣后已填比例可保留，但不会参与结算。</li>
+        <li>裂变分销固定三级；入账、日结时刻与结算后通知请在「资金入账」Tab 配置。</li>
       </ul>
     </footer>
+    </div>
+
+    <div v-show="activeTab === 'settlement'" class="space-y-6">
+      <section class="rounded-xl border border-slate-200 bg-white">
+        <div class="border-b border-slate-100 px-5 py-4">
+          <h2 class="text-base font-semibold text-slate-900">资金入账</h2>
+          <p class="mt-1 text-sm text-slate-500">
+            保存后，在「分佣记录」中执行发放时将按此处写入入账快照；日结按每自然日、在下方指定时刻触发（平台默认时区）。
+          </p>
+        </div>
+        <div class="max-w-md space-y-5 p-5">
+          <div>
+            <label class="block text-sm font-medium text-slate-800">入账位置</label>
+            <select v-model="config.referralCommissionCreditTo" class="ant-input mt-2 w-full text-sm">
+              <option
+                v-for="opt in REFERRAL_COMMISSION_CREDIT_TO_OPTIONS"
+                :key="opt.value"
+                :value="opt.value"
+              >
+                {{ opt.label }}
+              </option>
+            </select>
+            <p class="mt-1.5 text-xs leading-relaxed text-slate-500">
+              {{
+                REFERRAL_COMMISSION_CREDIT_TO_OPTIONS.find((o) => o.value === config.referralCommissionCreditTo)
+                  ?.hint
+              }}
+            </p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-800">日结时刻</label>
+            <p class="mt-1 text-xs text-slate-500">结算周期固定为每自然日，请选择当日执行日结的时间（24 小时制，与平台默认时区一致）。</p>
+            <input
+              v-model="config.referralSettlementTimeLocal"
+              type="time"
+              step="60"
+              class="ant-input mt-2 w-full max-w-[12rem] text-sm"
+            />
+          </div>
+          <div class="rounded-lg border border-slate-100 bg-slate-50/80 px-4 py-3">
+            <p class="text-sm font-medium text-slate-800">结算完成后通知用户</p>
+            <p class="mt-1 text-xs text-slate-500">日结入账完成后，按勾选渠道向获得佣金的用户发送通知（需站内消息/短信/邮件服务已开通）。</p>
+            <ul class="mt-3 space-y-2 text-sm text-slate-700">
+              <li class="flex items-center gap-2">
+                <input
+                  id="ref-notify-email"
+                  v-model="config.referralNotifyAfterSettlementEmail"
+                  type="checkbox"
+                  class="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                <label for="ref-notify-email" class="cursor-pointer select-none">发送邮件</label>
+              </li>
+              <li class="flex items-center gap-2">
+                <input
+                  id="ref-notify-site"
+                  v-model="config.referralNotifyAfterSettlementSite"
+                  type="checkbox"
+                  class="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                <label for="ref-notify-site" class="cursor-pointer select-none">发送站内信</label>
+              </li>
+              <li class="flex items-center gap-2">
+                <input
+                  id="ref-notify-sms"
+                  v-model="config.referralNotifyAfterSettlementSms"
+                  type="checkbox"
+                  class="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                <label for="ref-notify-sms" class="cursor-pointer select-none">发送手机短信</label>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+      <p class="text-xs text-slate-500">与「分佣规则」共用右上角保存；重置会恢复入账、日结时刻与通知默认值。</p>
+    </div>
   </div>
 </template>
 

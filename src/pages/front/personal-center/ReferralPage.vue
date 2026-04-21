@@ -1,5 +1,7 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { referralApi } from '../../../admin/mock/referral'
+import { getReferralSettlementUserBullets } from '../../../admin/constants/referral'
 
 const inviteCode = ref('FEX2026')
 const inviteLink = ref('https://example.com/r/FEX2026')
@@ -8,6 +10,16 @@ const stats = ref({
   invited: 128,
   pendingCommission: '320.50',
   settled: '1,204.80'
+})
+
+const settlementCfg = ref(null)
+const settlementBullets = computed(() => getReferralSettlementUserBullets(settlementCfg.value))
+
+onMounted(async () => {
+  try {
+    const res = await referralApi.getReferralConfig()
+    if (res.success) settlementCfg.value = res.data
+  } catch (_) {}
 })
 
 function copy(text) {
@@ -27,67 +39,78 @@ function copy(text) {
     </header>
 
     <div class="flex flex-col gap-5 md:gap-6">
-    <section class="rounded-2xl border border-white/10 bg-white/[0.04] p-4 md:p-6">
-      <h2 class="text-sm font-semibold text-white/90">我的邀请码</h2>
-      <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
-        <div class="min-w-0 flex-1">
-          <label class="text-xs text-white/50">邀请码</label>
-          <p
-            class="mt-1.5 rounded-xl border border-white/15 bg-black/40 px-4 py-3 font-mono text-lg font-semibold tracking-wide text-lime-200"
-          >
-            {{ inviteCode }}
-          </p>
-        </div>
-        <button
-          type="button"
-          class="rounded-lg bg-lime-400 px-5 py-3 text-sm font-semibold text-black hover:bg-lime-300 sm:shrink-0"
-          @click="copy(inviteCode)"
-        >
-          复制邀请码
-        </button>
-      </div>
-      <div class="mt-4">
-        <label class="text-xs text-white/50">邀请链接</label>
-        <div
-          class="mt-1.5 flex flex-col gap-2 sm:flex-row sm:items-center"
-        >
-          <p class="min-w-0 flex-1 truncate rounded-xl border border-white/15 bg-black/30 px-3 py-2.5 text-xs text-white/65">
-            {{ inviteLink }}
-          </p>
+      <section class="rounded-2xl border border-white/10 bg-white/[0.04] p-4 md:p-6">
+        <h2 class="text-sm font-semibold text-white/90">我的邀请码</h2>
+        <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div class="min-w-0 flex-1">
+            <label class="text-xs text-white/50">邀请码</label>
+            <p
+              class="mt-1.5 rounded-xl border border-white/15 bg-black/40 px-4 py-3 font-mono text-lg font-semibold tracking-wide text-lime-200"
+            >
+              {{ inviteCode }}
+            </p>
+          </div>
           <button
             type="button"
-            class="rounded-lg border border-white/20 px-4 py-2.5 text-sm text-white/85 hover:bg-white/[0.06] sm:shrink-0"
-            @click="copy(inviteLink)"
+            class="rounded-lg bg-lime-400 px-5 py-3 text-sm font-semibold text-black hover:bg-lime-300 sm:shrink-0"
+            @click="copy(inviteCode)"
           >
-            复制链接
+            复制邀请码
           </button>
         </div>
-      </div>
-    </section>
+        <div class="mt-4">
+          <label class="text-xs text-white/50">邀请链接</label>
+          <div class="mt-1.5 flex flex-col gap-2 sm:flex-row sm:items-center">
+            <p class="min-w-0 flex-1 truncate rounded-xl border border-white/15 bg-black/30 px-3 py-2.5 text-xs text-white/65">
+              {{ inviteLink }}
+            </p>
+            <button
+              type="button"
+              class="rounded-lg border border-white/20 px-4 py-2.5 text-sm text-white/85 hover:bg-white/[0.06] sm:shrink-0"
+              @click="copy(inviteLink)"
+            >
+              复制链接
+            </button>
+          </div>
+        </div>
+      </section>
 
-    <section class="grid gap-3 sm:grid-cols-3">
-      <div class="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 md:px-4 md:py-4">
-        <p class="text-xs text-white/45">已邀请（人）</p>
-        <p class="mt-2 text-2xl font-semibold tabular-nums text-white">{{ stats.invited }}</p>
-      </div>
-      <div class="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 md:px-4 md:py-4">
-        <p class="text-xs text-white/45">待结算（USDT）</p>
-        <p class="mt-2 text-2xl font-semibold tabular-nums text-amber-200">{{ stats.pendingCommission }}</p>
-      </div>
-      <div class="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 md:px-4 md:py-4">
-        <p class="text-xs text-white/45">累计已到账（USDT）</p>
-        <p class="mt-2 text-2xl font-semibold tabular-nums text-lime-200">{{ stats.settled }}</p>
-      </div>
-    </section>
+      <section
+        v-if="settlementBullets.length"
+        class="rounded-2xl border border-sky-400/25 bg-sky-500/[0.08] p-4 md:p-5"
+      >
+        <h2 class="text-sm font-semibold text-sky-100">返现到账说明</h2>
+        <ul class="mt-3 space-y-2 text-sm leading-relaxed text-sky-50/95">
+          <li v-for="(line, i) in settlementBullets" :key="i" class="flex gap-2">
+            <span class="mt-2 h-1 w-1 shrink-0 rounded-full bg-sky-300/80" />
+            <span>{{ line }}</span>
+          </li>
+        </ul>
+      </section>
 
-    <section class="rounded-2xl border border-white/[0.08] bg-black/30 px-3 py-3 text-xs leading-relaxed text-white/50 md:px-5 md:py-4">
-      <p class="font-medium text-white/65">说明</p>
-      <ul class="mt-2 list-inside list-disc space-y-1">
-        <li>好友须通过您的邀请链接或填写邀请码完成注册。</li>
-        <li>若被邀请人触发风控或违规交易，相关返佣可能被收回。</li>
-        <li>详情以「邀请活动规则」页面与站内信通知为准。</li>
-      </ul>
-    </section>
+      <section class="grid gap-3 sm:grid-cols-3">
+        <div class="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 md:px-4 md:py-4">
+          <p class="text-xs text-white/45">已邀请（人）</p>
+          <p class="mt-2 text-2xl font-semibold tabular-nums text-white">{{ stats.invited }}</p>
+        </div>
+        <div class="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 md:px-4 md:py-4">
+          <p class="text-xs text-white/45">待结算（USDT）</p>
+          <p class="mt-2 text-2xl font-semibold tabular-nums text-amber-200">{{ stats.pendingCommission }}</p>
+        </div>
+        <div class="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 md:px-4 md:py-4">
+          <p class="text-xs text-white/45">累计已到账（USDT）</p>
+          <p class="mt-2 text-2xl font-semibold tabular-nums text-lime-200">{{ stats.settled }}</p>
+        </div>
+      </section>
+
+      <section class="rounded-2xl border border-white/[0.08] bg-black/30 px-3 py-3 text-xs leading-relaxed text-white/50 md:px-5 md:py-4">
+        <p class="font-medium text-white/65">说明</p>
+        <ul class="mt-2 list-inside list-disc space-y-1">
+          <li>好友须通过您的邀请链接或填写邀请码完成注册。</li>
+          <li>若被邀请人触发风控或违规交易，相关返佣可能被收回。</li>
+          <li>详情以「邀请活动规则」页面与站内信通知为准。</li>
+        </ul>
+      </section>
     </div>
   </div>
 </template>

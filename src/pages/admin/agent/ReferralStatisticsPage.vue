@@ -1,6 +1,12 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { referralStatsReportApi } from '../../../admin/mock/referralStatsReport'
+import { referralApi } from '../../../admin/mock/referral'
+import {
+  getReferralCreditToLabel,
+  getReferralSettlementScheduleLine,
+  getReferralSettlementNotifyLine
+} from '../../../admin/constants/referral'
 
 function defaultEndDate() {
   const d = new Date()
@@ -20,6 +26,19 @@ const dailyRows = ref([])
 const selectedDate = ref(null)
 const detailLoading = ref(false)
 const dayInviters = ref([])
+const settlementCfg = ref(null)
+
+const settlementCreditLabel = computed(() =>
+  settlementCfg.value ? getReferralCreditToLabel(settlementCfg.value.referralCommissionCreditTo) : ''
+)
+
+const settlementScheduleLine = computed(() =>
+  settlementCfg.value ? getReferralSettlementScheduleLine(settlementCfg.value) : ''
+)
+
+const settlementNotifyLine = computed(() =>
+  settlementCfg.value ? getReferralSettlementNotifyLine(settlementCfg.value) : ''
+)
 
 const selectedDayLabel = computed(() => {
   if (!selectedDate.value) return ''
@@ -102,8 +121,14 @@ watch(selectedDate, (v) => {
   else document.removeEventListener('keydown', onReferralDrawerEscape)
 })
 
-onMounted(() => {
+onMounted(async () => {
   loadDaily()
+  try {
+    const res = await referralApi.getReferralConfig()
+    if (res.success) settlementCfg.value = res.data
+  } catch (e) {
+    console.error(e)
+  }
 })
 
 onUnmounted(() => {
@@ -116,8 +141,28 @@ onUnmounted(() => {
     <div>
       <h1 class="text-2xl font-bold text-slate-900">裂变分销统计</h1>
       <p class="mt-1 text-sm text-slate-500">
-        按日汇总裂变分佣；点击某一行从右侧查看当日获得分佣的邀请上级明细（演示数据）。
+        按日汇总裂变分佣；点击某一行从右侧查看当日获得分佣的邀请上级明细。
       </p>
+    </div>
+
+    <div
+      v-if="settlementCfg"
+      class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-700"
+    >
+      <span class="min-w-0 flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-x-2 sm:gap-y-1">
+        <span>
+          当前入账：<span class="font-medium text-slate-900">{{ settlementCreditLabel }}</span>
+        </span>
+        <span class="hidden sm:inline text-slate-300" aria-hidden="true">·</span>
+        <span class="text-slate-700">
+          <span class="text-slate-500">结算安排：</span>
+          <span class="font-medium text-slate-900">{{ settlementScheduleLine }}</span>
+        </span>
+        <span class="w-full text-xs text-slate-600 sm:w-auto">{{ settlementNotifyLine }}</span>
+      </span>
+      <router-link to="/admin/agent/referral-config" class="text-sm font-medium text-blue-600 hover:underline no-underline">
+        设置
+      </router-link>
     </div>
 
     <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
@@ -222,7 +267,7 @@ onUnmounted(() => {
                 <h2 id="referral-stats-drawer-title" class="text-base font-semibold text-slate-900">
                   {{ selectedDayLabel }} · 获得裂变分佣的邀请上级
                 </h2>
-                <p class="mt-0.5 text-xs text-slate-500">按当日佣金从高到低排序（演示数据）</p>
+                <p class="mt-0.5 text-xs text-slate-500">按当日佣金从高到低排序</p>
               </div>
               <button
                 type="button"
