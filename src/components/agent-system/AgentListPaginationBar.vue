@@ -11,15 +11,15 @@ defineEmits(['update:currentPage', 'update:pageSize'])
 
 <template>
   <div
-    class="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] bg-white/[0.02] px-4 py-3 text-xs text-white/50"
+    class="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.07] bg-gradient-to-b from-white/[0.03] to-transparent px-5 py-3.5 text-xs text-white/50"
   >
-    <span>共 <span class="tabular-nums text-white/70">{{ totalCount }}</span> 条</span>
-    <div class="flex flex-wrap items-center gap-2">
-      <label class="flex items-center gap-1.5">
-        <span class="text-white/40">每页</span>
+    <span>共 <span class="tabular-nums font-medium text-white/75">{{ totalCount }}</span> 条</span>
+    <div class="flex flex-wrap items-center gap-2.5">
+      <label class="flex items-center gap-2">
+        <span class="text-[10px] font-medium uppercase tracking-wider text-white/35">每页</span>
         <select
           :value="pageSize"
-          class="rounded-lg border border-white/10 bg-[#0c1219] px-2 py-1 text-white/85"
+          class="cursor-pointer rounded-xl border border-white/[0.1] bg-[#080c10]/95 px-2.5 py-1.5 text-xs font-medium text-white/85 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] outline-none transition hover:border-white/[0.16] focus:border-emerald-500/40 focus:ring-2 focus:ring-emerald-500/15"
           @change="$emit('update:pageSize', Number($event.target.value))"
         >
           <option :value="5">5</option>
@@ -30,16 +30,16 @@ defineEmits(['update:currentPage', 'update:pageSize'])
       </label>
       <button
         type="button"
-        class="rounded-lg border border-white/12 px-2.5 py-1 text-white/85 hover:bg-white/[0.06] disabled:opacity-35"
+        class="rounded-xl border border-white/[0.1] bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/80 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] transition hover:border-emerald-500/25 hover:bg-emerald-500/[0.08] hover:text-emerald-50 disabled:cursor-not-allowed disabled:opacity-35"
         :disabled="currentPage <= 1"
         @click="$emit('update:currentPage', currentPage - 1)"
       >
         上一页
       </button>
-      <span class="tabular-nums text-white/65">第 {{ currentPage }} / {{ totalPages }} 页</span>
+      <span class="tabular-nums text-[11px] font-medium text-white/60">第 {{ currentPage }} / {{ totalPages }} 页</span>
       <button
         type="button"
-        class="rounded-lg border border-white/12 px-2.5 py-1 text-white/85 hover:bg-white/[0.06] disabled:opacity-35"
+        class="rounded-xl border border-white/[0.1] bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/80 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] transition hover:border-emerald-500/25 hover:bg-emerald-500/[0.08] hover:text-emerald-50 disabled:cursor-not-allowed disabled:opacity-35"
         :disabled="currentPage >= totalPages"
         @click="$emit('update:currentPage', currentPage + 1)"
       >
