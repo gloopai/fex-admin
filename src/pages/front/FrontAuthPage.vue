@@ -185,7 +185,21 @@ function maybeStartLoginSecondFactor() {
   loginVerifyOpen.value = true
 }
 
-const walletProviders = FRONT_WALLET_LOGIN_PROVIDERS
+const walletProviders = computed(() => {
+  const c = getSiteConfigSnapshot()
+  if (c.walletLoginEnabled === false) return []
+  const rows = Array.isArray(c.walletLoginProviders) ? c.walletLoginProviders : []
+  const byKey = new Map(rows.map((r) => [r.key, r]))
+  return FRONT_WALLET_LOGIN_PROVIDERS.filter((d) => {
+    const r = byKey.get(d.key)
+    if (!r) return true
+    return r.enabled !== false
+  }).map((d) => {
+    const r = byKey.get(d.key)
+    const custom = r && String(r.customLabel || '').trim()
+    return { ...d, label: custom || d.label }
+  })
+})
 
 const walletLoginEnabled = ref(true)
 const phoneLoginEnabled = ref(true)
@@ -753,7 +767,7 @@ async function onPickWalletProvider(providerKey) {
           </button>
         </form>
 
-        <template v-if="!isRegister && walletLoginEnabled && loginMode === 'email'">
+        <template v-if="!isRegister && walletLoginEnabled && loginMode === 'email' && walletProviders.length">
           <div class="relative my-3">
             <div class="absolute inset-0 flex items-center" aria-hidden="true">
               <div class="w-full border-t border-white/[0.06]"></div>

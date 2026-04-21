@@ -2,6 +2,11 @@
 import { computed, onMounted, ref } from 'vue'
 import { DEFAULT_I18N_BLOCK } from '../../../admin/constants/i18nCatalog'
 import { DEFAULT_SITE_CONFIG, siteConfigApi } from '../../../admin/mock/siteConfig'
+import { FRONT_WALLET_LOGIN_PROVIDERS } from '../../../stores/frontAuth'
+
+function walletBuiltinLabel(key) {
+  return FRONT_WALLET_LOGIN_PROVIDERS.find((p) => p.key === key)?.label || key
+}
 
 const config = ref({
   ...DEFAULT_SITE_CONFIG,
@@ -306,6 +311,107 @@ onMounted(() => {
                 class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
               />
             </button>
+          </div>
+
+          <div
+            v-if="config.walletLoginEnabled"
+            class="space-y-3 rounded-lg border border-slate-200 bg-white px-4 py-4"
+          >
+            <p class="text-xs leading-relaxed text-slate-600">
+              各钱包独立开关；开启某个钱包后才显示其连接参数。保存后前台仅展示已启用的钱包；自定义名称为空时使用默认展示名。接入真实
+              Web3 后，可由前端读取 RPC、链 ID、WalletConnect Project ID 等字段。
+            </p>
+            <div
+              v-for="row in config.walletLoginProviders"
+              :key="row.key"
+              class="space-y-2 rounded-lg border border-slate-100 bg-slate-50/70 p-3"
+            >
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="text-sm font-medium text-slate-900">{{ walletBuiltinLabel(row.key) }}</p>
+                  <p class="mt-0.5 font-mono text-[11px] text-slate-500">{{ row.key }}</p>
+                </div>
+                <button
+                  type="button"
+                  :class="row.enabled ? 'bg-blue-600' : 'bg-slate-200'"
+                  class="relative mt-0.5 inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none"
+                  :aria-pressed="row.enabled"
+                  :aria-label="`切换${walletBuiltinLabel(row.key)}`"
+                  @click="row.enabled = !row.enabled"
+                >
+                  <span
+                    :class="row.enabled ? 'translate-x-5' : 'translate-x-0'"
+                    class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                  />
+                </button>
+              </div>
+              <div v-if="row.enabled" class="space-y-2 border-t border-slate-200/80 pt-3">
+                <div>
+                  <label class="mb-1 block text-xs font-medium text-slate-600">自定义展示名（可选）</label>
+                  <input
+                    v-model="row.customLabel"
+                    type="text"
+                    class="ant-input w-full text-sm"
+                    :placeholder="`默认：${walletBuiltinLabel(row.key)}`"
+                    maxlength="48"
+                  />
+                </div>
+                <div v-if="row.key === 'metamask' || row.key === 'rabby'" class="grid gap-2 sm:grid-cols-2">
+                  <div>
+                    <label class="mb-1 block text-xs font-medium text-slate-600">默认链 ID（可选）</label>
+                    <input
+                      v-model="row.chainId"
+                      type="text"
+                      class="ant-input w-full text-sm"
+                      placeholder="如 1、56、137…"
+                      maxlength="32"
+                    />
+                  </div>
+                  <div>
+                    <label class="mb-1 block text-xs font-medium text-slate-600">RPC URL（可选）</label>
+                    <input
+                      v-model="row.rpcUrl"
+                      type="url"
+                      class="ant-input w-full text-sm"
+                      placeholder="https://…"
+                      maxlength="512"
+                    />
+                  </div>
+                </div>
+                <div v-else-if="row.key === 'walletconnect'" class="space-y-2">
+                  <div>
+                    <label class="mb-1 block text-xs font-medium text-slate-600">WalletConnect Project ID</label>
+                    <input
+                      v-model="row.walletConnectProjectId"
+                      type="text"
+                      class="ant-input w-full text-sm"
+                      placeholder="Cloud 控制台 Project ID"
+                      maxlength="128"
+                    />
+                  </div>
+                  <div>
+                    <label class="mb-1 block text-xs font-medium text-slate-600">说明 / Universal Link（可选）</label>
+                    <input
+                      v-model="row.appUniversalLink"
+                      type="text"
+                      class="ant-input w-full text-sm"
+                      placeholder="https://…"
+                      maxlength="512"
+                    />
+                  </div>
+                </div>
+                <div v-else>
+                  <label class="mb-1 block text-xs font-medium text-slate-600">应用链接 / 备注（可选）</label>
+                  <input
+                    v-model="row.appUniversalLink"
+                    type="text"
+                    class="ant-input w-full text-sm"
+                    placeholder="深度链接或对接说明"
+                    maxlength="512"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="mt-3 flex items-start justify-between gap-4 rounded-lg border border-slate-100 bg-slate-50/80 px-4 py-3">

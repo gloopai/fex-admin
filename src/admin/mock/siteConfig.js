@@ -3,6 +3,55 @@ import {
   FRONT_LOCALE_CATALOG,
   PHONE_DIAL_PRESETS
 } from '../constants/i18nCatalog'
+import { FRONT_WALLET_LOGIN_PROVIDERS } from '../../stores/frontAuth.js'
+
+const WALLET_PROVIDER_KEYS = new Set(FRONT_WALLET_LOGIN_PROVIDERS.map((p) => p.key))
+
+/** 单钱包登录项（与前台 `FRONT_WALLET_LOGIN_PROVIDERS` 顺序对齐；演示存本地） */
+const DEFAULT_WALLET_LOGIN_ROW = {
+  enabled: true,
+  /** 前台展示名，空则使用内置名称 */
+  customLabel: '',
+  /** 可选默认 RPC（注入类钱包） */
+  rpcUrl: '',
+  /** 可选默认链 ID（如 1、56） */
+  chainId: '',
+  /** WalletConnect Cloud Project ID 等 */
+  walletConnectProjectId: '',
+  /** 通用 / 深度链接 / 备注（如 Coinbase Wallet 跳转说明） */
+  appUniversalLink: ''
+}
+
+/**
+ * 归一化各钱包登录开关与扩展字段；未知 key 丢弃；缺省项按内置列表补齐。
+ * @param {unknown} raw
+ */
+export function normalizeWalletLoginProviders(raw) {
+  /** @type {Map<string, Record<string, unknown>>} */
+  const byKey = new Map()
+  if (Array.isArray(raw)) {
+    for (const row of raw) {
+      if (!row || typeof row !== 'object') continue
+      const key = String(row.key || '').trim()
+      if (!WALLET_PROVIDER_KEYS.has(key)) continue
+      byKey.set(key, {
+        key,
+        enabled: typeof row.enabled === 'boolean' ? row.enabled : DEFAULT_WALLET_LOGIN_ROW.enabled,
+        customLabel: typeof row.customLabel === 'string' ? row.customLabel.trim() : '',
+        rpcUrl: typeof row.rpcUrl === 'string' ? row.rpcUrl.trim() : '',
+        chainId: typeof row.chainId === 'string' ? row.chainId.trim() : '',
+        walletConnectProjectId:
+          typeof row.walletConnectProjectId === 'string' ? row.walletConnectProjectId.trim() : '',
+        appUniversalLink: typeof row.appUniversalLink === 'string' ? row.appUniversalLink.trim() : ''
+      })
+    }
+  }
+  return FRONT_WALLET_LOGIN_PROVIDERS.map((p) => {
+    const saved = byKey.get(p.key)
+    const base = { key: p.key, ...DEFAULT_WALLET_LOGIN_ROW }
+    return saved ? { ...base, ...saved, key: p.key } : base
+  })
+}
 
 const VALID_DIAL = new Set(PHONE_DIAL_PRESETS.map((x) => x.dial))
 
@@ -309,6 +358,8 @@ export const DEFAULT_SITE_CONFIG = {
   seoOgImage: '',
   /** 是否在前台登录页展示区块链钱包登录入口 */
   walletLoginEnabled: true,
+  /** 各钱包入口开关与连接相关配置（顺序与内置列表一致） */
+  walletLoginProviders: normalizeWalletLoginProviders([]),
   /** 邮箱登录/注册是否显示图形验证码（前端演示校验，接入后端后替换为真实验证码） */
   loginCaptchaEnabled: false,
   /** 登录与注册是否必填邀请码 */
@@ -407,6 +458,7 @@ function normalizeSiteConfig(raw) {
     merged.logoUrlMobile = legacy
   }
   if ('logoUrl' in merged) delete merged.logoUrl
+  merged.walletLoginProviders = normalizeWalletLoginProviders(merged.walletLoginProviders)
   return merged
 }
 
@@ -455,6 +507,7 @@ export const siteConfigApi = {
             typeof config.walletLoginEnabled === 'boolean'
               ? config.walletLoginEnabled
               : DEFAULT_SITE_CONFIG.walletLoginEnabled,
+          walletLoginProviders: normalizeWalletLoginProviders(config.walletLoginProviders),
           loginCaptchaEnabled:
             typeof config.loginCaptchaEnabled === 'boolean'
               ? config.loginCaptchaEnabled
