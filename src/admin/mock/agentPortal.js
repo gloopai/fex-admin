@@ -36,7 +36,7 @@ export const agentDataQueryRows = [
     uid: '8839203',
     registerAt: '2026-04-02',
     monthTrade: 9600,
-    status: '观察'
+    status: '正常'
   }
 ]
 

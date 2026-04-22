@@ -2,7 +2,6 @@
 import { computed, ref } from 'vue'
 import AgentListPaginationBar from '../../components/agent-system/AgentListPaginationBar.vue'
 import { useAgentPagedList } from '../../composables/useAgentListPagination'
-import { DATA_QUERY_ACCOUNT_STATUS_LEGEND } from '../../constants/agentSystemStatusHelp'
 import { agentDataQueryRows } from '../../admin/mock/agentPortal'
 
 const statusFilter = ref('全部')
@@ -38,7 +37,6 @@ const { pageSize, currentPage, totalCount, totalPages, pagedList } = useAgentPag
         >
           <option>全部</option>
           <option>正常</option>
-          <option>观察</option>
         </select>
       </div>
       <div class="min-w-[12rem] flex-1">
@@ -89,23 +87,5 @@ const { pageSize, currentPage, totalCount, totalPages, pagedList } = useAgentPag
         @update:page-size="pageSize = $event"
       />
     </div>
-
-    <details
-      class="rounded-lg border border-white/[0.06] bg-white/[0.015] text-xs [&_summary::-webkit-details-marker]:hidden"
-    >
-      <summary
-        class="flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-white/55 transition hover:text-white/75"
-      >
-        <span class="text-[10px] text-white/35" aria-hidden="true">▸</span>
-        <span class="font-medium">账户状态说明</span>
-        <span class="text-[10px] text-white/30">展开查看各状态含义</span>
-      </summary>
-      <dl class="space-y-1.5 border-t border-white/[0.06] px-3 pb-2.5 pt-2 leading-snug text-[11px] text-white/45">
-        <div v-for="item in DATA_QUERY_ACCOUNT_STATUS_LEGEND" :key="item.value" class="flex gap-2 sm:gap-2.5">
-          <dt class="w-11 shrink-0 font-medium text-emerald-200/85 sm:w-12">{{ item.value }}</dt>
-          <dd class="min-w-0">{{ item.text }}</dd>
-        </div>
-      </dl>
-    </details>
   </div>
 </template>

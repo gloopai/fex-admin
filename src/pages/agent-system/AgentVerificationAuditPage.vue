@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch, reactive } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, reactive } from 'vue'
 import { getVerificationAudits, verificationAuditList } from '../../admin/mock/verification'
 import AgentListPaginationBar from '../../components/agent-system/AgentListPaginationBar.vue'
 import AuditStatsCards from '../../admin/components/verification-audit/AuditStatsCards.vue'
@@ -112,7 +112,45 @@ watch(() => pagination.pageSize, () => {
   }
 })
 
+const AGENT_SCROLL_ROOT_ID = 'agent-system-scroll-root'
+
+/** 打开抽屉前主区滚动位置；null 表示未处于锁定态，解锁时不改 scrollTop */
+let savedMainScrollTop = null
+
+function setAgentShellScrollLocked(locked) {
+  if (typeof document === 'undefined') return
+  const main = document.getElementById(AGENT_SCROLL_ROOT_ID)
+  if (locked) {
+    if (main) {
+      savedMainScrollTop = main.scrollTop
+      main.style.overflow = 'hidden'
+    }
+    document.documentElement.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+  } else {
+    if (main) {
+      main.style.overflow = ''
+      if (savedMainScrollTop !== null) {
+        main.scrollTop = savedMainScrollTop
+        savedMainScrollTop = null
+      }
+    } else {
+      savedMainScrollTop = null
+    }
+    document.documentElement.style.overflow = ''
+    document.body.style.overflow = ''
+  }
+}
+
+watch(showDetailModal, (open) => {
+  setAgentShellScrollLocked(open)
+})
+
 onMounted(fetchAudits)
+
+onUnmounted(() => {
+  setAgentShellScrollLocked(false)
+})
 
 const statistics = computed(() => {
   const total = verificationAuditList.length
@@ -225,12 +263,12 @@ const showToast = (message) => {
       <transition name="audit-drawer">
         <div
           v-if="showDetailModal && selectedAudit && selectedSiteInfo"
-          class="fixed inset-0 z-[60] bg-black/55 backdrop-blur-[2px]"
+          class="fixed inset-0 z-[60] overflow-hidden bg-black/55 pt-[env(safe-area-inset-top)] backdrop-blur-[2px]"
         >
           <section
-            class="audit-drawer-panel flex h-[88vh] w-full flex-col overflow-hidden rounded-b-2xl border border-emerald-950/40 bg-[#0c1219] shadow-2xl shadow-black/40"
+            class="audit-drawer-panel flex h-[88vh] max-h-[100dvh] w-full flex-col overflow-hidden rounded-b-2xl border border-emerald-950/40 border-t-0 bg-[#0c1219] shadow-2xl shadow-black/40"
           >
-            <div class="border-b border-white/[0.08] bg-gradient-to-r from-[#0c1219] to-[#0a141c] px-5 py-4">
+            <div class="shrink-0 border-b border-white/[0.08] bg-gradient-to-r from-[#0c1219] to-[#0a141c] px-5 py-4">
               <div class="flex items-start justify-between gap-4">
                 <div>
                   <div class="text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-400/75">
@@ -256,7 +294,7 @@ const showToast = (message) => {
                 </div>
               </div>
             </div>
-            <div class="min-h-0 flex-1 overflow-y-auto p-4">
+            <div class="agent-audit-drawer-scroll min-h-0 flex-1 overflow-y-auto overscroll-y-contain p-4 pr-3 sm:pr-4">
               <div class="space-y-4">
                 <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
                   <section class="rounded-xl border border-white/[0.08] bg-white/[0.03] p-4">
@@ -355,7 +393,7 @@ const showToast = (message) => {
               </div>
             </div>
 
-            <section class="shrink-0 border-t border-white/[0.08] bg-[#0a0f14] px-5 py-4">
+            <section class="shrink-0 border-t border-white/[0.08] bg-[#0a0f14] px-5 py-4 shadow-[0_-8px_24px_rgba(0,0,0,0.25)]">
               <div class="text-xs text-white/45">审核操作</div>
               <div class="mt-3 flex flex-wrap justify-end gap-2">
                 <button
@@ -511,6 +549,30 @@ const showToast = (message) => {
 .audit-drawer-enter-from > section,
 .audit-drawer-leave-to > section {
   transform: translateY(-100%);
+}
+
+/* 仅内容区滚动：细滚动条 + 暗色轨道，避免系统默认粗条顶满边 */
+.agent-audit-drawer-scroll {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+}
+
+.agent-audit-drawer-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.agent-audit-drawer-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.agent-audit-drawer-scroll::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background-color: rgba(148, 163, 184, 0.35);
+}
+
+.agent-audit-drawer-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(148, 163, 184, 0.55);
 }
 
 .audit-drawer-enter-active > section,

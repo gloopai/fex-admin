@@ -5,7 +5,7 @@ defineProps({
   dateRange: { type: Object, default: () => ({ start: '', end: '' }) },
   levelOptions: { type: Array, default: () => [] },
   variant: { type: String, default: 'admin' },
-  /** 代理认证页：与筛选同行展示导出 */
+  /** 与筛选同行展示导出（管理端 / 代理端） */
   showExportButton: { type: Boolean, default: false }
 })
 
@@ -36,29 +36,24 @@ const agentBtnPrimary =
         : 'border-b border-slate-100 bg-slate-50/30 p-4'
     "
   >
-    <div
-      :class="
-        variant === 'agent'
-          ? 'grid grid-cols-1 gap-x-4 gap-y-3.5 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.82fr)_minmax(0,22rem)_auto] lg:items-end'
-          : 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4'
-      "
-    >
-      <div>
-        <label :class="variant === 'agent' ? agentLabel : 'mb-1.5 block text-sm font-medium text-slate-700'">搜索</label>
+    <!-- 管理端：筛选与导出同一行 -->
+    <div v-if="variant !== 'agent'" class="flex flex-wrap items-end gap-x-3 gap-y-3">
+      <div class="min-w-0 w-full flex-1 sm:w-auto sm:min-w-[11rem] sm:max-w-[15rem]">
+        <label class="mb-1.5 block text-sm font-medium text-slate-700">搜索</label>
         <input
           :value="searchKeyword"
           type="text"
           placeholder="用户名、邮箱、姓名…"
-          :class="variant === 'agent' ? agentField : 'ant-input !py-1.5'"
+          class="ant-input !py-1.5 w-full"
           @input="emit('update:search-keyword', $event.target.value)"
         />
       </div>
 
-      <div>
-        <label :class="variant === 'agent' ? agentLabel : 'mb-1.5 block text-sm font-medium text-slate-700'">认证等级</label>
+      <div class="w-full shrink-0 sm:w-[9.5rem]">
+        <label class="mb-1.5 block text-sm font-medium text-slate-700">认证等级</label>
         <select
           :value="filterLevel"
-          :class="variant === 'agent' ? `${agentField} cursor-pointer` : 'ant-select !py-1.5'"
+          class="ant-select !py-1.5 w-full cursor-pointer"
           @change="emit('update:filter-level', $event.target.value)"
         >
           <option value="all">全部等级</option>
@@ -68,43 +63,26 @@ const agentBtnPrimary =
         </select>
       </div>
 
-      <div :class="variant === 'agent' ? '' : 'lg:col-span-2'">
-        <label :class="variant === 'agent' ? agentLabel : 'mb-1.5 block text-sm font-medium text-slate-700'">申请时间范围</label>
-        <div class="flex flex-wrap items-center gap-2">
+      <div class="min-w-0 w-full flex-1 sm:w-auto sm:min-w-[17rem] sm:max-w-[21rem]">
+        <label class="mb-1.5 block text-sm font-medium text-slate-700">申请时间范围</label>
+        <div class="flex flex-nowrap items-center gap-2">
           <input
             :value="dateRange.start"
             type="date"
-            :class="
-              variant === 'agent'
-                ? `${agentField} min-w-0 flex-1 sm:max-w-[10.5rem] [&::-webkit-calendar-picker-indicator]:opacity-35 [&::-webkit-calendar-picker-indicator]:hover:opacity-65`
-                : 'ant-input !py-1.5'
-            "
+            class="ant-input !py-1.5 min-w-0 w-0 flex-1 sm:max-w-[9.75rem]"
             @input="emit('update:date-range', { ...dateRange, start: $event.target.value })"
           />
-          <span
-            :class="
-              variant === 'agent'
-                ? 'shrink-0 text-[10px] font-medium uppercase tracking-wider text-white/28'
-                : 'text-slate-400'
-            "
-            >至</span>
+          <span class="shrink-0 text-sm text-slate-400">至</span>
           <input
             :value="dateRange.end"
             type="date"
-            :class="
-              variant === 'agent'
-                ? `${agentField} min-w-0 flex-1 sm:max-w-[10.5rem] [&::-webkit-calendar-picker-indicator]:opacity-35 [&::-webkit-calendar-picker-indicator]:hover:opacity-65`
-                : 'ant-input !py-1.5'
-            "
+            class="ant-input !py-1.5 min-w-0 w-0 flex-1 sm:max-w-[9.75rem]"
             @input="emit('update:date-range', { ...dateRange, end: $event.target.value })"
           />
         </div>
       </div>
 
-      <div
-        v-if="variant !== 'agent'"
-        class="flex items-end gap-2"
-      >
+      <div class="flex w-full shrink-0 items-end justify-end gap-2 sm:ml-auto sm:w-auto">
         <button
           title="重置筛选"
           type="button"
@@ -120,9 +98,71 @@ const agentBtnPrimary =
             />
           </svg>
         </button>
+        <button
+          v-if="showExportButton"
+          type="button"
+          class="ant-btn inline-flex shrink-0 items-center gap-2"
+          title="导出审核记录"
+          @click="emit('export-request')"
+        >
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+          导出数据
+        </button>
+      </div>
+    </div>
+
+    <div
+      v-else
+      class="grid grid-cols-1 gap-x-4 gap-y-3.5 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.82fr)_minmax(0,22rem)_auto] lg:items-end"
+    >
+      <div>
+        <label :class="agentLabel">搜索</label>
+        <input
+          :value="searchKeyword"
+          type="text"
+          placeholder="用户名、邮箱、姓名…"
+          :class="agentField"
+          @input="emit('update:search-keyword', $event.target.value)"
+        />
       </div>
 
-      <div v-else class="flex flex-col gap-1.5">
+      <div>
+        <label :class="agentLabel">认证等级</label>
+        <select :value="filterLevel" :class="`${agentField} cursor-pointer`" @change="emit('update:filter-level', $event.target.value)">
+          <option value="all">全部等级</option>
+          <option v-for="option in levelOptions" :key="option.value" :value="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+      </div>
+
+      <div>
+        <label :class="agentLabel">申请时间范围</label>
+        <div class="flex flex-wrap items-center gap-2">
+          <input
+            :value="dateRange.start"
+            type="date"
+            :class="`${agentField} min-w-0 flex-1 sm:max-w-[10.5rem] [&::-webkit-calendar-picker-indicator]:opacity-35 [&::-webkit-calendar-picker-indicator]:hover:opacity-65`"
+            @input="emit('update:date-range', { ...dateRange, start: $event.target.value })"
+          />
+          <span class="shrink-0 text-[10px] font-medium uppercase tracking-wider text-white/28">至</span>
+          <input
+            :value="dateRange.end"
+            type="date"
+            :class="`${agentField} min-w-0 flex-1 sm:max-w-[10.5rem] [&::-webkit-calendar-picker-indicator]:opacity-35 [&::-webkit-calendar-picker-indicator]:hover:opacity-65`"
+            @input="emit('update:date-range', { ...dateRange, end: $event.target.value })"
+          />
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-1.5">
         <div class="mb-1.5 h-[15px] shrink-0" aria-hidden="true" />
         <div class="flex flex-wrap items-center gap-2 sm:justify-start lg:justify-end">
           <button type="button" :class="agentBtnGhost" title="重置筛选条件" @click="emit('reset')">

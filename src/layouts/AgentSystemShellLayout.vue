@@ -107,7 +107,10 @@ function logout() {
           退出登录
         </button>
       </header>
-      <main class="min-h-0 flex-1 overflow-y-auto px-4 py-5 md:px-8 md:py-8">
+      <main
+        id="agent-system-scroll-root"
+        class="min-h-0 flex-1 overflow-y-auto px-4 py-5 md:px-8 md:py-8"
+      >
         <RouterView />
       </main>
     </div>

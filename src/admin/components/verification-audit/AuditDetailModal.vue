@@ -22,8 +22,8 @@ const emit = defineEmits(['close', 'start-action', 'submit', 'cancel-action', 'u
 
 <template>
   <div v-if="visible" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-    <div class="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl bg-white shadow-xl">
-      <div class="sticky top-0 flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4">
+    <div class="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl bg-white shadow-xl">
+      <div class="flex shrink-0 items-center justify-between border-b border-gray-200 bg-white px-6 py-4">
         <h3 class="text-lg font-semibold text-gray-900">认证申请详情</h3>
         <button class="text-gray-400 hover:text-gray-600" @click="emit('close')">
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -32,7 +32,7 @@ const emit = defineEmits(['close', 'start-action', 'submit', 'cancel-action', 'u
         </button>
       </div>
 
-      <div v-if="selectedAudit" class="space-y-6 p-6">
+      <div v-if="selectedAudit" class="audit-detail-modal-scroll min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-y-contain px-6 py-6 pr-4">
         <div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
           <div class="flex flex-wrap items-center gap-2">
             <span class="text-sm text-slate-600">审核流：</span>
@@ -124,34 +124,63 @@ const emit = defineEmits(['close', 'start-action', 'submit', 'cancel-action', 'u
           <div><span class="text-sm text-gray-600">审核时间：</span><span class="text-sm font-medium text-gray-900">{{ formatDate(selectedAudit.auditTime) }}</span></div>
           <div v-if="selectedAudit.rejectReason"><span class="text-sm text-gray-600">原因：</span><span class="text-sm font-medium text-gray-900">{{ selectedAudit.rejectReason }}</span></div>
         </div>
+      </div>
 
-        <div v-if="selectedAudit.status === VERIFICATION_STATUS.PENDING" class="border-t pt-6">
-          <h4 class="mb-3 text-sm font-semibold text-gray-900">审核决策</h4>
-          <div v-if="!auditAction" class="flex space-x-3">
-            <button :disabled="selectedMissingDocs.length > 0" class="flex-1 rounded-lg bg-emerald-600 px-4 py-2 text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300" @click="emit('start-action', 'approve')">通过</button>
-            <button class="flex-1 rounded-lg bg-amber-600 px-4 py-2 text-white transition-colors hover:bg-amber-700" @click="emit('start-action', 'resubmit')">要求补件</button>
-            <button class="flex-1 rounded-lg bg-rose-600 px-4 py-2 text-white transition-colors hover:bg-rose-700" @click="emit('start-action', 'reject')">拒绝</button>
+      <div
+        v-if="selectedAudit && selectedAudit.status === VERIFICATION_STATUS.PENDING"
+        class="shrink-0 border-t border-gray-200 bg-white px-6 py-4 shadow-[0_-6px_20px_rgba(15,23,42,0.06)]"
+      >
+        <h4 class="mb-3 text-sm font-semibold text-gray-900">审核决策</h4>
+        <div v-if="!auditAction" class="flex space-x-3">
+          <button :disabled="selectedMissingDocs.length > 0" class="flex-1 rounded-lg bg-emerald-600 px-4 py-2 text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300" @click="emit('start-action', 'approve')">通过</button>
+          <button class="flex-1 rounded-lg bg-amber-600 px-4 py-2 text-white transition-colors hover:bg-amber-700" @click="emit('start-action', 'resubmit')">要求补件</button>
+          <button class="flex-1 rounded-lg bg-rose-600 px-4 py-2 text-white transition-colors hover:bg-rose-700" @click="emit('start-action', 'reject')">拒绝</button>
+        </div>
+        <div v-else class="space-y-3">
+          <div v-if="auditAction === 'approve'" class="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+            <p class="mb-2 text-sm font-medium text-emerald-900">确认通过该认证申请？</p>
+            <p class="text-xs text-emerald-700">用户的认证等级将升级为 {{ levelConfig[selectedAudit.applyLevel].text }}。</p>
           </div>
-          <div v-else class="space-y-3">
-            <div v-if="auditAction === 'approve'" class="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-              <p class="mb-2 text-sm font-medium text-emerald-900">确认通过该认证申请？</p>
-              <p class="text-xs text-emerald-700">用户的认证等级将升级为 {{ levelConfig[selectedAudit.applyLevel].text }}。</p>
-            </div>
-            <div v-else-if="auditAction === 'resubmit'" class="rounded-lg border border-amber-200 bg-amber-50 p-4">
-              <p class="mb-2 text-sm font-medium text-amber-900">要求用户补充材料</p>
-              <textarea :value="auditNote" placeholder="请说明需要补充的材料..." rows="3" class="ant-input mt-2" @input="emit('update:note', $event.target.value)"></textarea>
-            </div>
-            <div v-else-if="auditAction === 'reject'" class="rounded-lg border border-rose-200 bg-rose-50 p-4">
-              <p class="mb-2 text-sm font-medium text-rose-900">确认拒绝该认证申请？</p>
-              <textarea :value="auditNote" placeholder="请说明拒绝原因..." rows="3" class="ant-input mt-2" @input="emit('update:note', $event.target.value)"></textarea>
-            </div>
-            <div class="flex space-x-2">
-              <button class="ant-btn ant-btn-primary flex-1" @click="emit('submit')">确认提交</button>
-              <button class="ant-btn flex-1" @click="emit('cancel-action')">取消</button>
-            </div>
+          <div v-else-if="auditAction === 'resubmit'" class="rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <p class="mb-2 text-sm font-medium text-amber-900">要求用户补充材料</p>
+            <textarea :value="auditNote" placeholder="请说明需要补充的材料..." rows="3" class="ant-input mt-2" @input="emit('update:note', $event.target.value)"></textarea>
+          </div>
+          <div v-else-if="auditAction === 'reject'" class="rounded-lg border border-rose-200 bg-rose-50 p-4">
+            <p class="mb-2 text-sm font-medium text-rose-900">确认拒绝该认证申请？</p>
+            <textarea :value="auditNote" placeholder="请说明拒绝原因..." rows="3" class="ant-input mt-2" @input="emit('update:note', $event.target.value)"></textarea>
+          </div>
+          <div class="flex space-x-2">
+            <button class="ant-btn ant-btn-primary flex-1" @click="emit('submit')">确认提交</button>
+            <button class="ant-btn flex-1" @click="emit('cancel-action')">取消</button>
           </div>
         </div>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.audit-detail-modal-scroll {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.55) rgba(241, 245, 249, 0.6);
+}
+
+.audit-detail-modal-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.audit-detail-modal-scroll::-webkit-scrollbar-track {
+  background: rgba(241, 245, 249, 0.5);
+  border-radius: 9999px;
+}
+
+.audit-detail-modal-scroll::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background-color: rgba(148, 163, 184, 0.55);
+}
+
+.audit-detail-modal-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(100, 116, 139, 0.65);
+}
+</style>
