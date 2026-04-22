@@ -30,16 +30,25 @@ function logout() {
   <div class="flex min-h-screen flex-col bg-[#0a0f14] text-slate-100 md:flex-row">
     <!-- 窄屏顶栏 -->
     <header
-      class="flex items-center justify-between border-b border-emerald-950/60 bg-[#0c1219] px-4 py-3 md:hidden"
+      class="flex items-center justify-between gap-3 border-b border-emerald-950/60 bg-[#0c1219] px-4 py-3 md:hidden"
     >
-      <span class="text-sm font-semibold text-emerald-200">代理系统</span>
-      <button
-        type="button"
-        class="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-white/85"
-        @click="mobileNavOpen = !mobileNavOpen"
-      >
-        {{ mobileNavOpen ? '收起菜单' : '菜单' }}
-      </button>
+      <span class="min-w-0 shrink text-sm font-semibold text-emerald-200">代理系统</span>
+      <div class="flex shrink-0 items-center gap-2">
+        <button
+          type="button"
+          class="rounded-lg border border-white/12 px-3 py-1.5 text-xs text-white/70 transition hover:border-white/20 hover:bg-white/[0.06] hover:text-white"
+          @click="logout"
+        >
+          退出
+        </button>
+        <button
+          type="button"
+          class="rounded-lg border border-emerald-500/35 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-100 transition hover:bg-emerald-500/20"
+          @click="mobileNavOpen = !mobileNavOpen"
+        >
+          {{ mobileNavOpen ? '收起' : '菜单' }}
+        </button>
+      </div>
     </header>
 
     <!-- 侧栏 -->
@@ -72,7 +81,8 @@ function logout() {
           <span class="text-[11px] text-white/40">{{ item.desc }}</span>
         </RouterLink>
       </nav>
-      <div class="hidden border-t border-white/[0.06] p-3 md:block">
+      <!-- 窄屏展开菜单时底部也可退出（顶栏已有「退出」） -->
+      <div class="border-t border-white/[0.06] p-3 md:hidden">
         <button
           type="button"
           class="w-full rounded-lg border border-white/10 px-3 py-2 text-xs text-white/80 transition hover:bg-white/[0.06]"
@@ -86,9 +96,16 @@ function logout() {
     <!-- 主区 -->
     <div class="flex min-h-0 min-w-0 flex-1 flex-col">
       <header
-        class="hidden border-b border-emerald-950/60 bg-[#0a0f14]/95 px-6 py-4 backdrop-blur md:block"
+        class="hidden items-center justify-between gap-4 border-b border-emerald-950/60 bg-[#0a0f14]/95 px-6 py-4 backdrop-blur md:flex"
       >
-        <h1 class="text-lg font-semibold text-white">{{ pageTitle }}</h1>
+        <h1 class="min-w-0 text-lg font-semibold text-white">{{ pageTitle }}</h1>
+        <button
+          type="button"
+          class="shrink-0 rounded-lg border border-white/10 px-4 py-2 text-xs font-medium text-white/80 transition hover:border-white/18 hover:bg-white/[0.06] hover:text-white"
+          @click="logout"
+        >
+          退出登录
+        </button>
       </header>
       <main class="min-h-0 flex-1 overflow-y-auto px-4 py-5 md:px-8 md:py-8">
         <RouterView />

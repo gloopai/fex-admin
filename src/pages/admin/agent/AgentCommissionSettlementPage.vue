@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, reactive, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, reactive, watch } from 'vue'
 import { agentSettlementApi } from '../../../admin/mock/agentSettlement'
 import {
   AGENT_SETTLEMENT_ACTION,
@@ -113,28 +113,106 @@ const toggleOne = (id) => {
 
 const isSelected = (id) => selectedIds.value.includes(id)
 
-const doAdvance = async (batchId, action, label) => {
-  if (!confirm(`确认${label}？`)) return
-  const res = await agentSettlementApi.advanceBatch(batchId, action)
-  alert(res.message || (res.success ? '已更新' : '失败'))
-  if (res.success) await loadList()
+/** 非原生提示（右上角 Toast） */
+const toast = ref({ visible: false, message: '', kind: 'info' })
+let toastHideTimer = null
+
+function showToast(message, kind = 'info') {
+  if (toastHideTimer) {
+    clearTimeout(toastHideTimer)
+    toastHideTimer = null
+  }
+  toast.value = { visible: true, message: String(message ?? ''), kind }
+  toastHideTimer = setTimeout(() => {
+    toast.value.visible = false
+    toastHideTimer = null
+  }, 3800)
 }
 
-const batchByStatus = async (action, label, allowedStatus) => {
+const toastBorderClass = computed(() => {
+  const k = toast.value.kind
+  if (k === 'success') return 'border-emerald-200'
+  if (k === 'error') return 'border-red-200'
+  return 'border-blue-200'
+})
+
+const toastIconBgClass = computed(() => {
+  const k = toast.value.kind
+  if (k === 'success') return 'bg-emerald-500'
+  if (k === 'error') return 'bg-red-500'
+  return 'bg-blue-500'
+})
+
+/** 非原生确认框 */
+const confirmDialog = ref({
+  visible: false,
+  message: '',
+  loading: false,
+  /** @type {null | (() => void | Promise<void>)} */
+  onConfirm: null
+})
+
+function closeConfirm() {
+  if (confirmDialog.value.loading) return
+  confirmDialog.value.visible = false
+  confirmDialog.value.message = ''
+  confirmDialog.value.onConfirm = null
+}
+
+function openConfirm(message, onConfirm) {
+  confirmDialog.value = {
+    visible: true,
+    message,
+    loading: false,
+    onConfirm
+  }
+}
+
+async function submitConfirm() {
+  const fn = confirmDialog.value.onConfirm
+  if (!fn) {
+    closeConfirm()
+    return
+  }
+  confirmDialog.value.loading = true
+  try {
+    await fn()
+  } catch (e) {
+    showToast(e?.message || '操作失败', 'error')
+  } finally {
+    confirmDialog.value.loading = false
+    closeConfirm()
+  }
+}
+
+onUnmounted(() => {
+  if (toastHideTimer) clearTimeout(toastHideTimer)
+})
+
+const doAdvance = (batchId, action, label) => {
+  openConfirm(`确认${label}？`, async () => {
+    const res = await agentSettlementApi.advanceBatch(batchId, action)
+    showToast(res.message || (res.success ? '已更新' : '失败'), res.success ? 'success' : 'error')
+    if (res.success) await loadList()
+  })
+}
+
+const batchByStatus = (action, label, allowedStatus) => {
   const picked = recordList.value.filter((r) => selectedIds.value.includes(r.id))
   const ok = picked.filter((r) => r.status === allowedStatus)
   if (!ok.length) {
-    alert(`所选记录中没有处于「${agentSettlementStatusLabel(allowedStatus)}」的项`)
+    showToast(`所选记录中没有处于「${agentSettlementStatusLabel(allowedStatus)}」的项`, 'error')
     return
   }
-  if (!confirm(`确认对 ${ok.length} 条记录批量${label}？`)) return
-  const res = await agentSettlementApi.batchAdvance(
-    ok.map((r) => r.id),
-    action
-  )
-  alert(res.message)
-  selectedIds.value = []
-  await loadList()
+  openConfirm(`确认对 ${ok.length} 条记录批量${label}？`, async () => {
+    const res = await agentSettlementApi.batchAdvance(
+      ok.map((r) => r.id),
+      action
+    )
+    showToast(res.message, res.success ? 'success' : 'error')
+    selectedIds.value = []
+    await loadList()
+  })
 }
 </script>
 
@@ -331,8 +409,8 @@ const batchByStatus = async (action, label, allowedStatus) => {
         <div class="flex items-center gap-2">
           <button
             type="button"
-            class="rounded border border-slate-300 px-2 py-1 disabled:opacity-40"
-            :disabled="pagination.currentPage <= 1"
+            class="rounded border border-slate-300 px-2 py-1 disabled:cursor-not-allowed disabled:opacity-40"
+            :disabled="pagination.currentPage <= 1 || loading"
             @click="pagination.currentPage -= 1"
           >
             上一页
@@ -340,8 +418,8 @@ const batchByStatus = async (action, label, allowedStatus) => {
           <span>{{ pagination.currentPage }} / {{ totalPages }}</span>
           <button
             type="button"
-            class="rounded border border-slate-300 px-2 py-1 disabled:opacity-40"
-            :disabled="pagination.currentPage >= totalPages"
+            class="rounded border border-slate-300 px-2 py-1 disabled:cursor-not-allowed disabled:opacity-40"
+            :disabled="pagination.currentPage >= totalPages || loading"
             @click="pagination.currentPage += 1"
           >
             下一页
@@ -350,4 +428,48 @@ const batchByStatus = async (action, label, allowedStatus) => {
       </div>
     </div>
   </div>
+
+  <Teleport to="body">
+    <!-- 确认操作 -->
+    <div
+      v-if="confirmDialog.visible"
+      class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 p-4"
+      role="dialog"
+      aria-modal="true"
+      @click.self="closeConfirm"
+    >
+      <div class="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-xl">
+        <p class="text-base font-semibold text-slate-900">请确认</p>
+        <p class="mt-2 text-sm leading-relaxed text-slate-600">{{ confirmDialog.message }}</p>
+        <div class="mt-6 flex justify-end gap-2">
+          <button type="button" class="ant-btn" :disabled="confirmDialog.loading" @click="closeConfirm">
+            取消
+          </button>
+          <button type="button" class="ant-btn ant-btn-primary" :disabled="confirmDialog.loading" @click="submitConfirm">
+            {{ confirmDialog.loading ? '处理中…' : '确定' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 结果提示 -->
+    <div
+      v-if="toast.visible"
+      class="fixed right-4 top-4 z-[110] flex max-w-sm items-center gap-3 rounded-lg border bg-white px-4 py-3 shadow-lg"
+      :class="toastBorderClass"
+    >
+      <div class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full" :class="toastIconBgClass">
+        <svg v-if="toast.kind === 'success'" class="h-3 w-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+        </svg>
+        <svg v-else-if="toast.kind === 'error'" class="h-3 w-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+        <svg v-else class="h-3 w-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+      <span class="text-sm font-medium text-slate-900">{{ toast.message }}</span>
+    </div>
+  </Teleport>
 </template>
