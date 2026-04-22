@@ -221,6 +221,6 @@ export function getReferralSettlementUserBullets(cfg) {
   return [
     `返现将记入「${creditLabel}」。${schedule}。`,
     notify,
-    '具体到账时间以订单结算与站内通知为准。'
+    '佣金进入上述账户的时间，为该笔分佣在账务侧处理完毕并完成入账的时刻。'
   ]
 }

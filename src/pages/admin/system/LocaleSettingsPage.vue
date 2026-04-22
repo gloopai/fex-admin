@@ -1,17 +1,10 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import {
-  DEFAULT_I18N_BLOCK,
-  FRONT_LOCALE_CATALOG,
-  PHONE_DIAL_PRESETS
-} from '../../../admin/constants/i18nCatalog'
-import { DEFAULT_SITE_CONFIG, siteConfigApi } from '../../../admin/mock/siteConfig'
+import { FRONT_LOCALE_CATALOG, PHONE_DIAL_PRESETS } from '../../../admin/constants/i18nCatalog'
+import { DEFAULT_SITE_CONFIG, normalizeSiteConfig, siteConfigApi } from '../../../admin/mock/siteConfig'
 
-const config = ref({
-  ...DEFAULT_SITE_CONFIG,
-  i18n: { ...DEFAULT_I18N_BLOCK }
-})
+const config = ref(normalizeSiteConfig({ ...DEFAULT_SITE_CONFIG }))
 const loading = ref(true)
 const isSaving = ref(false)
 
@@ -22,13 +15,64 @@ const localeTabs = [
   { key: 'dial', label: '手机区号' }
 ]
 
+const localesTableRows = computed(() => {
+  const order = config.value.i18n?.localeSortOrder || {}
+  return [...FRONT_LOCALE_CATALOG].sort((a, b) => {
+    const da = Number.isFinite(order[a.code]) ? order[a.code] : 999999
+    const db = Number.isFinite(order[b.code]) ? order[b.code] : 999999
+    if (da !== db) return da - db
+    return FRONT_LOCALE_CATALOG.findIndex((x) => x.code === a.code) - FRONT_LOCALE_CATALOG.findIndex((x) => x.code === b.code)
+  })
+})
+
+const dialsTableRows = computed(() => {
+  const order = config.value.dialSortOrder || {}
+  return [...PHONE_DIAL_PRESETS].sort((a, b) => {
+    const da = Number.isFinite(order[a.dial]) ? order[a.dial] : 999999
+    const db = Number.isFinite(order[b.dial]) ? order[b.dial] : 999999
+    if (da !== db) return da - db
+    return PHONE_DIAL_PRESETS.findIndex((x) => x.dial === a.dial) - PHONE_DIAL_PRESETS.findIndex((x) => x.dial === b.dial)
+  })
+})
+
+function ensureLocaleSortMap() {
+  if (!config.value.i18n.localeSortOrder || typeof config.value.i18n.localeSortOrder !== 'object') {
+    config.value.i18n.localeSortOrder = {}
+  }
+  const m = config.value.i18n.localeSortOrder
+  FRONT_LOCALE_CATALOG.forEach((l, i) => {
+    if (!Number.isFinite(m[l.code])) m[l.code] = i * 10
+  })
+}
+
+function ensureDialSortMap() {
+  if (!config.value.dialSortOrder || typeof config.value.dialSortOrder !== 'object') {
+    config.value.dialSortOrder = {}
+  }
+  const m = config.value.dialSortOrder
+  PHONE_DIAL_PRESETS.forEach((p, i) => {
+    if (!Number.isFinite(m[p.dial])) m[p.dial] = i * 10
+  })
+}
+
+function onLocaleSortInput(code, raw) {
+  ensureLocaleSortMap()
+  const n = parseInt(String(raw ?? '').trim(), 10)
+  config.value.i18n.localeSortOrder[code] = Number.isFinite(n) ? n : 0
+}
+
+function onDialSortInput(dial, raw) {
+  ensureDialSortMap()
+  const n = parseInt(String(raw ?? '').trim(), 10)
+  config.value.dialSortOrder[dial] = Number.isFinite(n) ? n : 0
+}
+
 const loadConfig = async () => {
   loading.value = true
   try {
     const result = await siteConfigApi.getSiteConfig()
     if (result.success) {
-      config.value = { ...DEFAULT_SITE_CONFIG, ...result.data }
-      config.value.i18n = { ...DEFAULT_I18N_BLOCK, ...(config.value.i18n || {}) }
+      config.value = normalizeSiteConfig({ ...DEFAULT_SITE_CONFIG, ...result.data })
     }
   } catch (e) {
     console.error(e)
@@ -66,8 +110,17 @@ const saveConfig = async () => {
 
 function toggleLocale(code, checked) {
   const cur = new Set(config.value.i18n.enabledLocales || [])
-  if (checked) cur.add(code)
-  else cur.delete(code)
+  if (checked) {
+    cur.add(code)
+    ensureLocaleSortMap()
+    if (!Number.isFinite(config.value.i18n.localeSortOrder[code])) {
+      const vals = Object.values(config.value.i18n.localeSortOrder).filter((n) => Number.isFinite(n))
+      const max = vals.length ? Math.max(...vals) : 0
+      config.value.i18n.localeSortOrder[code] = max + 10
+    }
+  } else {
+    cur.delete(code)
+  }
   let next = [...cur]
   if (next.length === 0) next = ['zh-CN']
   config.value.i18n.enabledLocales = next
@@ -78,8 +131,17 @@ function toggleLocale(code, checked) {
 
 function toggleDial(dial, checked) {
   const cur = new Set(config.value.allowedDialCodes || [])
-  if (checked) cur.add(dial)
-  else cur.delete(dial)
+  if (checked) {
+    cur.add(dial)
+    ensureDialSortMap()
+    if (!Number.isFinite(config.value.dialSortOrder[dial])) {
+      const vals = Object.values(config.value.dialSortOrder).filter((n) => Number.isFinite(n))
+      const max = vals.length ? Math.max(...vals) : 0
+      config.value.dialSortOrder[dial] = max + 10
+    }
+  } else {
+    cur.delete(dial)
+  }
   config.value.allowedDialCodes = [...cur]
 }
 
@@ -90,6 +152,12 @@ function setDefaultLocale(code) {
 
 function selectAllLocales() {
   config.value.i18n.enabledLocales = FRONT_LOCALE_CATALOG.map((l) => l.code)
+  ensureLocaleSortMap()
+  FRONT_LOCALE_CATALOG.forEach((l, i) => {
+    if (!Number.isFinite(config.value.i18n.localeSortOrder[l.code])) {
+      config.value.i18n.localeSortOrder[l.code] = i * 10
+    }
+  })
   if (!config.value.i18n.enabledLocales.includes(config.value.i18n.defaultLocale)) {
     config.value.i18n.defaultLocale = config.value.i18n.enabledLocales[0]
   }
@@ -97,6 +165,12 @@ function selectAllLocales() {
 
 function selectAllDialCodes() {
   config.value.allowedDialCodes = PHONE_DIAL_PRESETS.map((p) => p.dial)
+  ensureDialSortMap()
+  PHONE_DIAL_PRESETS.forEach((p, i) => {
+    if (!Number.isFinite(config.value.dialSortOrder[p.dial])) {
+      config.value.dialSortOrder[p.dial] = i * 10
+    }
+  })
 }
 
 onMounted(() => {
@@ -167,14 +241,24 @@ onMounted(() => {
                   <tr>
                     <th class="px-4 py-2.5 font-medium">语言名称</th>
                     <th class="w-32 px-4 py-2.5 font-medium">语言代码</th>
+                    <th class="w-28 px-4 py-2.5 font-medium">排序</th>
                     <th class="w-24 px-4 py-2.5 text-center font-medium">启用</th>
                     <th class="w-28 px-4 py-2.5 text-center font-medium">默认</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 bg-white">
-                  <tr v-for="loc in FRONT_LOCALE_CATALOG" :key="loc.code" class="hover:bg-slate-50/80">
+                  <tr v-for="loc in localesTableRows" :key="loc.code" class="hover:bg-slate-50/80">
                     <td class="px-4 py-2.5 text-slate-800">{{ loc.label }}</td>
                     <td class="px-4 py-2.5 font-mono text-xs text-slate-500">{{ loc.code }}</td>
+                    <td class="px-4 py-2.5">
+                      <input
+                        type="number"
+                        step="1"
+                        class="ant-input w-full max-w-[6.5rem] text-right text-sm tabular-nums"
+                        :value="config.i18n.localeSortOrder?.[loc.code] ?? 0"
+                        @input="onLocaleSortInput(loc.code, $event.target.value)"
+                      />
+                    </td>
                     <td class="px-4 py-2.5 text-center">
                       <input
                         type="checkbox"
@@ -198,7 +282,7 @@ onMounted(() => {
                 </tbody>
               </table>
             </div>
-            <!-- <p class="text-xs text-slate-500">新访客与未保存过偏好的用户将使用「默认」语言；需在已启用的语言中指定其一。</p> -->
+            <p class="text-xs text-slate-500">「排序」填整数，数字越小在前台语言列表中越靠前；未改动时按内置目录默认间隔 10 递增。</p>
 
             <div class="flex items-start justify-between gap-4 rounded-lg border border-slate-100 bg-slate-50/80 px-4 py-3">
               <div class="min-w-0 flex-1">
@@ -242,17 +326,27 @@ onMounted(() => {
           </div>
           <div class="overflow-x-auto overflow-hidden rounded-lg border border-slate-200">
             <table class="w-full min-w-[28rem] border-collapse text-left text-sm">
-              <thead class="bg-slate-50 text-slate-600">
+                <thead class="bg-slate-50 text-slate-600">
                 <tr>
                   <th class="px-4 py-2.5 font-medium">地区与区号</th>
                   <th class="w-28 px-4 py-2.5 font-medium">国际区号</th>
+                  <th class="w-28 px-4 py-2.5 font-medium">排序</th>
                   <th class="w-24 px-4 py-2.5 text-center font-medium">启用</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100 bg-white">
-                <tr v-for="row in PHONE_DIAL_PRESETS" :key="row.dial" class="hover:bg-slate-50/80">
+                <tr v-for="row in dialsTableRows" :key="row.dial" class="hover:bg-slate-50/80">
                   <td class="px-4 py-2.5 text-slate-800">{{ row.label }}</td>
                   <td class="px-4 py-2.5 font-mono text-sm text-slate-600">{{ row.dial }}</td>
+                  <td class="px-4 py-2.5">
+                    <input
+                      type="number"
+                      step="1"
+                      class="ant-input w-full max-w-[6.5rem] text-right text-sm tabular-nums"
+                      :value="config.dialSortOrder?.[row.dial] ?? 0"
+                      @input="onDialSortInput(row.dial, $event.target.value)"
+                    />
+                  </td>
                   <td class="px-4 py-2.5 text-center">
                     <input
                       type="checkbox"
@@ -265,7 +359,7 @@ onMounted(() => {
               </tbody>
             </table>
           </div>
-          <!-- <p class="text-xs text-slate-500">至少保留一个区号；若全部取消，保存后会自动保留 +86。</p> -->
+          <p class="text-xs text-slate-500">「排序」填整数，数字越小在区号下拉中越靠前；保存后前台登录与绑定手机等处的区号顺序与此一致。</p>
         </section>
       </div>
 

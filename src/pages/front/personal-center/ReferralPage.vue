@@ -34,7 +34,7 @@ function copy(text) {
     <header class="mb-5 hidden md:mb-6 md:block">
       <h1 class="text-2xl font-bold tracking-tight text-white md:text-3xl">邀请返佣</h1>
       <p class="mt-1 text-sm text-white/55">
-        邀请好友注册并完成交易，按规则获得返现。比例与结算周期以活动公告为准。
+        邀请好友注册并完成指定业务后，按管理后台「裂变分销设置」中当前生效的比例与结算安排计算返现。
       </p>
     </header>
 
@@ -106,9 +106,9 @@ function copy(text) {
       <section class="rounded-2xl border border-white/[0.08] bg-black/30 px-3 py-3 text-xs leading-relaxed text-white/50 md:px-5 md:py-4">
         <p class="font-medium text-white/65">说明</p>
         <ul class="mt-2 list-inside list-disc space-y-1">
-          <li>好友须通过您的邀请链接或填写邀请码完成注册。</li>
-          <li>若被邀请人触发风控或违规交易，相关返佣可能被收回。</li>
-          <li>详情以「邀请活动规则」页面与站内信通知为准。</li>
+          <li>被邀请人须使用您的邀请链接完成注册；站点若开放邀请码补录，被邀请人须在注册流程内填写与您绑定的邀请码。</li>
+          <li>被邀请人触发风控并收到「异常账号、违规交易」判定的，平台取消该邀请关系下尚未发放的返佣；已发放的返佣按账务冲正规则处理。</li>
+          <li>完整活动条款见「邀请活动规则」页面；规则更新时系统向您发送站内信。</li>
         </ul>
       </section>
     </div>

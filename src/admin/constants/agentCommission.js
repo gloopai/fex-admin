@@ -61,7 +61,7 @@ export const AGENT_PRODUCT_LINE_DEFS = [
 ]
 
 export const AGENT_PRODUCT_GROUPS = [
-  { id: 'fund', name: '入金', blurb: '用户链上 / 站内充值', lineKeys: ['deposit'] },
+  { id: 'fund', name: '入金', blurb: '含链上与站内 USDT 充值', lineKeys: ['deposit'] },
   { id: 'trade', name: '交易', blurb: '合约与现货订单', lineKeys: ['perpetual', 'delivery', 'spot'] },
   { id: 'fin', name: '产品与策略', blurb: '量化、理财、借贷', lineKeys: ['aiQuant', 'lending', 'borrowing'] }
 ]

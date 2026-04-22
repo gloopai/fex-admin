@@ -26,8 +26,9 @@ const PRODUCT_LINES = [
     enabledKey: 'commissionDepositEnabled',
     ratesKey: 'depositCommissionRates',
     title: '充值',
-    baseDesc: '计佣基数 A = 单次充值到账金额（USDT）',
-    formula: '佣金ᵢ = 充值金额 A × rᵢ',
+    baseDesc:
+      '计佣基数 A = 被邀请用户该笔充值成功后的实际到账 USDT 金额（与充值入账流水中的到账金额相同）。',
+    formula: '佣金ᵢ = A × rᵢ',
     firstDepositExtra: true,
     theme: 'blue'
   },
@@ -36,8 +37,9 @@ const PRODUCT_LINES = [
     enabledKey: 'commissionPerpetualEnabled',
     ratesKey: 'perpetualCommissionRates',
     title: '永续合约',
-    baseDesc: '计佣基数 A = 该笔永续订单手续费或成交额（以业务规则为准，USDT）',
-    formula: '佣金ᵢ = 计佣基数 A × rᵢ',
+    baseDesc:
+      '计佣基数 A = 该笔永续订单在成交结算中向用户收取并记入「交易手续费」的 USDT 金额（单笔订单一个数值；本笔无手续费则 A = 0）。',
+    formula: '佣金ᵢ = A × rᵢ',
     theme: 'indigo'
   },
   {
@@ -45,8 +47,9 @@ const PRODUCT_LINES = [
     enabledKey: 'commissionDeliveryEnabled',
     ratesKey: 'deliveryCommissionRates',
     title: '交割合约',
-    baseDesc: '计佣基数 A = 该笔交割订单参与分佣的金额（USDT）',
-    formula: '佣金ᵢ = 计佣基数 A × rᵢ',
+    baseDesc:
+      '计佣基数 A = 该笔交割合约订单自开仓至持仓全部了结并完成交割结算期间，每一笔成交向用户实收并记入「手续费」科目的 USDT 金额之总和；不包含已实现盈亏、保证金利息及其它非手续费科目；该笔订单无手续费则 A = 0。',
+    formula: '佣金ᵢ = A × rᵢ',
     theme: 'violet'
   },
   {
@@ -54,8 +57,9 @@ const PRODUCT_LINES = [
     enabledKey: 'commissionSpotEnabled',
     ratesKey: 'spotCommissionRates',
     title: '现货',
-    baseDesc: '计佣基数 A = 该笔现货订单手续费或成交额（以业务规则为准，USDT）',
-    formula: '佣金ᵢ = 计佣基数 A × rᵢ',
+    baseDesc:
+      '计佣基数 A = 该笔现货订单在成交结算中向用户收取并记入「交易手续费」的 USDT 金额（单笔订单一个数值；本笔无手续费则 A = 0）。',
+    formula: '佣金ᵢ = A × rᵢ',
     theme: 'orange'
   },
   {
@@ -63,8 +67,9 @@ const PRODUCT_LINES = [
     enabledKey: 'commissionAiQuantEnabled',
     ratesKey: 'aiQuantCommissionRates',
     title: 'AI 量化',
-    baseDesc: '计佣基数 A = AI 量化订单参与分佣的金额（USDT）',
-    formula: '佣金ᵢ = 计佣基数 A × rᵢ',
+    baseDesc:
+      '计佣基数 A = 该笔 AI 量化策略订单在结息入账时，账务系统为该笔订单写入的 USDT 计佣金额（单笔订单一个数值）。',
+    formula: '佣金ᵢ = A × rᵢ',
     theme: 'amber'
   },
   {
@@ -72,8 +77,9 @@ const PRODUCT_LINES = [
     enabledKey: 'commissionLendingEnabled',
     ratesKey: 'lendingCommissionRates',
     title: '理财产品',
-    baseDesc: '计佣基数 A = 理财订单计佣本金或结算基数（USDT）',
-    formula: '佣金ᵢ = 计佣基数 A × rᵢ',
+    baseDesc:
+      '计佣基数 A = 该笔理财订单在计佣结算时点，账务系统为该笔订单写入的 USDT 计佣本金（单笔订单一个数值）。',
+    formula: '佣金ᵢ = A × rᵢ',
     theme: 'emerald'
   },
   {
@@ -81,8 +87,9 @@ const PRODUCT_LINES = [
     enabledKey: 'commissionBorrowingEnabled',
     ratesKey: 'borrowingCommissionRates',
     title: '借贷产品',
-    baseDesc: '计佣基数 A = 抵押借贷订单计佣本金或利息基数（以业务规则为准，USDT）',
-    formula: '佣金ᵢ = 计佣基数 A × rᵢ',
+    baseDesc:
+      '计佣基数 A = 该笔抵押借贷订单在计佣结算时点，账务系统为该笔订单写入的 USDT 计佣基数（单笔订单一个数值）。',
+    formula: '佣金ᵢ = A × rᵢ',
     theme: 'rose'
   }
 ]
@@ -92,7 +99,7 @@ const PRODUCT_GROUPS = [
   {
     id: 'fund',
     name: '入金',
-    blurb: '用户链上 / 站内充值',
+    blurb: '含链上与站内 USDT 充值',
     lineKeys: ['deposit']
   },
   {
@@ -220,7 +227,7 @@ const saveConfig = async () => {
     if (config.value[line.enabledKey]) continue
     const raw = config.value[line.ratesKey]
     if (raw != null && String(raw).trim() && !validateTriple(normalizeCommissionRatesTriple(raw))) {
-      alert(`「${line.title}」比例格式有误，请修正或清空。`)
+      alert(`「${line.title}」比例格式有误，请修正后再保存。`)
       return
     }
   }
@@ -317,8 +324,8 @@ onMounted(() => {
             </span>
           </p>
           <p class="mt-3 text-xs leading-relaxed text-slate-600">
-            <strong class="text-slate-700">A</strong>：本条订单的计佣基数（各产品线含义见下方卡片）。<br />
-            <strong class="text-slate-700">rᵢ</strong>：第 i 级上级对应比例（i 为 1～3），取值 0～1（如 0.1 = 10%）。
+            <strong class="text-slate-700">A</strong>：本条业务单的计佣基数，币种为 USDT；各产品线对 A 的取值定义见下方对应卡片，每条订单对应一个 A。<br />
+            <strong class="text-slate-700">rᵢ</strong>：第 i 级邀请链上级的分佣比例，i ∈ {1, 2, 3}，取值范围为闭区间 [0, 1]；例如 0.1 表示 10%。
           </p>
         </div>
         <div class="text-sm leading-relaxed text-slate-600">
@@ -334,7 +341,10 @@ onMounted(() => {
             </li>
             <li class="flex gap-2">
               <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-300" />
-              <span>下方「示例」用同一假设基数，仅便于核对公式，实际以订单为准。</span>
+              <span>
+                下方「示例」使用统一的假设基数，仅用于核对「A × rᵢ」的乘法关系；线上环境每一条真实订单单独计算，其 A
+                取自账务系统为该笔订单写入的计佣金额。
+              </span>
             </li>
           </ul>
         </div>
@@ -352,7 +362,9 @@ onMounted(() => {
         <div class="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p class="text-sm font-medium text-slate-900">自动执行裂变分佣</p>
-            <p class="mt-1 text-sm text-slate-500">满足条件时系统自动计算并发放邀请链佣金；关闭则需人工处理分佣记录。</p>
+            <p class="mt-1 text-sm text-slate-500">
+              开启后：账务生成待发放记录时由系统自动执行入账。关闭后：待发放记录停留在「分佣记录」列表，由运营在后台逐笔点击执行入账。
+            </p>
           </div>
           <button
             type="button"
@@ -369,7 +381,9 @@ onMounted(() => {
         <div class="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p class="text-sm font-medium text-slate-900">仅首笔充值参与裂变分佣</p>
-            <p class="mt-1 text-sm text-slate-500">仅影响「充值」产品线的邀请链计佣：开启后只对被邀请用户首次成功充值按该线比例计佣。</p>
+            <p class="mt-1 text-sm text-slate-500">
+              仅作用于「充值」产品线：开启时，被邀请用户仅其第一笔充值成功订单参与本条线的 A 与分佣计算；该用户后续充值订单不参与本条线分佣。
+            </p>
           </div>
           <button
             type="button"
@@ -393,7 +407,9 @@ onMounted(() => {
           <span class="text-xs font-semibold text-slate-400">③</span>
           <div>
             <h2 class="text-base font-semibold text-slate-900">产品线 · 邀请链记佣</h2>
-            <p class="mt-0.5 text-sm text-slate-500">按邀请关系为三级上级设置分佣比例。</p>
+            <p class="mt-0.5 text-sm text-slate-500">
+              邀请链固定三级：直属上级为一级，其上为二级，再其上为三级；每条订单按本页配置的比例分别计算三级佣金。
+            </p>
           </div>
         </div>
         <div class="flex flex-col gap-1 sm:items-end">
@@ -450,7 +466,7 @@ onMounted(() => {
                 <div class="rounded border border-slate-100 bg-white px-3 py-2 font-mono text-[11px] leading-relaxed text-slate-700">
                   {{ line.formula }}
                   <span v-if="line.firstDepositExtra && line.key === 'deposit'" class="mt-1 block text-slate-500">
-                    若已开「仅首笔充值」，仅首充成功订单取 A。
+                    已开启「仅首笔充值」时：仅被邀请用户第一笔充值成功订单产生本条线的 A 与佣金；其余充值不产生本条线佣金。
                   </span>
                 </div>
 

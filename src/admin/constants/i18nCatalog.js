@@ -30,5 +30,10 @@ export const DEFAULT_I18N_BLOCK = {
   /** 默认语言 */
   defaultLocale: 'zh-CN',
   /** 顶栏是否显示语言切换 */
-  languageSwitcherEnabled: true
+  languageSwitcherEnabled: true,
+  /**
+   * 语言在前台列表中的排序权重，数字越小越靠前；未配置的语言按内置目录顺序默认 0、10、20…
+   * @type {Record<string, number>}
+   */
+  localeSortOrder: {}
 }

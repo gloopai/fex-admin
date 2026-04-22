@@ -366,8 +366,13 @@ export const DEFAULT_SITE_CONFIG = {
   inviteCodeRequired: false,
   /** 是否在前台开放手机号登录与手机号注册；关闭后仅保留邮箱登录/注册，区号列表仍仅 +86 */
   phoneLoginEnabled: true,
-  /** 手机登录/安全绑定可选区号（phoneLoginEnabled 为 true 时生效） */
+  /** 手机登录/安全绑定可选区号（phoneLoginEnabled 为 true 时生效）；顺序由 dialSortOrder 决定 */
   allowedDialCodes: ['+86'],
+  /**
+   * 区号在下拉中的排序权重，数字越小越靠前；未配置的区号按内置预设顺序默认 0、10、20…
+   * @type {Record<string, number>}
+   */
+  dialSortOrder: {},
   /** 启用后，以下多语言配置才会应用到前台；关闭则固定简体中文并隐藏语言切换 */
   languageSettingsEnabled: true,
   /** 邮件服务器（SMTP）多账户，可多条并分别启用 */
@@ -389,33 +394,94 @@ function readStored() {
   }
 }
 
-function normalizeAllowedDialCodes(raw) {
-  if (!Array.isArray(raw)) return ['+86']
+function normalizeDialSortOrder(raw) {
+  /** @type {Record<string, number>} */
+  const out = {}
+  PHONE_DIAL_PRESETS.forEach((p, i) => {
+    out[p.dial] = i * 10
+  })
+  if (raw && typeof raw === 'object') {
+    for (const dial of VALID_DIAL) {
+      if (!Object.prototype.hasOwnProperty.call(raw, dial)) continue
+      const n = Number(raw[dial])
+      if (Number.isFinite(n)) out[dial] = Math.round(n)
+    }
+  }
+  return out
+}
+
+function normalizeAllowedDialCodes(raw, dialSortOrder) {
+  if (!Array.isArray(raw)) raw = ['+86']
   const d = [...new Set(raw.filter((x) => VALID_DIAL.has(x)))]
-  return d.length ? d : ['+86']
+  const codes = d.length ? d : ['+86']
+  const order = dialSortOrder && typeof dialSortOrder === 'object' ? dialSortOrder : normalizeDialSortOrder(null)
+  return [...codes].sort((a, b) => {
+    const da = order[a] ?? 999999
+    const db = order[b] ?? 999999
+    if (da !== db) return da - db
+    return PHONE_DIAL_PRESETS.findIndex((x) => x.dial === a) - PHONE_DIAL_PRESETS.findIndex((x) => x.dial === b)
+  })
+}
+
+function normalizeLocaleSortOrder(raw) {
+  /** @type {Record<string, number>} */
+  const out = {}
+  FRONT_LOCALE_CATALOG.forEach((l, i) => {
+    out[l.code] = i * 10
+  })
+  if (raw && typeof raw === 'object') {
+    for (const code of VALID_LOCALE_CODES) {
+      if (!Object.prototype.hasOwnProperty.call(raw, code)) continue
+      const n = Number(raw[code])
+      if (Number.isFinite(n)) out[code] = Math.round(n)
+    }
+  }
+  return out
 }
 
 function normalizeI18n(raw) {
   const d = { ...DEFAULT_I18N_BLOCK }
-  if (!raw || typeof raw !== 'object') return d
-  let enabled = Array.isArray(raw.enabledLocales)
-    ? raw.enabledLocales.filter((c) => VALID_LOCALE_CODES.has(c))
+  if (!raw || typeof raw !== 'object') {
+    const localeSortOrder = normalizeLocaleSortOrder(null)
+    return {
+      ...d,
+      localeSortOrder,
+      enabledLocales: [...d.enabledLocales].sort((a, b) => {
+        const da = localeSortOrder[a] ?? 999999
+        const db = localeSortOrder[b] ?? 999999
+        if (da !== db) return da - db
+        return FRONT_LOCALE_CATALOG.findIndex((x) => x.code === a) - FRONT_LOCALE_CATALOG.findIndex((x) => x.code === b)
+      })
+    }
+  }
+  const base = { ...d, ...raw }
+  let enabled = Array.isArray(base.enabledLocales)
+    ? base.enabledLocales.filter((c) => VALID_LOCALE_CODES.has(c))
     : d.enabledLocales
   if (enabled.length === 0) enabled = [...d.enabledLocales]
-  let def = typeof raw.defaultLocale === 'string' && VALID_LOCALE_CODES.has(raw.defaultLocale)
-    ? raw.defaultLocale
+  let def = typeof base.defaultLocale === 'string' && VALID_LOCALE_CODES.has(base.defaultLocale)
+    ? base.defaultLocale
     : d.defaultLocale
   if (!enabled.includes(def)) def = enabled[0]
+
+  const localeSortOrder = normalizeLocaleSortOrder(base.localeSortOrder)
+  enabled = [...enabled].sort((a, b) => {
+    const da = localeSortOrder[a] ?? 999999
+    const db = localeSortOrder[b] ?? 999999
+    if (da !== db) return da - db
+    return FRONT_LOCALE_CATALOG.findIndex((x) => x.code === a) - FRONT_LOCALE_CATALOG.findIndex((x) => x.code === b)
+  })
 
   return {
     enabledLocales: enabled,
     defaultLocale: def,
     languageSwitcherEnabled:
-      typeof raw.languageSwitcherEnabled === 'boolean' ? raw.languageSwitcherEnabled : d.languageSwitcherEnabled
+      typeof base.languageSwitcherEnabled === 'boolean' ? base.languageSwitcherEnabled : d.languageSwitcherEnabled,
+    localeSortOrder
   }
 }
 
-function normalizeSiteConfig(raw) {
+export function normalizeSiteConfig(raw) {
   const merged = { ...DEFAULT_SITE_CONFIG, ...(raw && typeof raw === 'object' ? raw : {}) }
   const rawObj = raw && typeof raw === 'object' ? raw : {}
   const nestedDials = raw?.i18n && Array.isArray(raw.i18n.allowedDialCodes) ? raw.i18n.allowedDialCodes : null
@@ -434,7 +500,8 @@ function normalizeSiteConfig(raw) {
     typeof merged.languageSettingsEnabled === 'boolean'
       ? merged.languageSettingsEnabled
       : DEFAULT_SITE_CONFIG.languageSettingsEnabled
-  merged.allowedDialCodes = normalizeAllowedDialCodes(merged.allowedDialCodes)
+  merged.dialSortOrder = normalizeDialSortOrder(merged.dialSortOrder)
+  merged.allowedDialCodes = normalizeAllowedDialCodes(merged.allowedDialCodes, merged.dialSortOrder)
   const explicitSmtpAccounts = Object.prototype.hasOwnProperty.call(rawObj, 'smtpAccounts')
   const needsSmtpMigration =
     !explicitSmtpAccounts && merged.smtp && typeof merged.smtp === 'object'
@@ -524,9 +591,16 @@ export const siteConfigApi = {
             typeof config.languageSettingsEnabled === 'boolean'
               ? config.languageSettingsEnabled
               : DEFAULT_SITE_CONFIG.languageSettingsEnabled,
-          allowedDialCodes: normalizeAllowedDialCodes(config.allowedDialCodes),
+          allowedDialCodes:
+            Array.isArray(config.allowedDialCodes) && config.allowedDialCodes.length
+              ? [...config.allowedDialCodes]
+              : prev.allowedDialCodes,
+          dialSortOrder:
+            config.dialSortOrder !== undefined && config.dialSortOrder !== null && typeof config.dialSortOrder === 'object'
+              ? { ...config.dialSortOrder }
+              : prev.dialSortOrder,
           smtpAccounts: smtpAccountsPayload,
-          i18n: normalizeI18n(config.i18n),
+          i18n: normalizeI18n(config.i18n !== undefined ? config.i18n : prev.i18n),
           smsChannels: smsChannelsPayload
         })
         try {

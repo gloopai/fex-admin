@@ -80,7 +80,7 @@ function validateDraftCommission() {
     if (d[line.enabledKey]) continue
     const raw = d[line.rateKey]
     if (raw != null && String(raw).trim() && !validateOne(raw)) {
-      alert(`「${line.title}」比例格式有误，请修正或清空。`)
+      alert(`「${line.title}」比例格式有误，请修正后再保存。`)
       return false
     }
   }

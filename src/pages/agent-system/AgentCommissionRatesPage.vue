@@ -44,7 +44,7 @@ function formatLineRate(pc, line) {
 <template>
   <div class="space-y-4">
     <p class="text-sm text-white/55">
-      以下为当前账号在各产品线可享受的<strong class="text-white/75">一级记佣比例</strong>；由运营在<strong class="text-white/75">管理后台 → 代理管理</strong>配置，与结算账单口径一致。
+      以下为当前账号在各产品线可享受的<strong class="text-white/75">一级记佣比例</strong>。全站默认值在管理后台「代理记佣配置」中维护；单个代理可在「代理列表」中覆盖。计佣基数 A 的取值规则见「代理记佣配置」页面各产品线卡片说明。
     </p>
 
     <div class="overflow-hidden rounded-xl border border-white/[0.06]">

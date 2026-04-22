@@ -70,7 +70,14 @@ export function useFrontSiteI18n() {
           return Array.isArray(list) && list.length ? list : DEFAULT_DIAL_CODES
         })()
       : DEFAULT_DIAL_CODES
-    return codes.map((dial) => DIAL_META.get(dial) ?? { dial, label: dial })
+    const order = siteConfig.value.dialSortOrder || {}
+    const sorted = [...codes].sort((a, b) => {
+      const da = Number.isFinite(order[a]) ? order[a] : 999999
+      const db = Number.isFinite(order[b]) ? order[b] : 999999
+      if (da !== db) return da - db
+      return PHONE_DIAL_PRESETS.findIndex((x) => x.dial === a) - PHONE_DIAL_PRESETS.findIndex((x) => x.dial === b)
+    })
+    return sorted.map((dial) => DIAL_META.get(dial) ?? { dial, label: dial })
   })
 
   const enabledLocales = computed(() => {
@@ -78,7 +85,14 @@ export function useFrontSiteI18n() {
       return ['zh-CN']
     }
     const list = siteConfig.value.i18n?.enabledLocales
-    return Array.isArray(list) && list.length ? list : ['zh-CN']
+    const base = Array.isArray(list) && list.length ? list : ['zh-CN']
+    const order = siteConfig.value.i18n?.localeSortOrder || {}
+    return [...base].sort((a, b) => {
+      const da = Number.isFinite(order[a]) ? order[a] : 999999
+      const db = Number.isFinite(order[b]) ? order[b] : 999999
+      if (da !== db) return da - db
+      return FRONT_LOCALE_CATALOG.findIndex((x) => x.code === a) - FRONT_LOCALE_CATALOG.findIndex((x) => x.code === b)
+    })
   })
 
   const defaultLocale = computed(() => {
