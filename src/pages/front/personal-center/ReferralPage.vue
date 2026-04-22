@@ -1,7 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { referralApi } from '../../../admin/mock/referral'
-import { getReferralSettlementUserBullets } from '../../../admin/constants/referral'
+import { ref } from 'vue'
 
 const inviteCode = ref('FEX2026')
 const inviteLink = ref('https://example.com/r/FEX2026')
@@ -10,16 +8,6 @@ const stats = ref({
   invited: 128,
   pendingCommission: '320.50',
   settled: '1,204.80'
-})
-
-const settlementCfg = ref(null)
-const settlementBullets = computed(() => getReferralSettlementUserBullets(settlementCfg.value))
-
-onMounted(async () => {
-  try {
-    const res = await referralApi.getReferralConfig()
-    if (res.success) settlementCfg.value = res.data
-  } catch (_) {}
 })
 
 function copy(text) {
@@ -73,19 +61,6 @@ function copy(text) {
             </button>
           </div>
         </div>
-      </section>
-
-      <section
-        v-if="settlementBullets.length"
-        class="rounded-2xl border border-sky-400/25 bg-sky-500/[0.08] p-4 md:p-5"
-      >
-        <h2 class="text-sm font-semibold text-sky-100">返现到账说明</h2>
-        <ul class="mt-3 space-y-2 text-sm leading-relaxed text-sky-50/95">
-          <li v-for="(line, i) in settlementBullets" :key="i" class="flex gap-2">
-            <span class="mt-2 h-1 w-1 shrink-0 rounded-full bg-sky-300/80" />
-            <span>{{ line }}</span>
-          </li>
-        </ul>
       </section>
 
       <section class="grid gap-3 sm:grid-cols-3">
