@@ -408,6 +408,15 @@ export const consoleRoutes = [
     }
   },
   {
+    path: 'agent/agent-commission-settlement',
+    name: 'agent-commission-settlement',
+    component: () => import('../../pages/admin/agent/AgentCommissionSettlementPage.vue'),
+    meta: {
+      title: '代理/分销 / 代理佣金结算',
+      desc: '代理账期佣金复核、出款与入账处理。'
+    }
+  },
+  {
     path: 'agent/referral-config',
     name: 'agent-referral-config',
     component: () => import('../../pages/admin/agent/ReferralConfigPage.vue'),

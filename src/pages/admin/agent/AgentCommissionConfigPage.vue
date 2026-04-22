@@ -1,15 +1,32 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import {
   mockAgentCommissionConfig,
   agentCommissionApi,
   normalizeAgentGlobalCommission
 } from '../../../admin/mock/agentCommission'
-import { DEFAULT_AGENT_GLOBAL_COMMISSION, normalizeAgentLineRate } from '../../../admin/constants/agentCommission'
+import {
+  DEFAULT_AGENT_GLOBAL_COMMISSION,
+  normalizeAgentLineRate,
+  AGENT_SETTLEMENT_CYCLE,
+  AGENT_SETTLEMENT_CYCLE_OPTIONS,
+  AGENT_SETTLEMENT_WEEKDAY_OPTIONS,
+  getAgentSettlementScheduleSummary,
+  getAgentSettlementNotifyLine
+} from '../../../admin/constants/agentCommission'
+import { REFERRAL_COMMISSION_CREDIT_TO_OPTIONS } from '../../../admin/constants/referral'
 
 const config = ref(normalizeAgentGlobalCommission({ ...mockAgentCommissionConfig }))
+/** 记佣规则 | 佣金结算 */
+const activeTab = ref('rules')
 const isSaving = ref(false)
 const demoBaseAmount = ref(10000)
+
+const settlementScheduleLine = computed(() => getAgentSettlementScheduleSummary(config.value))
+const settlementNotifyLine = computed(() => getAgentSettlementNotifyLine(config.value))
+const currentCycleOption = computed(() =>
+  AGENT_SETTLEMENT_CYCLE_OPTIONS.find((o) => o.value === config.value.agentSettlementCycle)
+)
 
 const PRODUCT_LINES = [
   {
@@ -212,10 +229,10 @@ onMounted(() => {
       <div class="min-w-0 flex-1">
         <h1 class="text-2xl font-bold tracking-tight text-slate-900">代理记佣配置</h1>
         <p class="mt-2 text-sm leading-relaxed text-slate-600">
-          配置各产品线代理一级分佣比例 r，以及代理线结算相关全局开关。本页为全站默认；单个代理可在代理列表「记佣配置」中覆盖。
+          配置各产品线代理一级分佣比例 r、代理线全局开关，以及账期佣金结算（单周/双周/月度）、入账与结算后通知。使用下方 Tab 切换；本页为全站默认，单个代理可在代理列表「记佣配置」中覆盖。
         </p>
         <p class="mt-2 text-sm leading-relaxed text-slate-600">
-          配置步骤：<span class="font-medium text-slate-800">① 理解计佣公式</span> →
+          「记佣规则」步骤：<span class="font-medium text-slate-800">① 理解计佣公式</span> →
           <span class="font-medium text-slate-800">② 代理线全局规则</span> →
           <span class="font-medium text-slate-800">③ 各产品线一级比例</span>。
         </p>
@@ -228,6 +245,34 @@ onMounted(() => {
       </div>
     </header>
 
+    <nav class="flex gap-0 border-b border-slate-200" aria-label="代理记佣配置分区">
+      <button
+        type="button"
+        class="-mb-px border-b-2 px-4 py-3 text-sm font-medium transition-colors"
+        :class="
+          activeTab === 'rules'
+            ? 'border-blue-600 text-blue-700'
+            : 'border-transparent text-slate-500 hover:text-slate-800'
+        "
+        @click="activeTab = 'rules'"
+      >
+        记佣规则
+      </button>
+      <button
+        type="button"
+        class="-mb-px border-b-2 px-4 py-3 text-sm font-medium transition-colors"
+        :class="
+          activeTab === 'settlement'
+            ? 'border-blue-600 text-blue-700'
+            : 'border-transparent text-slate-500 hover:text-slate-800'
+        "
+        @click="activeTab = 'settlement'"
+      >
+        佣金结算
+      </button>
+    </nav>
+
+    <div v-show="activeTab === 'rules'" class="space-y-8">
     <section class="rounded-xl border border-slate-200 bg-white">
       <div class="flex items-baseline gap-2 border-b border-slate-100 px-5 py-4">
         <span class="text-xs font-semibold text-slate-400">①</span>
@@ -421,9 +466,134 @@ onMounted(() => {
       <p class="font-medium text-slate-800">保存前请确认</p>
       <ul class="mt-2 list-inside list-disc space-y-1 text-slate-600">
         <li>已开启记佣的产品线须填写比例 r（0～1）。</li>
+        <li>账期结算周期、入账位置与结算后通知请在「佣金结算」Tab 配置。</li>
         <li>此处为代理体系全局默认；单个代理的覆盖请在代理列表「记佣配置」中维护。</li>
       </ul>
+      <p class="mt-3 text-xs text-slate-500">与「佣金结算」共用右上角保存与重置。</p>
     </footer>
+    </div>
+
+    <div v-show="activeTab === 'settlement'" class="space-y-6">
+      <section class="rounded-xl border border-slate-200 bg-white">
+        <div class="border-b border-slate-100 px-5 py-4">
+          <h2 class="text-base font-semibold text-slate-900">佣金结算</h2>
+          <p class="mt-1 text-sm text-slate-500">
+            配置代理账期佣金的汇总与结算触发节奏（单周 / 双周 / 月度）、入账位置与结算完成后通知；字段含义对齐裂变「佣金结算」Tab 中的入账与通知方式（代理线为按账期批次，非裂变单笔日结）。
+          </p>
+        </div>
+        <div class="space-y-6 p-5">
+          <div class="rounded-lg border border-slate-100 bg-slate-50/80 px-4 py-3 text-sm text-slate-700">
+            <p class="font-medium text-slate-800">当前规则摘要</p>
+            <p class="mt-1 text-xs leading-relaxed text-slate-600">{{ settlementScheduleLine }}</p>
+            <p class="mt-1 text-xs leading-relaxed text-slate-600">{{ settlementNotifyLine }}</p>
+          </div>
+
+          <div class="grid gap-6 lg:grid-cols-2">
+            <div>
+              <label class="block text-sm font-medium text-slate-800">结算周期</label>
+              <select v-model="config.agentSettlementCycle" class="ant-input mt-2 w-full max-w-md text-sm">
+                <option v-for="opt in AGENT_SETTLEMENT_CYCLE_OPTIONS" :key="opt.value" :value="opt.value">
+                  {{ opt.label }}
+                </option>
+              </select>
+              <p class="mt-1 text-xs text-slate-500">{{ currentCycleOption?.desc }}</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-800">结算触发时刻</label>
+              <p class="mt-1 text-xs text-slate-500">24 小时制，与平台默认时区一致（与裂变日结时刻配置方式相同）。</p>
+              <input
+                v-model="config.agentSettlementTimeLocal"
+                type="time"
+                step="60"
+                class="ant-input mt-2 w-full max-w-[12rem] text-sm"
+              />
+            </div>
+          </div>
+
+          <div v-if="config.agentSettlementCycle !== AGENT_SETTLEMENT_CYCLE.MONTHLY" class="max-w-md">
+            <label class="block text-sm font-medium text-slate-800">结算日 · 星期</label>
+            <p class="mt-1 text-xs text-slate-500">
+              <template v-if="config.agentSettlementCycle === AGENT_SETTLEMENT_CYCLE.WEEKLY">单周：每个自然周在指定星期触发上一完整周账期。</template>
+              <template v-else>双周：每两个自然周在指定星期触发账期汇总（与账务双周历对齐）。</template>
+            </p>
+            <select v-model.number="config.agentSettlementWeekday" class="ant-input mt-2 w-full text-sm">
+              <option v-for="d in AGENT_SETTLEMENT_WEEKDAY_OPTIONS" :key="d.value" :value="d.value">
+                {{ d.label }}
+              </option>
+            </select>
+          </div>
+          <div v-else class="max-w-md">
+            <label class="block text-sm font-medium text-slate-800">结算日 · 每月几号</label>
+            <p class="mt-1 text-xs text-slate-500">按自然月；若某月无该日（如 31 号），由账务任务按月末规则处理。</p>
+            <input
+              v-model.number="config.agentSettlementMonthDay"
+              type="number"
+              min="1"
+              max="31"
+              step="1"
+              class="ant-input mt-2 w-full max-w-[8rem] text-sm"
+            />
+          </div>
+
+          <div class="max-w-md">
+            <label class="block text-sm font-medium text-slate-800">佣金入账位置</label>
+            <select v-model="config.agentCommissionCreditTo" class="ant-input mt-2 w-full text-sm">
+              <option v-for="opt in REFERRAL_COMMISSION_CREDIT_TO_OPTIONS" :key="opt.value" :value="opt.value">
+                {{ opt.label }}
+              </option>
+            </select>
+            <p class="mt-1.5 text-xs leading-relaxed text-slate-500">
+              {{
+                REFERRAL_COMMISSION_CREDIT_TO_OPTIONS.find((o) => o.value === config.agentCommissionCreditTo)?.hint
+              }}
+            </p>
+          </div>
+
+          <div class="rounded-lg border border-slate-100 bg-slate-50/80 px-4 py-3">
+            <p class="text-sm font-medium text-slate-800">结算完成后通知代理</p>
+            <p class="mt-1 text-xs text-slate-500">
+              账期批次完成入账后，按勾选渠道向对应代理发送通知（需站内消息 / 短信 / 邮件服务已开通；与裂变「结算完成后通知用户」一致）。
+            </p>
+            <ul class="mt-3 space-y-2 text-sm text-slate-700">
+              <li class="flex items-center gap-2">
+                <input
+                  id="agent-notify-email"
+                  v-model="config.agentNotifyAfterSettlementEmail"
+                  type="checkbox"
+                  class="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                <label for="agent-notify-email" class="cursor-pointer select-none">发送邮件</label>
+              </li>
+              <li class="flex items-center gap-2">
+                <input
+                  id="agent-notify-site"
+                  v-model="config.agentNotifyAfterSettlementSite"
+                  type="checkbox"
+                  class="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                <label for="agent-notify-site" class="cursor-pointer select-none">发送站内信</label>
+              </li>
+              <li class="flex items-center gap-2">
+                <input
+                  id="agent-notify-sms"
+                  v-model="config.agentNotifyAfterSettlementSms"
+                  type="checkbox"
+                  class="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                <label for="agent-notify-sms" class="cursor-pointer select-none">发送手机短信</label>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+      <footer class="rounded-lg border border-slate-200 bg-slate-50 px-5 py-4 text-sm text-slate-600">
+        <p class="font-medium text-slate-800">保存前请确认</p>
+        <ul class="mt-2 list-inside list-disc space-y-1 text-slate-600">
+          <li>结算周期、星期或月内日期、触发时刻与通知渠道保存后由账务与消息服务按平台时区调度（演示为前端 mock）。</li>
+        </ul>
+        <p class="mt-3 text-xs text-slate-500">与「记佣规则」共用右上角保存与重置。</p>
+      </footer>
+    </div>
   </div>
 </template>
 

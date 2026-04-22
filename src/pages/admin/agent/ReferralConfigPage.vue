@@ -13,7 +13,7 @@ import {
 } from '../../../admin/constants/referral'
 
 const config = ref(normalizeReferralConfig({ ...mockReferralConfig }))
-/** 分佣规则 | 资金入账 */
+/** 分佣规则 | 佣金结算 */
 const activeTab = ref('rules')
 
 const RATE_LEVEL_INDEXES = [0, 1, 2]
@@ -299,7 +299,7 @@ onMounted(() => {
         "
         @click="activeTab = 'settlement'"
       >
-        资金入账
+        佣金结算
       </button>
     </nav>
 
@@ -529,7 +529,7 @@ onMounted(() => {
       <p class="font-medium text-slate-800">保存前请确认</p>
       <ul class="mt-2 list-inside list-disc space-y-1 text-slate-600">
         <li>已开启记佣的产品线须填写一级、二级、三级比例（均为 0～1，某级可为 0）。</li>
-        <li>裂变分销固定三级；入账、日结时刻与结算后通知请在「资金入账」Tab 配置。</li>
+        <li>裂变分销固定三级；入账、日结时刻与结算后通知请在「佣金结算」Tab 配置。</li>
       </ul>
     </footer>
     </div>
@@ -537,7 +537,7 @@ onMounted(() => {
     <div v-show="activeTab === 'settlement'" class="space-y-6">
       <section class="rounded-xl border border-slate-200 bg-white">
         <div class="border-b border-slate-100 px-5 py-4">
-          <h2 class="text-base font-semibold text-slate-900">资金入账</h2>
+          <h2 class="text-base font-semibold text-slate-900">佣金结算</h2>
           <p class="mt-1 text-sm text-slate-500">
             保存后，在「分佣记录」中执行发放时将按此处写入入账快照；日结按每自然日、在下方指定时刻触发（平台默认时区）。
           </p>
@@ -606,7 +606,7 @@ onMounted(() => {
           </div>
         </div>
       </section>
-      <p class="text-xs text-slate-500">与「分佣规则」共用右上角保存；重置会恢复入账、日结时刻与通知默认值。</p>
+      <p class="text-xs text-slate-500">与「分佣规则」共用右上角保存；重置会恢复「佣金结算」中的入账、日结时刻与通知默认值。</p>
     </div>
   </div>
 </template>

@@ -161,8 +161,3 @@ export const agentTeamMembers = [
   }
 ]
 
-export const agentCommissionRecords = [
-  { id: 'c1', period: '2026-03', amount: 6230.12, status: '已结算', paidAt: '2026-04-05' },
-  { id: 'c2', period: '2026-02', amount: 5890.0, status: '已结算', paidAt: '2026-03-06' },
-  { id: 'c3', period: '2026-04', amount: 8420.55, status: '待结算', paidAt: '-' }
-]

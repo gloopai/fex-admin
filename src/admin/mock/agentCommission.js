@@ -1,10 +1,21 @@
 import {
   DEFAULT_AGENT_GLOBAL_COMMISSION,
   AGENT_PRODUCT_LINE_DEFS,
-  normalizeAgentLineRate
+  normalizeAgentLineRate,
+  normalizeAgentSettlementCycle,
+  normalizeAgentSettlementWeekday,
+  normalizeAgentSettlementMonthDay,
+  normalizeAgentSettlementTimeLocal,
+  normalizeAgentCommissionCreditTo
 } from '../constants/agentCommission'
 
 const GLOBAL_BOOL_KEYS = ['agentCommissionAutoExecute', 'agentCommissionDepositFirstOnly']
+
+const AGENT_NOTIFY_KEYS = [
+  'agentNotifyAfterSettlementEmail',
+  'agentNotifyAfterSettlementSite',
+  'agentNotifyAfterSettlementSms'
+]
 
 function rateKeys() {
   return AGENT_PRODUCT_LINE_DEFS.map((l) => l.rateKey)
@@ -26,6 +37,14 @@ export function normalizeAgentGlobalCommission(raw) {
   }
   for (const k of rateKeys()) {
     o[k] = normalizeAgentLineRate(o[k])
+  }
+  o.agentSettlementCycle = normalizeAgentSettlementCycle(o.agentSettlementCycle)
+  o.agentSettlementWeekday = normalizeAgentSettlementWeekday(o.agentSettlementWeekday)
+  o.agentSettlementMonthDay = normalizeAgentSettlementMonthDay(o.agentSettlementMonthDay)
+  o.agentSettlementTimeLocal = normalizeAgentSettlementTimeLocal(o.agentSettlementTimeLocal)
+  o.agentCommissionCreditTo = normalizeAgentCommissionCreditTo(o.agentCommissionCreditTo)
+  for (const k of AGENT_NOTIFY_KEYS) {
+    o[k] = o[k] === true
   }
   return o
 }

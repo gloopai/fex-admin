@@ -212,7 +212,7 @@ export function getReferralCreditToLabel(value) {
   return REFERRAL_COMMISSION_CREDIT_TO_OPTIONS.find((o) => o.value === key)?.label ?? String(value)
 }
 
-/** 个人中心邀请页：与当前后台「资金入账」配置一致的简短说明 */
+/** 个人中心邀请页：与当前后台「裂变分销设置 → 佣金结算」配置一致的简短说明 */
 export function getReferralSettlementUserBullets(cfg) {
   if (!cfg || typeof cfg !== 'object') return []
   const creditLabel = getReferralCreditToLabel(cfg.referralCommissionCreditTo)

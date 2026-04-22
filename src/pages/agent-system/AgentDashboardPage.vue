@@ -1,10 +1,25 @@
 <script setup>
+import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { agentDashboardSummary } from '../../admin/mock/agentPortal'
+import { agentSettlementApi } from '../../admin/mock/agentSettlement'
+import { agentPortalSettlementHeadline } from '../../admin/constants/agentSettlement'
 import { useAgentAuthStore } from '../../stores/agentAuth'
 
 const auth = useAgentAuthStore()
 const s = agentDashboardSummary
+const periodSummary = ref(null)
+
+onMounted(async () => {
+  const res = await agentSettlementApi.getCurrentPeriodSummary(auth.uid)
+  if (res.success) periodSummary.value = res.data
+})
+
+const settlementSubline = computed(() => {
+  const p = periodSummary.value
+  if (!p?.status) return `${s.settlementStatus} · ${s.nextSettlementDate}`
+  return `${agentPortalSettlementHeadline(p.status)} · ${p.period} 账期 · 预计 ${p.nextSettlementDate}`
+})
 </script>
 
 <template>
@@ -18,7 +33,7 @@ const s = agentDashboardSummary
           {{ s.monthCommission.toLocaleString('zh-CN', { minimumFractionDigits: 2 }) }}
           <span class="text-sm font-normal text-white/40">USDT</span>
         </p>
-        <p class="mt-1 text-xs text-white/38">{{ s.settlementStatus }} · {{ s.nextSettlementDate }}</p>
+        <p class="mt-1 text-xs text-white/38">{{ settlementSubline }}</p>
       </div>
       <div class="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
         <p class="text-xs text-white/45">本月直邀交易量</p>
@@ -59,7 +74,7 @@ const s = agentDashboardSummary
           <RouterLink class="text-emerald-300/95 hover:underline" to="/agent-system/commission-rates">记佣比例 · 各产品线一级比例</RouterLink>
         </li>
         <li>
-          <RouterLink class="text-emerald-300/95 hover:underline" to="/agent-system/commission">佣金结算 · 账期与打款记录</RouterLink>
+          <RouterLink class="text-emerald-300/95 hover:underline" to="/agent-system/commission">佣金结算 · 账期、进度与入账</RouterLink>
         </li>
       </ul>
     </div>

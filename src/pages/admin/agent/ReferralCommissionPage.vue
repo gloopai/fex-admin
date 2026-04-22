@@ -238,7 +238,7 @@ const statusBadgeClass = (status) => {
     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
         <h1 class="text-2xl font-bold text-slate-900">裂变分佣记录</h1>
-        <p class="mt-1 text-sm text-slate-500">邀请链分佣流水；执行发放时按「裂变分销设置 → 资金入账」写入入账快照。</p>
+        <p class="mt-1 text-sm text-slate-500">邀请链分佣流水；执行发放时按「裂变分销设置 → 佣金结算」写入入账快照。</p>
       </div>
       <router-link
         to="/admin/agent/referral-config"
