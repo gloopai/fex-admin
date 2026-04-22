@@ -37,7 +37,6 @@ const rateForm = reactive({
   buyMarkup: 0.005,
   sellMarkup: 0.005,
   enabled: true,
-  autoReverse: true,
   userLevelRates: {}
 })
 
@@ -112,7 +111,6 @@ const clonePairToForm = (pair) => {
   rateForm.buyMarkup = pair.buyMarkup
   rateForm.sellMarkup = pair.sellMarkup
   rateForm.enabled = pair.enabled
-  rateForm.autoReverse = pair.autoReverse
   rateForm.userLevelRates = syncRateVipLevelRatesWithModule(
     JSON.parse(JSON.stringify(pair.userLevelRates || {})),
     pair.buyMarkup,
@@ -229,7 +227,6 @@ const openCreateRate = () => {
     buyMarkup: 0.005,
     sellMarkup: 0.005,
     enabled: true,
-    autoReverse: true,
     userLevelRates: {}
   })
   initRateUserLevelRates()
@@ -267,7 +264,7 @@ const saveRate = () => {
     buyRate: Number(rateForm.buyRate),
     sellRate: Number(rateForm.sellRate),
     enabled: Boolean(rateForm.enabled),
-    autoReverse: Boolean(rateForm.autoReverse),
+    autoReverse: false,
     userLevelRates: rateForm.userLevelRates,
     lastUpdate: new Date().toISOString().replace('T', ' ').substring(0, 19)
   }
@@ -396,7 +393,6 @@ const getFeeTemplateName = (templateId) => {
               </div>
               <div class="mt-1 flex flex-wrap gap-1.5">
                 <span class="rounded bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-600">{{ sourceLabel(pair.source) }}</span>
-                <span v-if="pair.autoReverse" class="rounded bg-indigo-50 px-1.5 py-0.5 text-xs font-medium text-indigo-600">反向映射</span>
               </div>
             </div>
           </div>
@@ -419,9 +415,6 @@ const getFeeTemplateName = (templateId) => {
             <div class="space-y-1 md:col-span-2">
               <p class="text-xs font-medium uppercase tracking-wider text-slate-400">状态与更新</p>
               <p class="text-sm font-medium text-slate-600">{{ pair.lastUpdate }}</p>
-              <p class="text-xs text-slate-400">
-                反向映射：<span :class="pair.autoReverse ? 'text-indigo-600 font-medium' : 'text-slate-400'">{{ pair.autoReverse ? '已开启' : '已关闭' }}</span>
-              </p>
             </div>
           </div>
 
@@ -537,13 +530,6 @@ const getFeeTemplateName = (templateId) => {
                   <option v-for="asset in availableAssets" :key="asset" :value="asset">{{ asset }}</option>
                 </select>
               </label>
-              <label class="flex items-center justify-between rounded-lg border border-blue-100 bg-blue-50/50 px-4 py-3 md:col-span-2">
-                <div class="flex flex-col">
-                  <span class="text-sm font-medium text-blue-900">自动反向映射</span>
-                  <span class="text-xs text-blue-700">开启后，系统会自动创建反向交易对（如 BTC/USDT）并保持汇率联动</span>
-                </div>
-                <input v-model="rateForm.autoReverse" type="checkbox" class="h-5 w-5 rounded border-blue-300 text-blue-600 focus:ring-blue-500" />
-              </label>
               <label class="space-y-2 md:col-span-2">
                 <div class="flex flex-col">
                   <span class="text-sm font-medium text-slate-700">市场汇率来源</span>
@@ -595,10 +581,6 @@ const getFeeTemplateName = (templateId) => {
               <div class="flex items-center justify-between">
                 <span class="text-slate-500">数据源</span>
                 <span class="font-medium text-slate-900">{{ sourceLabel(rateForm.source) }}</span>
-              </div>
-              <div class="flex items-center justify-between">
-                <span class="text-slate-500">反向映射</span>
-                <span class="font-medium" :class="rateForm.autoReverse ? 'text-blue-600' : 'text-slate-500'">{{ rateForm.autoReverse ? '开启' : '关闭' }}</span>
               </div>
             </div>
           </div>

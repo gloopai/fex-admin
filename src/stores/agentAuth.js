@@ -58,7 +58,8 @@ function resolveAgentAccountByEmail(email) {
   return {
     email: e,
     nickname: row.username,
-    uid: row.uid
+    uid: row.uid,
+    inviteCode: row.inviteCode || `AG${row.uid}`
   }
 }
 
@@ -74,6 +75,7 @@ export const useAgentAuthStore = defineStore('agentAuth', {
     email: null,
     nickname: null,
     uid: null,
+    inviteCode: null,
     token: null,
     _ready: false
   }),
@@ -103,6 +105,7 @@ export const useAgentAuthStore = defineStore('agentAuth', {
         this.token = data.token
         const acc = resolveAgentAccountByEmail(data.email)
         this.uid = data.uid ?? acc?.uid ?? null
+        this.inviteCode = data.inviteCode ?? acc?.inviteCode ?? null
         if (acc && !this.nickname) this.nickname = acc.nickname
       }
       this._ready = true
@@ -115,6 +118,7 @@ export const useAgentAuthStore = defineStore('agentAuth', {
           email: this.email,
           nickname: this.nickname,
           uid: this.uid,
+          inviteCode: this.inviteCode,
           token: this.token
         })
       )
@@ -141,6 +145,7 @@ export const useAgentAuthStore = defineStore('agentAuth', {
       this.email = account.email
       this.nickname = account.nickname
       this.uid = account.uid
+      this.inviteCode = account.inviteCode
       this.token = `agent_${Date.now()}`
       this.persistSession()
       return { ok: true }
@@ -149,6 +154,7 @@ export const useAgentAuthStore = defineStore('agentAuth', {
       this.email = null
       this.nickname = null
       this.uid = null
+      this.inviteCode = null
       this.token = null
       if (typeof localStorage !== 'undefined') {
         localStorage.removeItem(SESSION_KEY)

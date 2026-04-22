@@ -59,7 +59,6 @@ watch(
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
-const nickname = ref('')
 const errorMsg = ref('')
 const pending = ref(false)
 const walletPendingKey = ref(null)
@@ -120,7 +119,7 @@ watch(registerMode, () => {
   }
 })
 
-/** 简易图形验证码（前端模拟，与站点配置 loginCaptchaEnabled 联动） */
+/** 简易图形验证码（前端模拟；登录与站点 loginCaptchaEnabled 联动，注册页始终启用） */
 const CAPTCHA_CHARS = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'
 const captchaChallenge = ref('')
 const captchaInput = ref('')
@@ -206,13 +205,18 @@ const phoneLoginEnabled = ref(true)
 const loginCaptchaEnabled = ref(false)
 const inviteCodeRequired = ref(false)
 
+/** 登录受站点「登录验证码」开关控制；注册页始终展示图形验证码 */
+const showCaptchaBlock = computed(
+  () => loginCaptchaEnabled.value || isRegister.value
+)
+
 function refreshSiteAuthSettings() {
   const c = getSiteConfigSnapshot()
   phoneLoginEnabled.value = c.phoneLoginEnabled !== false
   walletLoginEnabled.value = c.walletLoginEnabled !== false
   loginCaptchaEnabled.value = c.loginCaptchaEnabled === true
   inviteCodeRequired.value = c.inviteCodeRequired === true
-  if (loginCaptchaEnabled.value) {
+  if (showCaptchaBlock.value) {
     regenerateCaptcha()
   } else {
     captchaChallenge.value = ''
@@ -272,15 +276,23 @@ watch(
   (reg) => {
     errorMsg.value = ''
     inviteCode.value = ''
-    if (loginCaptchaEnabled.value) regenerateCaptcha()
-    else {
+    if (reg) {
+      const refQ = route.query.ref || route.query.invite
+      if (typeof refQ === 'string' && refQ.trim()) {
+        inviteCode.value = refQ.trim()
+      }
+    }
+    if (loginCaptchaEnabled.value || reg) {
+      regenerateCaptcha()
+    } else {
       captchaInput.value = ''
+      captchaChallenge.value = ''
+      captchaCharStyles.value = []
     }
     if (reg) {
       email.value = ''
       password.value = ''
       confirmPassword.value = ''
-      nickname.value = ''
       phoneNational.value = ''
       registerMode.value = 'email'
       registerOtpCode.value = ''
@@ -289,7 +301,6 @@ watch(
       registerCooldown.value = 0
     } else {
       confirmPassword.value = ''
-      nickname.value = ''
       registerOtpCode.value = ''
       registerSentHint.value = false
       clearRegisterCooldownTimer()
@@ -340,11 +351,11 @@ async function onSubmit() {
     errorMsg.value = '请填写邀请码'
     return
   }
-  if (loginCaptchaEnabled.value) {
+  if (showCaptchaBlock.value) {
     const a = captchaInput.value.trim().toUpperCase()
     const b = captchaChallenge.value.toUpperCase()
     if (!a || a !== b) {
-      errorMsg.value = '验证码错误，请重试'
+      errorMsg.value = '图片验证码错误，请重试'
       regenerateCaptcha()
       return
     }
@@ -368,7 +379,7 @@ async function onSubmit() {
         phoneNational.value,
         password.value,
         confirmPassword.value,
-        nickname.value,
+        '',
         registerOtpCode.value
       )
       if (!r.ok) {
@@ -383,7 +394,7 @@ async function onSubmit() {
           email.value,
           password.value,
           confirmPassword.value,
-          nickname.value,
+          '',
           registerOtpCode.value
         )
       : auth.login(email.value, password.value)
@@ -542,19 +553,6 @@ async function onPickWalletProvider(providerKey) {
         </p>
 
         <form class="space-y-2" @submit.prevent="onSubmit">
-          <div v-if="isRegister">
-            <label class="mb-0.5 block text-sm font-medium text-white/55 sm:text-[11px] sm:text-white/45"
-              >昵称（可选）</label
-            >
-            <input
-              v-model="nickname"
-              type="text"
-              autocomplete="nickname"
-              placeholder="前台展示"
-              class="w-full rounded-lg border border-white/[0.1] bg-black/40 px-3 py-3 text-base text-white placeholder:text-white/35 focus:border-lime-400/45 focus:outline-none focus:ring-1 focus:ring-lime-400/25 sm:py-2 sm:text-sm sm:placeholder:text-white/30"
-            />
-          </div>
-
           <!-- 注册：邮箱与手机互斥；区号按钮与输入框均为 2.75rem 高，切换时高度一致，无需额外 min-h（避免块内留白） -->
           <div v-if="isRegister">
             <div v-if="registerMode === 'email'">
@@ -704,7 +702,59 @@ async function onPickWalletProvider(providerKey) {
             />
           </div>
 
-          <div v-if="inviteCodeRequired">
+          <div v-if="showCaptchaBlock && captchaChallenge" class="space-y-1.5">
+            <label class="mb-0.5 block text-sm font-medium text-white/55 sm:text-[11px] sm:text-white/45"
+              >图片验证码</label
+            >
+            <div class="flex flex-row items-stretch gap-2">
+              <div class="flex shrink-0 items-stretch gap-1.5 sm:gap-2">
+                <div
+                  class="relative flex h-[2.75rem] w-[6.75rem] shrink-0 items-center justify-center gap-0.5 overflow-hidden rounded-lg border border-white/[0.12] bg-[linear-gradient(135deg,rgba(255,255,255,0.04)_0%,rgba(0,0,0,0.35)_100%)] px-2 font-mono text-base font-bold tracking-[0.18em] text-white/95 sm:w-[7.25rem] sm:text-lg sm:tracking-[0.2em]"
+                  aria-hidden="true"
+                >
+                  <span
+                    v-for="(ch, i) in captchaChallenge"
+                    :key="`${captchaChallenge}-${i}`"
+                    class="inline-block select-none"
+                    :style="captchaCharStyles[i] || {}"
+                  >{{ ch }}</span>
+                </div>
+                <button
+                  type="button"
+                  class="flex h-[2.75rem] w-[2.75rem] shrink-0 items-center justify-center rounded-lg border border-white/[0.12] bg-white/[0.06] text-white/80 transition hover:bg-white/[0.1] hover:text-white"
+                  aria-label="刷新验证码"
+                  title="刷新验证码"
+                  @click="regenerateCaptcha"
+                >
+                  <svg
+                    class="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.85"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                    <path d="M3 3v5h5" />
+                    <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                    <path d="M16 21h5v-5" />
+                  </svg>
+                </button>
+              </div>
+              <input
+                v-model="captchaInput"
+                type="text"
+                autocomplete="off"
+                maxlength="8"
+                placeholder="右侧输入，不区分大小写"
+                class="h-[2.75rem] min-h-[2.75rem] min-w-0 flex-1 rounded-lg border border-white/[0.1] bg-black/40 px-3 py-0 text-base leading-normal text-white placeholder:text-white/35 focus:border-lime-400/45 focus:outline-none focus:ring-1 focus:ring-lime-400/25 sm:text-sm sm:placeholder:text-white/30"
+              />
+            </div>
+          </div>
+
+          <div v-if="isRegister || inviteCodeRequired">
             <label class="mb-0.5 block text-sm font-medium text-white/55 sm:text-[11px] sm:text-white/45"
               >邀请码</label
             >
@@ -713,41 +763,11 @@ async function onPickWalletProvider(providerKey) {
               type="text"
               autocomplete="off"
               :required="inviteCodeRequired"
-              placeholder="请输入邀请码"
-              class="w-full rounded-lg border border-white/[0.1] bg-black/40 px-3 py-3 text-base text-white placeholder:text-white/35 focus:border-lime-400/45 focus:outline-none focus:ring-1 focus:ring-lime-400/25 sm:py-2 sm:text-sm sm:placeholder:text-white/30"
-            />
-          </div>
-
-          <div v-if="loginCaptchaEnabled && captchaChallenge" class="space-y-1.5">
-            <label class="mb-0.5 block text-sm font-medium text-white/55 sm:text-[11px] sm:text-white/45"
-              >验证码</label
-            >
-            <div class="flex gap-2 sm:items-stretch">
-              <div
-                class="relative flex h-11 min-w-0 flex-1 items-center justify-center gap-0.5 overflow-hidden rounded-lg border border-white/[0.12] bg-[linear-gradient(135deg,rgba(255,255,255,0.04)_0%,rgba(0,0,0,0.35)_100%)] px-2 font-mono text-lg font-bold tracking-[0.2em] text-white/95 sm:h-10 sm:text-base"
-                aria-hidden="true"
-              >
-                <span
-                  v-for="(ch, i) in captchaChallenge"
-                  :key="`${captchaChallenge}-${i}`"
-                  class="inline-block select-none"
-                  :style="captchaCharStyles[i] || {}"
-                >{{ ch }}</span>
-              </div>
-              <button
-                type="button"
-                class="shrink-0 rounded-lg border border-white/[0.12] bg-white/[0.06] px-3 py-2 text-xs font-medium text-white/80 transition hover:bg-white/[0.1] sm:py-0 sm:text-[11px]"
-                @click="regenerateCaptcha"
-              >
-                换一张
-              </button>
-            </div>
-            <input
-              v-model="captchaInput"
-              type="text"
-              autocomplete="off"
-              maxlength="8"
-              placeholder="输入上方字符，不区分大小写"
+              :placeholder="
+                inviteCodeRequired
+                  ? '请输入邀请码'
+                  : '邀请码 / 推荐码（选填，可从推广链接带入）'
+              "
               class="w-full rounded-lg border border-white/[0.1] bg-black/40 px-3 py-3 text-base text-white placeholder:text-white/35 focus:border-lime-400/45 focus:outline-none focus:ring-1 focus:ring-lime-400/25 sm:py-2 sm:text-sm sm:placeholder:text-white/30"
             />
           </div>

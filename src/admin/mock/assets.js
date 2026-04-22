@@ -534,7 +534,6 @@ const exchangeRatePairs = [
     buyRate: 0.000023115,
     sellRate: 0.000022885,
     enabled: true,
-    autoReverse: true,
     feeTemplateId: 'template-standard',
     userLevelRates: {
       vip0: { buy: 0.005, sell: 0.005 },
@@ -558,7 +557,6 @@ const exchangeRatePairs = [
     buyRate: 1.0032,
     sellRate: 0.9972,
     enabled: true,
-    autoReverse: false,
     feeTemplateId: 'template-premium',
     userLevelRates: {
       vip0: { buy: 0.003, sell: 0.003 },
@@ -582,7 +580,6 @@ const exchangeRatePairs = [
     buyRate: 3276.50,
     sellRate: 3224.50,
     enabled: true,
-    autoReverse: true,
     userLevelRates: {
       vip0: { buy: 0.008, sell: 0.008 },
       vip1: { buy: 0.007, sell: 0.007 },
@@ -605,7 +602,6 @@ const exchangeRatePairs = [
     buyRate: 43935.00,
     sellRate: 43065.00,
     enabled: false,
-    autoReverse: true,
     userLevelRates: {
       vip0: { buy: 0.01, sell: 0.01 },
       vip1: { buy: 0.009, sell: 0.009 },
@@ -628,7 +624,6 @@ const exchangeRatePairs = [
     buyRate: 146.0712,
     sellRate: 144.3288,
     enabled: true,
-    autoReverse: true,
     userLevelRates: {
       vip0: { buy: 0.006, sell: 0.006 },
       vip1: { buy: 0.005, sell: 0.005 }
@@ -647,7 +642,6 @@ const exchangeRatePairs = [
     buyRate: 582.822,
     sellRate: 578.178,
     enabled: true,
-    autoReverse: true,
     userLevelRates: {
       vip0: { buy: 0.004, sell: 0.004 },
       vip1: { buy: 0.003, sell: 0.003 }
@@ -666,7 +660,6 @@ const exchangeRatePairs = [
     buyRate: 0.45315,
     sellRate: 0.44685,
     enabled: true,
-    autoReverse: false,
     userLevelRates: {
       vip0: { buy: 0.007, sell: 0.007 },
       vip1: { buy: 0.006, sell: 0.006 }

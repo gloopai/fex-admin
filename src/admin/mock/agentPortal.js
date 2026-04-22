@@ -4,6 +4,16 @@
 
 import { AGENT_PRODUCT_LINE_DEFS } from '../constants/agentCommission'
 
+/** 用户端注册落地域名（演示；上线后由配置/接口下发） */
+export const AGENT_INVITE_SITE_BASE = 'https://example.com'
+
+/** 根据推广码生成直邀注册链接（query 与主站约定一致时可替换） */
+export function buildAgentInviteLink(inviteCode) {
+  const code = String(inviteCode || '').trim()
+  if (!code) return ''
+  return `${AGENT_INVITE_SITE_BASE}/register?ref=${encodeURIComponent(code)}`
+}
+
 export const agentDashboardSummary = {
   monthVolume: 1284000,
   monthVolumeUnit: 'USDT',
