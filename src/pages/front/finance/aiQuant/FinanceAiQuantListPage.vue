@@ -495,11 +495,11 @@ function fillRentAll() {
         >
           <thead class="hidden md:table-header-group">
             <tr :class="fx.tableHeadRow">
-              <th class="px-4 py-2.5 font-semibold md:px-5 md:py-3">产品名称</th>
-              <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">周期</th>
-              <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">价格</th>
-              <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">日收益率</th>
-              <th class="px-3 py-2.5 text-right font-semibold md:px-5 md:py-3">操作</th>
+              <th class="px-4 py-2 font-semibold md:px-5 md:py-2.5">产品名称</th>
+              <th class="hidden px-3 py-2 font-semibold md:table-cell md:px-5 md:py-2.5">周期</th>
+              <th class="hidden px-3 py-2 font-semibold md:table-cell md:px-5 md:py-2.5">价格</th>
+              <th class="hidden px-3 py-2 font-semibold md:table-cell md:px-5 md:py-2.5">日收益率</th>
+              <th class="px-3 py-2 text-right font-semibold md:px-5 md:py-2.5">操作</th>
             </tr>
           </thead>
           <tbody>
@@ -508,7 +508,7 @@ function fillRentAll() {
               :key="row.rowKey"
               class="border-b border-white/[0.06] transition hover:bg-white/[0.03] max-md:block max-md:last:border-b-0 md:table-row"
             >
-              <td class="max-md:block max-md:w-full max-md:px-3 max-md:pb-1 max-md:pt-4 md:table-cell md:px-5 md:py-3.5">
+              <td class="max-md:block max-md:w-full max-md:px-3 max-md:pb-1 max-md:pt-3 md:table-cell md:px-5 md:py-2.5">
                 <div class="flex items-start gap-2.5 sm:gap-3">
                   <span
                     class="shrink-0 rounded-md border px-1.5 py-0.5 text-[9px] font-bold tabular-nums sm:text-[10px]"
@@ -545,17 +545,17 @@ function fillRentAll() {
                   </div>
                 </div>
               </td>
-              <td class="hidden whitespace-nowrap px-3 py-3.5 text-white/75 md:table-cell md:px-5">
+              <td class="hidden whitespace-nowrap px-3 py-2.5 text-white/75 md:table-cell md:px-5">
                 {{ cycleLabel(row.product) }}
               </td>
-              <td class="hidden px-3 py-3.5 tabular-nums text-white/70 md:table-cell md:px-5">
+              <td class="hidden px-3 py-2.5 tabular-nums text-white/70 md:table-cell md:px-5">
                 {{ formatAmountSpan(row.tier.minAmount, row.tier.maxAmount, row.product.currency) }}
               </td>
-              <td class="hidden px-3 py-3.5 font-semibold tabular-nums text-lime-300/95 md:table-cell md:px-5">
+              <td class="hidden px-3 py-2.5 font-semibold tabular-nums text-lime-300/95 md:table-cell md:px-5">
                 {{ row.tier.dailyRate }}%
               </td>
               <td
-                class="max-md:block max-md:w-full max-md:px-3 max-md:pb-4 max-md:pt-3 md:table-cell md:px-5 md:py-3.5 sm:px-3"
+                class="max-md:block max-md:w-full max-md:px-3 max-md:pb-3 max-md:pt-2 md:table-cell md:px-5 md:py-2.5 sm:px-3"
               >
                 <button
                   v-if="productRentable(row.product)"

@@ -510,16 +510,15 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
           </h2>
           <div :class="fx.tableWrapMarketNoTop">
             <table
-              class="w-full min-w-0 border-collapse text-left max-md:table-fixed md:min-w-[640px] md:table-auto sm:text-sm"
-              :class="fx.tableBodyText"
+              :class="['w-full min-w-0 border-collapse text-left max-md:table-fixed md:min-w-[640px] md:table-auto', fx.tableBodyText]"
             >
               <thead class="hidden md:table-header-group">
                 <tr :class="fx.tableHeadRow">
-                  <th class="px-4 py-2.5 font-semibold md:px-5 md:py-3">币种</th>
-                  <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">利率</th>
-                  <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">还款周期</th>
-                  <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">可借额度</th>
-                  <th class="px-3 py-2.5 text-right font-semibold md:px-5 md:py-3">操作</th>
+                  <th class="px-4 py-2 font-semibold md:px-5 md:py-2.5">币种</th>
+                  <th class="hidden px-3 py-2 font-semibold md:table-cell md:px-5 md:py-2.5">利率</th>
+                  <th class="hidden px-3 py-2 font-semibold md:table-cell md:px-5 md:py-2.5">还款周期</th>
+                  <th class="hidden px-3 py-2 font-semibold md:table-cell md:px-5 md:py-2.5">可借额度</th>
+                  <th class="px-3 py-2 text-right font-semibold md:px-5 md:py-2.5">操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -528,7 +527,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                   :key="p.productId"
                   class="border-b border-white/[0.06] transition hover:bg-white/[0.03] max-md:block max-md:last:border-b-0 md:table-row"
                 >
-                  <td class="max-md:block max-md:w-full max-md:px-3 max-md:pb-1 max-md:pt-4 md:table-cell md:px-5 md:py-3.5 sm:px-4 sm:py-3.5">
+                  <td class="max-md:block max-md:w-full max-md:px-3 max-md:pb-1 max-md:pt-3 md:table-cell md:px-5 md:py-2.5 sm:px-4">
                     <div class="flex items-start gap-2 sm:gap-3">
                       <span
                         class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/[0.12] bg-transparent text-white/40"
@@ -564,17 +563,17 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                       </div>
                     </div>
                   </td>
-                  <td class="hidden px-3 py-3.5 align-middle font-bold tabular-nums text-lime-300 md:table-cell md:px-5 md:py-4">
+                  <td class="hidden px-3 py-2.5 align-middle font-bold tabular-nums text-lime-300 md:table-cell md:px-5">
                     {{ p.interestRate }}%
                   </td>
-                  <td class="hidden px-3 py-3.5 tabular-nums text-white/75 md:table-cell md:px-5 md:py-4">
+                  <td class="hidden px-3 py-2.5 tabular-nums text-white/75 md:table-cell md:px-5">
                     {{ p.minLoanDuration }} – {{ p.maxLoanDuration }} 天
                   </td>
-                  <td class="hidden px-3 py-3.5 tabular-nums text-white/70 md:table-cell md:px-5 md:py-4">
+                  <td class="hidden px-3 py-2.5 tabular-nums text-white/70 md:table-cell md:px-5">
                     {{ p.minLoanAmount?.toLocaleString() }} – {{ p.maxLoanAmount?.toLocaleString() }}
                   </td>
                   <td
-                    class="max-md:block max-md:w-full max-md:px-3 max-md:pb-4 max-md:pt-3 md:table-cell md:px-5 md:py-3.5 sm:px-3"
+                    class="max-md:block max-md:w-full max-md:px-3 max-md:pb-3 max-md:pt-2 md:table-cell md:px-5 md:py-2.5 sm:px-3"
                   >
                     <button
                       v-if="p.status === PRODUCT_STATUS.ACTIVE"

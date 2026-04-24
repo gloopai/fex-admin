@@ -410,15 +410,15 @@ const mineMinVipLabel = computed(() => {
         <div :class="fx.tableWrapMarket">
           <table
             v-if="periodRows.length"
-            class="w-full min-w-0 border-collapse text-left text-sm text-white/90 max-md:table-fixed md:min-w-[640px] md:table-auto"
+            :class="['w-full min-w-0 border-collapse text-left max-md:table-fixed md:min-w-[640px] md:table-auto', fx.tableBodyText]"
           >
             <thead class="hidden md:table-header-group">
               <tr :class="fx.tableHeadRow">
-                <th class="px-4 py-2.5 font-semibold md:px-5 md:py-3">产品</th>
-                <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">参考年化</th>
-                <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">期限</th>
-                <th class="hidden px-3 py-2.5 font-semibold lg:table-cell lg:px-5 lg:py-3">申购区间</th>
-                <th class="px-3 py-2.5 text-right font-semibold md:px-5 md:py-3">操作</th>
+                <th class="px-4 py-2 font-semibold md:px-5 md:py-2.5">产品</th>
+                <th class="hidden px-3 py-2 font-semibold md:table-cell md:px-5 md:py-2.5">参考年化</th>
+                <th class="hidden px-3 py-2 font-semibold md:table-cell md:px-5 md:py-2.5">期限</th>
+                <th class="hidden px-3 py-2 font-semibold lg:table-cell lg:px-5 lg:py-2.5">申购区间</th>
+                <th class="px-3 py-2 text-right font-semibold md:px-5 md:py-2.5">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -427,7 +427,7 @@ const mineMinVipLabel = computed(() => {
                 :key="r.key"
                 class="border-b border-white/[0.06] transition hover:bg-white/[0.03] max-md:block max-md:last:border-b-0 md:table-row"
               >
-                <td class="max-md:block max-md:w-full max-md:px-3 max-md:pb-1 max-md:pt-4 md:table-cell md:px-5 md:py-3.5">
+                <td class="max-md:block max-md:w-full max-md:px-3 max-md:pb-1 max-md:pt-3 md:table-cell md:px-5 md:py-2.5">
                   <div class="flex items-start gap-2 sm:gap-3">
                     <span class="shrink-0 text-xl leading-none sm:text-2xl" aria-hidden="true">{{
                       r.product.icon
@@ -467,19 +467,19 @@ const mineMinVipLabel = computed(() => {
                     </div>
                   </div>
                 </td>
-                <td class="hidden whitespace-nowrap px-3 py-3.5 md:table-cell md:px-5">
+                <td class="hidden whitespace-nowrap px-3 py-2.5 md:table-cell md:px-5">
                   <span class="text-sm font-bold tabular-nums text-lime-300 sm:text-base">{{
                     r.annual.toFixed(2)
                   }}%</span>
                 </td>
-                <td class="hidden px-3 py-3.5 tabular-nums text-white/85 md:table-cell md:px-5">
+                <td class="hidden px-3 py-2.5 tabular-nums text-white/85 md:table-cell md:px-5">
                   {{ r.period.days }} 天
                 </td>
-                <td class="hidden px-3 py-3.5 tabular-nums text-white/70 lg:table-cell lg:px-5">
+                <td class="hidden px-3 py-2.5 tabular-nums text-white/70 lg:table-cell lg:px-5">
                   {{ r.period.minAmount }} – {{ r.period.maxAmount }} {{ r.product.currency }}
                 </td>
                 <td
-                  class="max-md:block max-md:w-full max-md:px-3 max-md:pb-4 max-md:pt-3 md:table-cell md:px-5 md:py-3.5 sm:px-3"
+                  class="max-md:block max-md:w-full max-md:px-3 max-md:pb-3 max-md:pt-2 md:table-cell md:px-5 md:py-2.5 sm:px-3"
                 >
                   <button
                     v-if="r.product.status === PRODUCT_STATUS.ENABLED"

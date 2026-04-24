@@ -52,9 +52,9 @@ export const FINANCE_FX = {
   /** 主按钮（实心青柠） */
   btnPrimary:
     'inline-flex items-center justify-center rounded-lg bg-lime-400 px-4 py-2.5 text-sm font-semibold text-[#0b0e11] shadow-sm transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-40',
-  /** 列表「立即租用 / 立即挖矿」等：大屏可缩为较小字号 */
+  /** 列表主操作（立即挖矿 / 立即租用）：紧凑统一盒，桌面固定高度避免行间视觉参差 */
   btnPrimaryBlock:
-    'inline-flex w-full min-h-[2.75rem] touch-manipulation items-center justify-center rounded-lg bg-lime-400 px-4 py-2.5 text-sm font-semibold text-[#0b0e11] shadow-sm transition hover:bg-lime-300 max-md:w-full md:min-h-0 md:w-auto md:px-4 md:py-2 md:text-xs lg:text-sm',
+    'inline-flex w-full min-h-[2.35rem] touch-manipulation items-center justify-center rounded-lg bg-lime-400 px-3 py-1.5 text-xs font-semibold leading-none text-[#0b0e11] shadow-sm transition hover:bg-lime-300 max-md:w-full md:h-9 md:min-h-0 md:w-auto md:px-3.5 md:py-0',
   /** 表格行 / 弹层内主确认（小尺寸；与 btnTableAction 同盒高，仅填充样式不同） */
   btnPrimarySm:
     'inline-flex min-h-[2.5rem] touch-manipulation items-center justify-center rounded-lg bg-lime-400 px-3.5 py-2 text-xs font-semibold leading-none text-[#0b0e11] transition hover:bg-lime-300 sm:min-h-0',
@@ -62,16 +62,16 @@ export const FINANCE_FX = {
   btnSecondary:
     'inline-flex items-center justify-center rounded-lg border border-lime-400/45 px-4 py-2.5 text-sm font-semibold text-lime-200 transition hover:bg-lime-400/10 touch-manipulation',
   btnSecondaryBlock:
-    'inline-flex w-full min-h-[2.75rem] touch-manipulation items-center justify-center rounded-lg border border-lime-400/45 px-4 py-2.5 text-sm font-semibold text-lime-200 transition hover:bg-lime-400/10 max-md:w-full md:min-h-0 md:w-auto md:px-4 md:py-2 md:text-xs lg:text-sm',
+    'inline-flex w-full min-h-[2.35rem] touch-manipulation items-center justify-center rounded-lg border border-lime-400/45 px-3 py-1.5 text-xs font-semibold leading-none text-lime-200 transition hover:bg-lime-400/10 max-md:w-full md:h-9 md:min-h-0 md:w-auto md:px-3.5 md:py-0',
   /** 次级线框（灰边，如「查看说明」） */
   btnMutedOutline:
-    'inline-flex w-full min-h-[2.75rem] touch-manipulation items-center justify-center rounded-lg border border-white/20 px-4 py-2.5 text-sm font-medium text-white/70 transition hover:bg-white/10 hover:text-white/85 max-md:w-full md:min-h-0 md:w-auto md:px-4 md:py-2 md:text-xs lg:text-sm',
+    'inline-flex w-full min-h-[2.35rem] touch-manipulation items-center justify-center rounded-lg border border-white/20 px-3 py-1.5 text-xs font-medium leading-none text-white/70 transition hover:bg-white/10 hover:text-white/85 max-md:w-full md:h-9 md:min-h-0 md:w-auto md:px-3.5 md:py-0',
   /** 表格内 / 弹层内紧凑操作（还款、赎回、提前赎回；与 btnPrimarySm 同 padding，避免操作列高低不一） */
   btnTableAction:
     'inline-flex min-h-[2.5rem] touch-manipulation items-center justify-center rounded-lg border border-lime-400/45 px-3.5 py-2 text-xs font-semibold leading-none text-lime-200 transition hover:bg-lime-400/10 sm:min-h-0',
-  /** 与 btnPrimaryBlock 同宽高压字策略，全宽行内与实心主按钮对齐 */
+  /** 与 btnPrimaryBlock 同盒（全宽手机 + md:h-9） */
   btnTableActionBlock:
-    'inline-flex w-full min-h-[2.75rem] touch-manipulation items-center justify-center rounded-lg border border-lime-400/45 px-4 py-2.5 text-sm font-semibold leading-none text-lime-200 transition hover:bg-lime-400/10 max-md:w-full md:min-h-0 md:w-auto md:px-4 md:py-2 md:text-xs lg:text-sm',
+    'inline-flex w-full min-h-[2.35rem] touch-manipulation items-center justify-center rounded-lg border border-lime-400/45 px-3 py-1.5 text-xs font-semibold leading-none text-lime-200 transition hover:bg-lime-400/10 max-md:w-full md:h-9 md:min-h-0 md:w-auto md:px-3.5 md:py-0',
 
   btnGhost:
     'rounded-lg border border-white/20 px-4 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10',
@@ -79,7 +79,7 @@ export const FINANCE_FX = {
   btnInlineNeutral:
     'inline-flex min-h-[2.5rem] touch-manipulation items-center justify-center rounded-lg border border-white/25 px-3.5 py-2 text-xs font-semibold leading-none text-white/85 transition hover:bg-white/[0.06] sm:min-h-0',
   btnDisabledHint:
-    'inline-flex min-h-[2.5rem] items-center justify-center rounded-lg border border-white/10 px-3.5 py-2 text-xs font-medium leading-none text-white/40 sm:min-h-0',
+    'inline-flex min-h-[2.35rem] items-center justify-center rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium leading-none text-white/40 md:h-9 md:min-h-0 md:px-3.5 md:py-0',
 
   /** 表单输入 */
   input:
