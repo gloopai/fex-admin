@@ -63,6 +63,7 @@ const liquidityTotal = computed(() =>
 
 const activeStatuses = [LOAN_ORDER_STATUS.PENDING, LOAN_ORDER_STATUS.ACTIVE, LOAN_ORDER_STATUS.REPAYING]
 
+/** 当前筛选下的待还（记录区与「待还数量」卡） */
 const pendingRepayTotal = computed(() =>
   orders.value
     .filter((o) => activeStatuses.includes(o.status))
@@ -70,14 +71,19 @@ const pendingRepayTotal = computed(() =>
     .reduce((s, o) => s + (Number(o.totalDebt) || 0), 0)
 )
 
+/** 全量待还：授信剩余与借款校验共用，避免「币种筛选」把可借额度算小却仍允许借大额 */
+const globalPendingRepayTotal = computed(() =>
+  orders.value
+    .filter((o) => activeStatuses.includes(o.status))
+    .reduce((s, o) => s + (Number(o.totalDebt) || 0), 0)
+)
+
 /** Headline credit stats; currency filter affects summary context */
 const demoTotalCredit = 2_500_000
 const demoWalletBalance = 128_430.55
 
-const usedCreditApprox = computed(() => pendingRepayTotal.value)
-
 const remainingBorrowApprox = computed(() =>
-  Math.max(0, Math.round(demoTotalCredit - usedCreditApprox.value))
+  Math.max(0, Math.round(demoTotalCredit - globalPendingRepayTotal.value))
 )
 
 const recordTab = ref('current')
@@ -326,12 +332,33 @@ const parsedBorrow = computed(() => {
   return Number.isFinite(n) && n >= 0 ? n : 0
 })
 
+const borrowInterestPreviewDays = computed(() => {
+  const p = borrowProduct.value
+  if (!p) return 7
+  const min = Math.max(1, Number(p.minLoanDuration) || 7)
+  const max = Math.max(min, Number(p.maxLoanDuration) || min)
+  return Math.round((min + max) / 2)
+})
+
 const borrowInterestPreview = computed(() => {
   const p = borrowProduct.value
   if (!p) return 0
   const amt = parsedBorrow.value
-  const days = Math.max(1, Number(p.minLoanDuration) || 7)
+  const days = borrowInterestPreviewDays.value
   return (amt * (Number(p.interestRate) / 100) * days) / 365
+})
+
+const borrowSubmitValid = computed(() => {
+  const p = borrowProduct.value
+  if (!p || p.status !== PRODUCT_STATUS.ACTIVE) return false
+  const n = parsedBorrow.value
+  const min = Number(p.minLoanAmount)
+  const max = Number(p.maxLoanAmount)
+  if (!Number.isFinite(n) || n <= 0) return false
+  if (!Number.isFinite(min) || n < min) return false
+  if (Number.isFinite(max) && max > 0 && n > max) return false
+  if (n > remainingBorrowApprox.value) return false
+  return true
 })
 
 function fillBorrowAll() {
@@ -473,7 +500,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
 
         <div :class="['flex items-center justify-between gap-3', fx.statCard]">
           <div class="min-w-0">
-            <p :class="fx.statCardLabel">可借数量</p>
+            <p :class="fx.statCardLabel">可借（授信剩余）</p>
             <p class="mt-1.5 truncate text-lg font-bold tabular-nums text-lime-300 sm:text-xl">
               {{ remainingBorrowApprox.toLocaleString() }}
             </p>
@@ -623,7 +650,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
               <div class="flex items-start justify-between gap-2 border-b border-white/[0.06] pb-2.5 sm:items-center sm:gap-3 sm:pb-3">
                 <dt class="shrink-0 text-white/45">已用额度</dt>
                 <dd class="max-w-[min(100%,11rem)] text-right text-[11px] font-semibold tabular-nums text-white sm:max-w-none sm:text-sm">
-                  {{ Math.round(usedCreditApprox).toLocaleString() }} USDT
+                  {{ Math.round(globalPendingRepayTotal).toLocaleString() }} USDT
                 </dd>
               </div>
               <div class="flex items-start justify-between gap-2 pb-1 sm:items-center sm:gap-3">
@@ -1111,7 +1138,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
               <div class="flex flex-wrap items-baseline justify-between gap-2">
                 <span class="text-sm font-medium text-white/75">借币数量</span>
                 <span class="text-xs text-white/45">
-                  可借数量（{{ borrowProduct.loanCurrency }}）：{{
+                  授信剩余（演示 · 全量待还后 · {{ borrowProduct.loanCurrency }}）：{{
                     remainingBorrowApprox.toLocaleString()
                   }}
                 </span>
@@ -1129,10 +1156,19 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                 </button>
               </div>
               <p class="mt-2 text-xs tabular-nums text-white/50 sm:text-sm">
-                利息预估（{{ borrowProduct.loanCurrency }}，按最短借款周期估算，仅供参考）：
+                利息预估（{{ borrowProduct.loanCurrency }}，按期限区间中点约
+                {{ borrowInterestPreviewDays }} 天估算，仅供参考）：
                 <span class="font-semibold text-lime-300/90">
                   {{ borrowInterestPreview.toFixed(4) }} {{ borrowProduct.loanCurrency }}
                 </span>
+              </p>
+              <p
+                v-if="!borrowSubmitValid && parsedBorrow > 0"
+                class="mt-2 text-xs leading-relaxed text-amber-200/90"
+              >
+                请输入 {{ borrowProduct.minLoanAmount?.toLocaleString() }} –
+                {{ borrowProduct.maxLoanAmount?.toLocaleString() }} 范围内，且不超过授信剩余
+                {{ remainingBorrowApprox.toLocaleString() }} {{ borrowProduct.loanCurrency }} 的金额。
               </p>
             </div>
 
@@ -1141,12 +1177,12 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                 取消
               </button>
               <RouterLink
-                v-if="borrowCanSubmit"
+                v-if="borrowCanSubmit && borrowSubmitValid"
                 :to="{ path: `${prefix}/login`, query: { redirect: route.path } }"
                 :class="['inline-flex items-center justify-center', fx.btnPrimary]"
                 @click="closeBorrowDialog"
               >
-                申购
+                去登录申请借款
               </RouterLink>
             </div>
           </div>

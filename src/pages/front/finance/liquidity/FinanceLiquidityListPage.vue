@@ -134,6 +134,10 @@ const earlyRedeemNetPrincipal = computed(() => {
 })
 
 function openEarlyRedeem(order) {
+  if (order?.status !== ORDER_STATUS.LOCKED) return
+  if (isOrderMatured(order)) return
+  const p = productForOrder(order)
+  if (!p?.earlyRedeemEnabled) return
   if (clearOrderActionTimer != null) {
     clearTimeout(clearOrderActionTimer)
     clearOrderActionTimer = null
@@ -144,6 +148,7 @@ function openEarlyRedeem(order) {
 }
 
 function openSettleOrder(order) {
+  if (order?.status !== ORDER_STATUS.LOCKED || !isOrderMatured(order)) return
   if (clearOrderActionTimer != null) {
     clearTimeout(clearOrderActionTimer)
     clearOrderActionTimer = null
@@ -170,15 +175,27 @@ function applyOrderStatusPatch(orderId, patch) {
 
 function confirmOrderAction() {
   const o = orderActionTarget.value
-  if (!o) return
+  if (!o || o.status !== ORDER_STATUS.LOCKED) return
   const t = formatNowUtc8()
   if (orderActionKind.value === 'early') {
+    if (isOrderMatured(o)) return
+    const p = productForOrder(o)
+    if (!p?.earlyRedeemEnabled) return
+    const principal = Number(o.amount) || 0
+    const feePct = Number(p.earlyRedeemFee)
+    const pct = Number.isFinite(feePct) && feePct >= 0 ? feePct : 0
+    const feeAmt = principal * (pct / 100)
+    const netPrincipal = Math.max(0, principal - feeAmt)
     applyOrderStatusPatch(o.id, {
       status: ORDER_STATUS.EARLY_REDEEMED,
       completedAt: t,
-      daysRemaining: 0
+      daysRemaining: 0,
+      amount: netPrincipal,
+      totalInterest: 0,
+      earlyRedeemFeeApplied: feeAmt
     })
   } else {
+    if (!isOrderMatured(o)) return
     applyOrderStatusPatch(o.id, {
       status: ORDER_STATUS.COMPLETED,
       completedAt: t,
@@ -281,6 +298,19 @@ const mineEstimatedYield = computed(() => {
   if (!row) return 0
   const apr = lockYieldAnnualPct(row) / 100
   return parsedPurchase.value * apr * (row.days / 365)
+})
+
+const minePurchaseValid = computed(() => {
+  const p = mineProduct.value
+  const row = minePeriod.value
+  if (!p || !row || p.status !== PRODUCT_STATUS.ENABLED) return false
+  const n = parsedPurchase.value
+  const min = Number(row.minAmount) || 0
+  const cap = Math.min(Number(row.maxAmount) || Infinity, DEMO_AVAILABLE_FUNDS)
+  if (!Number.isFinite(n) || n <= 0) return false
+  if (n < min) return false
+  if (Number.isFinite(cap) && n > cap) return false
+  return true
 })
 
 function fillAllPurchase() {
@@ -836,6 +866,13 @@ const mineMinVipLabel = computed(() => {
                 {{ mineEstimatedYield.toFixed(6) }} {{ mineProduct.currency }}
               </span>
             </p>
+            <p
+              v-if="mineCanSubmit && !minePurchaseValid && parsedPurchase > 0"
+              class="mt-2 text-xs leading-relaxed text-amber-200/90"
+            >
+              请输入 {{ minePeriod.minAmount }} – {{ minePeriod.maxAmount }}（且不超过演示可用余额
+              {{ DEMO_AVAILABLE_FUNDS }}）范围内的金额。
+            </p>
           </div>
 
           <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
@@ -843,12 +880,12 @@ const mineMinVipLabel = computed(() => {
               关闭
             </button>
             <RouterLink
-              v-if="mineCanSubmit"
+              v-if="mineCanSubmit && minePurchaseValid"
               :to="{ path: `${prefix}/login`, query: { redirect: route.path } }"
               :class="['inline-flex items-center justify-center', fx.btnPrimary]"
               @click="closeMineDialog"
             >
-              立即挖矿
+              去登录申购
             </RouterLink>
           </div>
         </div>

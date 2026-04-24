@@ -82,11 +82,18 @@ function statusPillClass(s) {
           </div>
           <div class="flex shrink-0 flex-wrap gap-2 lg:pb-0.5">
             <RouterLink
+              v-if="product.status === PRODUCT_STATUS.ACTIVE"
               :to="{ path: `${prefix}/login`, query: { redirect: route.fullPath } }"
               class="inline-flex items-center justify-center rounded-xl bg-lime-400 px-5 py-2.5 text-sm font-semibold text-[#0b0e11] transition hover:bg-lime-300"
             >
               登录后申请借款
             </RouterLink>
+            <p
+              v-else
+              class="max-w-sm rounded-xl border border-white/[0.1] bg-white/[0.04] px-4 py-2.5 text-sm leading-relaxed text-white/55"
+            >
+              当前产品非在售状态，暂不可发起新借款；请返回列表选择其他产品。
+            </p>
           </div>
         </div>
 

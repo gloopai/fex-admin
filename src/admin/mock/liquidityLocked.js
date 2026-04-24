@@ -2,6 +2,8 @@ import { ADJUSTMENT_STATUS, ADJUSTMENT_TYPE, ALERT_LEVEL, ORDER_STATUS, PRODUCT_
 
 const clone = (v) => JSON.parse(JSON.stringify(v))
 
+/** 演示数据时间锚：假定「当前」为 2026-04-10，与到期日 / 剩余天数 / 预警小时数一致 */
+
 // 锁仓产品
 const products = [
   {
@@ -96,6 +98,27 @@ const products = [
     lendableRatio: 0,
     status: PRODUCT_STATUS.DISABLED,
     createdAt: '2025-11-01'
+  },
+  /** 与信用借贷 LND-003（借 USDC）演示一致：上架 USDC 锁仓池 → borrowableLiquidityFromLocked 非零 */
+  {
+    id: 'prod-5',
+    name: 'USDC 定期理财（演示池）',
+    currency: 'USDC',
+    icon: '$',
+    periods: [{ days: 7, annualRate: 88, minAmount: 100, maxAmount: 50000 }],
+    earlyRedeemEnabled: true,
+    earlyRedeemFee: 4,
+    minVipLevel: 0,
+    minKycLevel: 'none',
+    purchaseLimitType: PURCHASE_LIMIT_TYPE.NONE,
+    lifetimeLimit: 0,
+    periodLimit: 0,
+    periodDays: 0,
+    totalLocked: 2000000,
+    totalOrders: 88,
+    lendableRatio: 70,
+    status: PRODUCT_STATUS.ENABLED,
+    createdAt: '2026-03-01'
   }
 ]
 
@@ -111,10 +134,10 @@ const orders = [
     amount: 5000,
     lockDays: 10,
     dailyRate: 0.3888,
-    totalInterest: 194.4,
+    totalInterest: 244.4,
     status: ORDER_STATUS.LOCKED,
     lockedAt: '2026-03-01 14:22:10',
-    unlockAt: '2026-03-09 14:22:10',
+    unlockAt: '2026-03-11 14:22:10',
     completedAt: null,
     daysRemaining: 0
   },
@@ -130,10 +153,10 @@ const orders = [
     dailyRate: 0.35,
     totalInterest: 0.00525,
     status: ORDER_STATUS.LOCKED,
-    lockedAt: '2026-02-20 09:15:33',
-    unlockAt: '2026-03-22 09:15:33',
+    lockedAt: '2026-03-12 09:15:33',
+    unlockAt: '2026-04-11 09:15:33',
     completedAt: null,
-    daysRemaining: 14
+    daysRemaining: 1
   },
   {
     id: 'ord-1003',
@@ -159,13 +182,14 @@ const orders = [
     productId: 'prod-1',
     productName: 'USDT 定期理财',
     currency: 'USDT',
-    amount: 3000,
+    amount: 2880,
     lockDays: 20,
     dailyRate: 0.45,
-    totalInterest: 270,
+    totalInterest: 0,
+    earlyRedeemFeeApplied: 120,
     status: ORDER_STATUS.EARLY_REDEEMED,
     lockedAt: '2026-02-15 11:20:45',
-    unlockAt: '2026-03-07 11:20:45',
+    unlockAt: '2026-03-06 11:20:45',
     completedAt: '2026-02-25 09:12:33',
     daysRemaining: 0
   },
@@ -181,10 +205,10 @@ const orders = [
     dailyRate: 0.4,
     totalInterest: 1.2,
     status: ORDER_STATUS.LOCKED,
-    lockedAt: '2026-03-06 08:30:12',
-    unlockAt: '2026-03-26 08:30:12',
+    lockedAt: '2026-03-23 08:30:12',
+    unlockAt: '2026-04-12 08:30:12',
     completedAt: null,
-    daysRemaining: 18
+    daysRemaining: 2
   },
   /** 与 alerts.alert-302 对齐；未到期 + 可提前赎回，便于与 ord-1001（到期领取）对照 */
   {
@@ -199,10 +223,10 @@ const orders = [
     dailyRate: 0.3388,
     totalInterest: 320,
     status: ORDER_STATUS.LOCKED,
-    lockedAt: '2026-03-05 10:15:30',
-    unlockAt: '2026-03-09 10:15:30',
+    lockedAt: '2026-04-08 10:15:30',
+    unlockAt: '2026-04-13 10:15:30',
     completedAt: null,
-    daysRemaining: 2
+    daysRemaining: 3
   }
 ]
 
@@ -275,10 +299,10 @@ const alerts = [
     userName: 'alice@example.com',
     currency: 'USDT',
     amount: 5000,
-    interest: 194.4,
+    interest: 244.4,
     unlockAt: '2026-03-11 14:22:10',
-    hoursRemaining: 72,
-    level: ALERT_LEVEL.WARNING
+    hoursRemaining: 0,
+    level: ALERT_LEVEL.INFO
   },
   {
     id: 'alert-302',
@@ -288,8 +312,8 @@ const alerts = [
     currency: 'USDT',
     amount: 8000,
     interest: 320,
-    unlockAt: '2026-03-09 10:15:30',
-    hoursRemaining: 18,
+    unlockAt: '2026-04-13 10:15:30',
+    hoursRemaining: 72,
     level: ALERT_LEVEL.URGENT
   },
   {
@@ -300,8 +324,8 @@ const alerts = [
     currency: 'BTC',
     amount: 0.5,
     interest: 0.00525,
-    unlockAt: '2026-03-22 09:15:33',
-    hoursRemaining: 336,
+    unlockAt: '2026-04-11 09:15:33',
+    hoursRemaining: 24,
     level: ALERT_LEVEL.INFO
   }
 ]

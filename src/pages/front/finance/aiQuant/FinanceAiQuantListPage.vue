@@ -393,6 +393,23 @@ function fillRentAll() {
   if (!row?.tier) return
   rentAmount.value = String(row.tier.maxAmount ?? '')
 }
+
+const parsedRentAmount = computed(() => {
+  const n = Number(String(rentAmount.value).replace(/,/g, ''))
+  return Number.isFinite(n) && n > 0 ? n : 0
+})
+
+const rentSubmitValid = computed(() => {
+  const row = rentRow.value
+  if (!row?.tier) return false
+  const n = parsedRentAmount.value
+  const min = Number(row.tier.minAmount)
+  const max = Number(row.tier.maxAmount)
+  if (!Number.isFinite(n) || !Number.isFinite(min) || !Number.isFinite(max)) return false
+  if (n < min || n > max) return false
+  if (n > rentAvailable.value) return false
+  return true
+})
 </script>
 
 <template>
@@ -1064,16 +1081,23 @@ function fillRentAll() {
               </div>
             </div>
 
+            <p
+              v-if="rentRow && !rentSubmitValid && parsedRentAmount > 0"
+              class="mt-3 text-xs leading-relaxed text-amber-200/90"
+            >
+              请输入档位允许区间（{{ rentRow.tier.minAmount }} – {{ rentRow.tier.maxAmount }}）内且不超过可用余额的金额。
+            </p>
             <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <button type="button" :class="fx.btnGhost" @click="closeRentDialog">
                 关闭
               </button>
               <RouterLink
+                v-if="rentSubmitValid"
                 :to="{ path: `${prefix}/login`, query: { redirect: route.path } }"
                 :class="['inline-flex items-center justify-center', fx.btnPrimary]"
                 @click="closeRentDialog"
               >
-                确定
+                确定并去登录
               </RouterLink>
             </div>
           </div>

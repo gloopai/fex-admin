@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import FrontStrokeIcon from '../../../../components/front/FrontStrokeIcon.vue'
 import { createAiQuantProductsMock } from '../../../../admin/mock/aiQuant'
 import {
+  PRODUCT_STATUS,
   aiQuantAnnualFromDailyPct,
   operationModeMeta,
   productStatusMeta,
@@ -81,11 +82,18 @@ const settlementLabel = computed(() => {
           </div>
           <div class="flex shrink-0 flex-wrap gap-2 lg:pb-0.5">
             <RouterLink
+              v-if="product.status === PRODUCT_STATUS.ENABLED"
               :to="{ path: `${prefix}/login`, query: { redirect: route.fullPath } }"
               class="inline-flex min-h-11 items-center justify-center rounded-xl bg-lime-400 px-5 py-2.5 text-sm font-semibold text-black shadow-sm transition hover:bg-lime-300"
             >
               立即租用
             </RouterLink>
+            <p
+              v-else
+              class="max-w-sm rounded-xl border border-white/[0.1] bg-white/[0.04] px-4 py-2.5 text-sm leading-relaxed text-white/55"
+            >
+              当前策略不可租用（{{ productStatusMeta[product.status]?.label ?? product.status }}）；请返回列表查看其他策略。
+            </p>
             <RouterLink
               :to="`${prefix}/finance/ai-quant`"
               class="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/20 bg-white/[0.04] px-5 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10"
