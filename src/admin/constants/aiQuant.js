@@ -218,5 +218,15 @@ export const settlementPeriodMeta = {
   [SETTLEMENT_PERIOD.CUSTOM]: { label: '自定义周期', days: null }
 }
 
+/**
+ * 参考年化（%）：与日收益率配置（日化 %）一致，按简单计息日化×365，与后台订单页年化列口径相同。
+ * @param {number|string|null|undefined} dailyYieldPct
+ */
+export function aiQuantAnnualFromDailyPct(dailyYieldPct) {
+  const n = Number(dailyYieldPct)
+  if (dailyYieldPct == null || dailyYieldPct === '' || Number.isNaN(n)) return 0
+  return n * 365
+}
+
 // 公共过滤选项
 export const COMMON_FILTER_ALL = 'all'

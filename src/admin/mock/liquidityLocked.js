@@ -25,6 +25,7 @@ const products = [
     periodDays: 30,
     totalLocked: 2850000,
     totalOrders: 1247,
+    lendableRatio: 70,
     status: PRODUCT_STATUS.ENABLED,
     createdAt: '2026-01-15'
   },
@@ -48,6 +49,7 @@ const products = [
     periodDays: 30,
     totalLocked: 125.5,
     totalOrders: 423,
+    lendableRatio: 65,
     status: PRODUCT_STATUS.ENABLED,
     createdAt: '2026-02-01'
   },
@@ -70,6 +72,7 @@ const products = [
     periodDays: 0,
     totalLocked: 3420.8,
     totalOrders: 856,
+    lendableRatio: 60,
     status: PRODUCT_STATUS.SOLD_OUT,
     createdAt: '2026-02-20'
   }

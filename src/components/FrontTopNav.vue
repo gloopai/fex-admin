@@ -7,6 +7,8 @@ import { pathNeedsFrontAuth } from '../composables/useRequireFrontAuth'
 import {
   getFrontMainNavLinks,
   getFrontTradeMenuGroups,
+  getFrontFinanceChannelEntries,
+  getFrontFinanceHubPath,
   TRADE_ASSET_CLASS_META,
   TRADE_PRODUCT_MODE_META
 } from '../constants/frontNav'
@@ -46,6 +48,7 @@ function logoutFront() {
 }
 
 const tradeOpen = ref(false)
+const financeOpen = ref(false)
 const langOpen = ref(false)
 const downloadOpen = ref(false)
 const mobileOpen = ref(false)
@@ -63,7 +66,26 @@ const searchPanelRef = ref(null)
 let downloadLeaveTimer = null
 
 const mainLinks = computed(() => getFrontMainNavLinks(props.prefix))
+/** 主导航中位于「金融 / 交易」之前的链接（首页、行情） */
+const mainLinksLead = computed(() => mainLinks.value.filter((i) => i.key !== 'assets'))
+const mainLinkAssets = computed(() => mainLinks.value.find((i) => i.key === 'assets'))
 const tradeMenuGroups = computed(() => getFrontTradeMenuGroups(props.prefix))
+const financeChannels = computed(() => getFrontFinanceChannelEntries(props.prefix))
+const financeHubPath = computed(() => getFrontFinanceHubPath(props.prefix))
+
+/** 抽屉：金融首页 + 三个频道 */
+const drawerFinanceNav = computed(() => {
+  const p = props.prefix
+  return [
+    { key: 'finance-hub', label: '金融首页', to: getFrontFinanceHubPath(p), icon: 'finance' },
+    ...getFrontFinanceChannelEntries(p).map((c) => ({
+      key: `finance-${c.key}`,
+      label: c.label,
+      to: c.to,
+      icon: 'finance'
+    }))
+  ]
+})
 
 /** 抽屉内交易：仅现货 / 永续 / 交割（默认加密货币品种，页内可再切） */
 const drawerQuickTradeLinks = computed(() => {
@@ -159,6 +181,10 @@ function drawerIconPaths(icon) {
       'M9 21.5V14h6v7.5'
     ],
     market: ['M4 16l4-6 4 3 4-8 4 5', 'M4 20h16'],
+    finance: [
+      'M3 10h18v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9Z',
+      'M7 10V8a5 5 0 0 1 10 0v2'
+    ],
     assets: [
       'M19 7V4H5v3M5 11c0 4.5 3.6 8 8 8s8-3.5 8-8m-16 0v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9'
     ],
@@ -220,6 +246,12 @@ function isTradeSectionActive() {
   return p.startsWith(base)
 }
 
+function isFinanceSectionActive() {
+  const p = route.path
+  const base = `${props.prefix}/finance`
+  return p === base || p === `${base}/` || p.startsWith(`${base}/`)
+}
+
 function linkNavClass(active) {
   return [
     'inline-flex items-center gap-1 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150 lg:px-3.5 lg:text-[0.9375rem]',
@@ -234,6 +266,10 @@ function mainNavClass(to) {
 
 function tradeTriggerClass() {
   return linkNavClass(tradeOpen.value || isTradeSectionActive())
+}
+
+function financeTriggerClass() {
+  return linkNavClass(financeOpen.value || isFinanceSectionActive())
 }
 
 const { localeOptionsForNav, languageSwitcherEnabled } = useFrontSiteI18n()
@@ -275,6 +311,7 @@ function onDownloadMouseEnter() {
   }
   downloadOpen.value = true
   tradeOpen.value = false
+  financeOpen.value = false
   langOpen.value = false
   searchOpen.value = false
 }
@@ -330,6 +367,7 @@ const filteredTradePairSearch = computed(() => {
 function openTradePairSearch() {
   searchOpen.value = true
   tradeOpen.value = false
+  financeOpen.value = false
   langOpen.value = false
   downloadOpen.value = false
   searchQuery.value = ''
@@ -352,6 +390,7 @@ function toggleLangMenu() {
   langOpen.value = next
   if (next) {
     tradeOpen.value = false
+    financeOpen.value = false
     downloadOpen.value = false
     searchOpen.value = false
   }
@@ -361,6 +400,18 @@ function toggleTradeMenu() {
   const next = !tradeOpen.value
   tradeOpen.value = next
   if (next) {
+    financeOpen.value = false
+    langOpen.value = false
+    downloadOpen.value = false
+    searchOpen.value = false
+  }
+}
+
+function toggleFinanceMenu() {
+  const next = !financeOpen.value
+  financeOpen.value = next
+  if (next) {
+    tradeOpen.value = false
     langOpen.value = false
     downloadOpen.value = false
     searchOpen.value = false
@@ -369,6 +420,7 @@ function toggleTradeMenu() {
 
 function closeOverlays() {
   tradeOpen.value = false
+  financeOpen.value = false
   langOpen.value = false
   downloadOpen.value = false
   searchOpen.value = false
@@ -384,6 +436,7 @@ function closeIfDesktopBreakpoint() {
     mobileOpen.value = false
     mobileLangSheetOpen.value = false
     tradeOpen.value = false
+    financeOpen.value = false
     langOpen.value = false
     downloadOpen.value = false
     searchOpen.value = false
@@ -445,6 +498,7 @@ function isPcOverviewActive() {
 const anyPanelOpen = computed(
   () =>
     tradeOpen.value ||
+    financeOpen.value ||
     langOpen.value ||
     downloadOpen.value ||
     searchOpen.value ||
@@ -480,6 +534,7 @@ watch(mobileOpen, (open) => {
   document.body.style.overflow = open ? 'hidden' : ''
   if (open) {
     tradeOpen.value = false
+    financeOpen.value = false
     langOpen.value = false
     downloadOpen.value = false
     searchOpen.value = false
@@ -513,6 +568,10 @@ function dropdownItemClass(to) {
 
 function drawerPillActive(to) {
   const assetsTo = assetsBase.value
+  const fh = financeHubPath.value
+  if (pathNorm(to) === pathNorm(fh)) {
+    return pathNorm(route.path) === pathNorm(fh)
+  }
   let on = isActivePath(to)
   if (to === assetsTo) on = isAssetsActive()
   return on
@@ -566,13 +625,118 @@ function drawerRowClass(item) {
           aria-label="主导航"
         >
           <RouterLink
-            v-for="item in mainLinks"
+            v-for="item in mainLinksLead"
             :key="item.key"
             :to="item.to"
             :class="mainNavClass(item.to)"
           >
             {{ item.label }}
           </RouterLink>
+
+          <div class="relative">
+            <button
+              type="button"
+              class="inline-flex items-center gap-1"
+              :class="financeTriggerClass()"
+              :aria-expanded="financeOpen"
+              aria-haspopup="true"
+              aria-controls="front-finance-panel"
+              @click="toggleFinanceMenu"
+            >
+              金融
+              <svg
+                class="h-3 w-3 shrink-0 opacity-70 transition-transform duration-200"
+                :class="financeOpen ? 'rotate-180' : ''"
+                viewBox="0 0 12 12"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M3 4.5 6 7.5 9 4.5"
+                  stroke="currentColor"
+                  stroke-width="1.25"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+            <Transition
+              enter-active-class="transition duration-150 ease-out"
+              enter-from-class="opacity-0 -translate-y-1"
+              enter-to-class="opacity-100 translate-y-0"
+              leave-active-class="transition duration-100 ease-in"
+              leave-from-class="opacity-100 translate-y-0"
+              leave-to-class="opacity-0 -translate-y-1"
+            >
+              <div
+                v-show="financeOpen"
+                id="front-finance-panel"
+                class="absolute left-0 top-full z-30 mt-1.5 w-[min(44rem,calc(100vw-2rem))] overflow-hidden rounded-lg border border-[#1f2429] bg-[#1e2329] shadow-xl shadow-black/50"
+                role="menu"
+              >
+                <div
+                  class="grid divide-y divide-[#1f2429] sm:grid-cols-3 sm:divide-x sm:divide-y-0"
+                >
+                  <RouterLink
+                    v-for="ch in financeChannels"
+                    :key="ch.key"
+                    role="menuitem"
+                    :to="ch.to"
+                    class="group block p-5 text-left transition sm:min-h-[10.5rem]"
+                    :class="dropdownItemClass(ch.to)"
+                    @click="financeOpen = false"
+                  >
+                    <p
+                      class="text-[10px] font-bold uppercase tracking-[0.2em] text-lime-400/90"
+                    >
+                      {{ ch.tag }}
+                    </p>
+                    <h3
+                      class="mt-2 text-lg font-semibold tracking-tight text-white sm:text-xl"
+                    >
+                      {{ ch.label }}
+                    </h3>
+                    <p class="mt-2 text-[13px] leading-relaxed text-[#848e9c] sm:text-sm">
+                      {{ ch.desc }}
+                    </p>
+                    <span
+                      class="mt-4 inline-flex items-center text-sm font-semibold text-lime-400/95 transition group-hover:text-lime-300"
+                    >
+                      进入频道
+                      <svg
+                        class="ml-1 h-4 w-4 transition group-hover:translate-x-0.5"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="m9 18 6-6-6-6"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    </span>
+                  </RouterLink>
+                </div>
+                <div
+                  class="flex flex-wrap items-center justify-between gap-2 border-t border-[#1f2429] bg-[#12161c]/95 px-4 py-3"
+                >
+                  <span class="text-[11px] font-medium text-[#848e9c]">CryptoX 金融 · 演示数据</span>
+                  <RouterLink
+                    :to="financeHubPath"
+                    role="menuitem"
+                    class="text-sm font-semibold text-lime-400 transition hover:text-lime-300"
+                    :class="pathNorm(route.path) === pathNorm(financeHubPath) ? 'text-lime-300' : ''"
+                    @click="financeOpen = false"
+                  >
+                    金融首页
+                  </RouterLink>
+                </div>
+              </div>
+            </Transition>
+          </div>
 
           <div class="relative">
             <button
@@ -640,6 +804,16 @@ function drawerRowClass(item) {
               </div>
             </Transition>
           </div>
+
+          <RouterLink
+            v-if="mainLinkAssets"
+            :key="mainLinkAssets.key"
+            :to="mainLinkAssets.to"
+            :class="mainNavClass(mainLinkAssets.to)"
+            @click="mobileOpen = false"
+          >
+            {{ mainLinkAssets.label }}
+          </RouterLink>
         </nav>
       </div>
 
@@ -1007,6 +1181,43 @@ function drawerRowClass(item) {
                   v-for="item in drawerPrimaryNavResolved"
                   :key="item.key"
                   :to="item.linkTo"
+                  role="menuitem"
+                  :class="drawerRowClass(item)"
+                  @click="mobileOpen = false"
+                >
+                  <span
+                    class="drawer-nav-icon flex h-7 w-7 shrink-0 items-center justify-center"
+                    :class="drawerRowActive(item) ? 'text-lime-300/95' : 'text-lime-400/65'"
+                    aria-hidden="true"
+                  >
+                    <svg
+                      class="h-4 w-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.65"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path v-for="(d, i) in drawerIconPaths(item.icon)" :key="i" :d="d" />
+                    </svg>
+                  </span>
+                  <span class="min-w-0 truncate text-current">{{ item.label }}</span>
+                </RouterLink>
+              </div>
+
+              <div
+                class="mx-3 mb-0.5 mt-5 h-px bg-gradient-to-r from-transparent via-white/[0.07] to-transparent"
+                aria-hidden="true"
+              />
+              <p class="mb-2 mt-5 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#b0b8c1] sm:tracking-wider">
+                金融
+              </p>
+              <div class="space-y-0.5">
+                <RouterLink
+                  v-for="item in drawerFinanceNav"
+                  :key="item.key"
+                  :to="item.to"
                   role="menuitem"
                   :class="drawerRowClass(item)"
                   @click="mobileOpen = false"

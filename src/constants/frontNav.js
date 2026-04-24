@@ -60,12 +60,48 @@ export function getFrontTradeNavLinks(prefix) {
   return getFrontTradeNavLinksFlat(prefix)
 }
 
-/** 左侧主导航：首页、行情、资产 */
+/** 左侧主导航：首页、行情、资产（「金融」为顶栏下拉，见 getFrontFinanceChannelEntries） */
 export function getFrontMainNavLinks(prefix) {
   return [
     { key: 'home', label: '首页', to: `${prefix}/home` },
     { key: 'market', label: '行情', to: `${prefix}/market` },
     { key: 'assets', label: '资产', to: `${prefix}/personal-center/assets` }
+  ]
+}
+
+/** 金融总览落地页 */
+export function getFrontFinanceHubPath(prefix) {
+  return `${prefix}/finance`
+}
+
+/**
+ * 顶栏「金融」下拉：三个产品频道（站点化入口）
+ * @param {string} prefix 如 `/front`
+ */
+export function getFrontFinanceChannelEntries(prefix) {
+  const b = `${prefix}/finance`
+  return [
+    {
+      key: 'liquidity',
+      label: '流动性挖矿',
+      tag: 'Earn',
+      desc: '多期限锁仓，年化分档透明，到期与提前赎回规则可查。',
+      to: `${b}/liquidity`
+    },
+    {
+      key: 'lending',
+      label: '抵押借贷',
+      tag: 'Borrow',
+      desc: '质押持仓释放借出币种流动性，利率与期限结构化展示。',
+      to: `${b}/lending`
+    },
+    {
+      key: 'ai-quant',
+      label: 'AI 量化',
+      tag: 'Quant',
+      desc: '策略托管与结算周期可配，分档参考年化（日化×365）结构清晰。',
+      to: `${b}/ai-quant`
+    }
   ]
 }
 

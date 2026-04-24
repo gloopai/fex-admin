@@ -19,6 +19,12 @@ const controlCards = [
     desc: '余额、保证金与盈亏结构一目了然；提现策略与安全设置在账户中心集中管理。',
     to: `${prefix}/personal-center/assets`,
     icon: 'wallet'
+  },
+  {
+    title: '金融增值',
+    desc: '流动性锁仓、抵押借贷与 AI 量化策略入口集中呈现；规则与参数与后台配置对齐（演示数据）。',
+    to: `${prefix}/finance`,
+    icon: 'chart'
   }
 ]
 
@@ -81,6 +87,15 @@ const footerColumns = [
       { label: '现货', to: `${prefix}/trade/crypto/spot` },
       { label: '交割合约', to: `${prefix}/trade/crypto/delivery` },
       { label: '行情', to: `${prefix}/market` }
+    ]
+  },
+  {
+    title: '金融',
+    links: [
+      { label: '金融首页', to: `${prefix}/finance` },
+      { label: '流动性挖矿', to: `${prefix}/finance/liquidity` },
+      { label: '抵押借贷', to: `${prefix}/finance/lending` },
+      { label: 'AI 量化', to: `${prefix}/finance/ai-quant` }
     ]
   },
   {
@@ -212,7 +227,7 @@ const footerColumns = [
         >
           完全掌控你的加密资产
         </h2>
-        <div class="grid gap-4 sm:gap-5 md:grid-cols-2 md:gap-6">
+        <div class="grid gap-4 sm:gap-5 md:grid-cols-2 md:gap-6 lg:grid-cols-3">
           <RouterLink
             v-for="card in controlCards"
             :key="card.title"
@@ -236,6 +251,17 @@ const footerColumns = [
                 stroke-width="1.75"
               >
                 <path d="M13 2 3 14h8l-1 8 10-12h-8l1-8Z" stroke-linejoin="round" />
+              </svg>
+              <svg
+                v-else-if="card.icon === 'chart'"
+                class="h-6 w-6"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.75"
+              >
+                <path d="M4 18V6m0 0 4 4 4-4 4 6 4-2" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M4 20h16" stroke-linecap="round" />
               </svg>
               <svg
                 v-else
@@ -490,7 +516,7 @@ const footerColumns = [
             </div>
           </div>
           <div
-            class="grid grid-cols-2 gap-8 sm:grid-cols-3 sm:gap-6 lg:col-span-8 lg:grid-cols-3"
+            class="grid grid-cols-2 gap-8 sm:gap-6 md:grid-cols-4 lg:col-span-8"
           >
             <div v-for="col in footerColumns" :key="col.title">
               <p class="text-[11px] font-semibold uppercase tracking-wider text-white/50">

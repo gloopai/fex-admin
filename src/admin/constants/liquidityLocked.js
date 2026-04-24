@@ -127,3 +127,31 @@ export function lockedMinKycLabel(code) {
   if (code === 'institution') return '机构认证'
   return LOCKED_MIN_KYC_OPTIONS[0].label
 }
+
+/** 前台展示：无认证门槛时写「无认证限制」，其余同 {@link lockedMinKycLabel} */
+export function lockedMinKycRequirementPhrase(code) {
+  if (code == null || code === '' || code === 'none') return '无认证限制'
+  return lockedMinKycLabel(code)
+}
+
+/** 未配置「可借贷比例」时的默认百分数（0–100） */
+export const DEFAULT_LOCKED_LENDABLE_RATIO = 70
+
+/**
+ * 按借贷币种汇总：上架中锁仓产品的可借池规模 = Σ(totalLocked × 可借贷比例/100)。
+ * @param {string} loanCurrency 与锁仓产品 `currency` 一致，如 USDT
+ * @param {Array<{ currency: string, status: string, totalLocked?: number, lendableRatio?: number }>} lockedProducts
+ */
+export function borrowableLiquidityFromLocked(loanCurrency, lockedProducts) {
+  if (!loanCurrency || !Array.isArray(lockedProducts)) return 0
+  return lockedProducts.reduce((sum, p) => {
+    if (p.currency !== loanCurrency || p.status !== PRODUCT_STATUS.ENABLED) return sum
+    const raw = p.lendableRatio
+    const ratio =
+      raw == null || raw === ''
+        ? DEFAULT_LOCKED_LENDABLE_RATIO
+        : Math.min(100, Math.max(0, Number(raw)))
+    if (!Number.isFinite(ratio)) return sum
+    return sum + Number(p.totalLocked || 0) * (ratio / 100)
+  }, 0)
+}

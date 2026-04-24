@@ -1,7 +1,7 @@
 /**
  * 前台路由（/front）。
  * 需登录：personal-center 整树、trade/:assetClass/:tradeMode、verification-*-demo。
- * 公开：home、market、login、register、reset-password。
+ * 公开：home、market、finance、login、register、reset-password。
  * 守卫与组合式函数：router/index.js、src/composables/useRequireFrontAuth.js
  */
 import { FRONT_DEPOSIT_DEFAULT_SYMBOL_LOWER } from '../../constants/frontAssetCenterDemo'
@@ -21,6 +21,88 @@ export const frontDesktopRoutes = [
     name: 'front-market-desktop',
     component: () => import('../../pages/front/FrontMarketPage.vue'),
     meta: { title: '行情' }
+  },
+  {
+    path: 'finance',
+    component: () => import('../../layouts/FinanceShellLayout.vue'),
+    meta: { title: '金融' },
+    children: [
+      {
+        path: '',
+        name: 'front-finance-home',
+        component: () => import('../../pages/front/finance/FinanceHomePage.vue'),
+        meta: { title: '金融' }
+      },
+      {
+        path: 'liquidity',
+        name: 'front-finance-liquidity',
+        component: () => import('../../pages/front/finance/liquidity/FinanceLiquidityListPage.vue'),
+        meta: { title: '流动性挖矿' }
+      },
+      {
+        path: 'liquidity/rules',
+        redirect: '/front/finance/liquidity'
+      },
+      {
+        path: 'liquidity/:productId/rules',
+        redirect: (to) => ({
+          name: 'front-finance-liquidity-detail',
+          params: { productId: to.params.productId }
+        })
+      },
+      {
+        path: 'liquidity/:productId',
+        name: 'front-finance-liquidity-detail',
+        component: () => import('../../pages/front/finance/liquidity/FinanceLiquidityDetailPage.vue'),
+        meta: { title: '产品详情' }
+      },
+      {
+        path: 'lending',
+        name: 'front-finance-lending',
+        component: () => import('../../pages/front/finance/lending/FinanceLendingListPage.vue'),
+        meta: { title: '抵押借贷' }
+      },
+      {
+        path: 'lending/rules',
+        redirect: '/front/finance/lending'
+      },
+      {
+        path: 'lending/:productId/rules',
+        redirect: (to) => ({
+          name: 'front-finance-lending-detail',
+          params: { productId: to.params.productId }
+        })
+      },
+      {
+        path: 'lending/:productId',
+        name: 'front-finance-lending-detail',
+        component: () => import('../../pages/front/finance/lending/FinanceLendingDetailPage.vue'),
+        meta: { title: '借贷产品' }
+      },
+      {
+        path: 'ai-quant',
+        name: 'front-finance-ai-quant',
+        component: () => import('../../pages/front/finance/aiQuant/FinanceAiQuantListPage.vue'),
+        meta: { title: 'AI 量化' }
+      },
+      {
+        path: 'ai-quant/rules',
+        redirect: '/front/finance/ai-quant'
+      },
+      {
+        path: 'ai-quant/:productId/rules',
+        redirect: (to) => ({
+          name: 'front-finance-ai-quant-detail',
+          params: { productId: to.params.productId }
+        })
+      },
+      {
+        path: 'ai-quant/:productId',
+        name: 'front-finance-ai-quant-detail',
+        component: () => import('../../pages/front/finance/aiQuant/FinanceAiQuantDetailPage.vue'),
+        meta: { title: '策略详情' }
+      }
+    ]
   },
   {
     path: 'trade',

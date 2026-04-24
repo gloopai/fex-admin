@@ -19,6 +19,7 @@ import {
   SUPPORTED_CURRENCIES,
   LOCKED_MIN_VIP_OPTIONS,
   LOCKED_MIN_KYC_OPTIONS,
+  DEFAULT_LOCKED_LENDABLE_RATIO,
   lockYieldAnnualPct,
   lockedMinKycLabel
 } from '../../../admin/constants/liquidityLocked'
@@ -63,6 +64,7 @@ const productForm = reactive({
   periodDays: 30,
   minVipLevel: 0,
   minKycLevel: 'none',
+  lendableRatio: DEFAULT_LOCKED_LENDABLE_RATIO,
   status: PRODUCT_STATUS.ENABLED
 })
 
@@ -79,6 +81,7 @@ const openCreateProduct = () => {
   productForm.periodDays = 30
   productForm.minVipLevel = 0
   productForm.minKycLevel = 'none'
+  productForm.lendableRatio = DEFAULT_LOCKED_LENDABLE_RATIO
   productForm.status = PRODUCT_STATUS.ENABLED
   showProductModal.value = true
 }
@@ -101,6 +104,10 @@ const openEditProduct = (product) => {
   productForm.periodDays = product.periodDays
   productForm.minVipLevel = product.minVipLevel ?? 0
   productForm.minKycLevel = product.minKycLevel ?? 'none'
+  productForm.lendableRatio =
+    product.lendableRatio != null && product.lendableRatio !== ''
+      ? Number(product.lendableRatio)
+      : DEFAULT_LOCKED_LENDABLE_RATIO
   productForm.status = product.status
   showProductModal.value = true
 }
@@ -132,6 +139,11 @@ const saveProduct = () => {
     periodDays: Number(productForm.periodDays),
     minVipLevel: Number(productForm.minVipLevel) || 0,
     minKycLevel: productForm.minKycLevel || 'none',
+    lendableRatio: (() => {
+      const n = Number(productForm.lendableRatio)
+      if (!Number.isFinite(n)) return DEFAULT_LOCKED_LENDABLE_RATIO
+      return Math.min(100, Math.max(0, n))
+    })(),
     status: productForm.status
   }
 
@@ -319,10 +331,16 @@ const fmtCurrency = (val, currency, decimals = 2) => {
               <button type="button" class="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50" @click="openEditProduct(product)">编辑</button>
             </div>
 
-            <div class="mt-3 grid gap-3 md:grid-cols-4">
+            <div class="mt-3 grid gap-3 md:grid-cols-5">
               <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
                 <p class="text-xs text-slate-500">总锁仓</p>
                 <p class="mt-1 font-semibold text-slate-900">{{ fmtCurrency(product.totalLocked, product.currency) }}</p>
+              </div>
+              <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <p class="text-xs text-slate-500">可借贷比例</p>
+                <p class="mt-1 font-semibold text-slate-900">
+                  {{ product.lendableRatio != null && product.lendableRatio !== '' ? Number(product.lendableRatio) : DEFAULT_LOCKED_LENDABLE_RATIO }}%
+                </p>
               </div>
               <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
                 <p class="text-xs text-slate-500">订单数</p>
@@ -700,6 +718,21 @@ const fmtCurrency = (val, currency, decimals = 2) => {
                   <option v-for="opt in LOCKED_MIN_KYC_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
                 </select>
               </div>
+            </div>
+            <div class="lb-stack max-w-xs">
+              <div class="lb-label-row">
+                <span class="lb-label">可借贷比例</span>
+                <span class="lb-label-aux">0–100 · %</span>
+              </div>
+              <p class="mb-1 text-xs text-slate-500">锁仓额中可按该比例计入与借出币种相同的借贷资金池（前台借贷详情可借余额按此推算）。</p>
+              <input
+                v-model.number="productForm.lendableRatio"
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                class="lb-ctrl w-32 tabular-nums"
+              />
             </div>
           </div>
 
