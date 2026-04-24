@@ -1,10 +1,13 @@
 <script setup>
 import { computed, onUnmounted, ref, watch, watchEffect } from 'vue'
+import FrontClientPager from '../../../../components/front/FrontClientPager.vue'
+import { useClientListPagination } from '../../../../composables/useClientListPagination'
 import { useRoute } from 'vue-router'
 import FrontPopupCard from '../../../../components/front/FrontPopupCard.vue'
 import FrontPopupCloseButton from '../../../../components/front/FrontPopupCloseButton.vue'
 import FrontPopupShell from '../../../../components/front/FrontPopupShell.vue'
 import { createLockedProductsMock, createLockedOrdersMock } from '../../../../admin/mock/liquidityLocked'
+import { buildLockedDemoExtraOrders } from '../../../../admin/mock/frontFinanceDemoBulk'
 import {
   LOCKED_MIN_VIP_OPTIONS,
   PRODUCT_STATUS,
@@ -28,8 +31,10 @@ const orderTab = ref('active')
 /** Hero 主入口：挖矿产品 / 我的订单（与 AI 量化、借贷一致） */
 const heroPanel = ref('products')
 
+const LIST_PAGE_SIZE = 8
+
 const products = ref(createLockedProductsMock())
-const orders = ref(createLockedOrdersMock())
+const orders = ref([...createLockedOrdersMock(), ...buildLockedDemoExtraOrders()])
 
 const currenciesFromProducts = computed(() => {
   const set = new Set(products.value.map((p) => p.currency).filter(Boolean))
@@ -69,6 +74,12 @@ const redeemedOrders = computed(() =>
   )
 )
 const ordersForTab = computed(() => (orderTab.value === 'active' ? activeOrders.value : redeemedOrders.value))
+
+const pgOrdersTab = useClientListPagination(ordersForTab, { pageSize: LIST_PAGE_SIZE })
+
+watch(orderTab, () => {
+  pgOrdersTab.resetPage()
+})
 
 function statusPillClass(status) {
   if (status === PRODUCT_STATUS.ENABLED) return 'bg-lime-400/15 text-lime-200'
@@ -543,7 +554,7 @@ const mineMinVipLabel = computed(() => {
               <span
                 v-if="ordersForTab.length > 0"
                 class="text-[11px] tabular-nums text-white/40 sm:text-xs"
-              >本页共 {{ ordersForTab.length }} 条</span>
+              >共 {{ ordersForTab.length }} 条</span>
             </div>
             <div :class="fx.recordTablist2" role="tablist" aria-label="订单状态">
               <button
@@ -585,7 +596,7 @@ const mineMinVipLabel = computed(() => {
               </thead>
               <tbody>
                 <tr
-                  v-for="o in ordersForTab"
+                  v-for="o in pgOrdersTab.pagedItems"
                   :key="o.id"
                   class="border-b border-white/[0.06] transition hover:bg-white/[0.02] max-md:block max-md:last:border-b-0 md:table-row"
                 >
@@ -684,6 +695,14 @@ const mineMinVipLabel = computed(() => {
               </tbody>
             </table>
           </div>
+          <FrontClientPager
+            :page="pgOrdersTab.page"
+            :total-pages="pgOrdersTab.totalPages"
+            :total="pgOrdersTab.total"
+            :page-size="pgOrdersTab.pageSize"
+            @prev="pgOrdersTab.goPrev"
+            @next="pgOrdersTab.goNext"
+          />
           <p v-if="ordersForTab.length === 0" class="px-3 py-12 text-center text-sm text-white/40 sm:py-14">
             当前分类暂无订单
           </p>

@@ -5,12 +5,15 @@ import FrontPopupCard from '../../../../components/front/FrontPopupCard.vue'
 import FrontPopupCloseButton from '../../../../components/front/FrontPopupCloseButton.vue'
 import FrontPopupShell from '../../../../components/front/FrontPopupShell.vue'
 import FrontStrokeIcon from '../../../../components/front/FrontStrokeIcon.vue'
+import FrontClientPager from '../../../../components/front/FrontClientPager.vue'
+import { useClientListPagination } from '../../../../composables/useClientListPagination'
 import { FINANCE_FX as fx } from '../../../../constants/frontFinanceUi'
 import {
   createAiQuantProductsMock,
   createAiQuantOrdersMock,
   createYieldAdjustmentsMock
 } from '../../../../admin/mock/aiQuant'
+import { buildAiQuantDemoExtraOrders, buildAiQuantDemoExtraAdjustments } from '../../../../admin/mock/frontFinanceDemoBulk'
 import {
   PRODUCT_STATUS,
   productStatusMeta,
@@ -24,12 +27,14 @@ import {
 const prefix = '/front'
 const route = useRoute()
 
+const LIST_PAGE_SIZE = 8
+
 /** 列表页资产 Tab（与 mock 币种对齐，切换后均有演示数据） */
 const TAB_CURRENCIES = ['USDC', 'BTC', 'ETH', 'DOGE', 'XRP', 'SOL', 'BNB', 'TRX']
 
 const products = ref(createAiQuantProductsMock())
-const orders = ref(createAiQuantOrdersMock())
-const yieldAdjustments = ref(createYieldAdjustmentsMock())
+const orders = ref([...createAiQuantOrdersMock(), ...buildAiQuantDemoExtraOrders()])
+const yieldAdjustments = ref([...createYieldAdjustmentsMock(), ...buildAiQuantDemoExtraAdjustments()])
 
 const currencyTab = ref('USDC')
 
@@ -166,6 +171,36 @@ const redeemOrders = computed(() =>
 )
 
 const interestRows = computed(() => yieldAdjustments.value.filter((a) => productCurrencyMatchesTab(a.currency, currencyTab.value)))
+
+const pgTier = useClientListPagination(tierRows, { pageSize: LIST_PAGE_SIZE })
+const pgRunning = useClientListPagination(runningOrdersTab, { pageSize: LIST_PAGE_SIZE })
+const pgBuy = useClientListPagination(buyOrders, { pageSize: LIST_PAGE_SIZE })
+const pgRedeem = useClientListPagination(redeemOrders, { pageSize: LIST_PAGE_SIZE })
+const pgInterest = useClientListPagination(interestRows, { pageSize: LIST_PAGE_SIZE })
+
+watch(currencyTab, () => {
+  pgTier.resetPage()
+  pgRunning.resetPage()
+  pgBuy.resetPage()
+  pgRedeem.resetPage()
+  pgInterest.resetPage()
+})
+
+watch(recordTab, () => {
+  pgBuy.resetPage()
+  pgRedeem.resetPage()
+  pgInterest.resetPage()
+})
+
+watch(heroPanel, (panel) => {
+  if (panel === 'market') pgTier.resetPage()
+  if (panel === 'mine') {
+    pgRunning.resetPage()
+    pgBuy.resetPage()
+    pgRedeem.resetPage()
+    pgInterest.resetPage()
+  }
+})
 
 function orderStatusPillClass(status) {
   if (status === ORDER_STATUS.RUNNING) return 'bg-sky-400/15 text-sky-200'
@@ -521,7 +556,7 @@ const rentSubmitValid = computed(() => {
           </thead>
           <tbody>
             <tr
-              v-for="row in tierRows"
+              v-for="row in pgTier.pagedItems"
               :key="row.rowKey"
               class="border-b border-white/[0.06] transition hover:bg-white/[0.03] max-md:block max-md:last:border-b-0 md:table-row"
             >
@@ -590,6 +625,15 @@ const rentSubmitValid = computed(() => {
           </tbody>
         </table>
         <p v-else class="px-3 py-12 text-center text-sm text-white/45 sm:py-14">当前币种暂无可用策略</p>
+        <FrontClientPager
+          v-if="heroPanel === 'market' && tierRows.length"
+          :page="pgTier.page"
+          :total-pages="pgTier.totalPages"
+          :total="pgTier.total"
+          :page-size="pgTier.pageSize"
+          @prev="pgTier.goPrev"
+          @next="pgTier.goNext"
+        />
       </div>
       </template>
 
@@ -657,7 +701,7 @@ const rentSubmitValid = computed(() => {
               </thead>
               <tbody>
                 <tr
-                  v-for="o in runningOrdersTab"
+                  v-for="o in pgRunning.pagedItems"
                   :key="`mine-run-${o.id}`"
                   class="border-b border-white/[0.06] transition hover:bg-white/[0.02] max-md:block max-md:last:border-0 md:table-row"
                 >
@@ -696,6 +740,15 @@ const rentSubmitValid = computed(() => {
             </table>
             <p v-else class="px-3 py-10 text-center text-sm text-white/40 sm:py-12">当前币种暂无运行中托管</p>
           </div>
+          <FrontClientPager
+            v-if="runningOrdersTab.length"
+            :page="pgRunning.page"
+            :total-pages="pgRunning.totalPages"
+            :total="pgRunning.total"
+            :page-size="pgRunning.pageSize"
+            @prev="pgRunning.goPrev"
+            @next="pgRunning.goNext"
+          />
         </div>
       </div>
 
@@ -754,7 +807,7 @@ const rentSubmitValid = computed(() => {
             </thead>
             <tbody>
               <tr
-                v-for="o in buyOrders"
+                v-for="o in pgBuy.pagedItems"
                 :key="o.id"
                 class="border-b border-white/[0.06] hover:bg-white/[0.02] max-md:block max-md:last:border-0 md:table-row"
               >
@@ -850,7 +903,7 @@ const rentSubmitValid = computed(() => {
             </thead>
             <tbody>
               <tr
-                v-for="o in redeemOrders"
+                v-for="o in pgRedeem.pagedItems"
                 :key="o.id"
                 class="border-b border-white/[0.06] hover:bg-white/[0.02] max-md:block max-md:last:border-0 md:table-row"
               >
@@ -907,7 +960,7 @@ const rentSubmitValid = computed(() => {
             </thead>
             <tbody>
               <tr
-                v-for="a in interestRows"
+                v-for="a in pgInterest.pagedItems"
                 :key="a.id"
                 class="border-b border-white/[0.06] hover:bg-white/[0.02] max-md:block max-md:last:border-0 md:table-row"
               >
@@ -949,6 +1002,33 @@ const rentSubmitValid = computed(() => {
             暂无数据
           </p>
           </div>
+          <FrontClientPager
+            v-if="recordTab === 'buy' && buyOrders.length"
+            :page="pgBuy.page"
+            :total-pages="pgBuy.totalPages"
+            :total="pgBuy.total"
+            :page-size="pgBuy.pageSize"
+            @prev="pgBuy.goPrev"
+            @next="pgBuy.goNext"
+          />
+          <FrontClientPager
+            v-else-if="recordTab === 'redeem' && redeemOrders.length"
+            :page="pgRedeem.page"
+            :total-pages="pgRedeem.totalPages"
+            :total="pgRedeem.total"
+            :page-size="pgRedeem.pageSize"
+            @prev="pgRedeem.goPrev"
+            @next="pgRedeem.goNext"
+          />
+          <FrontClientPager
+            v-else-if="recordTab === 'interest' && interestRows.length"
+            :page="pgInterest.page"
+            :total-pages="pgInterest.totalPages"
+            :total="pgInterest.total"
+            :page-size="pgInterest.pageSize"
+            @prev="pgInterest.goPrev"
+            @next="pgInterest.goNext"
+          />
         </div>
       </section>
       </template>

@@ -5,7 +5,10 @@ import FrontPopupCard from '../../../../components/front/FrontPopupCard.vue'
 import FrontPopupCloseButton from '../../../../components/front/FrontPopupCloseButton.vue'
 import FrontPopupShell from '../../../../components/front/FrontPopupShell.vue'
 import FrontStrokeIcon from '../../../../components/front/FrontStrokeIcon.vue'
+import FrontClientPager from '../../../../components/front/FrontClientPager.vue'
+import { useClientListPagination } from '../../../../composables/useClientListPagination'
 import { mockProducts, mockOrders, mockRepayments } from '../../../../admin/mock/cryptoLending'
+import { buildLendingDemoExtraOrders, buildLendingDemoExtraRepayments } from '../../../../admin/mock/frontFinanceDemoBulk'
 import { applyScorecardToPolicy, lendingCreditPolicy } from '../../../../admin/mock/lendingCreditConfig'
 import {
   accountCreditRemaining,
@@ -28,9 +31,11 @@ import { FINANCE_FX as fx } from '../../../../constants/frontFinanceUi'
 const prefix = '/front'
 const route = useRoute()
 
+const LIST_PAGE_SIZE = 8
+
 const products = ref([...mockProducts])
-const orders = ref([...mockOrders])
-const repayments = ref([...mockRepayments])
+const orders = ref([...mockOrders, ...buildLendingDemoExtraOrders()])
+const repayments = ref([...mockRepayments, ...buildLendingDemoExtraRepayments()])
 
 /** 演示：进入借贷页时按管理端「上限模板 + 评分规则」重算生效授信（生产多为服务端按用户实时计算） */
 onMounted(() => {
@@ -247,6 +252,16 @@ const historyOrders = computed(() =>
       o.status === LOAN_ORDER_STATUS.CANCELLED
   )
 )
+
+const pgCurrent = useClientListPagination(currentOrders, { pageSize: LIST_PAGE_SIZE })
+const pgRepay = useClientListPagination(repayments, { pageSize: LIST_PAGE_SIZE })
+const pgHistory = useClientListPagination(historyOrders, { pageSize: LIST_PAGE_SIZE })
+
+watch(recordTab, () => {
+  pgCurrent.resetPage()
+  pgRepay.resetPage()
+  pgHistory.resetPage()
+})
 
 function statusClass(s) {
   if (s === PRODUCT_STATUS.ACTIVE) return 'bg-lime-400/12 text-lime-200'
@@ -698,15 +713,15 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
               <span
                 v-if="recordTab === 'current' && currentOrders.length"
                 class="text-[11px] tabular-nums text-white/40 sm:text-xs"
-              >本页共 {{ currentOrders.length }} 条</span>
+              >共 {{ currentOrders.length }} 条</span>
               <span
                 v-else-if="recordTab === 'repayment' && repayments.length"
                 class="text-[11px] tabular-nums text-white/40 sm:text-xs"
-              >本页共 {{ repayments.length }} 条</span>
+              >共 {{ repayments.length }} 条</span>
               <span
                 v-else-if="recordTab === 'history' && historyOrders.length"
                 class="text-[11px] tabular-nums text-white/40 sm:text-xs"
-              >本页共 {{ historyOrders.length }} 条</span>
+              >共 {{ historyOrders.length }} 条</span>
             </div>
             <div :class="fx.recordTablist3" role="tablist" aria-label="记录类型">
               <button
@@ -757,7 +772,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
               </thead>
               <tbody>
                 <tr
-                  v-for="o in currentOrders"
+                  v-for="o in pgCurrent.pagedItems"
                   :key="o.orderId"
                   class="border-b border-white/[0.06] transition hover:bg-white/[0.02] max-md:block max-md:last:border-b-0 md:table-row"
                 >
@@ -845,7 +860,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
               </thead>
               <tbody>
                 <tr
-                  v-for="r in repayments"
+                  v-for="r in pgRepay.pagedItems"
                   :key="r.repaymentId"
                   class="border-b border-white/[0.06] transition hover:bg-white/[0.02] max-md:block max-md:last:border-b-0 md:table-row"
                 >
@@ -900,7 +915,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
               </thead>
               <tbody>
                 <tr
-                  v-for="o in historyOrders"
+                  v-for="o in pgHistory.pagedItems"
                   :key="o.orderId"
                   class="border-b border-white/[0.06] transition hover:bg-white/[0.02] max-md:block max-md:last:border-b-0 md:table-row"
                 >
@@ -933,6 +948,33 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
               </tbody>
             </table>
           </div>
+          <FrontClientPager
+            v-if="recordTab === 'current'"
+            :page="pgCurrent.page"
+            :total-pages="pgCurrent.totalPages"
+            :total="pgCurrent.total"
+            :page-size="pgCurrent.pageSize"
+            @prev="pgCurrent.goPrev"
+            @next="pgCurrent.goNext"
+          />
+          <FrontClientPager
+            v-else-if="recordTab === 'repayment'"
+            :page="pgRepay.page"
+            :total-pages="pgRepay.totalPages"
+            :total="pgRepay.total"
+            :page-size="pgRepay.pageSize"
+            @prev="pgRepay.goPrev"
+            @next="pgRepay.goNext"
+          />
+          <FrontClientPager
+            v-else-if="recordTab === 'history'"
+            :page="pgHistory.page"
+            :total-pages="pgHistory.totalPages"
+            :total="pgHistory.total"
+            :page-size="pgHistory.pageSize"
+            @prev="pgHistory.goPrev"
+            @next="pgHistory.goNext"
+          />
           <p
             v-if="
               (recordTab === 'current' && !currentOrders.length) ||
