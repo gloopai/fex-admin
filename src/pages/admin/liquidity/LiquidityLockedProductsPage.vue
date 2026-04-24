@@ -14,9 +14,9 @@ import {
 	lockYieldAnnualPct,
 	lockedMinKycLabel
 } from '../../../admin/constants/liquidityLocked'
-import { createLockedProductsMock } from '../../../admin/mock/liquidityLocked'
+import { lockedProductsCatalog } from '../../../admin/state/financeCatalogs'
 
-const products = ref(createLockedProductsMock())
+const products = lockedProductsCatalog
 const search = ref('')
 const statusFilter = ref(COMMON_FILTER_ALL)
 const currencyFilter = ref(COMMON_FILTER_ALL)

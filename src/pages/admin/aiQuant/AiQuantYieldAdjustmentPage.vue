@@ -450,11 +450,12 @@ import {
 	adjustmentTypeMeta,
 	SUPPORTED_CURRENCIES
 } from '../../../admin/constants/aiQuant'
-import { createYieldAdjustmentsMock, createAiQuantProductsMock } from '../../../admin/mock/aiQuant'
+import { createYieldAdjustmentsMock } from '../../../admin/mock/aiQuant'
+import { aiQuantProductsCatalog } from '../../../admin/state/financeCatalogs'
 
 const route = useRoute()
 const adjustments = ref(createYieldAdjustmentsMock())
-const products = ref(createAiQuantProductsMock())
+const products = aiQuantProductsCatalog
 const search = ref('')
 
 // 目标类型配置（带SVG图标）

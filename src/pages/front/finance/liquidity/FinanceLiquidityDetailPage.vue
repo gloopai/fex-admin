@@ -1,21 +1,42 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { createLockedProductsMock } from '../../../../admin/mock/liquidityLocked'
 import {
   LOCKED_MIN_VIP_OPTIONS,
   PRODUCT_STATUS,
   productStatusMeta,
+  PURCHASE_LIMIT_TYPE,
+  DEFAULT_LOCKED_LENDABLE_RATIO,
   lockYieldAnnualPct,
+  lockedMinKycLabel,
   lockedMinKycRequirementPhrase
 } from '../../../../admin/constants/liquidityLocked'
+import { lockedProductsCatalog } from '../../../../admin/state/financeCatalogs'
 
 const route = useRoute()
 const prefix = '/front'
 
 const product = computed(() => {
   const id = String(route.params.productId || '')
-  return createLockedProductsMock().find((p) => p.id === id) ?? null
+  return lockedProductsCatalog.value.find((p) => p.id === id) ?? null
+})
+
+function purchaseLimitLine(p) {
+  if (!p) return ''
+  if (p.purchaseLimitType === PURCHASE_LIMIT_TYPE.LIFETIME) {
+    return `终身累计申购上限 ${p.lifetimeLimit?.toLocaleString?.() ?? p.lifetimeLimit} ${p.currency}`
+  }
+  if (p.purchaseLimitType === PURCHASE_LIMIT_TYPE.PERIOD) {
+    return `每 ${p.periodDays} 天周期内上限 ${p.periodLimit?.toLocaleString?.() ?? p.periodLimit} ${p.currency}`
+  }
+  return '不设个人申购上限（以实际风控为准）'
+}
+
+const lendableRatioDisplay = computed(() => {
+  const p = product.value
+  if (!p) return DEFAULT_LOCKED_LENDABLE_RATIO
+  const n = Number(p.lendableRatio)
+  return Number.isFinite(n) ? n : DEFAULT_LOCKED_LENDABLE_RATIO
 })
 
 function statusPill(s) {
@@ -29,6 +50,12 @@ const minVipLabel = computed(() => {
   if (!p) return ''
   const hit = LOCKED_MIN_VIP_OPTIONS.find((o) => o.value === p.minVipLevel)
   return hit?.label ?? `VIP ${p.minVipLevel}`
+})
+
+const kycAdminLabel = computed(() => {
+  const p = product.value
+  if (!p) return ''
+  return lockedMinKycLabel(p.minKycLevel)
 })
 </script>
 
@@ -125,13 +152,33 @@ const minVipLabel = computed(() => {
               <dd class="mt-1 leading-relaxed">
                 {{
                   product.earlyRedeemEnabled
-                    ? `支持，演示手续费约 ${product.earlyRedeemFee ?? 0}%（以协议为准）`
+                    ? `支持；提前赎回手续费约 ${product.earlyRedeemFee ?? 0}%（以产品协议为准）`
                     : '本产品不支持提前赎回，请持有至到期。'
                 }}
               </dd>
             </div>
+            <div class="rounded-xl border border-white/[0.06] bg-black/25 px-3 py-3">
+              <dt class="text-xs font-medium uppercase tracking-wide text-white/40">限购与门槛</dt>
+              <dd class="mt-1 leading-relaxed text-white/75">
+                {{ purchaseLimitLine(product) }}
+                <span class="mt-2 block text-white/55">{{ minVipLabel }} · {{ kycAdminLabel }}</span>
+              </dd>
+            </div>
+            <div class="rounded-xl border border-white/[0.06] bg-black/25 px-3 py-3">
+              <dt class="text-xs font-medium uppercase tracking-wide text-white/40">可借贷比例</dt>
+              <dd class="mt-1 font-semibold tabular-nums text-white/85">
+                {{ lendableRatioDisplay }}%（与同币种信用借贷可借额度联动）
+              </dd>
+            </div>
+            <div class="rounded-xl border border-white/[0.06] bg-black/25 px-3 py-3">
+              <dt class="text-xs font-medium uppercase tracking-wide text-white/40">运营数据</dt>
+              <dd class="mt-1 space-y-1 tabular-nums text-white/75">
+                <div>锁仓规模 {{ product.totalLocked?.toLocaleString?.() ?? product.totalLocked }} {{ product.currency }}</div>
+                <div>累计订单 {{ product.totalOrders?.toLocaleString?.() ?? product.totalOrders }} 笔</div>
+              </dd>
+            </div>
             <p class="text-xs leading-relaxed text-white/40">
-              页面为产品设计演示，数据来自 mock；实际计息、到账与限额以平台规则为准。
+              计息规则、到账时效与申购限额以产品协议及平台公示为准。
             </p>
           </dl>
         </section>

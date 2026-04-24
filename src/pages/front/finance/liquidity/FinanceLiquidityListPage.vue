@@ -6,7 +6,8 @@ import { useRoute } from 'vue-router'
 import FrontPopupCard from '../../../../components/front/FrontPopupCard.vue'
 import FrontPopupCloseButton from '../../../../components/front/FrontPopupCloseButton.vue'
 import FrontPopupShell from '../../../../components/front/FrontPopupShell.vue'
-import { createLockedProductsMock, createLockedOrdersMock } from '../../../../admin/mock/liquidityLocked'
+import { createLockedOrdersMock } from '../../../../admin/mock/liquidityLocked'
+import { lockedProductsCatalog } from '../../../../admin/state/financeCatalogs'
 import { buildLockedDemoExtraOrders } from '../../../../admin/mock/frontFinanceDemoBulk'
 import {
   LOCKED_MIN_VIP_OPTIONS,
@@ -33,7 +34,7 @@ const heroPanel = ref('products')
 
 const LIST_PAGE_SIZE = 8
 
-const products = ref(createLockedProductsMock())
+const products = lockedProductsCatalog
 const orders = ref([...createLockedOrdersMock(), ...buildLockedDemoExtraOrders()])
 
 const currenciesFromProducts = computed(() => {
@@ -94,7 +95,7 @@ function orderStatusPillClass(status) {
   return 'bg-white/10 text-white/55'
 }
 
-/** 订单：提前赎回 / 到期领取（mock 更新本地 orders） */
+/** 订单：提前赎回 / 到期领取（本地更新 orders） */
 const orderActionOpen = ref(false)
 const orderActionKind = ref('early')
 const orderActionTarget = ref(null)
@@ -737,7 +738,7 @@ const mineMinVipLabel = computed(() => {
               </dd>
             </div>
             <div class="flex justify-between gap-3 border-t border-white/[0.08] pt-2">
-              <dt class="text-white/45">预计到账本金（演示）</dt>
+              <dt class="text-white/45">预计到账本金</dt>
               <dd class="font-semibold tabular-nums text-lime-200/95">
                 {{ earlyRedeemNetPrincipal.toFixed(4) }} {{ orderActionTarget.currency }}
               </dd>
@@ -749,7 +750,7 @@ const mineMinVipLabel = computed(() => {
         </template>
         <template v-else>
           <p class="mt-4 rounded-xl border border-lime-400/20 bg-lime-400/[0.08] px-3 py-3 text-sm text-lime-100/90">
-            锁定期已满，确认领取后本息将入账至您的资金账户（演示环境仅更新订单状态）。
+            锁定期已满，确认领取后本息将入账至您的资金账户。
           </p>
           <dl class="mt-3 space-y-2 text-sm text-white/70">
             <div class="flex justify-between gap-3">
@@ -889,7 +890,7 @@ const mineMinVipLabel = computed(() => {
               v-if="mineCanSubmit && !minePurchaseValid && parsedPurchase > 0"
               class="mt-2 text-xs leading-relaxed text-amber-200/90"
             >
-              请输入 {{ minePeriod.minAmount }} – {{ minePeriod.maxAmount }}（且不超过演示可用余额
+              请输入 {{ minePeriod.minAmount }} – {{ minePeriod.maxAmount }}（且不超过当前可用余额
               {{ DEMO_AVAILABLE_FUNDS }}）范围内的金额。
             </p>
           </div>

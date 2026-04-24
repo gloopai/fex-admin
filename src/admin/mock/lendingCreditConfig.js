@@ -3,11 +3,11 @@ import { applyScorecardCaps } from '../constants/lendingCredit'
 import { SCORE_RULE_EVALUATOR } from '../constants/lendingCreditScoreRule'
 
 /**
- * 抵押借贷 — 授信策略（演示：内存配置；生产应落库并由风控服务下发）。
- * 前台列表与「授信中心」管理页共用同一 reactive 对象。
+ * 抵押借贷 — 授信策略（内存配置；与运营端「授信中心」同源结构，可后续落库）。
+ * 前台列表与授信管理页共用同一 reactive 对象。
  *
  * 每项 dimensions[].scoreRule：启用开关、数值分档或枚举映射；
- * 得分由规则与运行时指标（演示见 lendingCreditDemoMetricSnapshot）计算；前台进入借贷页时折算 policy。
+ * 得分由规则与运行时指标（见 lendingCreditDemoMetricSnapshot）计算；前台进入借贷页时折算 policy。
  */
 export const lendingCreditPolicy = reactive({
   accountTotalCapNotional: 2_500_000,
@@ -43,7 +43,7 @@ export const LENDING_SCORECARD_GROUP_ORDER = [
   LENDING_SCORECARD_GROUP.OTHER
 ]
 
-/** 演示：各维度当期指标取值（与 dimensions[].key 对应）；生产由风控/画像下发，不在运营页填写。 */
+/** 各维度当期指标取值（与 dimensions[].key 对应）；对接后由风控/画像服务下发。 */
 export const lendingCreditDemoMetricSnapshot = Object.freeze({
   identity_compliance: 'ADVANCED',
   assets_strength: 120000,
@@ -56,7 +56,7 @@ export const lendingCreditScorecard = reactive({
     id: 'LEND_SCORECARD_DEFAULT',
     version: '2026.04',
     title: '抵押借贷 · 默认评分卡',
-    note: '生产：评分卡与用户/客群绑定；版本发布需审批。此处为全局演示配置。'
+    note: '评分卡与用户/客群绑定；版本发布需审批。以下为全站默认配置。'
   },
   minScale: 0.35,
   baseAccountCapMax: 2_500_000,

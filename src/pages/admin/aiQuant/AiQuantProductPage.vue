@@ -413,11 +413,11 @@ import {
 	OPERATION_MODE,
 	VIP_LEVEL
 } from '../../../admin/constants/aiQuant'
-import { createAiQuantProductsMock } from '../../../admin/mock/aiQuant'
+import { aiQuantProductsCatalog } from '../../../admin/state/financeCatalogs'
 
 const router = useRouter()
 
-const products = ref(createAiQuantProductsMock())
+const products = aiQuantProductsCatalog
 const search = ref('')
 const statusFilter = ref(COMMON_FILTER_ALL)
 const currencyFilter = ref(COMMON_FILTER_ALL)

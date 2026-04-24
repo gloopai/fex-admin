@@ -27,13 +27,13 @@ import {
   createLockedAdjustmentsMock,
   createLockedAlertsMock,
   createLockedOrdersMock,
-  createLockedProductsMock,
   createLockedRulesMock
 } from '../../../admin/mock/liquidityLocked'
+import { lockedProductsCatalog } from '../../../admin/state/financeCatalogs'
 
 const route = useRoute()
 
-const products = ref(createLockedProductsMock())
+const products = lockedProductsCatalog
 const orders = ref(createLockedOrdersMock())
 const adjustments = ref(createLockedAdjustmentsMock())
 const alerts = ref(createLockedAlertsMock())

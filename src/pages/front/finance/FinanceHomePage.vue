@@ -1,8 +1,10 @@
 <script setup>
 import { computed } from 'vue'
-import { createLockedProductsMock } from '../../../admin/mock/liquidityLocked'
-import { mockProducts as lendingProducts } from '../../../admin/mock/cryptoLending'
-import { createAiQuantProductsMock } from '../../../admin/mock/aiQuant'
+import {
+  lendingProductsCatalog,
+  lockedProductsCatalog,
+  aiQuantProductsCatalog
+} from '../../../admin/state/financeCatalogs'
 import { PRODUCT_STATUS as LOCK_PRODUCT_STATUS } from '../../../admin/constants/liquidityLocked'
 import { PRODUCT_STATUS as LEND_STATUS } from '../../../admin/constants/cryptoLending'
 import { PRODUCT_STATUS as AIQ_STATUS } from '../../../admin/constants/aiQuant'
@@ -13,11 +15,13 @@ const prefix = '/front'
 const channels = computed(() => getFrontFinanceChannelEntries(prefix))
 
 const liquidityCount = computed(
-  () => createLockedProductsMock().filter((p) => p.status === LOCK_PRODUCT_STATUS.ENABLED).length
+  () => lockedProductsCatalog.value.filter((p) => p.status === LOCK_PRODUCT_STATUS.ENABLED).length
 )
-const lendingCount = computed(() => lendingProducts.filter((p) => p.status === LEND_STATUS.ACTIVE).length)
+const lendingCount = computed(() =>
+  lendingProductsCatalog.value.filter((p) => p.status === LEND_STATUS.ACTIVE).length
+)
 const aiCount = computed(
-  () => createAiQuantProductsMock().filter((p) => p.status === AIQ_STATUS.ENABLED).length
+  () => aiQuantProductsCatalog.value.filter((p) => p.status === AIQ_STATUS.ENABLED).length
 )
 
 const statByKey = computed(() => ({

@@ -9,7 +9,7 @@ import {
   SETTLEMENT_PERIOD
 } from '../constants/aiQuant'
 
-/** 演示时间锚：假定当前为 2026-04-10，RUNNING 订单的 endDate 应晚于此日；daysElapsed ≤ totalDays */
+/** 时间锚：假定当前为 2026-04-10，RUNNING 订单的 endDate 应晚于此日；daysElapsed ≤ totalDays */
 
 // 模拟产品数据
 export const createAiQuantProductsMock = () => [
@@ -213,7 +213,7 @@ export const createAiQuantProductsMock = () => [
     status: PRODUCT_STATUS.ENABLED,
     createdAt: '2026-02-18'
   },
-  /** 与 prod-003 区分：USDC Tab 下仍有「申请赎回」演示（prod-003 为不可提前赎回对照） */
+  /** 与 aiq-prod-003 区分：USDC Tab 下仍有可提前赎回产品（003 为不可提前赎回对照） */
   {
     id: 'aiq-prod-009',
     name: 'USDT 稳健托管（可提前赎回）',
@@ -663,7 +663,7 @@ export const createAiQuantOrdersMock = () => [
     status: ORDER_STATUS.RUNNING,
     settledAt: null
   },
-  /** 以下 3 条：USDC Tab 内集中展示「购买」列表尚未覆盖的订单状态（演示） */
+  /** 以下 3 条：USDC Tab 内补充 SETTLED / LOCKED / CANCELLED 等状态样本 */
   {
     id: 'aiq-ord-020',
     userId: 'user-4001',

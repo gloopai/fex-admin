@@ -7,7 +7,8 @@ import FrontPopupShell from '../../../../components/front/FrontPopupShell.vue'
 import FrontStrokeIcon from '../../../../components/front/FrontStrokeIcon.vue'
 import FrontClientPager from '../../../../components/front/FrontClientPager.vue'
 import { useClientListPagination } from '../../../../composables/useClientListPagination'
-import { mockProducts, mockOrders, mockRepayments } from '../../../../admin/mock/cryptoLending'
+import { lendingProductsCatalog } from '../../../../admin/state/financeCatalogs'
+import { mockOrders, mockRepayments } from '../../../../admin/mock/cryptoLending'
 import { buildLendingDemoExtraOrders, buildLendingDemoExtraRepayments } from '../../../../admin/mock/frontFinanceDemoBulk'
 import { applyScorecardToPolicy, lendingCreditPolicy } from '../../../../admin/mock/lendingCreditConfig'
 import {
@@ -33,11 +34,11 @@ const route = useRoute()
 
 const LIST_PAGE_SIZE = 8
 
-const products = ref([...mockProducts])
+const products = lendingProductsCatalog
 const orders = ref([...mockOrders, ...buildLendingDemoExtraOrders()])
 const repayments = ref([...mockRepayments, ...buildLendingDemoExtraRepayments()])
 
-/** 演示：进入借贷页时按管理端「上限模板 + 评分规则」重算生效授信（生产多为服务端按用户实时计算） */
+/** 进入页时按运营端授信模板与评分规则同步可用额度（对接后由服务端按用户实时计算） */
 onMounted(() => {
   applyScorecardToPolicy()
 })
@@ -91,7 +92,7 @@ const pendingRepayTotal = computed(() =>
 /** 全量在贷债务（授信「已用」与账户剩余共用此口径） */
 const globalPendingRepayTotal = computed(() => sumActiveDebt(orders.value, activeStatuses))
 
-const demoWalletBalance = 128_430.55
+const walletBalanceDisplay = 128_430.55
 
 const remainingBorrowApprox = computed(() =>
   accountCreditRemaining(lendingCreditPolicy, orders.value)
@@ -107,7 +108,7 @@ const recordTab = ref('current')
 /** Hero 主入口：借币一览 / 我的记录（与 AI 量化、流动性列表一致） */
 const heroPanel = ref('overview')
 
-/** 还款弹窗（mock 更新订单 + 还款记录） */
+/** 还款弹窗：本地更新订单与还款记录 */
 const repayOpen = ref(false)
 const repayOrder = ref(null)
 const repayAmount = ref('')
@@ -215,7 +216,7 @@ function confirmRepay() {
       principalPaid,
       remainingDebt: newDebt,
       status: REPAYMENT_STATUS.COMPLETED,
-      paymentMethod: '钱包余额（演示）',
+      paymentMethod: '钱包余额',
       transactionId: `TXN-${rid}`,
       repaymentTime: now,
       createTime: now
@@ -669,7 +670,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
               <div class="flex items-start justify-between gap-2 border-b border-white/[0.06] pb-2.5 sm:items-center sm:gap-3 sm:pb-3">
                 <dt class="shrink-0 text-white/45">钱包余额</dt>
                 <dd class="max-w-[min(100%,11rem)] text-right text-[11px] font-semibold tabular-nums text-white sm:max-w-none sm:text-sm">
-                  {{ demoWalletBalance.toLocaleString(undefined, { maximumFractionDigits: 2 }) }} USDT
+                  {{ walletBalanceDisplay.toLocaleString(undefined, { maximumFractionDigits: 2 }) }} USDT
                 </dd>
               </div>
               <div class="flex items-start justify-between gap-2 border-b border-white/[0.06] pb-2.5 sm:items-center sm:gap-3 sm:pb-3">
@@ -989,7 +990,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
       </template>
     </div>
 
-    <!-- 还款（演示：更新订单与还款记录） -->
+    <!-- 还款 -->
     <FrontPopupShell
       v-model="repayOpen"
       aria-labelledby="lending-repay-dialog-title"
@@ -1002,7 +1003,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
           确认还款
         </h2>
         <p class="mt-1.5 text-[13px] leading-relaxed text-white/45">
-          演示环境：提交后将按比例冲减已计利息与本金，并写入「还款」记录。
+          提交后将按比例冲减已计利息与本金，并同步「还款」记录。
         </p>
         <dl class="mt-4 space-y-2 rounded-xl border border-white/[0.08] bg-black/35 px-3 py-3 text-sm">
           <div class="flex justify-between gap-3">
@@ -1210,7 +1211,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
               </div>
               <p class="mt-2 text-xs tabular-nums text-white/50 sm:text-sm">
                 利息预估（{{ borrowProduct.loanCurrency }}，按期限区间中点约
-                {{ borrowInterestPreviewDays }} 天估算，仅供参考）：
+                {{ borrowInterestPreviewDays }} 天粗算，实际计息以合同约定为准）：
                 <span class="font-semibold text-lime-300/90">
                   {{ borrowInterestPreview.toFixed(4) }} {{ borrowProduct.loanCurrency }}
                 </span>

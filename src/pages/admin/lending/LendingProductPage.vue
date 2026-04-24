@@ -887,14 +887,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { mockProducts } from '../../../admin/mock/cryptoLending'
+import { ref, computed } from 'vue'
+import { lendingProductsCatalog } from '../../../admin/state/financeCatalogs'
 import {
   PRODUCT_STATUS_LABELS,
   INTEREST_RATE_TYPE_LABELS
 } from '../../../admin/constants/cryptoLending'
 
-const products = ref([])
+const products = lendingProductsCatalog
 const showModal = ref(false)
 const isEditing = ref(false)
 const editingProductId = ref(null)
@@ -942,10 +942,6 @@ const formData = ref({
   availableLiquidity: 0,
   status: 'active',
   description: ''
-})
-
-onMounted(() => {
-  products.value = mockProducts
 })
 
 const filteredProducts = computed(() => {

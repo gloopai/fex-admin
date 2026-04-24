@@ -2,7 +2,7 @@ import { ADJUSTMENT_STATUS, ADJUSTMENT_TYPE, ALERT_LEVEL, ORDER_STATUS, PRODUCT_
 
 const clone = (v) => JSON.parse(JSON.stringify(v))
 
-/** 演示数据时间锚：假定「当前」为 2026-04-10，与到期日 / 剩余天数 / 预警小时数一致 */
+/** 时间锚：假定「当前」为 2026-04-10，与到期日 / 剩余天数 / 预警小时数一致 */
 
 // 锁仓产品
 const products = [
@@ -99,10 +99,10 @@ const products = [
     status: PRODUCT_STATUS.DISABLED,
     createdAt: '2025-11-01'
   },
-  /** 与信用借贷 LND-003（借 USDC）演示一致：上架 USDC 锁仓池 → borrowableLiquidityFromLocked 非零 */
+  /** 与信用借贷 LND-003（借 USDC）一致：上架 USDC 锁仓池，便于 borrowableLiquidityFromLocked 有值 */
   {
     id: 'prod-5',
-    name: 'USDC 定期理财（演示池）',
+    name: 'USDC 定期理财',
     currency: 'USDC',
     icon: '$',
     periods: [{ days: 7, annualRate: 88, minAmount: 100, maxAmount: 50000 }],

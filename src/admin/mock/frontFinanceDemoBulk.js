@@ -1,11 +1,11 @@
 /**
- * 前台金融列表演示：追加批量 mock 行（与主 mock 并存，仅用于分页演示）。
+ * 前台金融列表：在基础 mock 上追加列表行（分页与压力展示用，字段与主数据同源结构）。
  */
 import { LOAN_ORDER_STATUS, REPAYMENT_STATUS, REPAYMENT_TYPE, RISK_LEVEL } from '../constants/cryptoLending'
 import { ORDER_STATUS as LOCKED_ORDER_STATUS } from '../constants/liquidityLocked'
 import { ADJUSTMENT_TYPE, ORDER_STATUS as AIQ_ORDER_STATUS, VIP_LEVEL } from '../constants/aiQuant'
 
-const demoNames = ['演示用户甲', '演示用户乙', '演示用户丙', '演示用户丁', '演示用户戊']
+const bulkUserNames = ['陈明', '林悦', '王磊', '张楠', '刘洋']
 
 export function buildLendingDemoExtraOrders(count = 28) {
   const currentStatuses = [LOAN_ORDER_STATUS.ACTIVE, LOAN_ORDER_STATUS.REPAYING, LOAN_ORDER_STATUS.PENDING]
@@ -19,8 +19,8 @@ export function buildLendingDemoExtraOrders(count = 28) {
     rows.push({
       orderId: `ORD-DEMO-${String(800 + i).padStart(4, '0')}`,
       userId: `USR-DEMO-${i}`,
-      userName: demoNames[i % demoNames.length],
-      email: `demo${i}@example.com`,
+      userName: bulkUserNames[i % bulkUserNames.length],
+      email: `user${String(i).padStart(3, '0')}@example.com`,
       phone: '+86 138****0000',
       creditScore: 650 + (i % 80),
       productId: 'LND-001',
@@ -47,8 +47,8 @@ export function buildLendingDemoExtraOrders(count = 28) {
       updateTime: `2024-03-${String((i % 8) + 1).padStart(2, '0')} 12:00:00`,
       maturityDate: '2025-08-15 10:00:00',
       riskLevel: RISK_LEVEL.LOW,
-      purpose: '演示批量订单',
-      remarks: 'frontFinanceDemoBulk'
+      purpose: '资金周转',
+      remarks: ''
     })
   }
   return rows
@@ -64,7 +64,7 @@ export function buildLendingDemoExtraRepayments(count = 22) {
       repaymentId: `REP-DEMO-${String(400 + i).padStart(4, '0')}`,
       orderId: `ORD-DEMO-${String(800 + (i % 28)).padStart(4, '0')}`,
       userId: `USR-R-${i}`,
-      userName: `还款演示${i}`,
+      userName: `用户_${i}`,
       productName: i % 2 === 0 ? 'BTC标准借贷' : 'ETH灵活借贷',
       repaymentType: types[i % types.length],
       amount: 320 + i * 65,
@@ -86,7 +86,7 @@ export function buildLockedDemoExtraOrders(count = 24) {
     { id: 'prod-1', name: 'USDT 定期理财', cur: 'USDT' },
     { id: 'prod-2', name: 'BTC 锁仓挖矿', cur: 'BTC' },
     { id: 'prod-3', name: 'ETH 流动性质押', cur: 'ETH' },
-    { id: 'prod-5', name: 'USDC 定期理财（演示池）', cur: 'USDC' }
+    { id: 'prod-5', name: 'USDC 定期理财', cur: 'USDC' }
   ]
   const out = []
   for (let i = 0; i < count; i++) {
@@ -99,9 +99,9 @@ export function buildLockedDemoExtraOrders(count = 24) {
         ? LOCKED_ORDER_STATUS.COMPLETED
         : LOCKED_ORDER_STATUS.EARLY_REDEEMED
     out.push({
-      id: `ord-demo-${2000 + i}`,
-      userId: `user-demo-${i}`,
-      userName: `miner_${i}`,
+      id: `ord-bulk-${2000 + i}`,
+      userId: `user-bulk-${i}`,
+      userName: `用户_${i}`,
       productId: p.id,
       productName: p.name,
       currency: p.cur,
@@ -144,9 +144,9 @@ export function buildAiQuantDemoExtraOrders(count = 18) {
     const st = stCycle[i % stCycle.length]
     const isRun = st === AIQ_ORDER_STATUS.RUNNING
     out.push({
-      id: `aiq-ord-demo-${500 + i}`,
-      userId: `user-demo-${i}`,
-      userName: `托管用户${i}`,
+      id: `aiq-ord-bulk-${500 + i}`,
+      userId: `user-bulk-${i}`,
+      userName: `托管用户_${i}`,
       userEmail: `custody${i}@example.com`,
       vipLevel: VIP_LEVEL.VIP1 + (i % 3),
       productId: pr.id,
@@ -175,18 +175,18 @@ export function buildAiQuantDemoExtraAdjustments(count = 20) {
   for (let i = 0; i < count; i++) {
     const ccy = currencies[i % currencies.length]
     out.push({
-      id: `adj-demo-${800 + i}`,
+      id: `adj-bulk-${800 + i}`,
       type: types[i % types.length],
       targetType: 'user',
-      targetId: `user-demo-${i}`,
+      targetId: `user-bulk-${i}`,
       targetName: `用户_${i}`,
-      orderId: i % 2 === 0 ? `aiq-ord-demo-${500 + (i % 18)}` : null,
-      productName: '演示收益调整',
+      orderId: i % 2 === 0 ? `aiq-ord-bulk-${500 + (i % 18)}` : null,
+      productName: '收益调整',
       currency: ccy,
       amount: ccy === 'BTC' ? 0.001 * (i + 1) : 50 + i * 10,
-      reason: '演示批量收益调整记录',
-      operator: 'admin-demo',
-      operatorName: 'Demo Admin',
+      reason: '收益复核调整',
+      operator: 'ops-system',
+      operatorName: '系统运营',
       createdAt: `2026-03-${String((i % 28) + 1).padStart(2, '0')} 08:${String(i % 60).padStart(2, '0')}:00`
     })
   }

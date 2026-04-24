@@ -1,8 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { mockProducts } from '../../../../admin/mock/cryptoLending'
-import { createLockedProductsMock } from '../../../../admin/mock/liquidityLocked'
+import { lendingProductsCatalog, lockedProductsCatalog } from '../../../../admin/state/financeCatalogs'
 import {
   PRODUCT_STATUS as LOCK_PRODUCT_STATUS,
   borrowableLiquidityFromLocked
@@ -10,6 +9,7 @@ import {
 import {
   PRODUCT_STATUS,
   PRODUCT_STATUS_LABELS,
+  INTEREST_RATE_TYPE,
   INTEREST_RATE_TYPE_LABELS
 } from '../../../../admin/constants/cryptoLending'
 
@@ -18,14 +18,14 @@ const prefix = '/front'
 
 const product = computed(() => {
   const id = String(route.params.productId || '')
-  return mockProducts.find((p) => p.productId === id) ?? null
+  return lendingProductsCatalog.value.find((p) => p.productId === id) ?? null
 })
 
 /** 与借贷借出币种一致的、上架中锁仓池存在时，用流动性挖矿「可借贷比例」推算可借余额 */
 const displayedAvailableLiquidity = computed(() => {
   const p = product.value
   if (!p) return { value: 0, fromLockedPool: false }
-  const locked = createLockedProductsMock()
+  const locked = lockedProductsCatalog.value
   const hasPool = locked.some(
     (x) => x.currency === p.loanCurrency && x.status === LOCK_PRODUCT_STATUS.ENABLED
   )
@@ -43,6 +43,29 @@ function statusPillClass(s) {
   if (s === PRODUCT_STATUS.SUSPENDED) return 'bg-amber-400/15 text-amber-200'
   return 'bg-white/10 text-white/50'
 }
+
+/** 与运营端产品列表利率列口径一致 */
+const headlineRateLabel = computed(() => {
+  const p = product.value
+  if (!p) return '年化利率'
+  if (p.interestRateType === INTEREST_RATE_TYPE.FLOATING) return '利率区间'
+  if (p.interestRateType === INTEREST_RATE_TYPE.TIERED) return '利率结构'
+  return '年化利率'
+})
+
+const headlineRateValue = computed(() => {
+  const p = product.value
+  if (!p) return '—'
+  if (p.interestRateType === INTEREST_RATE_TYPE.FLOATING && p.floatingRateConfig) {
+    const c = p.floatingRateConfig
+    if (c.minRate != null && c.maxRate != null) return `${c.minRate}% – ${c.maxRate}%`
+  }
+  if (p.interestRateType === INTEREST_RATE_TYPE.FLOATING) {
+    return `${p.interestRate ?? '—'}%`
+  }
+  if (p.interestRateType === INTEREST_RATE_TYPE.TIERED) return '阶梯计费'
+  return `${p.interestRate ?? '—'}%`
+})
 </script>
 
 <template>
@@ -99,8 +122,8 @@ function statusPillClass(s) {
 
         <dl class="mt-8 grid max-w-xs grid-cols-1 gap-3 border-t border-white/[0.08] pt-8 sm:gap-4">
           <div class="rounded-xl border border-white/[0.06] bg-black/20 px-3 py-3 sm:px-4">
-            <dt class="text-[11px] font-medium uppercase tracking-wide text-white/40">参考年化</dt>
-            <dd class="mt-1 text-lg font-bold tabular-nums text-sky-300 sm:text-xl">{{ product.interestRate }}%</dd>
+            <dt class="text-[11px] font-medium uppercase tracking-wide text-white/40">{{ headlineRateLabel }}</dt>
+            <dd class="mt-1 text-lg font-bold tabular-nums text-sky-300 sm:text-xl">{{ headlineRateValue }}</dd>
           </div>
         </dl>
       </div>
@@ -112,7 +135,15 @@ function statusPillClass(s) {
           <h2 class="text-base font-semibold text-white lg:text-lg">借贷参数</h2>
           <dl class="mt-5 divide-y divide-white/[0.06] text-[15px]">
             <div class="flex items-center justify-between gap-4 py-3 first:pt-0">
-              <dt class="text-white/45">清算罚金</dt>
+              <dt class="text-white/45">初始 LTV 上限</dt>
+              <dd class="font-medium tabular-nums text-white/85">{{ product.ltvRatio }}%</dd>
+            </div>
+            <div class="flex items-center justify-between gap-4 py-3">
+              <dt class="text-white/45">清算阈值（质押率）</dt>
+              <dd class="font-medium tabular-nums text-white/85">{{ product.liquidationThreshold }}%</dd>
+            </div>
+            <div class="flex items-center justify-between gap-4 py-3">
+              <dt class="text-white/45">强平 / 逾期罚金比例</dt>
               <dd class="font-medium tabular-nums text-white/85">{{ product.liquidationPenalty }}%</dd>
             </div>
             <div class="flex items-center justify-between gap-4 py-3">
@@ -142,6 +173,18 @@ function statusPillClass(s) {
               <dt class="text-white/45">可借余额</dt>
               <dd class="font-medium tabular-nums text-sky-200/90">
                 {{ displayedAvailableLiquidity.value.toLocaleString() }} {{ product.loanCurrency }}
+              </dd>
+            </div>
+            <div class="flex justify-between gap-4 border-t border-white/[0.05] pt-3">
+              <dt class="text-white/45">配置可用流动性</dt>
+              <dd class="tabular-nums text-white/60">
+                {{ product.availableLiquidity?.toLocaleString() }} {{ product.loanCurrency }}
+              </dd>
+            </div>
+            <div class="flex justify-between gap-4">
+              <dt class="text-white/45">在贷用户 / 订单</dt>
+              <dd class="tabular-nums text-white/80">
+                {{ product.activeUsers?.toLocaleString() ?? '—' }} 人 · {{ product.activeOrders?.toLocaleString() ?? '—' }} 单
               </dd>
             </div>
           </dl>

@@ -8,11 +8,8 @@ import FrontStrokeIcon from '../../../../components/front/FrontStrokeIcon.vue'
 import FrontClientPager from '../../../../components/front/FrontClientPager.vue'
 import { useClientListPagination } from '../../../../composables/useClientListPagination'
 import { FINANCE_FX as fx } from '../../../../constants/frontFinanceUi'
-import {
-  createAiQuantProductsMock,
-  createAiQuantOrdersMock,
-  createYieldAdjustmentsMock
-} from '../../../../admin/mock/aiQuant'
+import { createAiQuantOrdersMock, createYieldAdjustmentsMock } from '../../../../admin/mock/aiQuant'
+import { aiQuantProductsCatalog } from '../../../../admin/state/financeCatalogs'
 import { buildAiQuantDemoExtraOrders, buildAiQuantDemoExtraAdjustments } from '../../../../admin/mock/frontFinanceDemoBulk'
 import {
   PRODUCT_STATUS,
@@ -29,10 +26,10 @@ const route = useRoute()
 
 const LIST_PAGE_SIZE = 8
 
-/** 列表页资产 Tab（与 mock 币种对齐，切换后均有演示数据） */
+/** 列表页资产 Tab（与产品配置币种对齐） */
 const TAB_CURRENCIES = ['USDC', 'BTC', 'ETH', 'DOGE', 'XRP', 'SOL', 'BNB', 'TRX']
 
-const products = ref(createAiQuantProductsMock())
+const products = aiQuantProductsCatalog
 const orders = ref([...createAiQuantOrdersMock(), ...buildAiQuantDemoExtraOrders()])
 const yieldAdjustments = ref([...createYieldAdjustmentsMock(), ...buildAiQuantDemoExtraAdjustments()])
 
@@ -250,7 +247,7 @@ function formatValueDateUtc8() {
   return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')}:${get('second')} (UTC+8)`
 }
 
-/** 订单结算/赎回时间（与 mock 字段风格一致，无时区后缀） */
+/** 订单结算/赎回时间（UTC+8，无时区后缀） */
 function formatAiOrderSettledAt() {
   const d = new Date()
   const parts = new Intl.DateTimeFormat('zh-CN', {
@@ -294,7 +291,7 @@ const rentAmount = ref('')
 let clearRentTimer = null
 
 /** Sample available balance per asset (rent dialog helper line) */
-const demoAvailableBalance = {
+const availableBalanceByAsset = {
   USDT: 5.562875,
   USDC: 5.562875,
   BTC: 0.015628,
@@ -310,7 +307,7 @@ const rentAvailable = computed(() => {
   const p = rentRow.value?.product
   if (!p?.currency) return 0
   const key = String(p.currency).toUpperCase()
-  return demoAvailableBalance[key] ?? 0
+  return availableBalanceByAsset[key] ?? 0
 })
 
 function openRentDialog(row) {
@@ -332,7 +329,7 @@ function onRentEscape(e) {
   if (e.key === 'Escape' && rentOpen.value) closeRentDialog()
 }
 
-/** 运行中订单：申请提前赎回（演示） */
+/** 运行中订单：申请提前赎回 */
 const aiRedeemOpen = ref(false)
 const aiRedeemOrder = ref(null)
 let clearAiRedeemTimer = null
@@ -684,7 +681,7 @@ const rentSubmitValid = computed(() => {
               运行中 · 快捷操作
             </p>
             <p class="mt-0.5 text-[11px] leading-snug text-white/35 sm:mt-0 sm:text-xs">
-              与下方「购买」记录一致；支持提前赎回的产品可在此发起演示。
+              与下方「购买」记录一致；若产品支持提前赎回，可在此发起申请。
             </p>
           </div>
           <div class="overflow-x-auto">
@@ -1046,7 +1043,7 @@ const rentSubmitValid = computed(() => {
           确认提前赎回
         </h2>
         <p class="mt-1.5 text-[13px] leading-relaxed text-white/45">
-          演示环境：确认后订单将标记为「提前赎回」，并可在「赎回」页签查看。
+          确认后订单将标记为「提前赎回」，您可在「赎回」记录中查看。
         </p>
         <dl class="mt-4 space-y-2 rounded-xl border border-white/[0.08] bg-black/35 px-3 py-3 text-sm">
           <div class="flex justify-between gap-3">

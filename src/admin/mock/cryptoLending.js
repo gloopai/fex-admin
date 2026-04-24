@@ -1,6 +1,6 @@
-// 加密货币抵押借贷 Mock 数据（与锁仓 mock 中 USDC 演示池等交叉引用时保持币种与订单 id 自洽）
+// 加密货币抵押借贷：与锁仓 USDC 产品等交叉引用时保持币种与订单 id 自洽。
 // 一致性约定：主订单 totalDebt/currentLtv/interestAccrued 与用户监控同 userId 对齐；currentLtv≈totalDebt/collateralValue。
-// PENDING（链上待确认）：可与预期 remainingDebt 同步调主订单（演示乐观账）。
+// PENDING（链上待确认）：可与预期 remainingDebt 同步回写主订单。
 // PROCESSING：入账前主订单不变，还款行的 remainingDebt 仍为当前总债务。
 import {
   PRODUCT_STATUS,
@@ -455,7 +455,7 @@ export const mockOrders = [
     updateTime: '2024-03-08 08:30:00',
     maturityDate: '2024-03-08 08:30:00',
     riskLevel: RISK_LEVEL.LOW,
-    purpose: '演示：审核未通过已取消',
+    purpose: '审核未通过，已取消',
     remarks: '风控复核未通过，订单关闭'
   },
   /** 以下订单仅用于与 mockLiquidations 中 orderId 对齐（历史已清算 / 在贷） */

@@ -2,9 +2,10 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import FrontStrokeIcon from '../../../../components/front/FrontStrokeIcon.vue'
-import { createAiQuantProductsMock } from '../../../../admin/mock/aiQuant'
+import { aiQuantProductsCatalog } from '../../../../admin/state/financeCatalogs'
 import {
   PRODUCT_STATUS,
+  SETTLEMENT_PERIOD,
   aiQuantAnnualFromDailyPct,
   operationModeMeta,
   productStatusMeta,
@@ -17,7 +18,7 @@ const prefix = '/front'
 
 const product = computed(() => {
   const id = String(route.params.productId || '')
-  return createAiQuantProductsMock().find((p) => p.id === id) ?? null
+  return aiQuantProductsCatalog.value.find((p) => p.id === id) ?? null
 })
 
 function statusPill(s) {
@@ -33,7 +34,7 @@ const settlementLabel = computed(() => {
   const p = product.value
   if (!p) return ''
   let s = settlementPeriodMeta[p.settlementPeriod]?.label ?? ''
-  if (p.settlementPeriod === 'custom' && p.customDays) s += `（${p.customDays} 天）`
+  if (p.settlementPeriod === SETTLEMENT_PERIOD.CUSTOM && p.customDays) s += `（${p.customDays} 天）`
   return s
 })
 </script>
@@ -112,6 +113,25 @@ const settlementLabel = computed(() => {
             <dt class="text-[11px] font-medium uppercase tracking-wide text-white/40">币种</dt>
             <dd class="mt-1 text-lg font-bold tabular-nums text-lime-200/90">{{ product.currency }}</dd>
           </div>
+          <div
+            v-if="product.totalLocked != null"
+            class="rounded-xl border border-white/[0.06] bg-black/25 px-3 py-3 sm:px-4"
+          >
+            <dt class="text-[11px] font-medium uppercase tracking-wide text-white/40">锁定规模</dt>
+            <dd class="mt-1 text-sm font-semibold tabular-nums text-white/90">
+              {{ product.totalLocked }} {{ product.currency }}
+            </dd>
+          </div>
+          <div v-if="product.totalOrders != null" class="rounded-xl border border-white/[0.06] bg-black/25 px-3 py-3 sm:px-4">
+            <dt class="text-[11px] font-medium uppercase tracking-wide text-white/40">订单数</dt>
+            <dd class="mt-1 text-sm font-semibold tabular-nums text-white/90">{{ product.totalOrders }} 笔</dd>
+          </div>
+          <div v-if="product.totalYield != null" class="rounded-xl border border-white/[0.06] bg-black/25 px-3 py-3 sm:px-4">
+            <dt class="text-[11px] font-medium uppercase tracking-wide text-white/40">累计收益</dt>
+            <dd class="mt-1 text-sm font-semibold tabular-nums text-emerald-200/90">
+              {{ product.totalYield }} {{ product.currency }}
+            </dd>
+          </div>
         </dl>
       </div>
     </header>
@@ -121,7 +141,7 @@ const settlementLabel = computed(() => {
         <section class="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-6 lg:rounded-3xl lg:p-8">
           <h2 class="text-base font-semibold text-white lg:text-lg">收益档位</h2>
           <p class="mt-1 text-sm text-white/45">
-            按持仓规模分档展示参考年化，仅供参考，实际以合同约定为准。
+            各档位参考年化由日收益率按年化折算（日化×365），与运营端产品配置一致；实际收益以合同约定为准。
           </p>
           <div class="mt-5 overflow-hidden rounded-xl border border-white/[0.06]">
             <div
