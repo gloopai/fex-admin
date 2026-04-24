@@ -42,7 +42,7 @@ const settlementLabel = computed(() => {
     <header class="relative overflow-hidden border-b border-white/[0.06] bg-[#050505]">
       <div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
         <div
-          class="absolute -left-1/4 top-0 h-[18rem] w-[18rem] rounded-full bg-violet-500/[0.08] blur-[100px] sm:h-[24rem] sm:w-[24rem]"
+          class="absolute -left-1/4 top-0 h-[18rem] w-[18rem] rounded-full bg-lime-400/[0.08] blur-[100px] sm:h-[24rem] sm:w-[24rem]"
         />
         <div
           class="absolute -right-1/4 bottom-0 h-[14rem] w-[14rem] rounded-full bg-lime-400/[0.05] blur-[90px]"
@@ -64,7 +64,7 @@ const settlementLabel = computed(() => {
           <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-3">
               <span
-                class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-white/[0.12] bg-white/[0.03] text-violet-300/90"
+                class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-white/[0.12] bg-white/[0.03] text-lime-300/90"
                 aria-hidden="true"
               >
                 <FrontStrokeIcon name="cpu" size-class="h-7 w-7" />
@@ -82,13 +82,13 @@ const settlementLabel = computed(() => {
           <div class="flex shrink-0 flex-wrap gap-2 lg:pb-0.5">
             <RouterLink
               :to="{ path: `${prefix}/login`, query: { redirect: route.fullPath } }"
-              class="inline-flex min-h-11 items-center justify-center rounded-xl bg-violet-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-400"
+              class="inline-flex min-h-11 items-center justify-center rounded-xl bg-lime-400 px-5 py-2.5 text-sm font-semibold text-black shadow-sm transition hover:bg-lime-300"
             >
               立即租用
             </RouterLink>
             <RouterLink
               :to="`${prefix}/finance/ai-quant`"
-              class="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/[0.14] bg-white/[0.04] px-5 py-2.5 text-sm font-semibold text-white/85 transition hover:bg-white/[0.08]"
+              class="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/20 bg-white/[0.04] px-5 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10"
             >
               返回列表
             </RouterLink>
@@ -113,7 +113,7 @@ const settlementLabel = computed(() => {
         <section class="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-6 lg:rounded-3xl lg:p-8">
           <h2 class="text-base font-semibold text-white lg:text-lg">收益档位</h2>
           <p class="mt-1 text-sm text-white/45">
-            按持仓规模分档的参考年化（日化×365 简单推算，与后台订单年化列一致；演示）
+            按持仓规模分档展示参考年化，仅供参考，实际以合同约定为准。
           </p>
           <div class="mt-5 overflow-hidden rounded-xl border border-white/[0.06]">
             <div
@@ -153,7 +153,7 @@ const settlementLabel = computed(() => {
               </span>
             </li>
             <li class="flex gap-3">
-              <span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-violet-400/70" aria-hidden="true" />
+              <span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-lime-400/70" aria-hidden="true" />
               <span>
                 提前赎回：{{
                   product.earlyRedeemEnabled

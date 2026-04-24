@@ -19,13 +19,13 @@ import {
 const prefix = '/front'
 const route = useRoute()
 
-/** 与详情页演示一致 */
+/** Keep UX copy aligned with product detail where relevant */
 const DEMO_AVAILABLE_FUNDS = 5.562875
 
 const currencyTab = ref('')
 const orderTab = ref('active')
-/** Hero 切换：产品列表 / 我的订单 */
-const pagePanel = ref('products')
+/** Hero 主入口：挖矿产品 / 我的订单（与 AI 量化、借贷一致） */
+const heroPanel = ref('products')
 
 const products = ref(createLockedProductsMock())
 const orders = ref(createLockedOrdersMock())
@@ -181,19 +181,17 @@ const mineMinVipLabel = computed(() => {
 </script>
 
 <template>
-  <div>
-    <header
-      class="relative overflow-hidden border-b border-white/[0.06] bg-[#050505]"
-    >
+  <div class="min-h-[calc(100dvh-3.5rem)] bg-[#050505] pb-8 lg:pb-10">
+    <header class="relative overflow-hidden border-b border-white/[0.06] bg-[#050505]">
       <div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
         <div
-          class="absolute -left-1/4 top-0 h-[22rem] w-[22rem] rounded-full bg-lime-400/[0.06] blur-[100px] sm:h-[28rem] sm:w-[28rem]"
+          class="absolute -left-1/4 top-0 h-[20rem] w-[20rem] rounded-full bg-lime-400/[0.07] blur-[100px] sm:h-[26rem] sm:w-[26rem]"
         />
         <div
-          class="absolute -right-1/4 bottom-0 h-[18rem] w-[18rem] rounded-full bg-violet-500/[0.07] blur-[90px] sm:h-[24rem] sm:w-[24rem]"
+          class="absolute -right-1/4 bottom-0 h-[16rem] w-[16rem] rounded-full bg-lime-400/[0.05] blur-[90px] sm:h-[22rem] sm:w-[22rem]"
         />
         <div
-          class="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_0%,#050505_50%,#050505_100%)]"
+          class="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_0%,#050505_55%,#050505_100%)]"
         />
       </div>
       <div
@@ -204,120 +202,97 @@ const mineMinVipLabel = computed(() => {
           <span class="mx-1.5 text-white/20 sm:mx-2">/</span>
           <span class="text-white/70">流动性挖矿</span>
         </nav>
-        <p
-          class="mt-4 inline-flex items-center gap-2 rounded-full border border-lime-400/20 bg-lime-400/[0.06] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.28em] text-lime-200/90 sm:mt-6 sm:px-3.5 sm:py-1 sm:text-[11px] sm:tracking-[0.3em]"
-        >
-          Earn · 锁仓理财
-        </p>
-        <h1
-          class="mt-2 text-3xl font-bold tracking-tight text-white sm:mt-3 sm:text-4xl md:text-5xl lg:text-[3.25rem] lg:leading-tight"
-        >
-          流动性挖矿
-        </h1>
 
-        <div
-          class="mt-5 inline-flex w-fit max-w-full rounded-xl border border-white/[0.07] bg-black/40 p-1 shadow-inner shadow-black/20 sm:mt-6"
-          role="tablist"
-          aria-label="页面主入口"
-        >
-          <button
-            type="button"
-            role="tab"
-            :aria-selected="pagePanel === 'products'"
-            class="min-h-[2.75rem] shrink-0 rounded-lg px-4 py-2.5 text-center text-sm font-semibold tracking-tight transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505] sm:min-h-[3rem] sm:px-6 sm:py-2.5 sm:text-[15px] md:text-base"
-            :class="
-              pagePanel === 'products'
-                ? 'bg-white/[0.1] text-lime-200 shadow-sm'
-                : 'text-white/45 hover:text-white/75'
-            "
-            @click="pagePanel = 'products'"
-          >
-            挖矿产品
-          </button>
-          <button
-            type="button"
-            role="tab"
-            :aria-selected="pagePanel === 'orders'"
-            class="min-h-[2.75rem] shrink-0 rounded-lg px-4 py-2.5 text-center text-sm font-semibold tracking-tight transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505] sm:min-h-[3rem] sm:px-6 sm:py-2.5 sm:text-[15px] md:text-base"
-            :class="
-              pagePanel === 'orders'
-                ? 'bg-white/[0.1] text-lime-200 shadow-sm'
-                : 'text-white/45 hover:text-white/75'
-            "
-            @click="pagePanel = 'orders'"
-          >
-            我的订单
-          </button>
-        </div>
+        <div class="mt-4 flex flex-col gap-5 sm:gap-6 lg:flex-row lg:items-end lg:justify-between lg:gap-10">
+          <div class="min-w-0 flex-1 space-y-5 sm:space-y-6">
+            <div>
+              <p
+                class="inline-flex items-center gap-2 rounded-full border border-lime-400/25 bg-lime-400/[0.08] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.28em] text-lime-200/95 sm:text-[11px] sm:tracking-[0.3em]"
+              >
+                Earn · 锁仓理财
+              </p>
+              <h1
+                class="mt-2 text-3xl font-bold tracking-tight text-white sm:mt-3 sm:text-4xl md:text-5xl lg:text-[3.25rem] lg:leading-tight"
+              >
+                流动性挖矿
+              </h1>
+            </div>
+            <div
+              class="inline-flex w-full max-w-full rounded-xl border border-white/[0.07] bg-black/40 p-1 shadow-inner shadow-black/20 sm:w-fit"
+              role="tablist"
+              aria-label="页面主入口"
+            >
+              <button
+                type="button"
+                role="tab"
+                :aria-selected="heroPanel === 'products'"
+                class="min-h-[2.75rem] min-w-0 flex-1 rounded-lg px-3 py-2.5 text-center text-sm font-semibold tracking-tight transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505] sm:min-h-[3rem] sm:flex-none sm:px-6 sm:py-2.5 sm:text-[15px] md:text-base"
+                :class="
+                  heroPanel === 'products'
+                    ? 'bg-white/[0.1] text-lime-200 shadow-sm'
+                    : 'text-white/45 hover:text-white/75'
+                "
+                @click="heroPanel = 'products'"
+              >
+                挖矿产品
+              </button>
+              <button
+                type="button"
+                role="tab"
+                :aria-selected="heroPanel === 'orders'"
+                class="min-h-[2.75rem] min-w-0 flex-1 rounded-lg px-3 py-2.5 text-center text-sm font-semibold tracking-tight transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505] sm:min-h-[3rem] sm:flex-none sm:px-6 sm:py-2.5 sm:text-[15px] md:text-base"
+                :class="
+                  heroPanel === 'orders'
+                    ? 'bg-white/[0.1] text-lime-200 shadow-sm'
+                    : 'text-white/45 hover:text-white/75'
+                "
+                @click="heroPanel = 'orders'"
+              >
+                我的订单
+              </button>
+            </div>
+          </div>
 
-        <!-- 订单状态筛选放在 Hero，避免与主 Tab 叠成「两层导航」 -->
-        <div
-          v-if="pagePanel === 'orders'"
-          class="mt-4 flex flex-wrap items-center gap-2 sm:mt-5 sm:gap-3"
-        >
           <div
-            class="inline-flex w-fit max-w-full flex-wrap rounded-xl border border-white/[0.07] bg-black/40 p-1 shadow-inner shadow-black/20"
-            role="tablist"
-            aria-label="订单状态"
+            v-if="heroPanel === 'products'"
+            class="pointer-events-none relative mx-auto h-36 w-36 shrink-0 sm:h-40 sm:w-40 lg:mx-0 lg:h-44 lg:w-44"
+            aria-hidden="true"
           >
-            <button
-              type="button"
-              role="tab"
-              :aria-selected="orderTab === 'active'"
-              class="min-h-10 shrink-0 rounded-lg px-3 text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 sm:min-h-[2.5rem] sm:px-4 sm:text-sm"
-              :class="
-                orderTab === 'active'
-                  ? 'bg-white/[0.1] text-lime-200 shadow-sm'
-                  : 'text-white/45 hover:text-white/75'
-              "
-              @click="orderTab = 'active'"
-            >
-              进行中
-            </button>
-            <button
-              type="button"
-              role="tab"
-              :aria-selected="orderTab === 'redeemed'"
-              class="min-h-10 shrink-0 rounded-lg px-3 text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 sm:min-h-[2.5rem] sm:px-4 sm:text-sm"
-              :class="
-                orderTab === 'redeemed'
-                  ? 'bg-white/[0.1] text-lime-200 shadow-sm'
-                  : 'text-white/45 hover:text-white/75'
-              "
-              @click="orderTab = 'redeemed'"
-            >
-              已赎回
-            </button>
+            <div
+              class="absolute inset-0 rounded-full border border-lime-400/20 bg-gradient-to-br from-lime-400/15 via-transparent to-emerald-600/10 opacity-90"
+            />
+            <div
+              class="absolute inset-[18%] rounded-full border border-white/[0.06] bg-lime-400/[0.06] opacity-90"
+            />
+            <div
+              class="absolute inset-[38%] rounded-full border border-white/[0.08] bg-white/[0.03] opacity-90"
+            />
+            <div
+              class="absolute -right-1 top-1/4 h-14 w-14 rounded-full bg-lime-400/18 opacity-90 blur-2xl sm:h-16 sm:w-16"
+            />
           </div>
         </div>
-
-        <p
-          v-if="pagePanel === 'products'"
-          class="mt-4 max-w-2xl text-[15px] leading-relaxed text-white/55 sm:mt-5 sm:text-lg md:text-xl"
-        >
-          按币种浏览产品；每一行对应一个锁定期档位。收益为年化口径（演示数据）。
-        </p>
-        <p v-else class="mt-3 max-w-2xl text-xs leading-relaxed text-white/45 sm:mt-4 sm:text-[15px]">
-          下方为演示列表，与真实账户无关；接入接口后将按登录用户展示。
-        </p>
       </div>
     </header>
 
-    <div
-      class="mx-auto max-w-7xl px-4 sm:px-8 lg:px-10"
-      :class="pagePanel === 'orders' ? 'py-4 sm:py-6 lg:py-8' : 'py-5 sm:py-8 lg:py-10'"
-    >
-      <template v-if="pagePanel === 'products'">
-        <div class="mt-2 sm:mt-4">
-          <p class="text-[10px] font-semibold uppercase tracking-wider text-white/35 sm:text-xs">按币种</p>
-          <div class="-mx-0.5 mt-2.5 flex flex-wrap gap-1.5 sm:mt-3 sm:gap-2">
+    <div class="mx-auto max-w-7xl px-4 py-5 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
+      <template v-if="heroPanel === 'products'">
+        <div class="flex w-full min-w-0 flex-wrap items-center gap-2">
+          <p class="w-full text-[10px] font-semibold uppercase tracking-wider text-white/35 sm:hidden">资产</p>
+          <div
+            class="flex w-full min-w-0 max-w-full flex-nowrap gap-1 overflow-x-auto rounded-xl border border-white/[0.08] bg-black/35 p-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:overflow-x-visible [&::-webkit-scrollbar]:hidden"
+            role="tablist"
+            aria-label="锁仓币种"
+          >
             <button
               type="button"
-              class="rounded-full border px-3 py-1.5 text-xs font-medium transition sm:px-4 sm:py-2 sm:text-sm"
+              role="tab"
+              :aria-selected="currencyTab === ''"
+              class="min-h-[2.5rem] shrink-0 touch-manipulation rounded-lg px-3 py-2 text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 sm:min-h-0 sm:px-4 sm:text-sm"
               :class="
                 currencyTab === ''
-                  ? 'border-lime-400/40 bg-lime-400/10 text-lime-200'
-                  : 'border-white/[0.1] bg-white/[0.03] text-white/60 hover:border-white/20 hover:text-white/80'
+                  ? 'bg-white/[0.12] text-white shadow-sm'
+                  : 'text-white/45 hover:bg-white/[0.05] hover:text-white/75'
               "
               @click="currencyTab = ''"
             >
@@ -327,11 +302,13 @@ const mineMinVipLabel = computed(() => {
               v-for="c in currenciesFromProducts"
               :key="c"
               type="button"
-              class="rounded-full border px-3 py-1.5 text-xs font-medium transition sm:px-4 sm:py-2 sm:text-sm"
+              role="tab"
+              :aria-selected="currencyTab === c"
+              class="min-h-[2.5rem] shrink-0 touch-manipulation rounded-lg px-3 py-2 text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 sm:min-h-0 sm:px-4 sm:text-sm"
               :class="
                 currencyTab === c
-                  ? 'border-lime-400/40 bg-lime-400/10 text-lime-200'
-                  : 'border-white/[0.1] bg-white/[0.03] text-white/60 hover:border-white/20 hover:text-white/80'
+                  ? 'bg-white/[0.12] text-white shadow-sm'
+                  : 'text-white/45 hover:bg-white/[0.05] hover:text-white/75'
               "
               @click="currencyTab = c"
             >
@@ -341,29 +318,28 @@ const mineMinVipLabel = computed(() => {
         </div>
 
         <div
-          class="mt-6 overflow-x-auto rounded-xl border border-white/[0.08] bg-white/[0.02] sm:mt-10 sm:rounded-2xl lg:rounded-3xl"
+          class="mt-5 overflow-x-auto rounded-xl border border-white/[0.08] bg-white/[0.025] sm:mt-6 sm:rounded-2xl lg:mt-6 max-md:-mx-1 max-md:rounded-lg max-md:border-white/[0.06]"
         >
-          <table class="w-full min-w-0 table-fixed border-collapse text-left text-sm md:min-w-[640px] md:table-auto">
-            <thead>
-              <tr class="border-b border-white/[0.08] bg-white/[0.04] text-[10px] font-semibold uppercase tracking-wide text-white/45 sm:text-[11px]">
-                <th class="w-[58%] px-3 py-2.5 font-semibold sm:w-[52%] sm:px-4 sm:py-3 md:w-auto md:px-5 md:py-3.5">
-                  产品
-                </th>
-                <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-4 md:py-3.5">参考年化</th>
-                <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-4 md:py-3.5">期限</th>
-                <th class="hidden px-4 py-3.5 font-semibold lg:table-cell">申购区间</th>
-                <th class="w-[42%] px-2 py-2.5 text-right font-semibold sm:w-auto sm:px-3 sm:py-3 md:px-5 md:py-3.5">
-                  操作
-                </th>
+          <table
+            v-if="periodRows.length"
+            class="w-full min-w-0 border-collapse text-left text-sm text-white/90 max-md:table-fixed md:min-w-[640px] md:table-auto"
+          >
+            <thead class="hidden md:table-header-group">
+              <tr class="border-b border-white/[0.08] text-[10px] font-semibold uppercase tracking-wide text-white/40 sm:text-[11px]">
+                <th class="px-4 py-2.5 font-semibold md:px-5 md:py-3">产品</th>
+                <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">参考年化</th>
+                <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">期限</th>
+                <th class="hidden px-3 py-2.5 font-semibold lg:table-cell lg:px-5 lg:py-3">申购区间</th>
+                <th class="px-3 py-2.5 text-right font-semibold md:px-5 md:py-3">操作</th>
               </tr>
             </thead>
             <tbody>
               <tr
                 v-for="r in periodRows"
                 :key="r.key"
-                class="border-b border-white/[0.05] transition hover:bg-white/[0.03]"
+                class="border-b border-white/[0.06] transition hover:bg-white/[0.03] max-md:block max-md:last:border-b-0 md:table-row"
               >
-                <td class="px-3 py-3 align-top sm:px-4 sm:py-3.5 md:px-5 md:py-4">
+                <td class="max-md:block max-md:w-full max-md:px-3 max-md:pb-1 max-md:pt-4 md:table-cell md:px-5 md:py-3.5">
                   <div class="flex items-start gap-2 sm:gap-3">
                     <span class="shrink-0 text-xl leading-none sm:text-2xl" aria-hidden="true">{{
                       r.product.icon
@@ -385,125 +361,176 @@ const mineMinVipLabel = computed(() => {
                         {{ lockedMinKycRequirementPhrase(r.product.minKycLevel) }}
                       </p>
                       <div
-                        class="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 border-t border-white/[0.06] pt-2 text-[11px] text-white/50 md:hidden"
+                        class="mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5 border-t border-white/[0.06] pt-3 text-[11px] text-white/50 max-md:grid-cols-2 md:hidden"
                       >
-                        <span class="font-bold tabular-nums text-lime-300">{{ r.annual.toFixed(2) }}%</span>
-                        <span class="tabular-nums text-white/70">{{ r.period.days }} 天</span>
-                        <span class="w-full truncate tabular-nums text-white/40">
+                        <span class="text-white/35">参考年化</span>
+                        <span class="text-right font-bold tabular-nums text-lime-300">{{ r.annual.toFixed(2) }}%</span>
+                        <span class="text-white/35">期限</span>
+                        <span class="text-right tabular-nums text-white/70">{{ r.period.days }} 天</span>
+                        <span class="text-white/35">区间</span>
+                        <span class="text-right truncate tabular-nums text-white/70">
                           {{ r.period.minAmount }} – {{ r.period.maxAmount }} {{ r.product.currency }}
                         </span>
                       </div>
                     </div>
                   </div>
                 </td>
-                <td class="hidden px-3 py-3 align-middle md:table-cell md:px-4 md:py-4">
+                <td class="hidden whitespace-nowrap px-3 py-3.5 md:table-cell md:px-5">
                   <span class="text-sm font-bold tabular-nums text-lime-300 sm:text-base">{{
                     r.annual.toFixed(2)
                   }}%</span>
                 </td>
-                <td class="hidden px-3 py-3 tabular-nums text-white/85 md:table-cell md:px-4 md:py-4">
+                <td class="hidden px-3 py-3.5 tabular-nums text-white/85 md:table-cell md:px-5">
                   {{ r.period.days }} 天
                 </td>
-                <td class="hidden px-4 py-4 tabular-nums text-white/50 lg:table-cell">
+                <td class="hidden px-3 py-3.5 tabular-nums text-white/70 lg:table-cell lg:px-5">
                   {{ r.period.minAmount }} – {{ r.period.maxAmount }} {{ r.product.currency }}
                 </td>
-                <td class="px-2 py-3 align-middle text-right sm:px-3 sm:py-3.5 md:px-5 md:py-4">
+                <td
+                  class="max-md:block max-md:w-full max-md:px-3 max-md:pb-4 max-md:pt-3 md:table-cell md:px-5 md:py-3.5 sm:px-3"
+                >
                   <button
                     v-if="r.product.status === PRODUCT_STATUS.ENABLED"
                     type="button"
-                    class="inline-flex min-h-[2.25rem] min-w-[4.25rem] items-center justify-center rounded-lg bg-lime-400 px-2.5 py-1.5 text-[11px] font-semibold text-black shadow-sm transition hover:bg-lime-300 sm:min-h-0 sm:min-w-0 sm:rounded-xl sm:px-4 sm:py-2 sm:text-xs md:text-sm"
+                    class="inline-flex w-full min-h-[2.75rem] touch-manipulation items-center justify-center rounded-lg bg-lime-400 px-4 py-2.5 text-sm font-semibold text-black shadow-sm transition hover:bg-lime-300 max-md:w-full md:min-h-0 md:w-auto md:px-4 md:py-2 md:text-xs lg:text-sm"
                     @click="openMineDialog(r.product, r.period)"
                   >
-                    <span class="sm:hidden">挖矿</span>
-                    <span class="hidden sm:inline">立即挖矿</span>
+                    立即挖矿
                   </button>
                   <button
                     v-else
                     type="button"
-                    class="inline-flex min-h-[2.25rem] min-w-[4.25rem] items-center justify-center rounded-lg border border-white/20 bg-transparent px-2.5 py-1.5 text-[11px] font-semibold text-white/70 transition hover:bg-white/10 hover:text-white/85 sm:min-h-0 sm:min-w-0 sm:rounded-xl sm:px-4 sm:py-2 sm:text-xs md:text-sm"
+                    class="inline-flex w-full min-h-[2.75rem] touch-manipulation items-center justify-center rounded-lg border border-white/20 bg-transparent px-4 py-2.5 text-sm font-semibold text-white/70 transition hover:bg-white/10 hover:text-white/85 max-md:w-full md:min-h-0 md:w-auto md:px-4 md:py-2 md:text-xs lg:text-sm"
                     @click="openMineDialog(r.product, r.period)"
                   >
-                    <span class="sm:hidden">查看</span>
-                    <span class="hidden sm:inline">查看说明</span>
+                    查看说明
                   </button>
                 </td>
               </tr>
             </tbody>
           </table>
+          <p v-else class="px-3 py-12 text-center text-sm text-white/45 sm:py-14">暂无匹配档位</p>
         </div>
-
-        <p v-if="periodRows.length === 0" class="py-12 text-center text-sm text-white/45 sm:py-16 sm:text-base">
-          暂无匹配档位
-        </p>
       </template>
 
-      <section
-        v-else
-        id="my-liquidity-orders"
-        class="overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.02] sm:rounded-2xl lg:rounded-3xl"
-        aria-label="锁仓订单列表"
-      >
-        <div
-          v-if="ordersForTab.length > 0"
-          class="flex items-center justify-end border-b border-white/[0.06] bg-white/[0.02] px-3 py-2 sm:px-4 sm:py-2.5 lg:px-5"
+      <template v-else>
+        <section
+          id="my-liquidity-orders"
+          class="overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.02] sm:rounded-2xl"
+          aria-label="锁仓订单列表"
         >
-          <span class="text-[11px] tabular-nums text-white/40 sm:text-xs">本页 {{ ordersForTab.length }} 条（演示）</span>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full border-collapse text-left text-xs sm:text-sm md:min-w-[640px] lg:min-w-[720px]">
-            <thead>
-              <tr
-                class="border-b border-white/[0.06] bg-white/[0.03] text-[10px] font-semibold uppercase tracking-wide text-white/40 sm:text-[11px]"
+          <div
+            class="flex flex-col gap-2 border-b border-white/[0.08] bg-black/30 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-4 sm:py-3 md:px-5"
+          >
+            <div class="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
+              <p class="text-[10px] font-semibold uppercase tracking-wide text-white/40 sm:text-[11px]">订单明细</p>
+              <span
+                v-if="ordersForTab.length > 0"
+                class="text-[11px] tabular-nums text-white/40 sm:text-xs"
+              >本页共 {{ ordersForTab.length }} 条</span>
+            </div>
+            <div
+              class="grid w-full grid-cols-2 gap-0 rounded-lg border border-white/[0.06] bg-black/40 p-0.5 sm:flex sm:w-auto sm:max-w-full sm:shrink-0 sm:overflow-x-auto sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              role="tablist"
+              aria-label="订单状态"
+            >
+              <button
+                type="button"
+                role="tab"
+                :aria-selected="orderTab === 'active'"
+                class="min-h-[2.5rem] rounded-md border-b-2 border-transparent px-1 py-2 text-center text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 sm:min-h-0 sm:rounded-none sm:border-transparent sm:px-4 sm:pb-2.5 sm:text-left sm:text-sm sm:text-[15px]"
+                :class="
+                  orderTab === 'active'
+                    ? 'border-b-2 border-lime-400 text-white max-sm:border-transparent max-sm:bg-white/[0.12] max-sm:text-lime-200 sm:bg-transparent'
+                    : 'border-b-2 border-transparent text-white/45 hover:text-white/75 sm:text-white/45'
+                "
+                @click="orderTab = 'active'"
               >
-                <th class="max-w-[9.5rem] px-2.5 py-2 font-semibold sm:max-w-[14rem] sm:px-3 sm:py-2.5 md:max-w-none md:px-4 md:py-3">
-                  产品
-                </th>
-                <th class="whitespace-nowrap px-1.5 py-2 font-semibold sm:px-3 sm:py-2.5 md:px-4 md:py-3">期限</th>
-                <th class="hidden whitespace-nowrap px-2 py-2 font-semibold sm:table-cell sm:px-3 sm:py-2.5 md:px-4 md:py-3">
-                  下单时间
-                </th>
-                <th class="whitespace-nowrap px-2 py-2 font-semibold sm:px-3 sm:py-2.5 md:px-4 md:py-3">金额</th>
-                <th class="hidden whitespace-nowrap px-2 py-2 font-semibold md:table-cell md:px-4 md:py-3">到期</th>
-                <th class="hidden whitespace-nowrap px-2 py-2 font-semibold lg:table-cell lg:px-4 lg:py-3">收益</th>
-                <th class="whitespace-nowrap px-1.5 py-2 text-right font-semibold sm:px-3 sm:py-2.5 sm:text-left md:px-4 md:py-3">
-                  状态
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="o in ordersForTab" :key="o.id" class="border-b border-white/[0.05]">
-                <td class="min-w-0 px-2.5 py-2.5 text-[13px] text-white/90 sm:px-3 sm:py-3 sm:text-sm md:px-4">
-                  <span class="line-clamp-2 break-words leading-snug">{{ o.productName }}</span>
-                </td>
-                <td class="px-1.5 py-2.5 tabular-nums text-white/70 sm:px-3 sm:py-3 md:px-4">{{ o.lockDays }} 天</td>
-                <td class="hidden whitespace-nowrap px-2 py-2.5 tabular-nums text-white/50 sm:table-cell sm:px-3 sm:py-3 md:px-4">
-                  {{ o.lockedAt }}
-                </td>
-                <td class="whitespace-nowrap px-2 py-2.5 tabular-nums text-white/70 sm:px-3 sm:py-3 md:px-4">
-                  {{ o.amount }} {{ o.currency }}
-                </td>
-                <td class="hidden whitespace-nowrap px-2 py-2.5 tabular-nums text-white/50 md:table-cell md:px-4 md:py-3">
-                  {{ o.unlockAt }}
-                </td>
-                <td class="hidden whitespace-nowrap px-2 py-2.5 tabular-nums text-lime-300/90 lg:table-cell lg:px-4 lg:py-3">
-                  {{ o.totalInterest }} {{ o.currency }}
-                </td>
-                <td class="px-1.5 py-2.5 text-right sm:px-3 sm:py-3 sm:text-left md:px-4">
-                  <span
-                    class="inline-flex max-w-full justify-end rounded-full px-1.5 py-0.5 text-[10px] font-semibold sm:justify-start sm:px-2 sm:text-[11px]"
-                    :class="orderStatusClass(o.status)"
+                进行中
+              </button>
+              <button
+                type="button"
+                role="tab"
+                :aria-selected="orderTab === 'redeemed'"
+                class="min-h-[2.5rem] rounded-md border-b-2 border-transparent px-1 py-2 text-center text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 sm:min-h-0 sm:rounded-none sm:border-transparent sm:px-4 sm:pb-2.5 sm:text-left sm:text-sm sm:text-[15px]"
+                :class="
+                  orderTab === 'redeemed'
+                    ? 'border-b-2 border-lime-400 text-white max-sm:border-transparent max-sm:bg-white/[0.12] max-sm:text-lime-200 sm:bg-transparent'
+                    : 'border-b-2 border-transparent text-white/45 hover:text-white/75 sm:text-white/45'
+                "
+                @click="orderTab = 'redeemed'"
+              >
+                已赎回
+              </button>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table
+              v-if="ordersForTab.length"
+              class="w-full min-w-0 border-collapse text-left text-xs text-white/85 sm:text-sm max-md:table-fixed md:min-w-[720px] md:table-auto"
+            >
+              <thead class="hidden md:table-header-group">
+                <tr
+                  class="border-b border-white/[0.08] text-[10px] font-semibold uppercase tracking-wide text-white/40 sm:text-[11px]"
+                >
+                  <th class="px-3 py-2.5 font-semibold md:px-5 md:py-3">产品</th>
+                  <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">期限</th>
+                  <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">下单时间</th>
+                  <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">金额</th>
+                  <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">到期</th>
+                  <th class="hidden px-3 py-2.5 font-semibold lg:table-cell lg:px-5 lg:py-3">收益</th>
+                  <th class="px-3 py-2.5 text-right font-semibold md:px-5 md:py-3 md:text-left">状态</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="o in ordersForTab"
+                  :key="o.id"
+                  class="border-b border-white/[0.06] transition hover:bg-white/[0.02] max-md:block max-md:last:border-b-0 md:table-row"
+                >
+                  <td class="min-w-0 max-md:block max-md:w-full max-md:px-3 max-md:pb-0 max-md:pt-4 md:table-cell md:px-5 md:py-3">
+                    <p class="text-[14px] font-medium leading-snug text-white sm:text-sm">{{ o.productName }}</p>
+                    <div
+                      class="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-white/[0.06] pt-3 text-[11px] text-white/50 md:hidden"
+                    >
+                      <span class="text-white/35">期限</span>
+                      <span class="text-right tabular-nums text-white/70">{{ o.lockDays }} 天</span>
+                      <span class="text-white/35">下单</span>
+                      <span class="text-right tabular-nums text-white/60">{{ o.lockedAt }}</span>
+                      <span class="text-white/35">金额</span>
+                      <span class="text-right tabular-nums text-white/80">{{ o.amount }} {{ o.currency }}</span>
+                      <span class="text-white/35">到期</span>
+                      <span class="text-right tabular-nums text-white/60">{{ o.unlockAt }}</span>
+                      <span class="text-white/35">收益</span>
+                      <span class="text-right tabular-nums text-lime-300/90">{{ o.totalInterest }} {{ o.currency }}</span>
+                    </div>
+                  </td>
+                  <td class="hidden tabular-nums text-white/70 md:table-cell md:px-5 md:py-3">{{ o.lockDays }} 天</td>
+                  <td class="hidden tabular-nums text-white/55 md:table-cell md:px-5 md:py-3">{{ o.lockedAt }}</td>
+                  <td class="hidden tabular-nums md:table-cell md:px-5 md:py-3">{{ o.amount }} {{ o.currency }}</td>
+                  <td class="hidden tabular-nums text-white/50 md:table-cell md:px-5 md:py-3">{{ o.unlockAt }}</td>
+                  <td class="hidden tabular-nums text-lime-300/90 lg:table-cell lg:px-5 lg:py-3">
+                    {{ o.totalInterest }} {{ o.currency }}
+                  </td>
+                  <td
+                    class="max-md:block max-md:w-full max-md:px-3 max-md:pb-4 max-md:pt-3 md:table-cell md:px-5 md:py-3 md:text-left"
                   >
-                    {{ orderStatusMeta[o.status]?.label ?? o.status }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <p v-if="ordersForTab.length === 0" class="py-10 text-center text-xs text-white/40 sm:py-14 sm:text-sm">
-          当前分类暂无订单
-        </p>
-      </section>
+                    <span
+                      class="inline-flex min-h-[1.75rem] items-center rounded-full px-2.5 py-1 text-[11px] font-semibold sm:text-xs"
+                      :class="orderStatusClass(o.status)"
+                    >
+                      {{ orderStatusMeta[o.status]?.label ?? o.status }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p v-if="ordersForTab.length === 0" class="px-3 py-12 text-center text-sm text-white/40 sm:py-14">
+            当前分类暂无订单
+          </p>
+        </section>
+      </template>
     </div>
 
     <FrontPopupShell
@@ -553,7 +580,7 @@ const mineMinVipLabel = computed(() => {
             v-if="!mineCanSubmit"
             class="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-100/90"
           >
-            该产品当前不可申购，仅可查看参数（演示）。
+            该产品当前不可申购，您仍可查看产品参数。
           </div>
 
           <dl class="mt-5 grid grid-cols-2 gap-3 text-sm sm:gap-4">
@@ -579,7 +606,7 @@ const mineMinVipLabel = computed(() => {
             v-if="mineProduct.earlyRedeemEnabled && mineProduct.earlyRedeemFee > 0"
             class="mt-4 rounded-xl border border-lime-400/25 bg-lime-400/10 px-3 py-2.5 text-center text-xs font-medium text-lime-100/90 sm:text-sm"
           >
-            提前赎回手续费：约 {{ mineProduct.earlyRedeemFee }}%（演示）
+            提前赎回手续费：约 {{ mineProduct.earlyRedeemFee }}%，以产品协议为准。
           </div>
 
           <ul class="mt-4 space-y-2 text-xs leading-relaxed text-white/55 sm:text-[13px]">
@@ -591,7 +618,7 @@ const mineMinVipLabel = computed(() => {
           <div v-if="mineCanSubmit" class="mt-5 border-t border-white/[0.08] pt-5">
             <label class="block">
               <span class="text-sm font-medium text-white/70">购买金额（{{ mineProduct.currency }}）</span>
-              <span class="mt-0.5 block text-xs text-white/40">演示可用资金：{{ DEMO_AVAILABLE_FUNDS }}</span>
+              <span class="mt-0.5 block text-xs text-white/40">可用余额：{{ DEMO_AVAILABLE_FUNDS }}</span>
               <div class="mt-2 flex gap-2">
                 <input
                   v-model="purchaseAmount"
@@ -610,7 +637,7 @@ const mineMinVipLabel = computed(() => {
               </div>
             </label>
             <p class="mt-2 text-xs tabular-nums text-white/50 sm:text-sm">
-              预计收益（演示）：
+              预计收益（估算）：
               <span class="font-semibold text-lime-300/90">
                 {{ mineEstimatedYield.toFixed(6) }} {{ mineProduct.currency }}
               </span>

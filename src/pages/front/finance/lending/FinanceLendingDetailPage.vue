@@ -125,7 +125,7 @@ function statusPillClass(s) {
         </section>
 
         <section class="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-6 lg:rounded-3xl lg:p-8">
-          <h2 class="text-base font-semibold text-white lg:text-lg">流动性（演示）</h2>
+          <h2 class="text-base font-semibold text-white lg:text-lg">可借流动性</h2>
           <dl class="mt-5 space-y-3 text-[15px]">
             <div class="flex justify-between gap-4 border-b border-white/[0.05] pb-3">
               <dt class="text-white/45">累计借出</dt>
@@ -142,7 +142,7 @@ function statusPillClass(s) {
             v-if="displayedAvailableLiquidity.fromLockedPool"
             class="mt-3 text-xs leading-relaxed text-white/40"
           >
-            按流动性挖矿同币种上架产品的锁仓规模 × 可借贷比例合计（演示；与后台配置一致）。
+            与同币种锁仓理财上架规模及平台可借贷比例综合测算，具体以页面与风控规则为准。
           </p>
           <p class="mt-5 rounded-lg border border-amber-400/15 bg-amber-400/[0.06] px-3 py-2.5 text-xs leading-relaxed text-amber-100/85">
             质押率触及清算线时可能触发强平；参与前请充分理解借贷费率、期限与清算机制。

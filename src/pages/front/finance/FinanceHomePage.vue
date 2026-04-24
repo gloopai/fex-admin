@@ -38,9 +38,9 @@ const channelVisual = {
     glow: 'bg-sky-400/18'
   },
   'ai-quant': {
-    mesh: 'from-violet-500/30 via-fuchsia-600/12 to-transparent',
-    border: 'group-hover:border-violet-400/35',
-    glow: 'bg-violet-400/20'
+    mesh: 'from-lime-500/28 via-emerald-600/12 to-transparent',
+    border: 'group-hover:border-lime-400/35',
+    glow: 'bg-lime-400/20'
   }
 }
 </script>
@@ -52,7 +52,7 @@ const channelVisual = {
         class="absolute -left-[20%] top-0 h-[min(85vh,720px)] w-[70%] rounded-full bg-gradient-to-br from-lime-500/12 via-emerald-600/5 to-transparent blur-3xl"
       />
       <div
-        class="absolute -right-[10%] top-1/4 h-[min(70vh,560px)] w-[55%] rounded-full bg-gradient-to-bl from-violet-500/10 via-fuchsia-600/5 to-transparent blur-3xl"
+        class="absolute -right-[10%] top-1/4 h-[min(70vh,560px)] w-[55%] rounded-full bg-gradient-to-bl from-lime-500/10 via-emerald-600/5 to-transparent blur-3xl"
       />
       <div
         class="absolute bottom-0 left-1/3 h-40 w-[120%] -translate-x-1/2 bg-gradient-to-t from-[#030304] to-transparent"
@@ -73,14 +73,9 @@ const channelVisual = {
           数字资产金融
         </span>
       </h1>
-      <p
-        class="mx-auto mt-5 max-w-2xl text-center text-base leading-relaxed text-white/55 sm:mx-0 sm:text-left sm:text-lg"
-      >
-        锁仓理财、信用借贷与 AI 量化三大频道独立运营；各频道涉及收益的展示均为年化口径（演示数据与后台字段对齐，正式环境将接入账户与订单）。
-      </p>
 
       <div
-        class="mt-12 grid gap-5 sm:mt-14 sm:grid-cols-2 sm:gap-6 lg:mt-16 lg:grid-cols-3 lg:gap-8"
+        class="mt-10 grid gap-5 sm:mt-12 sm:grid-cols-2 sm:gap-6 lg:mt-14 lg:grid-cols-3 lg:gap-8"
       >
         <RouterLink
           v-for="ch in channels"

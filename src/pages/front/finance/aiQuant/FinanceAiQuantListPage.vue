@@ -23,14 +23,17 @@ import {
 const prefix = '/front'
 const route = useRoute()
 
-/** 顶部币种 Tab（与设计稿一致；无产品币种仍可切换，列表为空） */
+/** 列表页资产 Tab（与 mock 币种对齐，切换后均有演示数据） */
 const TAB_CURRENCIES = ['USDC', 'BTC', 'ETH', 'DOGE', 'XRP', 'SOL', 'BNB', 'TRX']
 
 const products = ref(createAiQuantProductsMock())
 const orders = ref(createAiQuantOrdersMock())
 const yieldAdjustments = ref(createYieldAdjustmentsMock())
 
-const currencyTab = ref('USDT')
+const currencyTab = ref('USDC')
+
+/** Hero 主入口：机器人市场 / 我的托管（与借贷、流动性列表一致） */
+const heroPanel = ref('market')
 
 watch(
   products,
@@ -53,10 +56,10 @@ const productsForTab = computed(() =>
 )
 
 const vipBadgeRing = [
-  'border-violet-400/40 bg-violet-500/15 text-violet-100',
-  'border-fuchsia-400/35 bg-fuchsia-500/12 text-fuchsia-100',
-  'border-lime-400/35 bg-lime-400/12 text-lime-100',
-  'border-amber-400/35 bg-amber-500/15 text-amber-100'
+  'border-lime-400/40 bg-lime-400/12 text-lime-100',
+  'border-white/20 bg-white/[0.08] text-white/90',
+  'border-lime-400/25 bg-lime-400/[0.07] text-lime-200',
+  'border-emerald-400/30 bg-emerald-400/10 text-emerald-100'
 ]
 
 function vipBadgeClass(i) {
@@ -166,7 +169,7 @@ function orderStatusPillClass(status) {
   if (status === ORDER_STATUS.RUNNING) return 'bg-sky-400/15 text-sky-200'
   if (status === ORDER_STATUS.COMPLETED) return 'bg-lime-400/12 text-lime-200'
   if (status === ORDER_STATUS.SETTLED) return 'bg-white/10 text-white/60'
-  if (status === ORDER_STATUS.EARLY_REDEEMED) return 'bg-violet-500/15 text-violet-200'
+  if (status === ORDER_STATUS.EARLY_REDEEMED) return 'bg-lime-400/12 text-lime-200'
   if (status === ORDER_STATUS.LOCKED) return 'bg-amber-400/15 text-amber-200'
   if (status === ORDER_STATUS.CANCELLED) return 'bg-rose-400/15 text-rose-200'
   return 'bg-white/10 text-white/55'
@@ -224,7 +227,7 @@ const rentRow = ref(null)
 const rentAmount = ref('')
 let clearRentTimer = null
 
-/** 演示可用余额（与币种相关） */
+/** Sample available balance per asset (rent dialog helper line) */
 const demoAvailableBalance = {
   USDT: 5.562875,
   USDC: 5.562875,
@@ -301,7 +304,7 @@ function fillRentAll() {
     <header class="relative overflow-hidden border-b border-white/[0.06] bg-[#050505]">
       <div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
         <div
-          class="absolute -left-1/4 top-0 h-[20rem] w-[20rem] rounded-full bg-violet-500/[0.07] blur-[100px] sm:h-[26rem] sm:w-[26rem]"
+          class="absolute -left-1/4 top-0 h-[20rem] w-[20rem] rounded-full bg-lime-400/[0.07] blur-[100px] sm:h-[26rem] sm:w-[26rem]"
         />
         <div
           class="absolute -right-1/4 bottom-0 h-[16rem] w-[16rem] rounded-full bg-lime-400/[0.05] blur-[90px] sm:h-[22rem] sm:w-[22rem]"
@@ -320,86 +323,86 @@ function fillRentAll() {
           <span class="text-white/70">AI 量化</span>
         </nav>
 
-        <div class="mt-4 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div class="min-w-0 flex-1">
-            <p
-              class="inline-flex items-center gap-2 rounded-full border border-violet-400/25 bg-violet-500/[0.08] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.28em] text-violet-200/95 sm:text-[11px] sm:tracking-[0.3em]"
-            >
-              Quant · 策略托管
-            </p>
-            <h1
-              class="mt-2 text-3xl font-bold tracking-tight text-white sm:mt-3 sm:text-4xl md:text-5xl lg:text-[3.25rem] lg:leading-tight"
-            >
-              AI 量化交易
-            </h1>
-            <p class="mt-3 max-w-xl text-sm leading-relaxed text-white/50 sm:text-base">
-              托管机器人分档租用；日收益率与区间为演示配置。主色强调收益，紫罗兰用于操作与装饰。
-            </p>
-
-            <div class="mt-6 border-t border-white/[0.08] pt-6">
-              <p class="text-xs font-medium text-white/40">托管金额（{{ displayCurrency(currencyTab) }}）</p>
-              <p class="mt-1 text-3xl font-bold tabular-nums tracking-tight text-white sm:text-4xl">
-                {{
-                  runningOrdersTab.length
-                    ? formatAmountForTab(custodyPrincipal, currencyTab)
-                    : '0'
-                }}
+        <!-- Hero：仅一级入口 + 标题；「购买/赎回/利息」在正文区，避免与市场 Tab 视觉同级 -->
+        <div class="mt-4 flex flex-col gap-5 sm:gap-6 lg:flex-row lg:items-end lg:justify-between lg:gap-10">
+          <div class="min-w-0 flex-1 space-y-5 sm:space-y-6">
+            <div>
+              <p
+                class="inline-flex items-center gap-2 rounded-full border border-lime-400/25 bg-lime-400/[0.08] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.28em] text-lime-200/95 sm:text-[11px] sm:tracking-[0.3em]"
+              >
+                Quant · 策略托管
               </p>
-              <div class="mt-5 grid grid-cols-3 gap-3 sm:mt-6 sm:gap-6">
-                <div>
-                  <p class="text-[11px] text-white/40">预计日收益</p>
-                  <p class="mt-1 text-sm font-semibold tabular-nums text-lime-200/95 sm:text-base">
-                    {{
-                      runningOrdersTab.length
-                        ? formatAmountForTab(expectedDailyTab, currencyTab)
-                        : '0'
-                    }}
-                  </p>
-                </div>
-                <div>
-                  <p class="text-[11px] text-white/40">累计收益</p>
-                  <p class="mt-1 text-sm font-semibold tabular-nums text-lime-200/90 sm:text-base">
-                    {{ formatAmountForTab(accumulatedYieldTab, currencyTab) }}
-                  </p>
-                </div>
-                <div>
-                  <p class="text-[11px] text-white/40">订单托管</p>
-                  <p class="mt-1 text-sm font-semibold tabular-nums text-white sm:text-base">
-                    {{ custodyOrderCount }}
-                  </p>
-                </div>
-              </div>
+              <h1
+                class="mt-2 text-3xl font-bold tracking-tight text-white sm:mt-3 sm:text-4xl md:text-5xl lg:text-[3.25rem] lg:leading-tight"
+              >
+                AI 量化交易
+              </h1>
+            </div>
+            <div
+              class="inline-flex w-full max-w-full rounded-xl border border-white/[0.07] bg-black/40 p-1 shadow-inner shadow-black/20 sm:w-fit"
+              role="tablist"
+              aria-label="页面主入口"
+            >
+              <button
+                type="button"
+                role="tab"
+                :aria-selected="heroPanel === 'market'"
+                class="min-h-[2.75rem] min-w-0 flex-1 rounded-lg px-3 py-2.5 text-center text-sm font-semibold tracking-tight transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505] sm:min-h-[3rem] sm:flex-none sm:px-6 sm:py-2.5 sm:text-[15px] md:text-base"
+                :class="
+                  heroPanel === 'market'
+                    ? 'bg-white/[0.1] text-lime-200 shadow-sm'
+                    : 'text-white/45 hover:text-white/75'
+                "
+                @click="heroPanel = 'market'"
+              >
+                机器人市场
+              </button>
+              <button
+                type="button"
+                role="tab"
+                :aria-selected="heroPanel === 'mine'"
+                class="min-h-[2.75rem] min-w-0 flex-1 rounded-lg px-3 py-2.5 text-center text-sm font-semibold tracking-tight transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505] sm:min-h-[3rem] sm:flex-none sm:px-6 sm:py-2.5 sm:text-[15px] md:text-base"
+                :class="
+                  heroPanel === 'mine'
+                    ? 'bg-white/[0.1] text-lime-200 shadow-sm'
+                    : 'text-white/45 hover:text-white/75'
+                "
+                @click="heroPanel = 'mine'"
+              >
+                我的托管
+              </button>
             </div>
           </div>
 
-          <!-- 装饰轨道 -->
           <div
-            class="pointer-events-none relative mx-auto h-40 w-40 shrink-0 opacity-90 sm:h-44 sm:w-44 lg:mx-0 lg:h-48 lg:w-48"
+            v-if="heroPanel === 'market'"
+            class="pointer-events-none relative mx-auto h-36 w-36 shrink-0 sm:h-40 sm:w-40 lg:mx-0 lg:h-44 lg:w-44"
             aria-hidden="true"
           >
             <div
-              class="absolute inset-0 rounded-full border border-violet-500/20 bg-gradient-to-br from-violet-600/20 via-transparent to-sky-500/10"
+              class="absolute inset-0 rounded-full border border-lime-400/20 bg-gradient-to-br from-lime-400/15 via-transparent to-emerald-600/10 opacity-90"
             />
             <div
-              class="absolute inset-[18%] rounded-full border border-white/[0.06] bg-violet-500/[0.06]"
+              class="absolute inset-[18%] rounded-full border border-white/[0.06] bg-lime-400/[0.06] opacity-90"
             />
             <div
-              class="absolute inset-[38%] rounded-full border border-lime-400/15 bg-lime-400/[0.04]"
+              class="absolute inset-[38%] rounded-full border border-white/[0.08] bg-white/[0.03] opacity-90"
             />
             <div
-              class="absolute -right-1 top-1/4 h-16 w-16 rounded-full bg-violet-400/20 blur-2xl"
+              class="absolute -right-1 top-1/4 h-14 w-14 rounded-full bg-lime-400/18 opacity-90 blur-2xl sm:h-16 sm:w-16"
             />
           </div>
         </div>
       </div>
     </header>
 
+    <!-- 上下 padding 与面板无关，避免切换主 Tab 时滚动条/视口宽度变化带动币种行「伸缩」 -->
     <div class="mx-auto max-w-7xl px-4 py-5 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
-      <!-- 币种 Tab -->
-      <div class="flex flex-wrap items-center gap-2">
+      <!-- 币种 Tab：全宽 flex，不用 inline-flex 随内容宽窄变化 -->
+      <div class="flex w-full min-w-0 flex-wrap items-center gap-2">
         <p class="w-full text-[10px] font-semibold uppercase tracking-wider text-white/35 sm:hidden">资产</p>
         <div
-          class="inline-flex max-w-full shrink-0 flex-nowrap gap-1 overflow-x-auto rounded-xl border border-white/[0.08] bg-black/35 p-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap [&::-webkit-scrollbar]:hidden"
+          class="flex w-full min-w-0 max-w-full flex-nowrap gap-1 overflow-x-auto rounded-xl border border-white/[0.08] bg-black/35 p-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:overflow-x-visible [&::-webkit-scrollbar]:hidden"
           role="tablist"
           aria-label="托管币种"
         >
@@ -409,7 +412,7 @@ function fillRentAll() {
             type="button"
             role="tab"
             :aria-selected="currencyTab === c"
-            class="shrink-0 rounded-lg px-3 py-2 text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/40 sm:px-4 sm:text-sm"
+            class="min-h-[2.5rem] shrink-0 touch-manipulation rounded-lg px-3 py-2 text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 sm:min-h-0 sm:px-4 sm:text-sm"
             :class="
               currencyTab === c
                 ? 'bg-white/[0.12] text-white shadow-sm'
@@ -422,32 +425,33 @@ function fillRentAll() {
         </div>
       </div>
 
+      <template v-if="heroPanel === 'market'">
       <!-- 机器人分档表 -->
       <div
-        class="mt-6 overflow-x-auto rounded-xl border border-white/[0.08] bg-white/[0.025] sm:mt-8 sm:rounded-2xl"
+        class="mt-5 overflow-x-auto rounded-xl border border-white/[0.08] bg-white/[0.025] sm:mt-6 sm:rounded-2xl lg:mt-6 max-md:-mx-1 max-md:rounded-lg max-md:border-white/[0.06]"
       >
         <table
           v-if="tierRows.length"
-          class="w-full min-w-0 table-fixed border-collapse text-left text-sm text-white/90 md:min-w-[720px] md:table-auto"
+          class="w-full min-w-0 border-collapse text-left text-sm text-white/90 max-md:table-fixed md:min-w-[720px] md:table-auto"
         >
-          <thead>
+          <thead class="hidden md:table-header-group">
             <tr
               class="border-b border-white/[0.08] text-[10px] font-semibold uppercase tracking-wide text-white/40 sm:text-[11px]"
             >
-              <th class="w-[52%] px-3 py-2.5 font-semibold sm:px-4 md:w-auto md:px-5 md:py-3">产品名称</th>
+              <th class="px-4 py-2.5 font-semibold md:px-5 md:py-3">产品名称</th>
               <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">周期</th>
               <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">价格</th>
               <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">日收益率</th>
-              <th class="w-[48%] px-2 py-2.5 text-right font-semibold sm:px-3 md:w-auto md:px-5 md:py-3">操作</th>
+              <th class="px-3 py-2.5 text-right font-semibold md:px-5 md:py-3">操作</th>
             </tr>
           </thead>
           <tbody>
             <tr
               v-for="row in tierRows"
               :key="row.rowKey"
-              class="border-b border-white/[0.05] transition hover:bg-white/[0.03]"
+              class="border-b border-white/[0.06] transition hover:bg-white/[0.03] max-md:block max-md:last:border-b-0 md:table-row"
             >
-              <td class="px-3 py-3 align-top sm:px-4 md:px-5 md:py-3.5">
+              <td class="max-md:block max-md:w-full max-md:px-3 max-md:pb-1 max-md:pt-4 md:table-cell md:px-5 md:py-3.5">
                 <div class="flex items-start gap-2.5 sm:gap-3">
                   <span
                     class="shrink-0 rounded-md border px-1.5 py-0.5 text-[9px] font-bold tabular-nums sm:text-[10px]"
@@ -457,7 +461,7 @@ function fillRentAll() {
                   </span>
                   <div class="flex min-w-0 flex-1 items-start gap-2">
                     <span
-                      class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/[0.12] bg-white/[0.02] text-violet-300/90"
+                      class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/[0.12] bg-white/[0.02] text-lime-300/90"
                     >
                       <FrontStrokeIcon name="cpu" size-class="h-4 w-4 sm:h-[1.125rem] sm:w-[1.125rem]" />
                     </span>
@@ -469,13 +473,16 @@ function fillRentAll() {
                         {{ row.product.name }} · {{ productStatusMeta[row.product.status]?.label }}
                       </p>
                       <div
-                        class="mt-2 flex flex-col gap-1 border-t border-white/[0.06] pt-2 text-[11px] text-white/50 md:hidden"
+                        class="mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5 border-t border-white/[0.06] pt-3 text-[11px] text-white/50 max-md:grid-cols-2 md:hidden"
                       >
-                        <span>周期 {{ cycleLabel(row.product) }}</span>
-                        <span class="tabular-nums">{{
+                        <span class="text-white/35">周期</span>
+                        <span class="text-right tabular-nums text-white/70">{{ cycleLabel(row.product) }}</span>
+                        <span class="text-white/35">区间</span>
+                        <span class="text-right tabular-nums text-white/70">{{
                           formatAmountSpan(row.tier.minAmount, row.tier.maxAmount, row.product.currency)
                         }}</span>
-                        <span class="font-semibold text-lime-300/90 tabular-nums">{{ row.tier.dailyRate }}% 日</span>
+                        <span class="text-white/35">日收益</span>
+                        <span class="text-right font-semibold tabular-nums text-lime-300/90">{{ row.tier.dailyRate }}%</span>
                       </div>
                     </div>
                   </div>
@@ -490,18 +497,20 @@ function fillRentAll() {
               <td class="hidden px-3 py-3.5 font-semibold tabular-nums text-lime-300/95 md:table-cell md:px-5">
                 {{ row.tier.dailyRate }}%
               </td>
-              <td class="px-2 py-3 align-middle text-right sm:px-3 md:px-5 md:py-3.5">
+              <td
+                class="max-md:block max-md:w-full max-md:px-3 max-md:pb-4 max-md:pt-3 md:table-cell md:px-5 md:py-3.5 sm:px-3"
+              >
                 <button
                   v-if="productRentable(row.product)"
                   type="button"
-                  class="inline-flex min-h-[2.25rem] min-w-[5.5rem] items-center justify-center rounded-lg bg-violet-500 px-3 py-1.5 text-[11px] font-semibold text-white shadow-sm transition hover:bg-violet-400 sm:min-h-0 sm:min-w-0 sm:px-4 sm:py-2 sm:text-xs md:text-sm"
+                  class="inline-flex w-full min-h-[2.75rem] touch-manipulation items-center justify-center rounded-lg bg-lime-400 px-4 py-2.5 text-sm font-semibold text-black shadow-sm transition hover:bg-lime-300 max-md:w-full md:min-h-0 md:w-auto md:px-4 md:py-2 md:text-xs lg:text-sm"
                   @click="openRentDialog(row)"
                 >
                   立即租用
                 </button>
                 <span
                   v-else
-                  class="inline-flex min-h-[2.25rem] items-center justify-end text-[11px] text-white/40 sm:min-h-0 sm:text-xs"
+                  class="flex min-h-[2.75rem] items-center text-sm text-white/45 max-md:justify-center md:inline-flex md:min-h-0 md:justify-end md:text-xs"
                 >
                   {{ productStatusMeta[row.product.status]?.label }}
                 </span>
@@ -509,97 +518,157 @@ function fillRentAll() {
             </tr>
           </tbody>
         </table>
-        <p v-else class="py-12 text-center text-sm text-white/45 sm:py-14">暂无该币种机器人（演示）</p>
+        <p v-else class="px-3 py-12 text-center text-sm text-white/45 sm:py-14">当前币种暂无可用策略</p>
+      </div>
+      </template>
+
+      <template v-else>
+      <!-- 托管概览：放在正文区，避免 Hero 内 Tab + 大数字 + 三列挤在一起 -->
+      <div class="mt-5 space-y-3 sm:mt-6 sm:space-y-4">
+        <div
+          class="rounded-xl border border-white/[0.08] bg-white/[0.035] px-3.5 py-4 sm:rounded-2xl sm:px-5 sm:py-5"
+        >
+          <p class="text-[11px] font-medium uppercase tracking-wide text-white/40">
+            托管金额 · {{ displayCurrency(currencyTab) }}
+          </p>
+          <p class="mt-1.5 text-2xl font-bold tabular-nums tracking-tight text-white sm:text-3xl md:text-4xl">
+            {{
+              runningOrdersTab.length
+                ? formatAmountForTab(custodyPrincipal, currencyTab)
+                : '0'
+            }}
+          </p>
+        </div>
+        <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-4">
+          <div
+            class="rounded-xl border border-white/[0.08] bg-white/[0.035] px-3.5 py-3 sm:px-5 sm:py-4"
+          >
+            <p class="text-[11px] font-medium text-white/40">预计日收益</p>
+            <p class="mt-1 text-sm font-semibold tabular-nums text-lime-200/95 sm:text-base">
+              {{
+                runningOrdersTab.length
+                  ? formatAmountForTab(expectedDailyTab, currencyTab)
+                  : '0'
+              }}
+            </p>
+          </div>
+          <div
+            class="rounded-xl border border-white/[0.08] bg-white/[0.035] px-3.5 py-3 sm:px-5 sm:py-4"
+          >
+            <p class="text-[11px] font-medium text-white/40">累计收益</p>
+            <p class="mt-1 text-sm font-semibold tabular-nums text-lime-200/90 sm:text-base">
+              {{ formatAmountForTab(accumulatedYieldTab, currencyTab) }}
+            </p>
+          </div>
+          <div
+            class="col-span-2 rounded-xl border border-white/[0.08] bg-white/[0.035] px-3.5 py-3 sm:col-span-1 sm:px-5 sm:py-4"
+          >
+            <p class="text-[11px] font-medium text-white/40">订单托管</p>
+            <p class="mt-1 text-sm font-semibold tabular-nums text-white sm:text-base">
+              {{ custodyOrderCount }}
+            </p>
+          </div>
+        </div>
       </div>
 
-      <!-- 记录区 -->
-      <section class="mt-10 sm:mt-12">
+      <!-- 记录：二级用底边线 Tab，与 Hero 胶囊主入口区分 -->
+      <section class="mt-5 sm:mt-6">
         <div
-          class="inline-flex w-fit max-w-full shrink-0 flex-nowrap gap-0 overflow-x-auto border-b border-white/[0.08] [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap [&::-webkit-scrollbar]:hidden"
-          role="tablist"
-          aria-label="记录类型"
+          class="overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.02] sm:rounded-2xl"
         >
-          <button
-            type="button"
-            role="tab"
-            :aria-selected="recordTab === 'buy'"
-            class="shrink-0 border-b-2 border-transparent px-3 pb-3 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/40 sm:px-4"
-            :class="
-              recordTab === 'buy'
-                ? 'border-violet-400 text-white'
-                : 'text-white/45 hover:text-white/75'
-            "
-            @click="recordTab = 'buy'"
+          <div
+            class="flex flex-col gap-2 border-b border-white/[0.08] bg-black/30 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-4 sm:py-3 md:px-5"
           >
-            购买
-          </button>
-          <button
-            type="button"
-            role="tab"
-            :aria-selected="recordTab === 'redeem'"
-            class="shrink-0 border-b-2 border-transparent px-3 pb-3 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/40 sm:px-4"
-            :class="
-              recordTab === 'redeem'
-                ? 'border-violet-400 text-white'
-                : 'text-white/45 hover:text-white/75'
-            "
-            @click="recordTab = 'redeem'"
-          >
-            赎回
-          </button>
-          <button
-            type="button"
-            role="tab"
-            :aria-selected="recordTab === 'interest'"
-            class="shrink-0 border-b-2 border-transparent px-3 pb-3 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/40 sm:px-4"
-            :class="
-              recordTab === 'interest'
-                ? 'border-violet-400 text-white'
-                : 'text-white/45 hover:text-white/75'
-            "
-            @click="recordTab = 'interest'"
-          >
-            利息
-          </button>
-        </div>
-
-        <div
-          class="mt-4 overflow-x-auto rounded-xl border border-white/[0.08] bg-white/[0.02] sm:rounded-2xl"
-        >
+            <p class="text-[10px] font-semibold uppercase tracking-wide text-white/40 sm:text-[11px]">记录明细</p>
+            <div
+              class="grid w-full grid-cols-3 gap-0 rounded-lg border border-white/[0.06] bg-black/40 p-0.5 sm:flex sm:w-auto sm:max-w-full sm:shrink-0 sm:overflow-x-auto sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              role="tablist"
+              aria-label="记录类型"
+            >
+              <button
+                type="button"
+                role="tab"
+                :aria-selected="recordTab === 'buy'"
+                class="min-h-[2.5rem] rounded-md border-b-2 border-transparent px-1 py-2 text-center text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 sm:min-h-0 sm:rounded-none sm:border-transparent sm:px-4 sm:pb-2.5 sm:text-left sm:text-sm sm:text-[15px]"
+                :class="
+                  recordTab === 'buy'
+                    ? 'border-b-2 border-lime-400 text-white max-sm:border-transparent max-sm:bg-white/[0.12] max-sm:text-lime-200 sm:bg-transparent'
+                    : 'border-b-2 border-transparent text-white/45 hover:text-white/75 sm:text-white/45'
+                "
+                @click="recordTab = 'buy'"
+              >
+                购买
+              </button>
+              <button
+                type="button"
+                role="tab"
+                :aria-selected="recordTab === 'redeem'"
+                class="min-h-[2.5rem] rounded-md border-b-2 border-transparent px-1 py-2 text-center text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 sm:min-h-0 sm:rounded-none sm:border-transparent sm:px-4 sm:pb-2.5 sm:text-left sm:text-sm sm:text-[15px]"
+                :class="
+                  recordTab === 'redeem'
+                    ? 'border-b-2 border-lime-400 text-white max-sm:border-transparent max-sm:bg-white/[0.12] max-sm:text-lime-200 sm:bg-transparent'
+                    : 'border-b-2 border-transparent text-white/45 hover:text-white/75 sm:text-white/45'
+                "
+                @click="recordTab = 'redeem'"
+              >
+                赎回
+              </button>
+              <button
+                type="button"
+                role="tab"
+                :aria-selected="recordTab === 'interest'"
+                class="min-h-[2.5rem] rounded-md border-b-2 border-transparent px-1 py-2 text-center text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 sm:min-h-0 sm:rounded-none sm:border-transparent sm:px-4 sm:pb-2.5 sm:text-left sm:text-sm sm:text-[15px]"
+                :class="
+                  recordTab === 'interest'
+                    ? 'border-b-2 border-lime-400 text-white max-sm:border-transparent max-sm:bg-white/[0.12] max-sm:text-lime-200 sm:bg-transparent'
+                    : 'border-b-2 border-transparent text-white/45 hover:text-white/75 sm:text-white/45'
+                "
+                @click="recordTab = 'interest'"
+              >
+                利息
+              </button>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
           <!-- 购买 -->
           <table
             v-if="recordTab === 'buy' && buyOrders.length"
-            class="w-full min-w-0 table-fixed border-collapse text-left text-xs text-white/85 sm:text-sm md:min-w-[880px] md:table-auto"
+            class="w-full min-w-0 border-collapse text-left text-xs text-white/85 sm:text-sm md:min-w-[880px] md:table-auto max-md:table-fixed"
           >
-            <thead>
+            <thead class="hidden md:table-header-group">
               <tr class="border-b border-white/[0.08] text-[10px] font-semibold uppercase tracking-wide text-white/40">
-                <th class="w-[26%] px-2.5 py-2.5 sm:px-3 md:w-auto md:px-5">产品名称</th>
+                <th class="px-3 py-2.5 md:px-5">产品名称</th>
                 <th class="hidden px-3 py-2.5 md:table-cell md:px-5">购买时间</th>
                 <th class="hidden px-3 py-2.5 lg:table-cell lg:px-5">结束时间</th>
                 <th class="hidden px-3 py-2.5 md:table-cell md:px-5">支付金额</th>
                 <th class="hidden px-3 py-2.5 lg:table-cell lg:px-5">累计收益</th>
                 <th class="hidden px-3 py-2.5 md:table-cell md:px-5">日收益</th>
-                <th class="w-[74%] px-2.5 py-2.5 text-right sm:w-auto sm:px-3 sm:text-left md:px-5">状态</th>
+                <th class="px-3 py-2.5 text-right md:px-5">状态</th>
               </tr>
             </thead>
             <tbody>
               <tr
                 v-for="o in buyOrders"
                 :key="o.id"
-                class="border-b border-white/[0.05] hover:bg-white/[0.02]"
+                class="border-b border-white/[0.06] hover:bg-white/[0.02] max-md:block max-md:last:border-0 md:table-row"
               >
-                <td class="min-w-0 px-2.5 py-2.5 sm:px-3 md:px-5 md:py-3">
-                  <p class="line-clamp-2 text-[13px] font-medium leading-snug text-white sm:text-sm">
+                <td class="min-w-0 max-md:block max-md:w-full max-md:px-3 max-md:pb-0 max-md:pt-4 md:table-cell md:px-5 md:py-3">
+                  <p class="text-[14px] font-medium leading-snug text-white sm:text-sm">
                     {{ o.productName }}
                   </p>
                   <div
-                    class="mt-1.5 space-y-0.5 border-t border-white/[0.06] pt-1.5 text-[10px] text-white/45 md:hidden"
+                    class="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-white/[0.06] pt-3 text-[11px] text-white/50 md:hidden"
                   >
-                    <p>购买 {{ o.startDate }} · 结束 {{ o.endDate }}</p>
-                    <p class="tabular-nums">
-                      支付 {{ o.principal }} {{ o.currency }} · 累计收益 {{ o.accumulatedYield }} · 日
-                      {{ o.expectedDailyYield }}
-                    </p>
+                    <span class="text-white/35">购买</span>
+                    <span class="text-right tabular-nums text-white/70">{{ o.startDate }}</span>
+                    <span class="text-white/35">结束</span>
+                    <span class="text-right tabular-nums text-white/70">{{ o.endDate }}</span>
+                    <span class="text-white/35">支付</span>
+                    <span class="text-right tabular-nums text-white/80">{{ o.principal }} {{ o.currency }}</span>
+                    <span class="text-white/35">累计收益</span>
+                    <span class="text-right tabular-nums text-lime-200/90">{{ o.accumulatedYield }}</span>
+                    <span class="text-white/35">日收益</span>
+                    <span class="text-right tabular-nums text-white/70">{{ o.expectedDailyYield }}</span>
                   </div>
                 </td>
                 <td class="hidden tabular-nums text-white/55 md:table-cell md:px-5 md:py-3">{{ o.startDate }}</td>
@@ -613,9 +682,11 @@ function fillRentAll() {
                 <td class="hidden tabular-nums text-white/60 md:table-cell md:px-5 md:py-3">
                   {{ o.expectedDailyYield }}
                 </td>
-                <td class="px-2.5 py-2.5 text-right align-top sm:px-3 sm:text-left md:px-5 md:py-3">
+                <td
+                  class="max-md:block max-md:w-full max-md:px-3 max-md:pb-4 max-md:pt-3 md:table-cell md:px-5 md:py-3 md:text-left"
+                >
                   <span
-                    class="inline-block max-w-[9rem] rounded-full px-2 py-0.5 text-[10px] font-semibold sm:max-w-none sm:text-xs md:px-2.5"
+                    class="inline-flex min-h-[1.75rem] items-center rounded-full px-2.5 py-1 text-[11px] font-semibold sm:text-xs md:px-2.5"
                     :class="orderStatusPillClass(o.status)"
                   >
                     {{ orderStatusMeta[o.status]?.label ?? o.status }}
@@ -626,7 +697,7 @@ function fillRentAll() {
           </table>
           <p
             v-else-if="recordTab === 'buy'"
-            class="py-14 text-center text-sm text-white/40"
+            class="px-3 py-12 text-center text-sm text-white/40 sm:py-14"
           >
             暂无数据
           </p>
@@ -634,27 +705,32 @@ function fillRentAll() {
           <!-- 赎回 -->
           <table
             v-else-if="recordTab === 'redeem' && redeemOrders.length"
-            class="w-full min-w-0 table-fixed border-collapse text-left text-xs text-white/85 sm:text-sm md:min-w-[640px] md:table-auto"
+            class="w-full min-w-0 border-collapse text-left text-xs text-white/85 sm:text-sm md:min-w-[640px] md:table-auto max-md:table-fixed"
           >
-            <thead>
+            <thead class="hidden md:table-header-group">
               <tr class="border-b border-white/[0.08] text-[10px] font-semibold uppercase tracking-wide text-white/40">
-                <th class="w-[40%] px-2.5 py-2.5 sm:px-3 md:w-auto md:px-5">产品名称</th>
+                <th class="px-3 py-2.5 md:px-5">产品名称</th>
                 <th class="hidden px-3 py-2.5 md:table-cell md:px-5">赎回时间</th>
                 <th class="hidden px-3 py-2.5 md:table-cell md:px-5">本金</th>
-                <th class="w-[60%] px-2.5 py-2.5 text-right sm:w-auto sm:px-3 sm:text-left md:px-5">状态</th>
+                <th class="px-3 py-2.5 text-right md:px-5">状态</th>
               </tr>
             </thead>
             <tbody>
               <tr
                 v-for="o in redeemOrders"
                 :key="o.id"
-                class="border-b border-white/[0.05] hover:bg-white/[0.02]"
+                class="border-b border-white/[0.06] hover:bg-white/[0.02] max-md:block max-md:last:border-0 md:table-row"
               >
-                <td class="min-w-0 px-2.5 py-2.5 sm:px-3 md:px-5 md:py-3">
-                  <p class="font-medium text-white">{{ o.productName }}</p>
-                  <p class="mt-1 text-[10px] text-white/45 md:hidden">
-                    {{ o.settledAt || o.endDate }} · {{ o.principal }} {{ o.currency }}
-                  </p>
+                <td class="min-w-0 max-md:block max-md:w-full max-md:px-3 max-md:pb-0 max-md:pt-4 md:px-5 md:py-3">
+                  <p class="text-[14px] font-medium leading-snug text-white sm:text-sm">{{ o.productName }}</p>
+                  <div
+                    class="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-white/[0.06] pt-3 text-[11px] text-white/50 md:hidden"
+                  >
+                    <span class="text-white/35">赎回时间</span>
+                    <span class="text-right tabular-nums text-white/70">{{ o.settledAt || o.endDate }}</span>
+                    <span class="text-white/35">本金</span>
+                    <span class="text-right tabular-nums text-white/80">{{ o.principal }} {{ o.currency }}</span>
+                  </div>
                 </td>
                 <td class="hidden tabular-nums text-white/55 md:table-cell md:px-5 md:py-3">
                   {{ o.settledAt || '—' }}
@@ -662,9 +738,11 @@ function fillRentAll() {
                 <td class="hidden tabular-nums md:table-cell md:px-5 md:py-3">
                   {{ o.principal }} {{ o.currency }}
                 </td>
-                <td class="px-2.5 py-2.5 text-right sm:px-3 sm:text-left md:px-5 md:py-3">
+                <td
+                  class="max-md:block max-md:w-full max-md:px-3 max-md:pb-4 max-md:pt-3 md:px-5 md:py-3 md:text-left"
+                >
                   <span
-                    class="inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold sm:text-xs"
+                    class="inline-flex min-h-[1.75rem] items-center rounded-full px-2.5 py-1 text-[11px] font-semibold sm:text-xs"
                     :class="orderStatusPillClass(o.status)"
                   >
                     {{ orderStatusMeta[o.status]?.label ?? o.status }}
@@ -675,7 +753,7 @@ function fillRentAll() {
           </table>
           <p
             v-else-if="recordTab === 'redeem'"
-            class="py-14 text-center text-sm text-white/40"
+            class="px-3 py-12 text-center text-sm text-white/40 sm:py-14"
           >
             暂无数据
           </p>
@@ -683,29 +761,37 @@ function fillRentAll() {
           <!-- 利息 / 调整 -->
           <table
             v-else-if="recordTab === 'interest' && interestRows.length"
-            class="w-full min-w-0 table-fixed border-collapse text-left text-xs text-white/85 sm:text-sm md:min-w-[720px] md:table-auto"
+            class="w-full min-w-0 border-collapse text-left text-xs text-white/85 sm:text-sm md:min-w-[720px] md:table-auto max-md:table-fixed"
           >
-            <thead>
+            <thead class="hidden md:table-header-group">
               <tr class="border-b border-white/[0.08] text-[10px] font-semibold uppercase tracking-wide text-white/40">
-                <th class="w-[36%] px-2.5 py-2.5 sm:px-3 md:w-auto md:px-5">说明</th>
+                <th class="px-3 py-2.5 md:px-5">说明</th>
                 <th class="hidden px-3 py-2.5 md:table-cell md:px-5">类型</th>
                 <th class="hidden px-3 py-2.5 md:table-cell md:px-5">金额</th>
                 <th class="hidden px-3 py-2.5 lg:table-cell lg:px-5">时间</th>
-                <th class="w-[64%] px-2.5 py-2.5 text-right sm:w-auto sm:px-3 sm:text-left md:px-5">关联</th>
+                <th class="px-3 py-2.5 text-right md:px-5">关联</th>
               </tr>
             </thead>
             <tbody>
               <tr
                 v-for="a in interestRows"
                 :key="a.id"
-                class="border-b border-white/[0.05] hover:bg-white/[0.02]"
+                class="border-b border-white/[0.06] hover:bg-white/[0.02] max-md:block max-md:last:border-0 md:table-row"
               >
-                <td class="min-w-0 px-2.5 py-2.5 sm:px-3 md:px-5 md:py-3">
-                  <p class="line-clamp-2 text-[13px] text-white sm:text-sm">{{ a.reason }}</p>
-                  <p class="mt-1 text-[10px] text-white/40 md:hidden">
-                    {{ adjustmentTypeMeta[a.type]?.label }} · {{ a.amount }}{{ a.currency ? ` ${a.currency}` : '' }}
-                    · {{ a.createdAt }}
-                  </p>
+                <td class="min-w-0 max-md:block max-md:w-full max-md:px-3 max-md:pb-0 max-md:pt-4 md:px-5 md:py-3">
+                  <p class="text-[14px] leading-snug text-white sm:text-sm">{{ a.reason }}</p>
+                  <div
+                    class="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-white/[0.06] pt-3 text-[11px] text-white/50 md:hidden"
+                  >
+                    <span class="text-white/35">类型</span>
+                    <span class="text-right text-white/75">{{ adjustmentTypeMeta[a.type]?.label ?? a.type }}</span>
+                    <span class="text-white/35">金额</span>
+                    <span class="text-right tabular-nums text-white/80">{{
+                      a.amount
+                    }}{{ a.currency ? ` ${a.currency}` : a.percentage != null ? ` (${a.percentage}%)` : '' }}</span>
+                    <span class="text-white/35">时间</span>
+                    <span class="text-right tabular-nums text-white/60">{{ a.createdAt }}</span>
+                  </div>
                 </td>
                 <td class="hidden md:table-cell md:px-5 md:py-3">
                   {{ adjustmentTypeMeta[a.type]?.label ?? a.type }}
@@ -714,20 +800,25 @@ function fillRentAll() {
                   {{ a.amount }}{{ a.currency ? ` ${a.currency}` : a.percentage != null ? ` (${a.percentage}%)` : '' }}
                 </td>
                 <td class="hidden tabular-nums text-white/50 lg:table-cell lg:px-5 lg:py-3">{{ a.createdAt }}</td>
-                <td class="px-2.5 py-2.5 text-right text-[11px] text-white/50 sm:px-3 sm:text-left md:px-5 md:py-3">
-                  {{ a.productName || a.orderId || '—' }}
+                <td
+                  class="max-md:block max-md:w-full max-md:px-3 max-md:pb-4 max-md:pt-2 text-left text-[12px] text-white/70 md:px-5 md:py-3 md:text-right lg:text-sm"
+                >
+                  <p class="text-[11px] text-white/35 md:hidden">关联</p>
+                  <p class="mt-0.5 break-words md:mt-0">{{ a.productName || a.orderId || '—' }}</p>
                 </td>
               </tr>
             </tbody>
           </table>
           <p
             v-else-if="recordTab === 'interest'"
-            class="py-14 text-center text-sm text-white/40"
+            class="px-3 py-12 text-center text-sm text-white/40 sm:py-14"
           >
             暂无数据
           </p>
+          </div>
         </div>
       </section>
+      </template>
     </div>
 
     <FrontPopupShell
@@ -748,7 +839,7 @@ function fillRentAll() {
             <dl class="space-y-0 divide-y divide-white/[0.06] text-sm">
               <div class="flex items-center justify-between gap-3 py-2.5 first:pt-0">
                 <dt class="shrink-0 text-white/45">机器人</dt>
-                <dd class="text-right font-medium text-violet-300">
+                <dd class="text-right font-medium text-lime-200/95">
                   {{ displayAssetCurrency(rentRow.product.currency) }} 机器人
                 </dd>
               </div>
@@ -802,11 +893,11 @@ function fillRentAll() {
                   type="text"
                   inputmode="decimal"
                   :placeholder="`请输入购买金额`"
-                  class="min-w-0 flex-1 rounded-lg border border-white/[0.12] bg-black/40 px-3 py-2.5 text-[15px] text-white placeholder:text-white/30 focus:border-violet-400/45 focus:outline-none focus:ring-2 focus:ring-violet-400/25"
+                  class="min-w-0 flex-1 rounded-lg border border-white/15 bg-black/40 px-3 py-2.5 text-[15px] text-white placeholder:text-white/30 focus:border-lime-400/45 focus:outline-none focus:ring-2 focus:ring-lime-400/25"
                 />
                 <button
                   type="button"
-                  class="shrink-0 rounded-lg border border-white/[0.18] px-3 py-2.5 text-xs font-semibold text-violet-200 transition hover:bg-white/[0.06] sm:px-4 sm:text-sm"
+                  class="shrink-0 rounded-lg border border-white/20 px-3 py-2.5 text-xs font-semibold text-lime-200/95 transition hover:bg-white/10 sm:px-4 sm:text-sm"
                   @click="fillRentAll"
                 >
                   全部
@@ -824,7 +915,7 @@ function fillRentAll() {
               </button>
               <RouterLink
                 :to="{ path: `${prefix}/login`, query: { redirect: route.path } }"
-                class="inline-flex items-center justify-center rounded-lg bg-violet-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-400"
+                class="inline-flex items-center justify-center rounded-lg bg-lime-400 px-4 py-2.5 text-sm font-semibold text-black shadow-sm transition hover:bg-lime-300"
                 @click="closeRentDialog"
               >
                 确定

@@ -22,8 +22,18 @@ const products = ref([...mockProducts])
 const orders = ref([...mockOrders])
 const repayments = ref([...mockRepayments])
 
-/** 借出币种筛选（顶部资产卡） */
+/** 借出币种筛选（顶部资产卡；用弹层选择，避免卡内 Tab 过窄） */
 const loanCurrencyFilter = ref('')
+const currencyPickerOpen = ref(false)
+
+/** 资产卡主数字：短文案避免窄格换行 */
+const loanCurrencyHeadline = computed(() =>
+  loanCurrencyFilter.value ? String(loanCurrencyFilter.value) : '全部'
+)
+
+const loanCurrencyHint = computed(() =>
+  loanCurrencyFilter.value ? `筛选「${loanCurrencyFilter.value}」` : '借出币种未限定'
+)
 
 const loanCurrencies = computed(() => {
   const set = new Set(products.value.map((p) => p.loanCurrency).filter(Boolean))
@@ -57,7 +67,7 @@ const pendingRepayTotal = computed(() =>
     .reduce((s, o) => s + (Number(o.totalDebt) || 0), 0)
 )
 
-/** 演示：授信与剩余可借（随币种筛选仅影响展示口径说明） */
+/** Headline credit stats; currency filter affects summary context */
 const demoTotalCredit = 2_500_000
 const demoWalletBalance = 128_430.55
 
@@ -68,7 +78,7 @@ const remainingBorrowApprox = computed(() =>
 )
 
 const recordTab = ref('current')
-/** Hero 主入口：借币一览 / 我的记录（与流动性挖矿页结构一致） */
+/** Hero 主入口：借币一览 / 我的记录（与 AI 量化、流动性列表一致） */
 const heroPanel = ref('overview')
 
 const currentOrders = computed(() =>
@@ -101,6 +111,7 @@ function openBorrowDialog(p) {
     clearTimeout(clearBorrowTimer)
     clearBorrowTimer = null
   }
+  currencyPickerOpen.value = false
   borrowProduct.value = p
   borrowAmount.value = ''
   borrowOpen.value = true
@@ -114,9 +125,22 @@ function onBorrowEscape(e) {
   if (e.key === 'Escape' && borrowOpen.value) closeBorrowDialog()
 }
 
+function closeCurrencyPicker() {
+  currencyPickerOpen.value = false
+}
+
+function onCurrencyPickerEscape(e) {
+  if (e.key === 'Escape' && currencyPickerOpen.value) closeCurrencyPicker()
+}
+
+function applyLoanCurrency(code) {
+  loanCurrencyFilter.value = code
+  currencyPickerOpen.value = false
+}
+
 watch(borrowOpen, (open) => {
   if (typeof document === 'undefined') return
-  document.body.style.overflow = open ? 'hidden' : ''
+  document.body.style.overflow = open || currencyPickerOpen.value ? 'hidden' : ''
   if (typeof window === 'undefined') return
   if (open) {
     if (clearBorrowTimer != null) {
@@ -132,13 +156,29 @@ watch(borrowOpen, (open) => {
       borrowAmount.value = ''
       clearBorrowTimer = null
     }, 360)
+    if (!currencyPickerOpen.value) document.body.style.overflow = ''
+  }
+})
+
+watch(currencyPickerOpen, (open) => {
+  if (typeof document === 'undefined') return
+  if (typeof window === 'undefined') return
+  if (open) {
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', onCurrencyPickerEscape)
+  } else {
+    window.removeEventListener('keydown', onCurrencyPickerEscape)
+    if (!borrowOpen.value) document.body.style.overflow = ''
   }
 })
 
 onUnmounted(() => {
   if (clearBorrowTimer != null) clearTimeout(clearBorrowTimer)
   if (typeof document !== 'undefined') document.body.style.overflow = ''
-  if (typeof window !== 'undefined') window.removeEventListener('keydown', onBorrowEscape)
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('keydown', onBorrowEscape)
+    window.removeEventListener('keydown', onCurrencyPickerEscape)
+  }
 })
 
 const parsedBorrow = computed(() => {
@@ -172,13 +212,13 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
     <header class="relative overflow-hidden border-b border-white/[0.06] bg-[#050505]">
       <div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
         <div
-          class="absolute -left-1/4 top-0 h-[22rem] w-[22rem] rounded-full bg-lime-400/[0.06] blur-[100px] sm:h-[28rem] sm:w-[28rem]"
+          class="absolute -left-1/4 top-0 h-[20rem] w-[20rem] rounded-full bg-lime-400/[0.07] blur-[100px] sm:h-[26rem] sm:w-[26rem]"
         />
         <div
-          class="absolute -right-1/4 bottom-0 h-[18rem] w-[18rem] rounded-full bg-violet-500/[0.07] blur-[90px] sm:h-[24rem] sm:w-[24rem]"
+          class="absolute -right-1/4 bottom-0 h-[16rem] w-[16rem] rounded-full bg-lime-400/[0.05] blur-[90px] sm:h-[22rem] sm:w-[22rem]"
         />
         <div
-          class="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_0%,#050505_50%,#050505_100%)]"
+          class="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_0%,#050505_55%,#050505_100%)]"
         />
       </div>
       <div
@@ -189,148 +229,119 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
           <span class="mx-1.5 text-white/20 sm:mx-2">/</span>
           <span class="text-white/70">信用借贷</span>
         </nav>
-        <p
-          class="mt-4 inline-flex items-center gap-2 rounded-full border border-lime-400/20 bg-lime-400/[0.06] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.28em] text-lime-200/90 sm:mt-6 sm:px-3.5 sm:py-1 sm:text-[11px] sm:tracking-[0.3em]"
-        >
-          Borrow · 信用借币
-        </p>
-        <h1
-          class="mt-2 text-3xl font-bold tracking-tight text-white sm:mt-3 sm:text-4xl md:text-5xl lg:text-[3.25rem] lg:leading-tight"
-        >
-          信用借贷
-        </h1>
 
-        <div
-          class="mt-5 inline-flex w-fit max-w-full rounded-xl border border-white/[0.07] bg-black/40 p-1 shadow-inner shadow-black/20 sm:mt-6"
-          role="tablist"
-          aria-label="页面主入口"
-        >
-          <button
-            type="button"
-            role="tab"
-            :aria-selected="heroPanel === 'overview'"
-            class="min-h-[2.75rem] shrink-0 rounded-lg px-4 py-2.5 text-center text-sm font-semibold tracking-tight transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505] sm:min-h-[3rem] sm:px-6 sm:py-2.5 sm:text-[15px] md:text-base"
-            :class="
-              heroPanel === 'overview'
-                ? 'bg-white/[0.1] text-lime-200 shadow-sm'
-                : 'text-white/45 hover:text-white/75'
-            "
-            @click="heroPanel = 'overview'"
-          >
-            借币一览
-          </button>
-          <button
-            type="button"
-            role="tab"
-            :aria-selected="heroPanel === 'records'"
-            class="min-h-[2.75rem] shrink-0 rounded-lg px-4 py-2.5 text-center text-sm font-semibold tracking-tight transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505] sm:min-h-[3rem] sm:px-6 sm:py-2.5 sm:text-[15px] md:text-base"
-            :class="
-              heroPanel === 'records'
-                ? 'bg-white/[0.1] text-lime-200 shadow-sm'
-                : 'text-white/45 hover:text-white/75'
-            "
-            @click="heroPanel = 'records'"
-          >
-            我的记录
-          </button>
-        </div>
+        <div class="mt-4 flex flex-col gap-5 sm:gap-6 lg:flex-row lg:items-end lg:justify-between lg:gap-10">
+          <div class="min-w-0 flex-1 space-y-5 sm:space-y-6">
+            <div>
+              <p
+                class="inline-flex items-center gap-2 rounded-full border border-lime-400/25 bg-lime-400/[0.08] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.28em] text-lime-200/95 sm:text-[11px] sm:tracking-[0.3em]"
+              >
+                Borrow · 信用借币
+              </p>
+              <h1
+                class="mt-2 text-3xl font-bold tracking-tight text-white sm:mt-3 sm:text-4xl md:text-5xl lg:text-[3.25rem] lg:leading-tight"
+              >
+                信用借贷
+              </h1>
+            </div>
+            <div
+              class="inline-flex w-full max-w-full rounded-xl border border-white/[0.07] bg-black/40 p-1 shadow-inner shadow-black/20 sm:w-fit"
+              role="tablist"
+              aria-label="页面主入口"
+            >
+              <button
+                type="button"
+                role="tab"
+                :aria-selected="heroPanel === 'overview'"
+                class="min-h-[2.75rem] min-w-0 flex-1 rounded-lg px-3 py-2.5 text-center text-sm font-semibold tracking-tight transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505] sm:min-h-[3rem] sm:flex-none sm:px-6 sm:py-2.5 sm:text-[15px] md:text-base"
+                :class="
+                  heroPanel === 'overview'
+                    ? 'bg-white/[0.1] text-lime-200 shadow-sm'
+                    : 'text-white/45 hover:text-white/75'
+                "
+                @click="heroPanel = 'overview'"
+              >
+                借币一览
+              </button>
+              <button
+                type="button"
+                role="tab"
+                :aria-selected="heroPanel === 'records'"
+                class="min-h-[2.75rem] min-w-0 flex-1 rounded-lg px-3 py-2.5 text-center text-sm font-semibold tracking-tight transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505] sm:min-h-[3rem] sm:flex-none sm:px-6 sm:py-2.5 sm:text-[15px] md:text-base"
+                :class="
+                  heroPanel === 'records'
+                    ? 'bg-white/[0.1] text-lime-200 shadow-sm'
+                    : 'text-white/45 hover:text-white/75'
+                "
+                @click="heroPanel = 'records'"
+              >
+                我的记录
+              </button>
+            </div>
+          </div>
 
-        <div
-          v-if="heroPanel === 'records'"
-          class="mt-4 flex flex-wrap items-center gap-2 sm:mt-5 sm:gap-3"
-        >
           <div
-            class="inline-flex w-fit max-w-full shrink-0 flex-nowrap overflow-x-auto rounded-xl border border-white/[0.07] bg-black/40 p-1 shadow-inner shadow-black/20 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap [&::-webkit-scrollbar]:hidden"
-            role="tablist"
-            aria-label="记录类型"
+            v-if="heroPanel === 'overview'"
+            class="pointer-events-none relative mx-auto h-36 w-36 shrink-0 sm:h-40 sm:w-40 lg:mx-0 lg:h-44 lg:w-44"
+            aria-hidden="true"
           >
-            <button
-              type="button"
-              role="tab"
-              :aria-selected="recordTab === 'current'"
-              class="min-h-10 shrink-0 rounded-lg px-3 text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 sm:min-h-[2.5rem] sm:px-4 sm:text-sm"
-              :class="
-                recordTab === 'current'
-                  ? 'bg-white/[0.1] text-lime-200 shadow-sm'
-                  : 'text-white/45 hover:text-white/75'
-              "
-              @click="recordTab = 'current'"
-            >
-              当前记录
-            </button>
-            <button
-              type="button"
-              role="tab"
-              :aria-selected="recordTab === 'repayment'"
-              class="min-h-10 shrink-0 rounded-lg px-3 text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 sm:min-h-[2.5rem] sm:px-4 sm:text-sm"
-              :class="
-                recordTab === 'repayment'
-                  ? 'bg-white/[0.1] text-lime-200 shadow-sm'
-                  : 'text-white/45 hover:text-white/75'
-              "
-              @click="recordTab = 'repayment'"
-            >
-              还款记录
-            </button>
-            <button
-              type="button"
-              role="tab"
-              :aria-selected="recordTab === 'history'"
-              class="min-h-10 shrink-0 rounded-lg px-3 text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 sm:min-h-[2.5rem] sm:px-4 sm:text-sm"
-              :class="
-                recordTab === 'history'
-                  ? 'bg-white/[0.1] text-lime-200 shadow-sm'
-                  : 'text-white/45 hover:text-white/75'
-              "
-              @click="recordTab = 'history'"
-            >
-              历史记录
-            </button>
+            <div
+              class="absolute inset-0 rounded-full border border-lime-400/20 bg-gradient-to-br from-lime-400/15 via-transparent to-emerald-600/10 opacity-90"
+            />
+            <div
+              class="absolute inset-[18%] rounded-full border border-white/[0.06] bg-lime-400/[0.06] opacity-90"
+            />
+            <div
+              class="absolute inset-[38%] rounded-full border border-white/[0.08] bg-white/[0.03] opacity-90"
+            />
+            <div
+              class="absolute -right-1 top-1/4 h-14 w-14 rounded-full bg-lime-400/18 opacity-90 blur-2xl sm:h-16 sm:w-16"
+            />
           </div>
         </div>
-
-        <p
-          v-if="heroPanel === 'overview'"
-          class="mt-4 max-w-2xl text-[15px] leading-relaxed text-white/55 sm:mt-5 sm:text-lg md:text-xl"
-        >
-          顶部为额度与流动性摘要；下方按借出币种浏览期限档位，右侧为账户授信演示（数据与后台抵押借贷字段一致）。
-        </p>
-        <p
-          v-else
-          class="mt-3 max-w-2xl text-xs leading-relaxed text-white/45 sm:mt-4 sm:text-[15px]"
-        >
-          下方为演示订单与还款流水，与真实账户无关；接入接口后将按登录用户展示。
-        </p>
       </div>
     </header>
 
-    <div
-      class="mx-auto max-w-7xl px-4 sm:px-8 lg:px-10"
-      :class="heroPanel === 'records' ? 'py-4 sm:py-6 lg:py-8' : 'py-5 sm:py-8 lg:py-10'"
-    >
+    <div class="mx-auto max-w-7xl px-4 py-5 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
       <template v-if="heroPanel === 'overview'">
       <!-- 顶部四卡 -->
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
         <div
-          class="flex items-center justify-between gap-3 rounded-xl border border-white/[0.08] bg-white/[0.035] px-4 py-3.5 sm:px-5 sm:py-4"
+          class="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-white/[0.08] bg-white/[0.035] px-4 py-3.5 sm:px-5 sm:py-4"
         >
-          <div class="min-w-0">
+          <div class="min-w-0 flex-1 pr-1">
             <p class="text-[11px] font-medium uppercase tracking-wide text-white/40">资产</p>
-            <label class="sr-only">借出币种</label>
-            <select
-              v-model="loanCurrencyFilter"
-              class="mt-1.5 w-full max-w-[10rem] cursor-pointer truncate rounded-lg border border-white/[0.12] bg-black/35 py-1.5 pl-2 pr-7 text-sm font-semibold text-white focus:border-lime-400/45 focus:outline-none focus:ring-2 focus:ring-lime-400/25"
-            >
-              <option value="">全部币种</option>
-              <option v-for="c in loanCurrencies" :key="c" :value="c">{{ c }}</option>
-            </select>
+            <div class="mt-1.5 flex min-w-0 items-center gap-0.5">
+              <p
+                class="min-w-0 truncate text-lg font-bold tabular-nums tracking-tight sm:text-xl"
+                :class="loanCurrencyFilter ? 'text-lime-200/[0.92]' : 'text-white'"
+              >
+                {{ loanCurrencyHeadline }}
+              </p>
+              <button
+                type="button"
+                class="shrink-0 touch-manipulation rounded-md p-1 text-white/35 transition hover:bg-white/[0.06] hover:text-lime-300/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505]"
+                aria-label="选择借出币种"
+                @click="currencyPickerOpen = true"
+              >
+                <FrontStrokeIcon
+                  name="chevron-down"
+                  size-class="h-4 w-4 sm:h-[1.125rem] sm:w-[1.125rem]"
+                />
+              </button>
+            </div>
+            <p class="mt-1 truncate text-[11px] leading-snug text-white/38">
+              {{ loanCurrencyHint }}
+            </p>
           </div>
-          <div
-            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.12] bg-white/[0.02] text-white/45"
-            aria-hidden="true"
+          <button
+            type="button"
+            class="flex h-11 w-11 shrink-0 touch-manipulation items-center justify-center rounded-xl border border-white/[0.12] bg-white/[0.02] text-white/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:border-lime-400/30 hover:bg-lime-400/[0.08] hover:text-lime-300/95 focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 active:scale-[0.96]"
+            aria-label="选择借出币种"
+            @click="currencyPickerOpen = true"
           >
             <FrontStrokeIcon name="arrows-swap" size-class="h-5 w-5" />
-          </div>
+          </button>
         </div>
 
         <div
@@ -372,7 +383,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
         >
           <div class="min-w-0">
             <p class="text-[11px] font-medium uppercase tracking-wide text-white/40">待还数量</p>
-            <p class="mt-1.5 truncate text-lg font-bold tabular-nums text-violet-200/95 sm:text-xl">
+            <p class="mt-1.5 truncate text-lg font-bold tabular-nums text-white sm:text-xl">
               {{ Math.round(pendingRepayTotal).toLocaleString() }}
             </p>
           </div>
@@ -392,35 +403,29 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
             借币期限
           </h2>
           <div
-            class="overflow-x-auto rounded-xl border border-white/[0.08] bg-white/[0.025] sm:rounded-2xl"
+            class="overflow-x-auto rounded-xl border border-white/[0.08] bg-white/[0.025] sm:rounded-2xl max-md:-mx-1 max-md:rounded-lg max-md:border-white/[0.06]"
           >
             <table
-              class="w-full min-w-0 table-fixed border-collapse text-left text-sm text-white/90 md:min-w-[640px] md:table-auto"
+              class="w-full min-w-0 border-collapse text-left text-sm text-white/90 max-md:table-fixed md:min-w-[640px] md:table-auto"
             >
-              <thead>
+              <thead class="hidden md:table-header-group">
                 <tr
-                  class="border-b border-white/[0.08] text-[10px] font-semibold uppercase tracking-wide text-white/45 sm:text-xs"
+                  class="border-b border-white/[0.08] text-[10px] font-semibold uppercase tracking-wide text-white/40 sm:text-[11px]"
                 >
-                  <th class="w-[58%] px-3 py-2.5 font-semibold sm:w-[52%] sm:px-4 sm:py-3 md:w-auto md:px-5 md:py-3.5">
-                    币种
-                  </th>
-                  <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3.5">利率</th>
-                  <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3.5">还款周期</th>
-                  <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3.5">可借额度</th>
-                  <th
-                    class="w-[42%] px-2 py-2.5 text-right font-semibold sm:w-auto sm:px-3 sm:py-3 md:px-5 md:py-3.5"
-                  >
-                    操作
-                  </th>
+                  <th class="px-4 py-2.5 font-semibold md:px-5 md:py-3">币种</th>
+                  <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">利率</th>
+                  <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">还款周期</th>
+                  <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">可借额度</th>
+                  <th class="px-3 py-2.5 text-right font-semibold md:px-5 md:py-3">操作</th>
                 </tr>
               </thead>
               <tbody>
                 <tr
                   v-for="p in filteredProducts"
                   :key="p.productId"
-                  class="border-b border-white/[0.05] transition hover:bg-white/[0.03]"
+                  class="border-b border-white/[0.06] transition hover:bg-white/[0.03] max-md:block max-md:last:border-b-0 md:table-row"
                 >
-                  <td class="px-3 py-3 align-top sm:px-4 sm:py-3.5 md:px-5 md:py-4">
+                  <td class="max-md:block max-md:w-full max-md:px-3 max-md:pb-1 max-md:pt-4 md:table-cell md:px-5 md:py-3.5 sm:px-4 sm:py-3.5">
                     <div class="flex items-start gap-2 sm:gap-3">
                       <span
                         class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/[0.12] bg-transparent text-white/40"
@@ -440,13 +445,16 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                           </span>
                         </div>
                         <div
-                          class="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 border-t border-white/[0.06] pt-2 text-[11px] text-white/50 md:hidden"
+                          class="mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5 border-t border-white/[0.06] pt-3 text-[11px] text-white/50 md:hidden"
                         >
-                          <span class="font-bold tabular-nums text-lime-300">{{ p.interestRate }}%</span>
-                          <span class="tabular-nums text-white/70">
+                          <span class="text-white/35">利率</span>
+                          <span class="text-right font-bold tabular-nums text-lime-300">{{ p.interestRate }}%</span>
+                          <span class="text-white/35">周期</span>
+                          <span class="text-right tabular-nums text-white/70">
                             {{ p.minLoanDuration }} – {{ p.maxLoanDuration }} 天
                           </span>
-                          <span class="w-full truncate tabular-nums text-white/45">
+                          <span class="text-white/35">额度</span>
+                          <span class="truncate text-right tabular-nums text-white/70">
                             {{ p.minLoanAmount?.toLocaleString() }} – {{ p.maxLoanAmount?.toLocaleString() }}
                           </span>
                         </div>
@@ -462,11 +470,13 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                   <td class="hidden px-3 py-3.5 tabular-nums text-white/70 md:table-cell md:px-5 md:py-4">
                     {{ p.minLoanAmount?.toLocaleString() }} – {{ p.maxLoanAmount?.toLocaleString() }}
                   </td>
-                  <td class="px-2 py-3 align-middle text-right sm:px-3 sm:py-3.5 md:px-5 md:py-4">
+                  <td
+                    class="max-md:block max-md:w-full max-md:px-3 max-md:pb-4 max-md:pt-3 md:table-cell md:px-5 md:py-3.5 sm:px-3"
+                  >
                     <button
                       v-if="p.status === PRODUCT_STATUS.ACTIVE"
                       type="button"
-                      class="inline-flex min-h-[2.25rem] min-w-[3.25rem] items-center justify-center rounded-lg border border-lime-400/50 px-2.5 py-1.5 text-[11px] font-semibold text-lime-200 transition hover:bg-lime-400/10 sm:min-h-0 sm:min-w-0 sm:px-4 sm:py-2 sm:text-xs md:text-sm"
+                      class="inline-flex w-full min-h-[2.75rem] touch-manipulation items-center justify-center rounded-lg border border-lime-400/50 px-4 py-2.5 text-sm font-semibold text-lime-200 transition hover:bg-lime-400/10 max-md:w-full md:min-h-0 md:w-auto md:px-4 md:py-2 md:text-xs lg:text-sm"
                       @click="openBorrowDialog(p)"
                     >
                       借款
@@ -474,7 +484,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                     <RouterLink
                       v-else
                       :to="`${prefix}/finance/lending/${p.productId}`"
-                      class="inline-flex min-h-[2.25rem] min-w-[3.25rem] items-center justify-center rounded-lg border border-white/20 px-2.5 py-1.5 text-[11px] font-medium text-white/60 transition hover:bg-white/10 sm:min-h-0 sm:min-w-0 sm:px-4 sm:py-2 sm:text-xs md:text-sm"
+                      class="inline-flex w-full min-h-[2.75rem] touch-manipulation items-center justify-center rounded-lg border border-white/20 px-4 py-2.5 text-sm font-medium text-white/60 transition hover:bg-white/10 max-md:w-full md:min-h-0 md:w-auto md:px-4 md:py-2 md:text-xs lg:text-sm"
                     >
                       查看
                     </RouterLink>
@@ -510,7 +520,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
               </div>
               <div class="flex items-start justify-between gap-2 border-b border-white/[0.06] pb-2.5 sm:items-center sm:gap-3 sm:pb-3">
                 <dt class="shrink-0 text-white/45">已用额度</dt>
-                <dd class="max-w-[min(100%,11rem)] text-right text-[11px] font-semibold tabular-nums text-violet-200/95 sm:max-w-none sm:text-sm">
+                <dd class="max-w-[min(100%,11rem)] text-right text-[11px] font-semibold tabular-nums text-white sm:max-w-none sm:text-sm">
                   {{ Math.round(usedCreditApprox).toLocaleString() }} USDT
                 </dd>
               </div>
@@ -528,7 +538,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
               获取借款额度
             </RouterLink>
             <p class="mt-3 text-center text-[11px] leading-relaxed text-white/35">
-              演示环境：正式接入后将按风控与授信策略展示。
+              授信额度与风控规则以平台公示及实际审核结果为准。
             </p>
           </div>
         </aside>
@@ -536,185 +546,322 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
       </template>
 
       <template v-else>
-        <div
-          class="overflow-x-auto rounded-xl border border-white/[0.08] bg-white/[0.02] sm:rounded-2xl"
-        >
-          <!-- 当前记录 -->
-          <table
-            v-if="recordTab === 'current'"
-            class="w-full min-w-0 table-fixed border-collapse text-left text-xs text-white/85 sm:text-sm md:min-w-[560px] md:table-auto"
+        <section class="overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.02] sm:rounded-2xl">
+          <div
+            class="flex flex-col gap-2 border-b border-white/[0.08] bg-black/30 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-4 sm:py-3 md:px-5"
           >
-            <thead>
-              <tr
-                class="border-b border-white/[0.08] text-[10px] font-semibold uppercase tracking-wide text-white/40 sm:text-xs"
+            <div class="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
+              <p class="text-[10px] font-semibold uppercase tracking-wide text-white/40 sm:text-[11px]">记录明细</p>
+              <span
+                v-if="recordTab === 'current' && currentOrders.length"
+                class="text-[11px] tabular-nums text-white/40 sm:text-xs"
+              >本页共 {{ currentOrders.length }} 条</span>
+              <span
+                v-else-if="recordTab === 'repayment' && repayments.length"
+                class="text-[11px] tabular-nums text-white/40 sm:text-xs"
+              >本页共 {{ repayments.length }} 条</span>
+              <span
+                v-else-if="recordTab === 'history' && historyOrders.length"
+                class="text-[11px] tabular-nums text-white/40 sm:text-xs"
+              >本页共 {{ historyOrders.length }} 条</span>
+            </div>
+            <div
+              class="grid w-full grid-cols-3 gap-0 rounded-lg border border-white/[0.06] bg-black/40 p-0.5 sm:flex sm:w-auto sm:max-w-full sm:shrink-0 sm:overflow-x-auto sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              role="tablist"
+              aria-label="记录类型"
+            >
+              <button
+                type="button"
+                role="tab"
+                :aria-selected="recordTab === 'current'"
+                class="min-h-[2.5rem] rounded-md border-b-2 border-transparent px-1 py-2 text-center text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 sm:min-h-0 sm:rounded-none sm:border-transparent sm:px-4 sm:pb-2.5 sm:text-left sm:text-sm sm:text-[15px]"
+                :class="
+                  recordTab === 'current'
+                    ? 'border-b-2 border-lime-400 text-white max-sm:border-transparent max-sm:bg-white/[0.12] max-sm:text-lime-200 sm:bg-transparent'
+                    : 'border-b-2 border-transparent text-white/45 hover:text-white/75 sm:text-white/45'
+                "
+                @click="recordTab = 'current'"
               >
-                <th class="w-[58%] px-2.5 py-2 font-semibold sm:w-[52%] sm:px-3 sm:py-2.5 md:w-auto md:px-5 md:py-3">
-                  借币
-                </th>
-                <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">借款金额</th>
-                <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">利率</th>
-                <th class="w-[42%] px-2 py-2 text-right font-semibold sm:w-auto sm:px-3 sm:py-2.5 sm:text-left md:px-5 md:py-3">
-                  状态
-                </th>
-                <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">到期</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="o in currentOrders"
-                :key="o.orderId"
-                class="border-b border-white/[0.05] hover:bg-white/[0.02]"
+                当前
+              </button>
+              <button
+                type="button"
+                role="tab"
+                :aria-selected="recordTab === 'repayment'"
+                class="min-h-[2.5rem] rounded-md border-b-2 border-transparent px-1 py-2 text-center text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 sm:min-h-0 sm:rounded-none sm:border-transparent sm:px-4 sm:pb-2.5 sm:text-left sm:text-sm sm:text-[15px]"
+                :class="
+                  recordTab === 'repayment'
+                    ? 'border-b-2 border-lime-400 text-white max-sm:border-transparent max-sm:bg-white/[0.12] max-sm:text-lime-200 sm:bg-transparent'
+                    : 'border-b-2 border-transparent text-white/45 hover:text-white/75 sm:text-white/45'
+                "
+                @click="recordTab = 'repayment'"
               >
-                <td class="min-w-0 px-2.5 py-2.5 align-top sm:px-3 sm:py-3 md:px-5">
-                  <p class="text-[13px] font-semibold leading-snug text-white sm:text-sm">{{ o.loanCurrency }}</p>
-                  <p class="mt-0.5 tabular-nums text-[11px] text-white/55 sm:text-xs">
+                还款
+              </button>
+              <button
+                type="button"
+                role="tab"
+                :aria-selected="recordTab === 'history'"
+                class="min-h-[2.5rem] rounded-md border-b-2 border-transparent px-1 py-2 text-center text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 sm:min-h-0 sm:rounded-none sm:border-transparent sm:px-4 sm:pb-2.5 sm:text-left sm:text-sm sm:text-[15px]"
+                :class="
+                  recordTab === 'history'
+                    ? 'border-b-2 border-lime-400 text-white max-sm:border-transparent max-sm:bg-white/[0.12] max-sm:text-lime-200 sm:bg-transparent'
+                    : 'border-b-2 border-transparent text-white/45 hover:text-white/75 sm:text-white/45'
+                "
+                @click="recordTab = 'history'"
+              >
+                历史
+              </button>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <!-- 当前记录 -->
+            <table
+              v-if="recordTab === 'current'"
+              class="w-full min-w-0 border-collapse text-left text-xs text-white/85 sm:text-sm max-md:table-fixed md:min-w-[560px] md:table-auto"
+            >
+              <thead class="hidden md:table-header-group">
+                <tr
+                  class="border-b border-white/[0.08] text-[10px] font-semibold uppercase tracking-wide text-white/40 sm:text-[11px]"
+                >
+                  <th class="px-3 py-2.5 font-semibold md:px-5 md:py-3">借币</th>
+                  <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">借款金额</th>
+                  <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">利率</th>
+                  <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">到期</th>
+                  <th class="px-3 py-2.5 text-right font-semibold md:px-5 md:py-3 md:text-left">状态</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="o in currentOrders"
+                  :key="o.orderId"
+                  class="border-b border-white/[0.06] transition hover:bg-white/[0.02] max-md:block max-md:last:border-b-0 md:table-row"
+                >
+                  <td class="min-w-0 max-md:block max-md:w-full max-md:px-3 max-md:pb-0 max-md:pt-4 md:table-cell md:px-5 md:py-3">
+                    <p class="text-[14px] font-semibold leading-snug text-white sm:text-sm">{{ o.loanCurrency }}</p>
+                    <p class="mt-0.5 tabular-nums text-[11px] text-white/55 sm:text-xs">
+                      {{ o.loanAmount?.toLocaleString() }}
+                    </p>
+                    <div
+                      class="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-white/[0.06] pt-3 text-[11px] text-white/50 md:hidden"
+                    >
+                      <span class="text-white/35">利率</span>
+                      <span class="text-right font-medium tabular-nums text-lime-300/90">{{ o.interestRate }}%</span>
+                      <span class="text-white/35">到期</span>
+                      <span class="text-right tabular-nums text-white/70">{{ o.maturityDate }}</span>
+                    </div>
+                  </td>
+                  <td class="hidden px-3 py-2.5 tabular-nums md:table-cell md:px-5 md:py-3">
                     {{ o.loanAmount?.toLocaleString() }}
-                  </p>
-                  <div
-                    class="mt-1.5 flex flex-col gap-0.5 border-t border-white/[0.06] pt-1.5 text-[10px] text-white/45 sm:text-[11px] md:hidden"
+                  </td>
+                  <td class="hidden tabular-nums text-lime-300/90 md:table-cell md:px-5 md:py-3">
+                    {{ o.interestRate }}%
+                  </td>
+                  <td class="hidden tabular-nums text-white/50 md:table-cell md:px-5 md:py-3">
+                    {{ o.maturityDate }}
+                  </td>
+                  <td
+                    class="max-md:block max-md:w-full max-md:px-3 max-md:pb-4 max-md:pt-3 md:table-cell md:px-5 md:py-3 md:text-left"
                   >
-                    <span class="font-medium text-lime-300/90">{{ o.interestRate }}% 利率</span>
-                    <span class="line-clamp-2 leading-snug">到期 {{ o.maturityDate }}</span>
-                  </div>
-                </td>
-                <td class="hidden px-3 py-2.5 tabular-nums md:table-cell md:px-5 md:py-3">
-                  {{ o.loanAmount?.toLocaleString() }}
-                </td>
-                <td class="hidden tabular-nums text-lime-300/90 md:table-cell md:px-5 md:py-3">
-                  {{ o.interestRate }}%
-                </td>
-                <td class="px-2 py-2.5 text-right align-top sm:px-3 sm:py-3 sm:text-left md:px-5 md:py-3">
-                  <span class="inline-block max-w-full text-[11px] leading-snug text-white/85 sm:text-xs md:text-sm">
-                    {{ LOAN_ORDER_STATUS_LABELS[o.status] ?? o.status }}
-                  </span>
-                </td>
-                <td class="hidden tabular-nums text-white/50 md:table-cell md:px-5 md:py-3">
-                  {{ o.maturityDate }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                    <span class="text-[11px] leading-snug text-white/85 sm:text-xs md:text-sm">
+                      {{ LOAN_ORDER_STATUS_LABELS[o.status] ?? o.status }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
 
-          <!-- 还款记录 -->
-          <table
-            v-else-if="recordTab === 'repayment'"
-            class="w-full min-w-0 table-fixed border-collapse text-left text-xs text-white/85 sm:text-sm md:min-w-[560px] md:table-auto"
-          >
-            <thead>
-              <tr
-                class="border-b border-white/[0.08] text-[10px] font-semibold uppercase tracking-wide text-white/40 sm:text-xs"
-              >
-                <th class="w-[58%] px-2.5 py-2 font-semibold sm:px-3 sm:py-2.5 md:w-auto md:px-5 md:py-3">
-                  产品 / 金额
-                </th>
-                <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">金额</th>
-                <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">类型</th>
-                <th class="w-[42%] px-2 py-2 text-right font-semibold sm:w-auto sm:px-3 sm:py-2.5 sm:text-left md:px-5 md:py-3">
-                  状态
-                </th>
-                <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">时间</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="r in repayments"
-                :key="r.repaymentId"
-                class="border-b border-white/[0.05] hover:bg-white/[0.02]"
-              >
-                <td class="min-w-0 px-2.5 py-2.5 align-top sm:px-3 sm:py-3 md:px-5">
-                  <p class="line-clamp-2 text-[12px] font-medium leading-snug text-white sm:text-sm">
-                    {{ r.productName }}
-                  </p>
-                  <p class="mt-0.5 tabular-nums text-[11px] text-white/55 sm:text-xs">
+            <!-- 还款记录 -->
+            <table
+              v-else-if="recordTab === 'repayment'"
+              class="w-full min-w-0 border-collapse text-left text-xs text-white/85 sm:text-sm max-md:table-fixed md:min-w-[560px] md:table-auto"
+            >
+              <thead class="hidden md:table-header-group">
+                <tr
+                  class="border-b border-white/[0.08] text-[10px] font-semibold uppercase tracking-wide text-white/40 sm:text-[11px]"
+                >
+                  <th class="px-3 py-2.5 font-semibold md:px-5 md:py-3">产品 / 金额</th>
+                  <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">金额</th>
+                  <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">类型</th>
+                  <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">时间</th>
+                  <th class="px-3 py-2.5 text-right font-semibold md:px-5 md:py-3 md:text-left">状态</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="r in repayments"
+                  :key="r.repaymentId"
+                  class="border-b border-white/[0.06] transition hover:bg-white/[0.02] max-md:block max-md:last:border-b-0 md:table-row"
+                >
+                  <td class="min-w-0 max-md:block max-md:w-full max-md:px-3 max-md:pb-0 max-md:pt-4 md:table-cell md:px-5 md:py-3">
+                    <p class="line-clamp-2 text-[14px] font-medium leading-snug text-white sm:text-sm">
+                      {{ r.productName }}
+                    </p>
+                    <p class="mt-0.5 tabular-nums text-[11px] text-white/55 sm:text-xs">
+                      {{ r.amount?.toLocaleString() }}
+                    </p>
+                    <div
+                      class="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-white/[0.06] pt-3 text-[11px] text-white/50 md:hidden"
+                    >
+                      <span class="text-white/35">类型</span>
+                      <span class="text-right text-white/75">{{ REPAYMENT_TYPE_LABELS[r.repaymentType] ?? r.repaymentType }}</span>
+                      <span class="text-white/35">时间</span>
+                      <span class="text-right tabular-nums text-white/60">{{ r.repaymentTime ?? r.createTime }}</span>
+                    </div>
+                  </td>
+                  <td class="hidden px-3 py-2.5 tabular-nums md:table-cell md:px-5 md:py-3">
                     {{ r.amount?.toLocaleString() }}
-                  </p>
-                  <div
-                    class="mt-1.5 flex flex-col gap-0.5 border-t border-white/[0.06] pt-1.5 text-[10px] text-white/45 sm:text-[11px] md:hidden"
+                  </td>
+                  <td class="hidden md:table-cell md:px-5 md:py-3">
+                    {{ REPAYMENT_TYPE_LABELS[r.repaymentType] ?? r.repaymentType }}
+                  </td>
+                  <td class="hidden tabular-nums text-white/50 md:table-cell md:px-5 md:py-3">
+                    {{ r.repaymentTime ?? r.createTime }}
+                  </td>
+                  <td
+                    class="max-md:block max-md:w-full max-md:px-3 max-md:pb-4 max-md:pt-3 md:table-cell md:px-5 md:py-3 md:text-left"
                   >
-                    <span>{{ REPAYMENT_TYPE_LABELS[r.repaymentType] ?? r.repaymentType }}</span>
-                    <span class="line-clamp-2">{{ r.repaymentTime ?? r.createTime }}</span>
-                  </div>
-                </td>
-                <td class="hidden px-3 py-2.5 tabular-nums md:table-cell md:px-5 md:py-3">
-                  {{ r.amount?.toLocaleString() }}
-                </td>
-                <td class="hidden md:table-cell md:px-5 md:py-3">
-                  {{ REPAYMENT_TYPE_LABELS[r.repaymentType] ?? r.repaymentType }}
-                </td>
-                <td class="px-2 py-2.5 text-right align-top sm:px-3 sm:py-3 sm:text-left md:px-5 md:py-3">
-                  <span class="inline-block max-w-full text-[11px] leading-snug sm:text-xs md:text-sm">
-                    {{ REPAYMENT_STATUS_LABELS[r.status] ?? r.status }}
-                  </span>
-                </td>
-                <td class="hidden tabular-nums text-white/50 md:table-cell md:px-5 md:py-3">
-                  {{ r.repaymentTime ?? r.createTime }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                    <span class="text-[11px] leading-snug sm:text-xs md:text-sm">
+                      {{ REPAYMENT_STATUS_LABELS[r.status] ?? r.status }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
 
-          <!-- 历史记录 -->
-          <table
-            v-else
-            class="w-full min-w-0 table-fixed border-collapse text-left text-xs text-white/85 sm:text-sm md:min-w-[560px] md:table-auto"
-          >
-            <thead>
-              <tr
-                class="border-b border-white/[0.08] text-[10px] font-semibold uppercase tracking-wide text-white/40 sm:text-xs"
-              >
-                <th class="w-[58%] px-2.5 py-2 font-semibold sm:px-3 sm:py-2.5 md:w-auto md:px-5 md:py-3">
-                  订单
-                </th>
-                <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">借款金额</th>
-                <th class="w-[42%] px-2 py-2 text-right font-semibold sm:w-auto sm:px-3 sm:py-2.5 sm:text-left md:px-5 md:py-3">
-                  状态
-                </th>
-                <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">更新时间</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="o in historyOrders"
-                :key="o.orderId"
-                class="border-b border-white/[0.05] hover:bg-white/[0.02]"
-              >
-                <td class="min-w-0 px-2.5 py-2.5 align-top sm:px-3 sm:py-3 md:px-5">
-                  <p class="text-[13px] font-semibold leading-snug text-white sm:text-sm">{{ o.loanCurrency }}</p>
-                  <p class="mt-0.5 tabular-nums text-[11px] text-white/55 sm:text-xs">
+            <!-- 历史记录 -->
+            <table
+              v-else
+              class="w-full min-w-0 border-collapse text-left text-xs text-white/85 sm:text-sm max-md:table-fixed md:min-w-[560px] md:table-auto"
+            >
+              <thead class="hidden md:table-header-group">
+                <tr
+                  class="border-b border-white/[0.08] text-[10px] font-semibold uppercase tracking-wide text-white/40 sm:text-[11px]"
+                >
+                  <th class="px-3 py-2.5 font-semibold md:px-5 md:py-3">订单</th>
+                  <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">借款金额</th>
+                  <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">更新时间</th>
+                  <th class="px-3 py-2.5 text-right font-semibold md:px-5 md:py-3 md:text-left">状态</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="o in historyOrders"
+                  :key="o.orderId"
+                  class="border-b border-white/[0.06] transition hover:bg-white/[0.02] max-md:block max-md:last:border-b-0 md:table-row"
+                >
+                  <td class="min-w-0 max-md:block max-md:w-full max-md:px-3 max-md:pb-0 max-md:pt-4 md:table-cell md:px-5 md:py-3">
+                    <p class="text-[14px] font-semibold leading-snug text-white sm:text-sm">{{ o.loanCurrency }}</p>
+                    <p class="mt-0.5 tabular-nums text-[11px] text-white/55 sm:text-xs">
+                      {{ o.loanAmount?.toLocaleString() }}
+                    </p>
+                    <div
+                      class="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-white/[0.06] pt-3 text-[11px] text-white/50 md:hidden"
+                    >
+                      <span class="text-white/35">更新</span>
+                      <span class="text-right tabular-nums text-white/60">{{ o.updateTime }}</span>
+                    </div>
+                  </td>
+                  <td class="hidden px-3 py-2.5 tabular-nums md:table-cell md:px-5 md:py-3">
                     {{ o.loanAmount?.toLocaleString() }}
-                  </p>
-                  <p class="mt-1.5 border-t border-white/[0.06] pt-1.5 text-[10px] tabular-nums text-white/40 sm:text-[11px] md:hidden">
+                  </td>
+                  <td class="hidden tabular-nums text-white/50 md:table-cell md:px-5 md:py-3">
                     {{ o.updateTime }}
-                  </p>
-                </td>
-                <td class="hidden px-3 py-2.5 tabular-nums md:table-cell md:px-5 md:py-3">
-                  {{ o.loanAmount?.toLocaleString() }}
-                </td>
-                <td class="px-2 py-2.5 text-right align-top sm:px-3 sm:py-3 sm:text-left md:px-5 md:py-3">
-                  <span class="inline-block max-w-full text-[11px] leading-snug sm:text-xs md:text-sm">
-                    {{ LOAN_ORDER_STATUS_LABELS[o.status] ?? o.status }}
-                  </span>
-                </td>
-                <td class="hidden tabular-nums text-white/50 md:table-cell md:px-5 md:py-3">
-                  {{ o.updateTime }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <p
-          v-if="
-            (recordTab === 'current' && !currentOrders.length) ||
-            (recordTab === 'repayment' && !repayments.length) ||
-            (recordTab === 'history' && !historyOrders.length)
-          "
-          class="mt-4 text-center text-sm text-white/40"
-        >
-          暂无数据
-        </p>
+                  </td>
+                  <td
+                    class="max-md:block max-md:w-full max-md:px-3 max-md:pb-4 max-md:pt-3 md:table-cell md:px-5 md:py-3 md:text-left"
+                  >
+                    <span class="text-[11px] leading-snug sm:text-xs md:text-sm">
+                      {{ LOAN_ORDER_STATUS_LABELS[o.status] ?? o.status }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p
+            v-if="
+              (recordTab === 'current' && !currentOrders.length) ||
+              (recordTab === 'repayment' && !repayments.length) ||
+              (recordTab === 'history' && !historyOrders.length)
+            "
+            class="px-3 py-12 text-center text-sm text-white/40 sm:py-14"
+          >
+            暂无数据
+          </p>
+        </section>
       </template>
     </div>
+
+    <!-- 借出币种（弹层，避免资产卡内 Tab 过窄） -->
+    <FrontPopupShell
+      v-model="currencyPickerOpen"
+      aria-labelledby="lending-currency-picker-title"
+      close-on-backdrop
+      @backdrop-click="closeCurrencyPicker"
+    >
+      <FrontPopupCard variant="padded" wide @click.stop>
+        <FrontPopupCloseButton @click="closeCurrencyPicker" />
+        <h2 id="lending-currency-picker-title" class="pr-10 text-lg font-semibold tracking-tight text-white">
+          选择借出币种
+        </h2>
+        <p class="mt-1.5 text-[13px] leading-relaxed text-white/40">
+          筛选借币期限列表与顶部额度统计口径。
+        </p>
+        <div
+          class="mt-5 overflow-hidden rounded-xl border border-white/[0.08] bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+        >
+          <ul
+            class="max-h-[min(56vh,20rem)] divide-y divide-white/[0.06] overflow-y-auto overscroll-contain"
+            role="listbox"
+            aria-label="借出币种选项"
+          >
+            <li>
+              <button
+                type="button"
+                role="option"
+                :aria-selected="loanCurrencyFilter === ''"
+                class="flex w-full min-h-[3.25rem] touch-manipulation items-center justify-between gap-3 px-4 py-3.5 text-left text-[15px] font-semibold transition focus:outline-none focus-visible:bg-white/[0.04] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-lime-400/30"
+                :class="
+                  loanCurrencyFilter === ''
+                    ? 'bg-lime-400/[0.1] text-lime-50'
+                    : 'text-white/90 hover:bg-white/[0.04]'
+                "
+                @click="applyLoanCurrency('')"
+              >
+                <span>全部币种</span>
+                <FrontStrokeIcon
+                  v-if="loanCurrencyFilter === ''"
+                  name="check"
+                  size-class="h-5 w-5 shrink-0 text-lime-400/90"
+                />
+              </button>
+            </li>
+            <li v-for="c in loanCurrencies" :key="c">
+              <button
+                type="button"
+                role="option"
+                :aria-selected="loanCurrencyFilter === c"
+                class="flex w-full min-h-[3.25rem] touch-manipulation items-center justify-between gap-3 px-4 py-3.5 text-left text-[15px] font-semibold tabular-nums transition focus:outline-none focus-visible:bg-white/[0.04] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-lime-400/30"
+                :class="
+                  loanCurrencyFilter === c
+                    ? 'bg-lime-400/[0.1] text-lime-50'
+                    : 'text-white/90 hover:bg-white/[0.04]'
+                "
+                @click="applyLoanCurrency(c)"
+              >
+                <span>{{ c }}</span>
+                <FrontStrokeIcon
+                  v-if="loanCurrencyFilter === c"
+                  name="check"
+                  size-class="h-5 w-5 shrink-0 text-lime-400/90"
+                />
+              </button>
+            </li>
+          </ul>
+        </div>
+      </FrontPopupCard>
+    </FrontPopupShell>
 
     <!-- 产品详情 / 借款 -->
     <FrontPopupShell
@@ -773,7 +920,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
             >
               请及时还款；若逾期，每日额外收取（本金+利息）约
               <span class="font-semibold">{{ overdueFeePct }}%</span>
-              作为逾期费（演示口径，以实际合约与规则为准）。
+              作为逾期费，具体以借款合同及平台规则为准。
             </div>
 
             <div v-if="borrowCanSubmit" class="mt-5 border-t border-white/[0.08] pt-5">
@@ -802,7 +949,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                 </button>
               </div>
               <p class="mt-2 text-xs tabular-nums text-white/50 sm:text-sm">
-                利息（{{ borrowProduct.loanCurrency }}，按最短周期粗算演示）：
+                利息预估（{{ borrowProduct.loanCurrency }}，按最短借款周期估算，仅供参考）：
                 <span class="font-semibold text-lime-300/90">
                   {{ borrowInterestPreview.toFixed(4) }} {{ borrowProduct.loanCurrency }}
                 </span>

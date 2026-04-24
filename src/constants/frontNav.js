@@ -99,7 +99,7 @@ export function getFrontFinanceChannelEntries(prefix) {
       key: 'ai-quant',
       label: 'AI 量化',
       tag: 'Quant',
-      desc: '策略托管与结算周期可配，分档参考年化（日化×365）结构清晰。',
+      desc: '策略托管与结算周期可配，分档参考年化，结构清晰。',
       to: `${b}/ai-quant`
     }
   ]
