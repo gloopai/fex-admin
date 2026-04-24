@@ -95,3 +95,35 @@ export const alertLevelMeta = {
   [ALERT_LEVEL.WARNING]: { label: '警告', class: 'bg-amber-100 text-amber-700' },
   [ALERT_LEVEL.URGENT]: { label: '紧急', class: 'bg-rose-100 text-rose-700' }
 }
+
+// 申购门槛：最低 VIP（0 为无要求）
+export const LOCKED_MIN_VIP_OPTIONS = [
+  { value: 0, label: '无要求' },
+  { value: 1, label: 'VIP 1' },
+  { value: 2, label: 'VIP 2' },
+  { value: 3, label: 'VIP 3' },
+  { value: 4, label: 'VIP 4' },
+  { value: 5, label: 'VIP 5' }
+]
+
+// 申购门槛：最低认证等级（值 none/basic/advanced 与后端约定一致）
+export const LOCKED_MIN_KYC_OPTIONS = [
+  { value: 'none', label: '无认证' },
+  { value: 'basic', label: '普通认证' },
+  { value: 'advanced', label: '高级认证' }
+]
+
+/** 展示/编辑用年化 %：优先 annualRate；否则由旧字段 dailyRate（日化 %）×365 推算 */
+export function lockYieldAnnualPct(row) {
+  if (row == null) return 0
+  if (row.annualRate != null && row.annualRate !== '') return Number(row.annualRate)
+  if (row.dailyRate != null && row.dailyRate !== '') return Number(row.dailyRate) * 365
+  return 0
+}
+
+export function lockedMinKycLabel(code) {
+  const hit = LOCKED_MIN_KYC_OPTIONS.find((o) => o.value === code)
+  if (hit) return hit.label
+  if (code === 'institution') return '机构认证'
+  return LOCKED_MIN_KYC_OPTIONS[0].label
+}

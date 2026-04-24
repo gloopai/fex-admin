@@ -16,7 +16,11 @@ import {
   PRODUCT_STATUS,
   productStatusMeta,
   PURCHASE_LIMIT_TYPE,
-  SUPPORTED_CURRENCIES
+  SUPPORTED_CURRENCIES,
+  LOCKED_MIN_VIP_OPTIONS,
+  LOCKED_MIN_KYC_OPTIONS,
+  lockYieldAnnualPct,
+  lockedMinKycLabel
 } from '../../../admin/constants/liquidityLocked'
 import {
   createLockedAdjustmentsMock,
@@ -57,6 +61,8 @@ const productForm = reactive({
   lifetimeLimit: 50000,
   periodLimit: 10000,
   periodDays: 30,
+  minVipLevel: 0,
+  minKycLevel: 'none',
   status: PRODUCT_STATUS.ENABLED
 })
 
@@ -64,13 +70,15 @@ const openCreateProduct = () => {
   editingProductId.value = ''
   productForm.name = ''
   productForm.currency = 'USDT'
-  productForm.periods = [{ days: 10, dailyRate: 0.3, minAmount: 100, maxAmount: 5000 }]
+  productForm.periods = [{ days: 10, annualRate: 12, minAmount: 100, maxAmount: 5000 }]
   productForm.earlyRedeemEnabled = true
   productForm.earlyRedeemFee = 4
   productForm.purchaseLimitType = PURCHASE_LIMIT_TYPE.LIFETIME
   productForm.lifetimeLimit = 50000
   productForm.periodLimit = 10000
   productForm.periodDays = 30
+  productForm.minVipLevel = 0
+  productForm.minKycLevel = 'none'
   productForm.status = PRODUCT_STATUS.ENABLED
   showProductModal.value = true
 }
@@ -79,19 +87,26 @@ const openEditProduct = (product) => {
   editingProductId.value = product.id
   productForm.name = product.name
   productForm.currency = product.currency
-  productForm.periods = product.periods.map(p => ({ ...p }))
+  productForm.periods = product.periods.map((p) => ({
+    days: p.days,
+    annualRate: lockYieldAnnualPct(p),
+    minAmount: p.minAmount,
+    maxAmount: p.maxAmount
+  }))
   productForm.earlyRedeemEnabled = product.earlyRedeemEnabled
   productForm.earlyRedeemFee = product.earlyRedeemFee
   productForm.purchaseLimitType = product.purchaseLimitType
   productForm.lifetimeLimit = product.lifetimeLimit
   productForm.periodLimit = product.periodLimit
   productForm.periodDays = product.periodDays
+  productForm.minVipLevel = product.minVipLevel ?? 0
+  productForm.minKycLevel = product.minKycLevel ?? 'none'
   productForm.status = product.status
   showProductModal.value = true
 }
 
 const addPeriod = () => {
-  productForm.periods.push({ days: 10, dailyRate: 0.3, minAmount: 100, maxAmount: 5000 })
+  productForm.periods.push({ days: 10, annualRate: 12, minAmount: 100, maxAmount: 5000 })
 }
 
 const removePeriod = (index) => {
@@ -103,13 +118,20 @@ const saveProduct = () => {
     name: productForm.name.trim(),
     currency: productForm.currency,
     icon: productForm.currency === 'USDT' ? '₮' : productForm.currency === 'BTC' ? '₿' : productForm.currency === 'ETH' ? 'Ξ' : productForm.currency,
-    periods: productForm.periods.map(p => ({ ...p, dailyRate: Number(p.dailyRate), minAmount: Number(p.minAmount), maxAmount: Number(p.maxAmount) })),
+    periods: productForm.periods.map((p) => ({
+      days: Number(p.days),
+      annualRate: Number(p.annualRate),
+      minAmount: Number(p.minAmount),
+      maxAmount: Number(p.maxAmount)
+    })),
     earlyRedeemEnabled: productForm.earlyRedeemEnabled,
     earlyRedeemFee: Number(productForm.earlyRedeemFee),
     purchaseLimitType: productForm.purchaseLimitType,
     lifetimeLimit: Number(productForm.lifetimeLimit),
     periodLimit: Number(productForm.periodLimit),
     periodDays: Number(productForm.periodDays),
+    minVipLevel: Number(productForm.minVipLevel) || 0,
+    minKycLevel: productForm.minKycLevel || 'none',
     status: productForm.status
   }
 
@@ -289,7 +311,7 @@ const fmtCurrency = (val, currency, decimals = 2) => {
                   <p class="mt-0.5 text-sm text-slate-500">{{ product.currency }} · {{ product.periods.length }} 个周期可选</p>
                   <div class="mt-2 flex flex-wrap gap-1.5">
                     <span v-for="(period, idx) in product.periods" :key="idx" class="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                      {{ period.days }}天 ({{ period.dailyRate.toFixed(4) }}%)
+                      {{ period.days }}天 · 年化 {{ lockYieldAnnualPct(period).toFixed(2) }}%
                     </span>
                   </div>
                 </div>
@@ -316,6 +338,9 @@ const fmtCurrency = (val, currency, decimals = 2) => {
                   <span v-if="product.purchaseLimitType === PURCHASE_LIMIT_TYPE.LIFETIME">终身 {{ fmtCurrency(product.lifetimeLimit, product.currency) }}</span>
                   <span v-else-if="product.purchaseLimitType === PURCHASE_LIMIT_TYPE.PERIOD">{{ product.periodDays }}天 {{ fmtCurrency(product.periodLimit, product.currency) }}</span>
                   <span v-else>不限购</span>
+                </p>
+                <p class="mt-1 text-[11px] text-slate-500">
+                  {{ (product.minVipLevel ?? 0) === 0 ? 'VIP 无门槛' : `最低 VIP ${product.minVipLevel}` }} · {{ lockedMinKycLabel(product.minKycLevel) }}
                 </p>
               </div>
             </div>
@@ -351,7 +376,7 @@ const fmtCurrency = (val, currency, decimals = 2) => {
                 <th class="px-4 py-3 text-left font-medium">产品</th>
                 <th class="px-4 py-3 text-left font-medium">金额</th>
                 <th class="px-4 py-3 text-left font-medium">周期</th>
-                <th class="px-4 py-3 text-left font-medium">日利率</th>
+                <th class="px-4 py-3 text-left font-medium">年化收益率</th>
                 <th class="px-4 py-3 text-left font-medium">预计收益</th>
                 <th class="px-4 py-3 text-left font-medium">状态</th>
                 <th class="px-4 py-3 text-left font-medium">剩余天数</th>
@@ -364,7 +389,7 @@ const fmtCurrency = (val, currency, decimals = 2) => {
                 <td class="px-4 py-3 text-slate-700">{{ order.productName }}</td>
                 <td class="px-4 py-3 font-medium text-slate-900">{{ fmtCurrency(order.amount, order.currency) }}</td>
                 <td class="px-4 py-3 text-slate-700">{{ order.lockDays }} 天</td>
-                <td class="px-4 py-3 font-medium text-emerald-600">{{ order.dailyRate.toFixed(4) }}%</td>
+                <td class="px-4 py-3 font-medium text-emerald-600">{{ lockYieldAnnualPct(order).toFixed(2) }}%</td>
                 <td class="px-4 py-3 font-medium text-blue-600">{{ fmtCurrency(order.totalInterest, order.currency) }}</td>
                 <td class="px-4 py-3"><span class="rounded-md px-2 py-0.5 text-xs font-medium" :class="orderStatusMeta[order.status].class">{{ orderStatusMeta[order.status].label }}</span></td>
                 <td class="px-4 py-3 text-slate-700">{{ order.daysRemaining > 0 ? `${order.daysRemaining} 天` : '-' }}</td>
@@ -556,102 +581,157 @@ const fmtCurrency = (val, currency, decimals = 2) => {
       </article>
     </template>
 
-    <!-- 产品编辑弹窗 -->
-    <div v-if="showProductModal" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4">
-      <section class="w-full max-w-2xl rounded-xl bg-white">
+    <!-- 产品编辑弹窗：Teleport 到 body，遮罩铺满视口 -->
+    <Teleport to="body">
+      <div
+        v-if="showProductModal"
+        class="fixed inset-0 z-[100] grid min-h-[100dvh] w-full place-items-center overflow-y-auto bg-black/50 p-4 sm:p-6"
+        role="dialog"
+        aria-modal="true"
+      >
+      <section class="w-full max-w-2xl rounded-xl bg-white shadow-xl">
         <header class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
           <h2 class="text-xl font-semibold text-slate-900">{{ editingProductId ? '编辑产品' : '新增产品' }}</h2>
           <button type="button" class="text-2xl text-slate-400" @click="showProductModal = false">×</button>
         </header>
 
-        <div class="max-h-[70vh] space-y-4 overflow-y-auto px-5 py-4">
-          <div class="grid gap-3 md:grid-cols-2">
-            <label class="space-y-1">
-              <span class="text-sm font-medium">产品名称</span>
-              <input v-model="productForm.name" type="text" class="w-full rounded-lg border border-slate-300 px-3 py-2" />
-            </label>
-            <label class="space-y-1">
-              <span class="text-sm font-medium">币种</span>
-              <select v-model="productForm.currency" class="w-full rounded-lg border border-slate-300 px-3 py-2">
+        <div class="max-h-[70vh] space-y-5 overflow-y-auto px-5 py-4">
+          <div class="grid gap-x-5 gap-y-4 md:grid-cols-2">
+            <div class="lb-stack">
+              <div class="lb-label-row">
+                <span class="lb-label">产品名称</span>
+                <span class="lb-label-aux">必填</span>
+              </div>
+              <input v-model="productForm.name" type="text" class="lb-ctrl" autocomplete="off" />
+            </div>
+            <div class="lb-stack">
+              <div class="lb-label-row">
+                <span class="lb-label">计价币种</span>
+              </div>
+              <select v-model="productForm.currency" class="lb-ctrl lb-select">
                 <option v-for="curr in SUPPORTED_CURRENCIES" :key="curr" :value="curr">{{ curr }}</option>
               </select>
-            </label>
+            </div>
           </div>
 
-          <div class="rounded-lg border border-slate-200 p-3">
-            <div class="flex items-center justify-between">
-              <p class="text-sm font-medium">锁仓周期配置</p>
-              <button type="button" class="rounded-md bg-blue-600 px-3 py-1 text-sm text-white" @click="addPeriod">+ 添加周期</button>
+          <div class="rounded-lg border border-slate-200 bg-slate-50/80 p-4">
+            <div class="mb-3 flex items-center justify-between gap-2">
+              <div class="lb-label-row flex-1 !justify-start gap-2">
+                <span class="lb-label">锁仓与年化收益</span>
+                <span class="lb-label-aux !text-left">每行一档</span>
+              </div>
+              <button type="button" class="h-9 shrink-0 rounded-md bg-blue-600 px-3 text-sm font-medium text-white hover:bg-blue-700" @click="addPeriod">+ 添加档位</button>
             </div>
-            <div class="mt-3 space-y-2">
-              <div v-for="(period, idx) in productForm.periods" :key="idx" class="flex gap-2">
-                <input v-model.number="period.days" type="number" placeholder="天数" class="w-20 rounded-lg border border-slate-300 px-2 py-1 text-sm" />
-                <input v-model.number="period.dailyRate" type="number" step="0.0001" placeholder="日利率%" class="w-24 rounded-lg border border-slate-300 px-2 py-1 text-sm" />
-                <input v-model.number="period.minAmount" type="number" placeholder="最小金额" class="flex-1 rounded-lg border border-slate-300 px-2 py-1 text-sm" />
-                <input v-model.number="period.maxAmount" type="number" placeholder="最大金额" class="flex-1 rounded-lg border border-slate-300 px-2 py-1 text-sm" />
-                <button type="button" class="rounded-md border border-rose-300 px-2 text-rose-600" @click="removePeriod(idx)">×</button>
+            <div class="space-y-2">
+              <div v-for="(period, idx) in productForm.periods" :key="idx" class="flex flex-wrap items-center gap-2">
+                <input v-model.number="period.days" type="number" placeholder="天数" inputmode="numeric" class="lb-cell-in w-[4.5rem]" />
+                <input v-model.number="period.annualRate" type="number" step="0.01" min="0" placeholder="年化%" inputmode="decimal" class="lb-cell-in w-[6.25rem]" />
+                <input v-model.number="period.minAmount" type="number" placeholder="单笔最小" inputmode="decimal" class="lb-cell-in min-w-[6rem] flex-1" />
+                <input v-model.number="period.maxAmount" type="number" placeholder="单笔最大" inputmode="decimal" class="lb-cell-in min-w-[6rem] flex-1" />
+                <button type="button" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-slate-200 text-rose-600 hover:border-rose-200 hover:bg-rose-50" title="删除" @click="removePeriod(idx)">×</button>
               </div>
             </div>
           </div>
 
-          <div class="grid gap-3 md:grid-cols-2">
-            <label class="inline-flex items-center gap-2">
-              <input v-model="productForm.earlyRedeemEnabled" type="checkbox" class="h-4 w-4" />
-              <span class="text-sm">启用提前赎回</span>
-            </label>
-            <label v-if="productForm.earlyRedeemEnabled" class="space-y-1">
-              <span class="text-sm font-medium">违约金比例 (%)</span>
-              <input v-model.number="productForm.earlyRedeemFee" type="number" class="w-full rounded-lg border border-slate-300 px-3 py-2" />
-            </label>
+          <div class="rounded-lg border border-slate-200 bg-slate-50/80 p-4">
+            <div class="lb-stack max-w-xl">
+              <div class="lb-label-row">
+                <span class="lb-label">提前赎回</span>
+              </div>
+              <label class="flex h-10 cursor-pointer items-center gap-2.5">
+                <input v-model="productForm.earlyRedeemEnabled" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                <span class="text-sm text-slate-700">允许提前赎回</span>
+              </label>
+            </div>
+            <div v-if="productForm.earlyRedeemEnabled" class="lb-stack mt-4 max-w-xs border-t border-slate-200 pt-4">
+              <div class="lb-label-row">
+                <span class="lb-label">违约金</span>
+                <span class="lb-label-aux">% · 本金</span>
+              </div>
+              <input v-model.number="productForm.earlyRedeemFee" type="number" class="lb-ctrl w-32 tabular-nums" />
+            </div>
           </div>
 
-          <div class="space-y-2">
-            <label class="space-y-1">
-              <span class="text-sm font-medium">限购类型</span>
-              <select v-model="productForm.purchaseLimitType" class="w-full rounded-lg border border-slate-300 px-3 py-2">
+          <div class="space-y-4">
+            <div class="lb-stack max-w-lg">
+              <div class="lb-label-row">
+                <span class="lb-label">限购类型</span>
+              </div>
+              <select v-model="productForm.purchaseLimitType" class="lb-ctrl lb-select">
                 <option :value="PURCHASE_LIMIT_TYPE.NONE">不限购</option>
                 <option :value="PURCHASE_LIMIT_TYPE.LIFETIME">终身限购</option>
                 <option :value="PURCHASE_LIMIT_TYPE.PERIOD">周期限购</option>
               </select>
-            </label>
-            <div v-if="productForm.purchaseLimitType === PURCHASE_LIMIT_TYPE.LIFETIME" class="grid gap-3 md:grid-cols-1">
-              <label class="space-y-1">
-                <span class="text-sm font-medium">终身限购额度</span>
-                <input v-model.number="productForm.lifetimeLimit" type="number" class="w-full rounded-lg border border-slate-300 px-3 py-2" />
-              </label>
             </div>
-            <div v-if="productForm.purchaseLimitType === PURCHASE_LIMIT_TYPE.PERIOD" class="grid gap-3 md:grid-cols-2">
-              <label class="space-y-1">
-                <span class="text-sm font-medium">周期天数</span>
-                <input v-model.number="productForm.periodDays" type="number" class="w-full rounded-lg border border-slate-300 px-3 py-2" />
-              </label>
-              <label class="space-y-1">
-                <span class="text-sm font-medium">周期限购额度</span>
-                <input v-model.number="productForm.periodLimit" type="number" class="w-full rounded-lg border border-slate-300 px-3 py-2" />
-              </label>
+            <div v-if="productForm.purchaseLimitType === PURCHASE_LIMIT_TYPE.LIFETIME" class="lb-stack max-w-lg">
+              <div class="lb-label-row">
+                <span class="lb-label">终身限购额度</span>
+              </div>
+              <input v-model.number="productForm.lifetimeLimit" type="number" class="lb-ctrl tabular-nums" />
+            </div>
+            <div v-if="productForm.purchaseLimitType === PURCHASE_LIMIT_TYPE.PERIOD" class="grid gap-x-5 gap-y-4 sm:grid-cols-2">
+              <div class="lb-stack">
+                <div class="lb-label-row">
+                  <span class="lb-label">周期天数</span>
+                </div>
+                <input v-model.number="productForm.periodDays" type="number" class="lb-ctrl tabular-nums" />
+              </div>
+              <div class="lb-stack">
+                <div class="lb-label-row">
+                  <span class="lb-label">周期限购额度</span>
+                </div>
+                <input v-model.number="productForm.periodLimit" type="number" class="lb-ctrl tabular-nums" />
+              </div>
+            </div>
+            <div class="grid gap-x-5 gap-y-4 sm:grid-cols-2">
+              <div class="lb-stack">
+                <div class="lb-label-row">
+                  <span class="lb-label">最低 VIP</span>
+                </div>
+                <select v-model.number="productForm.minVipLevel" class="lb-ctrl lb-select">
+                  <option v-for="opt in LOCKED_MIN_VIP_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                </select>
+              </div>
+              <div class="lb-stack">
+                <div class="lb-label-row">
+                  <span class="lb-label">最低认证</span>
+                </div>
+                <select v-model="productForm.minKycLevel" class="lb-ctrl lb-select">
+                  <option v-for="opt in LOCKED_MIN_KYC_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                </select>
+              </div>
             </div>
           </div>
 
-          <label class="space-y-1">
-            <span class="text-sm font-medium">产品状态</span>
-            <select v-model="productForm.status" class="w-full rounded-lg border border-slate-300 px-3 py-2">
+          <div class="lb-stack max-w-lg">
+            <div class="lb-label-row">
+              <span class="lb-label">产品状态</span>
+            </div>
+            <select v-model="productForm.status" class="lb-ctrl lb-select">
               <option :value="PRODUCT_STATUS.ENABLED">上架中</option>
               <option :value="PRODUCT_STATUS.DISABLED">已下架</option>
               <option :value="PRODUCT_STATUS.SOLD_OUT">已售罄</option>
             </select>
-          </label>
+          </div>
         </div>
 
         <footer class="flex justify-end gap-3 border-t border-slate-200 px-5 py-4">
-          <button type="button" class="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700" @click="showProductModal = false">取消</button>
-          <button type="button" class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white" @click="saveProduct">保存</button>
+          <button type="button" class="h-10 rounded-md border border-slate-300 px-4 text-sm font-medium text-slate-700 hover:bg-slate-50" @click="showProductModal = false">取消</button>
+          <button type="button" class="h-10 rounded-md bg-blue-600 px-5 text-sm font-medium text-white shadow-sm hover:bg-blue-700" @click="saveProduct">保存</button>
         </footer>
       </section>
-    </div>
+      </div>
+    </Teleport>
 
     <!-- 调整申请弹窗 -->
-    <div v-if="showAdjustmentModal" class="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4">
-      <section class="w-full max-w-md rounded-xl bg-white">
+    <Teleport to="body">
+      <div
+        v-if="showAdjustmentModal"
+        class="fixed inset-0 z-[100] grid min-h-[100dvh] w-full place-items-center overflow-y-auto bg-black/50 p-4 sm:p-6"
+        role="dialog"
+        aria-modal="true"
+      >
+      <section class="w-full max-w-md rounded-xl bg-white shadow-xl">
         <header class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
           <h2 class="text-xl font-semibold text-slate-900">新建调整</h2>
           <button type="button" class="text-2xl text-slate-400" @click="showAdjustmentModal = false">×</button>
@@ -685,11 +765,12 @@ const fmtCurrency = (val, currency, decimals = 2) => {
         </div>
 
         <footer class="flex justify-end gap-3 border-t border-slate-200 px-5 py-4">
-          <button type="button" class="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700" @click="showAdjustmentModal = false">取消</button>
-          <button type="button" class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white" @click="saveAdjustment">提交</button>
+          <button type="button" class="h-10 rounded-md border border-slate-300 px-4 text-sm font-medium text-slate-700 hover:bg-slate-50" @click="showAdjustmentModal = false">取消</button>
+          <button type="button" class="h-10 rounded-md bg-blue-600 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700" @click="saveAdjustment">提交</button>
         </footer>
       </section>
-    </div>
+      </div>
+    </Teleport>
 
     <!-- MFA 验证弹窗 -->
     <MfaVerificationModal
@@ -702,3 +783,36 @@ const fmtCurrency = (val, currency, decimals = 2) => {
     />
   </section>
 </template>
+
+<style scoped>
+.lb-stack {
+  @apply flex flex-col gap-1.5;
+}
+.lb-label-row {
+  @apply flex min-h-[1.125rem] items-baseline justify-between gap-2;
+}
+.lb-label {
+  @apply text-sm font-medium tracking-tight text-slate-700;
+}
+.lb-label-aux {
+  @apply shrink-0 text-right text-xs font-normal tabular-nums text-slate-400;
+}
+.lb-ctrl {
+  @apply h-10 w-full min-w-0 rounded-md border border-slate-300 bg-white px-3 text-sm leading-5 text-slate-900 shadow-sm;
+  @apply transition-[border-color,box-shadow] placeholder:text-slate-400;
+  @apply focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20;
+}
+.lb-select {
+  @apply cursor-pointer bg-white pr-9;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-size: 1.25rem 1.25rem;
+  background-repeat: no-repeat;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.lb-cell-in {
+  @apply h-9 w-full min-w-0 rounded-md border border-slate-300 bg-white px-2.5 text-sm tabular-nums text-slate-900 shadow-sm;
+  @apply focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/30;
+}
+</style>

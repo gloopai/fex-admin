@@ -10,13 +10,15 @@ const products = [
     currency: 'USDT',
     icon: '₮',
     periods: [
-      { days: 2, dailyRate: 0.3, minAmount: 50, maxAmount: 3000 },
-      { days: 5, dailyRate: 0.3388, minAmount: 100, maxAmount: 5000 },
-      { days: 10, dailyRate: 0.3888, minAmount: 200, maxAmount: 8000 },
-      { days: 20, dailyRate: 0.45, minAmount: 500, maxAmount: 12000 }
+      { days: 2, annualRate: 109.5, minAmount: 50, maxAmount: 3000 },
+      { days: 5, annualRate: 123.662, minAmount: 100, maxAmount: 5000 },
+      { days: 10, annualRate: 141.912, minAmount: 200, maxAmount: 8000 },
+      { days: 20, annualRate: 164.25, minAmount: 500, maxAmount: 12000 }
     ],
     earlyRedeemEnabled: true,
     earlyRedeemFee: 4,
+    minVipLevel: 0,
+    minKycLevel: 'none',
     purchaseLimitType: PURCHASE_LIMIT_TYPE.LIFETIME,
     lifetimeLimit: 50000,
     periodLimit: 10000,
@@ -32,12 +34,14 @@ const products = [
     currency: 'BTC',
     icon: '₿',
     periods: [
-      { days: 10, dailyRate: 0.25, minAmount: 0.001, maxAmount: 0.5 },
-      { days: 30, dailyRate: 0.35, minAmount: 0.005, maxAmount: 1 },
-      { days: 90, dailyRate: 0.5, minAmount: 0.01, maxAmount: 2 }
+      { days: 10, annualRate: 91.25, minAmount: 0.001, maxAmount: 0.5 },
+      { days: 30, annualRate: 127.75, minAmount: 0.005, maxAmount: 1 },
+      { days: 90, annualRate: 182.5, minAmount: 0.01, maxAmount: 2 }
     ],
     earlyRedeemEnabled: true,
     earlyRedeemFee: 4,
+    minVipLevel: 2,
+    minKycLevel: 'basic',
     purchaseLimitType: PURCHASE_LIMIT_TYPE.PERIOD,
     lifetimeLimit: 5,
     periodLimit: 2,
@@ -53,11 +57,13 @@ const products = [
     currency: 'ETH',
     icon: 'Ξ',
     periods: [
-      { days: 5, dailyRate: 0.28, minAmount: 0.05, maxAmount: 10 },
-      { days: 20, dailyRate: 0.4, minAmount: 0.1, maxAmount: 20 }
+      { days: 5, annualRate: 102.2, minAmount: 0.05, maxAmount: 10 },
+      { days: 20, annualRate: 146, minAmount: 0.1, maxAmount: 20 }
     ],
     earlyRedeemEnabled: false,
     earlyRedeemFee: 0,
+    minVipLevel: 3,
+    minKycLevel: 'advanced',
     purchaseLimitType: PURCHASE_LIMIT_TYPE.NONE,
     lifetimeLimit: 0,
     periodLimit: 0,

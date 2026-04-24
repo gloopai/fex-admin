@@ -70,11 +70,14 @@ const close = () => {
 </script>
 
 <template>
-  <Transition name="modal">
-    <div
-      v-show="open"
-      class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/45 p-4"
-    >
+  <Teleport to="body">
+    <Transition name="modal">
+      <div
+        v-show="open"
+        class="fixed inset-0 z-[9999] flex min-h-[100dvh] w-full items-center justify-center overflow-y-auto bg-black/50 p-4 sm:p-6"
+        role="dialog"
+        aria-modal="true"
+      >
       <section class="w-full max-w-md overflow-hidden rounded-xl bg-white shadow-2xl">
         <!-- 头部 -->
         <header class="border-b border-slate-200 bg-gradient-to-r from-blue-50 to-violet-50 px-6 py-4">
@@ -156,8 +159,9 @@ const close = () => {
           </button>
         </footer>
       </section>
-    </div>
-  </Transition>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <style scoped>
