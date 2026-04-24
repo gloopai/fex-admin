@@ -240,7 +240,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
           class="mt-4 flex flex-wrap items-center gap-2 sm:mt-5 sm:gap-3"
         >
           <div
-            class="inline-flex w-fit max-w-full flex-wrap rounded-xl border border-white/[0.07] bg-black/40 p-1 shadow-inner shadow-black/20"
+            class="inline-flex w-fit max-w-full shrink-0 flex-nowrap overflow-x-auto rounded-xl border border-white/[0.07] bg-black/40 p-1 shadow-inner shadow-black/20 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap [&::-webkit-scrollbar]:hidden"
             role="tablist"
             aria-label="记录类型"
           >
@@ -386,22 +386,32 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
       </div>
 
       <!-- 中部：借币期限 + 账户（标题均在框外，与左侧结构一致） -->
-      <div class="mt-8 flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
+      <div class="mt-6 flex flex-col gap-5 sm:mt-8 sm:gap-6 lg:flex-row lg:items-start lg:gap-8">
         <section class="min-w-0 flex-1">
           <h2 class="mb-3 text-base font-semibold leading-snug tracking-tight text-lime-200/95 sm:text-lg">
             借币期限
           </h2>
           <div
-            class="overflow-x-auto rounded-xl border border-white/[0.08] bg-white/[0.025] lg:rounded-2xl"
+            class="overflow-x-auto rounded-xl border border-white/[0.08] bg-white/[0.025] sm:rounded-2xl"
           >
-            <table class="w-full min-w-[640px] border-collapse text-left text-sm text-white/90">
+            <table
+              class="w-full min-w-0 table-fixed border-collapse text-left text-sm text-white/90 md:min-w-[640px] md:table-auto"
+            >
               <thead>
-                <tr class="border-b border-white/[0.08] text-xs font-semibold uppercase tracking-wide text-white/45">
-                  <th class="px-4 py-3 font-semibold sm:px-5">币种</th>
-                  <th class="px-4 py-3 font-semibold sm:px-5">利率</th>
-                  <th class="px-4 py-3 font-semibold sm:px-5">还款周期</th>
-                  <th class="px-4 py-3 font-semibold sm:px-5">可借额度</th>
-                  <th class="px-4 py-3 text-right font-semibold sm:px-5">操作</th>
+                <tr
+                  class="border-b border-white/[0.08] text-[10px] font-semibold uppercase tracking-wide text-white/45 sm:text-xs"
+                >
+                  <th class="w-[58%] px-3 py-2.5 font-semibold sm:w-[52%] sm:px-4 sm:py-3 md:w-auto md:px-5 md:py-3.5">
+                    币种
+                  </th>
+                  <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3.5">利率</th>
+                  <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3.5">还款周期</th>
+                  <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3.5">可借额度</th>
+                  <th
+                    class="w-[42%] px-2 py-2.5 text-right font-semibold sm:w-auto sm:px-3 sm:py-3 md:px-5 md:py-3.5"
+                  >
+                    操作
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -410,38 +420,53 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                   :key="p.productId"
                   class="border-b border-white/[0.05] transition hover:bg-white/[0.03]"
                 >
-                  <td class="px-4 py-3.5 sm:px-5">
-                    <div class="flex items-center gap-2">
+                  <td class="px-3 py-3 align-top sm:px-4 sm:py-3.5 md:px-5 md:py-4">
+                    <div class="flex items-start gap-2 sm:gap-3">
                       <span
                         class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/[0.12] bg-transparent text-white/40"
                       >
                         <FrontStrokeIcon name="wallet" size-class="h-4 w-4" />
                       </span>
-                      <div>
-                        <span class="font-semibold text-white">{{ p.loanCurrency }}</span>
-                        <span
-                          class="ml-2 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                          :class="statusClass(p.status)"
+                      <div class="min-w-0 flex-1">
+                        <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                          <span class="text-[15px] font-semibold leading-snug text-white sm:text-base">{{
+                            p.loanCurrency
+                          }}</span>
+                          <span
+                            class="shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-semibold sm:px-2 sm:text-[10px]"
+                            :class="statusClass(p.status)"
+                          >
+                            {{ PRODUCT_STATUS_LABELS[p.status] }}
+                          </span>
+                        </div>
+                        <div
+                          class="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 border-t border-white/[0.06] pt-2 text-[11px] text-white/50 md:hidden"
                         >
-                          {{ PRODUCT_STATUS_LABELS[p.status] }}
-                        </span>
+                          <span class="font-bold tabular-nums text-lime-300">{{ p.interestRate }}%</span>
+                          <span class="tabular-nums text-white/70">
+                            {{ p.minLoanDuration }} – {{ p.maxLoanDuration }} 天
+                          </span>
+                          <span class="w-full truncate tabular-nums text-white/45">
+                            {{ p.minLoanAmount?.toLocaleString() }} – {{ p.maxLoanAmount?.toLocaleString() }}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </td>
-                  <td class="px-4 py-3.5 font-bold tabular-nums text-lime-300 sm:px-5">
+                  <td class="hidden px-3 py-3.5 align-middle font-bold tabular-nums text-lime-300 md:table-cell md:px-5 md:py-4">
                     {{ p.interestRate }}%
                   </td>
-                  <td class="px-4 py-3.5 tabular-nums text-white/75 sm:px-5">
+                  <td class="hidden px-3 py-3.5 tabular-nums text-white/75 md:table-cell md:px-5 md:py-4">
                     {{ p.minLoanDuration }} – {{ p.maxLoanDuration }} 天
                   </td>
-                  <td class="px-4 py-3.5 tabular-nums text-white/70 sm:px-5">
+                  <td class="hidden px-3 py-3.5 tabular-nums text-white/70 md:table-cell md:px-5 md:py-4">
                     {{ p.minLoanAmount?.toLocaleString() }} – {{ p.maxLoanAmount?.toLocaleString() }}
                   </td>
-                  <td class="px-4 py-3.5 text-right sm:px-5">
+                  <td class="px-2 py-3 align-middle text-right sm:px-3 sm:py-3.5 md:px-5 md:py-4">
                     <button
                       v-if="p.status === PRODUCT_STATUS.ACTIVE"
                       type="button"
-                      class="rounded-lg border border-lime-400/50 px-3 py-1.5 text-xs font-semibold text-lime-200 transition hover:bg-lime-400/10 sm:px-4 sm:text-sm"
+                      class="inline-flex min-h-[2.25rem] min-w-[3.25rem] items-center justify-center rounded-lg border border-lime-400/50 px-2.5 py-1.5 text-[11px] font-semibold text-lime-200 transition hover:bg-lime-400/10 sm:min-h-0 sm:min-w-0 sm:px-4 sm:py-2 sm:text-xs md:text-sm"
                       @click="openBorrowDialog(p)"
                     >
                       借款
@@ -449,7 +474,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                     <RouterLink
                       v-else
                       :to="`${prefix}/finance/lending/${p.productId}`"
-                      class="inline-block rounded-lg border border-white/20 px-3 py-1.5 text-xs font-medium text-white/60 transition hover:bg-white/10 sm:px-4 sm:text-sm"
+                      class="inline-flex min-h-[2.25rem] min-w-[3.25rem] items-center justify-center rounded-lg border border-white/20 px-2.5 py-1.5 text-[11px] font-medium text-white/60 transition hover:bg-white/10 sm:min-h-0 sm:min-w-0 sm:px-4 sm:py-2 sm:text-xs md:text-sm"
                     >
                       查看
                     </RouterLink>
@@ -468,37 +493,37 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
             账户信息
           </h2>
           <div
-            class="rounded-xl border border-white/[0.08] bg-white/[0.025] p-4 shadow-[inset_0_0_0_1px_rgba(167,139,250,0.06)] sm:p-5 lg:rounded-2xl"
+            class="rounded-xl border border-white/[0.08] bg-white/[0.025] p-3.5 shadow-[inset_0_0_0_1px_rgba(167,139,250,0.06)] sm:p-5 lg:rounded-2xl"
           >
-            <dl class="space-y-3 text-sm">
-              <div class="flex items-center justify-between gap-3 border-b border-white/[0.06] pb-3">
-                <dt class="text-white/45">钱包余额</dt>
-                <dd class="font-semibold tabular-nums text-white">
+            <dl class="space-y-2.5 text-xs sm:space-y-3 sm:text-sm">
+              <div class="flex items-start justify-between gap-2 border-b border-white/[0.06] pb-2.5 sm:items-center sm:gap-3 sm:pb-3">
+                <dt class="shrink-0 text-white/45">钱包余额</dt>
+                <dd class="max-w-[min(100%,11rem)] text-right text-[11px] font-semibold tabular-nums text-white sm:max-w-none sm:text-sm">
                   {{ demoWalletBalance.toLocaleString(undefined, { maximumFractionDigits: 2 }) }} USDT
                 </dd>
               </div>
-              <div class="flex items-center justify-between gap-3 border-b border-white/[0.06] pb-3">
-                <dt class="text-white/45">授信总额</dt>
-                <dd class="font-semibold tabular-nums text-white">
+              <div class="flex items-start justify-between gap-2 border-b border-white/[0.06] pb-2.5 sm:items-center sm:gap-3 sm:pb-3">
+                <dt class="shrink-0 text-white/45">授信总额</dt>
+                <dd class="max-w-[min(100%,11rem)] text-right text-[11px] font-semibold tabular-nums text-white sm:max-w-none sm:text-sm">
                   {{ demoTotalCredit.toLocaleString() }} USDT
                 </dd>
               </div>
-              <div class="flex items-center justify-between gap-3 border-b border-white/[0.06] pb-3">
-                <dt class="text-white/45">已用额度</dt>
-                <dd class="font-semibold tabular-nums text-violet-200/95">
+              <div class="flex items-start justify-between gap-2 border-b border-white/[0.06] pb-2.5 sm:items-center sm:gap-3 sm:pb-3">
+                <dt class="shrink-0 text-white/45">已用额度</dt>
+                <dd class="max-w-[min(100%,11rem)] text-right text-[11px] font-semibold tabular-nums text-violet-200/95 sm:max-w-none sm:text-sm">
                   {{ Math.round(usedCreditApprox).toLocaleString() }} USDT
                 </dd>
               </div>
-              <div class="flex items-center justify-between gap-3 pb-1">
-                <dt class="text-white/45">剩余额度</dt>
-                <dd class="font-semibold tabular-nums text-lime-200/90">
+              <div class="flex items-start justify-between gap-2 pb-1 sm:items-center sm:gap-3">
+                <dt class="shrink-0 text-white/45">剩余额度</dt>
+                <dd class="max-w-[min(100%,11rem)] text-right text-[11px] font-semibold tabular-nums text-lime-200/90 sm:max-w-none sm:text-sm">
                   {{ remainingBorrowApprox.toLocaleString() }} USDT
                 </dd>
               </div>
             </dl>
             <RouterLink
               :to="{ path: `${prefix}/login`, query: { redirect: route.path } }"
-              class="mt-5 flex w-full items-center justify-center rounded-lg border border-lime-400/45 py-2.5 text-sm font-semibold text-lime-200 transition hover:bg-lime-400/10"
+              class="mt-4 flex min-h-11 w-full items-center justify-center rounded-lg border border-lime-400/45 py-2.5 text-sm font-semibold text-lime-200 transition hover:bg-lime-400/10 sm:mt-5"
             >
               获取借款额度
             </RouterLink>
@@ -517,15 +542,21 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
           <!-- 当前记录 -->
           <table
             v-if="recordTab === 'current'"
-            class="w-full min-w-[560px] border-collapse text-left text-xs text-white/85 sm:text-sm"
+            class="w-full min-w-0 table-fixed border-collapse text-left text-xs text-white/85 sm:text-sm md:min-w-[560px] md:table-auto"
           >
             <thead>
-              <tr class="border-b border-white/[0.08] text-[10px] font-semibold uppercase tracking-wide text-white/40 sm:text-xs">
-                <th class="px-3 py-2.5 sm:px-5 sm:py-3">币种</th>
-                <th class="px-3 py-2.5 sm:px-5 sm:py-3">借款金额</th>
-                <th class="hidden px-3 py-2.5 sm:table-cell sm:px-5 sm:py-3">利率</th>
-                <th class="px-3 py-2.5 sm:px-5 sm:py-3">状态</th>
-                <th class="hidden px-3 py-2.5 md:table-cell md:px-5 md:py-3">到期</th>
+              <tr
+                class="border-b border-white/[0.08] text-[10px] font-semibold uppercase tracking-wide text-white/40 sm:text-xs"
+              >
+                <th class="w-[58%] px-2.5 py-2 font-semibold sm:w-[52%] sm:px-3 sm:py-2.5 md:w-auto md:px-5 md:py-3">
+                  借币
+                </th>
+                <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">借款金额</th>
+                <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">利率</th>
+                <th class="w-[42%] px-2 py-2 text-right font-semibold sm:w-auto sm:px-3 sm:py-2.5 sm:text-left md:px-5 md:py-3">
+                  状态
+                </th>
+                <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">到期</th>
               </tr>
             </thead>
             <tbody>
@@ -534,15 +565,28 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                 :key="o.orderId"
                 class="border-b border-white/[0.05] hover:bg-white/[0.02]"
               >
-                <td class="px-3 py-2.5 font-medium text-white sm:px-5 sm:py-3">{{ o.loanCurrency }}</td>
-                <td class="px-3 py-2.5 tabular-nums sm:px-5 sm:py-3">
+                <td class="min-w-0 px-2.5 py-2.5 align-top sm:px-3 sm:py-3 md:px-5">
+                  <p class="text-[13px] font-semibold leading-snug text-white sm:text-sm">{{ o.loanCurrency }}</p>
+                  <p class="mt-0.5 tabular-nums text-[11px] text-white/55 sm:text-xs">
+                    {{ o.loanAmount?.toLocaleString() }}
+                  </p>
+                  <div
+                    class="mt-1.5 flex flex-col gap-0.5 border-t border-white/[0.06] pt-1.5 text-[10px] text-white/45 sm:text-[11px] md:hidden"
+                  >
+                    <span class="font-medium text-lime-300/90">{{ o.interestRate }}% 利率</span>
+                    <span class="line-clamp-2 leading-snug">到期 {{ o.maturityDate }}</span>
+                  </div>
+                </td>
+                <td class="hidden px-3 py-2.5 tabular-nums md:table-cell md:px-5 md:py-3">
                   {{ o.loanAmount?.toLocaleString() }}
                 </td>
-                <td class="hidden tabular-nums text-lime-300/90 sm:table-cell sm:px-5 sm:py-3">
+                <td class="hidden tabular-nums text-lime-300/90 md:table-cell md:px-5 md:py-3">
                   {{ o.interestRate }}%
                 </td>
-                <td class="px-3 py-2.5 sm:px-5 sm:py-3">
-                  {{ LOAN_ORDER_STATUS_LABELS[o.status] ?? o.status }}
+                <td class="px-2 py-2.5 text-right align-top sm:px-3 sm:py-3 sm:text-left md:px-5 md:py-3">
+                  <span class="inline-block max-w-full text-[11px] leading-snug text-white/85 sm:text-xs md:text-sm">
+                    {{ LOAN_ORDER_STATUS_LABELS[o.status] ?? o.status }}
+                  </span>
                 </td>
                 <td class="hidden tabular-nums text-white/50 md:table-cell md:px-5 md:py-3">
                   {{ o.maturityDate }}
@@ -554,15 +598,21 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
           <!-- 还款记录 -->
           <table
             v-else-if="recordTab === 'repayment'"
-            class="w-full min-w-[560px] border-collapse text-left text-xs text-white/85 sm:text-sm"
+            class="w-full min-w-0 table-fixed border-collapse text-left text-xs text-white/85 sm:text-sm md:min-w-[560px] md:table-auto"
           >
             <thead>
-              <tr class="border-b border-white/[0.08] text-[10px] font-semibold uppercase tracking-wide text-white/40 sm:text-xs">
-                <th class="px-3 py-2.5 sm:px-5 sm:py-3">产品</th>
-                <th class="px-3 py-2.5 sm:px-5 sm:py-3">金额</th>
-                <th class="hidden px-3 py-2.5 sm:table-cell sm:px-5 sm:py-3">类型</th>
-                <th class="px-3 py-2.5 sm:px-5 sm:py-3">状态</th>
-                <th class="hidden px-3 py-2.5 md:table-cell md:px-5 md:py-3">时间</th>
+              <tr
+                class="border-b border-white/[0.08] text-[10px] font-semibold uppercase tracking-wide text-white/40 sm:text-xs"
+              >
+                <th class="w-[58%] px-2.5 py-2 font-semibold sm:px-3 sm:py-2.5 md:w-auto md:px-5 md:py-3">
+                  产品 / 金额
+                </th>
+                <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">金额</th>
+                <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">类型</th>
+                <th class="w-[42%] px-2 py-2 text-right font-semibold sm:w-auto sm:px-3 sm:py-2.5 sm:text-left md:px-5 md:py-3">
+                  状态
+                </th>
+                <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">时间</th>
               </tr>
             </thead>
             <tbody>
@@ -571,15 +621,30 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                 :key="r.repaymentId"
                 class="border-b border-white/[0.05] hover:bg-white/[0.02]"
               >
-                <td class="max-w-[10rem] truncate px-3 py-2.5 sm:max-w-none sm:px-5 sm:py-3">
-                  {{ r.productName }}
+                <td class="min-w-0 px-2.5 py-2.5 align-top sm:px-3 sm:py-3 md:px-5">
+                  <p class="line-clamp-2 text-[12px] font-medium leading-snug text-white sm:text-sm">
+                    {{ r.productName }}
+                  </p>
+                  <p class="mt-0.5 tabular-nums text-[11px] text-white/55 sm:text-xs">
+                    {{ r.amount?.toLocaleString() }}
+                  </p>
+                  <div
+                    class="mt-1.5 flex flex-col gap-0.5 border-t border-white/[0.06] pt-1.5 text-[10px] text-white/45 sm:text-[11px] md:hidden"
+                  >
+                    <span>{{ REPAYMENT_TYPE_LABELS[r.repaymentType] ?? r.repaymentType }}</span>
+                    <span class="line-clamp-2">{{ r.repaymentTime ?? r.createTime }}</span>
+                  </div>
                 </td>
-                <td class="px-3 py-2.5 tabular-nums sm:px-5 sm:py-3">{{ r.amount?.toLocaleString() }}</td>
-                <td class="hidden sm:table-cell sm:px-5 sm:py-3">
+                <td class="hidden px-3 py-2.5 tabular-nums md:table-cell md:px-5 md:py-3">
+                  {{ r.amount?.toLocaleString() }}
+                </td>
+                <td class="hidden md:table-cell md:px-5 md:py-3">
                   {{ REPAYMENT_TYPE_LABELS[r.repaymentType] ?? r.repaymentType }}
                 </td>
-                <td class="px-3 py-2.5 sm:px-5 sm:py-3">
-                  {{ REPAYMENT_STATUS_LABELS[r.status] ?? r.status }}
+                <td class="px-2 py-2.5 text-right align-top sm:px-3 sm:py-3 sm:text-left md:px-5 md:py-3">
+                  <span class="inline-block max-w-full text-[11px] leading-snug sm:text-xs md:text-sm">
+                    {{ REPAYMENT_STATUS_LABELS[r.status] ?? r.status }}
+                  </span>
                 </td>
                 <td class="hidden tabular-nums text-white/50 md:table-cell md:px-5 md:py-3">
                   {{ r.repaymentTime ?? r.createTime }}
@@ -591,14 +656,20 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
           <!-- 历史记录 -->
           <table
             v-else
-            class="w-full min-w-[560px] border-collapse text-left text-xs text-white/85 sm:text-sm"
+            class="w-full min-w-0 table-fixed border-collapse text-left text-xs text-white/85 sm:text-sm md:min-w-[560px] md:table-auto"
           >
             <thead>
-              <tr class="border-b border-white/[0.08] text-[10px] font-semibold uppercase tracking-wide text-white/40 sm:text-xs">
-                <th class="px-3 py-2.5 sm:px-5 sm:py-3">币种</th>
-                <th class="px-3 py-2.5 sm:px-5 sm:py-3">借款金额</th>
-                <th class="px-3 py-2.5 sm:px-5 sm:py-3">状态</th>
-                <th class="hidden px-3 py-2.5 md:table-cell md:px-5 md:py-3">更新时间</th>
+              <tr
+                class="border-b border-white/[0.08] text-[10px] font-semibold uppercase tracking-wide text-white/40 sm:text-xs"
+              >
+                <th class="w-[58%] px-2.5 py-2 font-semibold sm:px-3 sm:py-2.5 md:w-auto md:px-5 md:py-3">
+                  订单
+                </th>
+                <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">借款金额</th>
+                <th class="w-[42%] px-2 py-2 text-right font-semibold sm:w-auto sm:px-3 sm:py-2.5 sm:text-left md:px-5 md:py-3">
+                  状态
+                </th>
+                <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">更新时间</th>
               </tr>
             </thead>
             <tbody>
@@ -607,12 +678,22 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                 :key="o.orderId"
                 class="border-b border-white/[0.05] hover:bg-white/[0.02]"
               >
-                <td class="px-3 py-2.5 font-medium text-white sm:px-5 sm:py-3">{{ o.loanCurrency }}</td>
-                <td class="px-3 py-2.5 tabular-nums sm:px-5 sm:py-3">
+                <td class="min-w-0 px-2.5 py-2.5 align-top sm:px-3 sm:py-3 md:px-5">
+                  <p class="text-[13px] font-semibold leading-snug text-white sm:text-sm">{{ o.loanCurrency }}</p>
+                  <p class="mt-0.5 tabular-nums text-[11px] text-white/55 sm:text-xs">
+                    {{ o.loanAmount?.toLocaleString() }}
+                  </p>
+                  <p class="mt-1.5 border-t border-white/[0.06] pt-1.5 text-[10px] tabular-nums text-white/40 sm:text-[11px] md:hidden">
+                    {{ o.updateTime }}
+                  </p>
+                </td>
+                <td class="hidden px-3 py-2.5 tabular-nums md:table-cell md:px-5 md:py-3">
                   {{ o.loanAmount?.toLocaleString() }}
                 </td>
-                <td class="px-3 py-2.5 sm:px-5 sm:py-3">
-                  {{ LOAN_ORDER_STATUS_LABELS[o.status] ?? o.status }}
+                <td class="px-2 py-2.5 text-right align-top sm:px-3 sm:py-3 sm:text-left md:px-5 md:py-3">
+                  <span class="inline-block max-w-full text-[11px] leading-snug sm:text-xs md:text-sm">
+                    {{ LOAN_ORDER_STATUS_LABELS[o.status] ?? o.status }}
+                  </span>
                 </td>
                 <td class="hidden tabular-nums text-white/50 md:table-cell md:px-5 md:py-3">
                   {{ o.updateTime }}

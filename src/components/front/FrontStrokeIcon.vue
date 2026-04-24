@@ -1,6 +1,6 @@
 <script setup>
 defineProps({
-  /** eye | eye-off | refresh | key | smartphone | mail | shield | lightbulb | star | monitor | lock | check | chevron-down | chevron-up | chevron-right | x | wallet | clipboard | id-card | link | bell | cog | gift | arrow-right | arrow-left | arrows-swap | bolt */
+  /** eye | eye-off | refresh | key | smartphone | mail | shield | lightbulb | star | monitor | cpu | lock | check | chevron-down | chevron-up | chevron-right | x | wallet | clipboard | id-card | link | bell | cog | gift | arrow-right | arrow-left | arrows-swap | bolt */
   name: { type: String, required: true },
   sizeClass: { type: String, default: 'h-5 w-5' }
 })
@@ -63,6 +63,11 @@ defineProps({
       v-else-if="name === 'monitor'"
       d="M2.25 13.5h19.5M6.75 18H9m9 0h-1.5M9 18v3.75a.75.75 0 0 0 1.5 0V18m3 0v3.75a.75.75 0 0 0 1.5 0V18M4.5 5.25h15a.75.75 0 0 1 .75.75v7.5a.75.75 0 0 1-.75.75h-15a.75.75 0 0 1-.75-.75v-7.5a.75.75 0 0 1 .75-.75z"
     />
+    <g v-else-if="name === 'cpu'">
+      <rect width="16" height="16" x="4" y="4" fill="none" rx="2" />
+      <rect width="8" height="8" x="8" y="8" fill="none" rx="1" />
+      <path d="M9 2v2M15 2v2M9 22v2M15 22v2M22 9v2M22 15v2M2 9v2M2 15v2" />
+    </g>
     <path
       v-else-if="name === 'lock'"
       d="M16.5 10.5V6.75a4.5 4.5 0 0 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25z"
