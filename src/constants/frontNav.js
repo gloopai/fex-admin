@@ -75,7 +75,7 @@ export function getFrontFinanceHubPath(prefix) {
 }
 
 /**
- * 顶栏「金融」下拉：三个产品频道（站点化入口）
+ * 顶栏「金融」下拉 / 抽屉 / 金融首页卡片：三个产品频道（tag + 约十字 desc）
  * @param {string} prefix 如 `/front`
  */
 export function getFrontFinanceChannelEntries(prefix) {
@@ -85,21 +85,21 @@ export function getFrontFinanceChannelEntries(prefix) {
       key: 'liquidity',
       label: '流动性挖矿',
       tag: 'Earn',
-      desc: '多期限锁仓，年化分档透明，到期与提前赎回规则可查。',
+      desc: '多期限锁仓收益透明可查',
       to: `${b}/liquidity`
     },
     {
       key: 'lending',
       label: '信用借贷',
       tag: 'Borrow',
-      desc: '质押持仓释放借出币种流动性，利率与期限结构化展示。',
+      desc: '质押借币利率额度清晰',
       to: `${b}/lending`
     },
     {
       key: 'ai-quant',
       label: 'AI 量化',
       tag: 'Quant',
-      desc: '策略托管与结算周期可配，分档参考年化，结构清晰。',
+      desc: '策略托管分档参考年化',
       to: `${b}/ai-quant`
     }
   ]
@@ -114,7 +114,7 @@ export function getFrontBottomTabs(prefix) {
     { key: 'home', label: '首页', to: `${prefix}/home` },
     { key: 'market', label: '行情', to: `${prefix}/market` },
     { key: 'trade', label: '交易', to: getFrontTradeDefaultPath(prefix) },
-    { key: 'assets', label: '资产', to: `${prefix}/personal-center/assets` },
+    { key: 'finance', label: '金融', to: getFrontFinanceHubPath(prefix) },
     { key: 'me', label: '我的', to: `${prefix}/personal-center` }
   ]
 }

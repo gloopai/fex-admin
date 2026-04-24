@@ -73,7 +73,13 @@ const tradeMenuGroups = computed(() => getFrontTradeMenuGroups(props.prefix))
 const financeChannels = computed(() => getFrontFinanceChannelEntries(props.prefix))
 const financeHubPath = computed(() => getFrontFinanceHubPath(props.prefix))
 
-/** 抽屉：金融首页 + 三个频道 */
+const FINANCE_DRAWER_ICON_BY_CHANNEL = {
+  liquidity: 'finance-liquidity',
+  lending: 'finance-lending',
+  'ai-quant': 'finance-ai-quant'
+}
+
+/** 抽屉：金融首页 + 三个频道（各频道独立 icon） */
 const drawerFinanceNav = computed(() => {
   const p = props.prefix
   return [
@@ -82,7 +88,7 @@ const drawerFinanceNav = computed(() => {
       key: `finance-${c.key}`,
       label: c.label,
       to: c.to,
-      icon: 'finance'
+      icon: FINANCE_DRAWER_ICON_BY_CHANNEL[c.key] ?? 'finance'
     }))
   ]
 })
@@ -160,6 +166,25 @@ const drawerTradeLinksResolved = computed(() =>
   }))
 )
 
+const financeChannelsResolved = computed(() =>
+  financeChannels.value.map((ch) => ({
+    ...ch,
+    linkTo: isLoggedIn.value ? ch.to : loginRouteWithRedirect(ch.to)
+  }))
+)
+
+const financeHubLinkTo = computed(() =>
+  isLoggedIn.value ? financeHubPath.value : loginRouteWithRedirect(financeHubPath.value)
+)
+
+/** 未登录：金融入口 → 登录后回到对应金融页 */
+const drawerFinanceNavResolved = computed(() =>
+  drawerFinanceNav.value.map((item) => ({
+    ...item,
+    linkTo: isLoggedIn.value ? item.to : loginRouteWithRedirect(item.to)
+  }))
+)
+
 function drawerPcIconKey(key) {
   const m = {
     security: 'shield',
@@ -182,8 +207,27 @@ function drawerIconPaths(icon) {
     ],
     market: ['M4 16l4-6 4 3 4-8 4 5', 'M4 20h16'],
     finance: [
-      'M3 10h18v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9Z',
-      'M7 10V8a5 5 0 0 1 10 0v2'
+      'M4.9 15.75a3.35 2.05 0 1 0 6.7 0a3.35 2.05 0 1 0-6.7 0',
+      'M8.25 13.7V9.5M6.35 11.6h3.8',
+      'M14.25 18v-4.25M17.75 18V11M21.25 18V6.75'
+    ],
+    /** 流动性挖矿：锁 + 池底线 */
+    'finance-liquidity': [
+      'M8.75 12V7.75a3.25 3.25 0 0 1 6.5 0V12',
+      'M7.25 12h9.5v8.25a1.1 1.1 0 0 1-1.1 1.1H8.35a1.1 1.1 0 0 1-1.1-1.1V12Z',
+      'M5.5 20.25h13'
+    ],
+    /** 信用借贷：双向资金 */
+    'finance-lending': [
+      'M6.5 9.25h8.5M15 9.25l2.25-2.25M15 9.25l2.25 2.25',
+      'M17.5 14.75H9M8 14.75L5.75 17M8 14.75l-2.25-2.25',
+      'M12 11.25v1.5M12 15.25v1.5'
+    ],
+    /** AI 量化：芯片 + 算力脚 */
+    'finance-ai-quant': [
+      'M10 10h4v4h-4z',
+      'M12 7V5.25M12 18.75V17M7.25 12H5.5M18.5 12h-1.75',
+      'M8.6 8.6L7.35 7.35M15.4 8.6l1.25-1.25M8.6 15.4L7.35 16.65M15.4 15.4l1.25 1.25'
     ],
     assets: [
       'M19 7V4H5v3M5 11c0 4.5 3.6 8 8 8s8-3.5 8-8m-16 0v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9'
@@ -738,40 +782,42 @@ function drawerRowClass(item) {
               <div
                 v-show="financeOpen"
                 id="front-finance-panel"
-                class="absolute left-0 top-full z-30 mt-1.5 w-[min(44rem,calc(100vw-2rem))] overflow-hidden rounded-lg border border-[#1f2429] bg-[#1e2329] shadow-xl shadow-black/50"
+                class="absolute left-0 top-full z-30 mt-1.5 w-[min(40rem,calc(100vw-1.5rem))] overflow-hidden rounded-xl border border-[#1f2429] bg-[#1e2329] shadow-xl shadow-black/50"
                 role="menu"
               >
                 <div
-                  class="grid divide-y divide-[#1f2429] sm:grid-cols-3 sm:divide-x sm:divide-y-0"
+                  class="grid divide-y divide-[#1f2429] sm:grid-cols-3 sm:divide-x sm:divide-y-0 sm:items-stretch"
                 >
                   <RouterLink
-                    v-for="ch in financeChannels"
+                    v-for="ch in financeChannelsResolved"
                     :key="ch.key"
                     role="menuitem"
-                    :to="ch.to"
-                    class="group block p-5 text-left transition sm:min-h-[10.5rem]"
+                    :to="ch.linkTo"
+                    class="group flex h-full min-h-[7.5rem] flex-col px-4 py-4 text-left transition sm:min-h-[8.75rem] sm:px-4 sm:py-4 md:px-5 md:py-4"
                     :class="dropdownItemClass(ch.to)"
                     @click="financeOpen = false"
                   >
                     <p
-                      class="text-[10px] font-bold uppercase tracking-[0.2em] text-lime-400/90"
+                      class="text-[10px] font-bold uppercase leading-tight tracking-[0.18em] text-lime-400/90"
                     >
                       {{ ch.tag }}
                     </p>
                     <h3
-                      class="mt-2 text-lg font-semibold tracking-tight text-white sm:text-xl"
+                      class="mt-1.5 text-base font-semibold leading-snug tracking-tight text-white sm:text-[1.0625rem]"
                     >
                       {{ ch.label }}
                     </h3>
-                    <p class="mt-2 text-[13px] leading-relaxed text-[#848e9c] sm:text-sm">
+                    <p
+                      class="mt-1.5 line-clamp-2 text-[11.5px] leading-snug text-[#848e9c] sm:text-[12.5px]"
+                    >
                       {{ ch.desc }}
                     </p>
                     <span
-                      class="mt-4 inline-flex items-center text-sm font-semibold text-lime-400/95 transition group-hover:text-lime-300"
+                      class="mt-auto inline-flex items-center pt-2.5 text-[13px] font-semibold leading-none text-lime-400/95 transition group-hover:text-lime-300 sm:pt-3 sm:text-sm"
                     >
                       进入频道
                       <svg
-                        class="ml-1 h-4 w-4 transition group-hover:translate-x-0.5"
+                        class="ml-1 h-3.5 w-3.5 shrink-0 transition group-hover:translate-x-0.5 sm:h-4 sm:w-4"
                         viewBox="0 0 24 24"
                         fill="none"
                         aria-hidden="true"
@@ -788,13 +834,13 @@ function drawerRowClass(item) {
                   </RouterLink>
                 </div>
                 <div
-                  class="flex flex-wrap items-center justify-between gap-2 border-t border-[#1f2429] bg-[#12161c]/95 px-4 py-3"
+                  class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 border-t border-[#1f2429] bg-[#12161c]/95 px-4 py-2.5"
                 >
-                  <span class="text-[11px] font-medium text-[#848e9c]">CryptoX 金融 · 演示数据</span>
+                  <span class="text-[11px] font-medium leading-snug text-[#848e9c]">CryptoX 金融 · 演示数据</span>
                   <RouterLink
-                    :to="financeHubPath"
+                    :to="financeHubLinkTo"
                     role="menuitem"
-                    class="text-sm font-semibold text-lime-400 transition hover:text-lime-300"
+                    class="shrink-0 text-[13px] font-semibold leading-none text-lime-400 transition hover:text-lime-300 sm:text-sm"
                     :class="pathNorm(route.path) === pathNorm(financeHubPath) ? 'text-lime-300' : ''"
                     @click="financeOpen = false"
                   >
@@ -1252,9 +1298,9 @@ function drawerRowClass(item) {
               </p>
               <div class="space-y-0.5">
                 <RouterLink
-                  v-for="item in drawerFinanceNav"
+                  v-for="item in drawerFinanceNavResolved"
                   :key="item.key"
-                  :to="item.to"
+                  :to="item.linkTo"
                   role="menuitem"
                   :class="drawerRowClass(item)"
                   @click="mobileOpen = false"

@@ -79,13 +79,13 @@ const channelVisual = {
       </h1>
 
       <div
-        class="mt-10 grid gap-5 sm:mt-12 sm:grid-cols-2 sm:gap-6 lg:mt-14 lg:grid-cols-3 lg:gap-8"
+        class="mt-9 grid gap-4 sm:mt-11 sm:grid-cols-2 sm:gap-5 lg:mt-12 lg:grid-cols-3 lg:gap-6"
       >
         <RouterLink
           v-for="ch in channels"
           :key="ch.key"
           :to="ch.to"
-          class="group relative flex min-h-[240px] flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6 shadow-[0_24px_80px_-32px_rgba(0,0,0,0.85)] transition [-webkit-tap-highlight-color:transparent] sm:min-h-[260px] sm:p-8 lg:rounded-3xl lg:p-9"
+          class="group relative flex min-h-[228px] flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 shadow-[0_24px_80px_-32px_rgba(0,0,0,0.85)] transition [-webkit-tap-highlight-color:transparent] sm:min-h-[248px] sm:p-7 lg:min-h-[252px] lg:rounded-3xl lg:p-8"
           :class="channelVisual[ch.key]?.border"
         >
           <div
@@ -99,17 +99,20 @@ const channelVisual = {
             >
               {{ ch.tag }}
             </span>
-            <h2 class="mt-5 text-2xl font-bold tracking-tight text-white sm:text-[1.65rem]">
+            <h2 class="mt-3.5 text-xl font-bold tracking-tight text-white sm:mt-4 sm:text-[1.6rem]">
               {{ ch.label }}
             </h2>
-            <p class="mt-3 flex-1 text-sm leading-relaxed text-white/50 sm:text-[0.9375rem]">
+            <p
+              class="mt-2 line-clamp-2 text-[13px] leading-relaxed text-white/48 sm:mt-2.5 sm:text-[0.9375rem]"
+            >
               {{ ch.desc }}
             </p>
-            <p class="mt-6 text-xs font-medium uppercase tracking-wider text-white/35">
+            <div class="min-h-1 flex-1" aria-hidden="true" />
+            <p class="text-[11px] font-medium uppercase tracking-wider text-white/35 sm:text-xs">
               {{ statByKey[ch.key] }}
             </p>
             <span
-              class="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-lime-300 transition group-hover:gap-3"
+              class="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-lime-300 transition group-hover:gap-3 sm:mt-3.5"
             >
               进入频道
               <span class="text-lg leading-none" aria-hidden="true">→</span>

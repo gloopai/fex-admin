@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { getFrontBottomTabs } from '../constants/frontNav'
+import { getFrontBottomTabs, getFrontFinanceHubPath } from '../constants/frontNav'
 
 const props = defineProps({
   prefix: { type: String, required: true }
@@ -12,13 +12,13 @@ const route = useRoute()
 const tabs = computed(() => getFrontBottomTabs(props.prefix))
 
 const pcRoot = computed(() => `${props.prefix}/personal-center`)
-const assetsPath = computed(() => `${props.prefix}/personal-center/assets`)
 const tradePath = computed(() => `${props.prefix}/trade`)
+const financeHubPath = computed(() => getFrontFinanceHubPath(props.prefix))
 
 function isTabActive(key) {
   const p = route.path
   const pc = pcRoot.value
-  const assets = assetsPath.value
+  const fh = financeHubPath.value
   switch (key) {
     case 'home':
       return p === `${props.prefix}/home` || p.startsWith(`${props.prefix}/home/`)
@@ -26,10 +26,10 @@ function isTabActive(key) {
       return p.startsWith(`${props.prefix}/market`)
     case 'trade':
       return p.startsWith(tradePath.value)
-    case 'assets':
-      return p === assets || p.startsWith(`${assets}/`)
+    case 'finance':
+      return p === fh || p.startsWith(`${fh}/`)
     case 'me':
-      if (p === assets || p.startsWith(`${assets}/`)) return false
+      if (p === fh || p.startsWith(`${fh}/`)) return false
       return p === pc || p === `${pc}/` || p.startsWith(`${pc}/`)
     default:
       return false
@@ -111,21 +111,21 @@ function isTabActive(key) {
             stroke-linejoin="round"
           />
         </svg>
-        <!-- 资产 -->
+        <!-- 金融：硬币 + 上升收益柱（偏「赚钱」语义，与顶栏 finance 图标同源） -->
         <svg
-          v-else-if="tab.key === 'assets'"
+          v-else-if="tab.key === 'finance'"
           class="h-[22px] w-[22px] shrink-0 sm:h-6 sm:w-6"
           viewBox="0 0 24 24"
           fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linecap="round"
+          stroke-linejoin="round"
           aria-hidden="true"
         >
-          <path
-            d="M19 7V4H5v3M5 11c0 4.5 3.6 8 8 8s8-3.5 8-8m-16 0v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9"
-            stroke="currentColor"
-            stroke-width="1.6"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
+          <path d="M4.9 15.75a3.35 2.05 0 1 0 6.7 0a3.35 2.05 0 1 0-6.7 0" />
+          <path d="M8.25 13.7V9.5M6.35 11.6h3.8" />
+          <path d="M14.25 18v-4.25M17.75 18V11M21.25 18V6.75" stroke-width="1.65" />
         </svg>
         <!-- 我的 -->
         <svg

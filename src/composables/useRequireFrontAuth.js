@@ -34,6 +34,7 @@ export function useRequireFrontAuth() {
 export function pathNeedsFrontAuth(path) {
   if (typeof path !== 'string') return false
   if (path.startsWith('/front/personal-center')) return true
+  if (path.startsWith('/front/finance')) return true
   if (path.startsWith('/front/trade/')) return true
   if (path === '/front/verification-permission-demo') return true
   if (path.startsWith('/front/verification-permission-demo/')) return true
