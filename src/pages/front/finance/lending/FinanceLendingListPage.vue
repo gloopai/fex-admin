@@ -1,11 +1,18 @@
 <script setup>
-import { computed, onUnmounted, ref, watch, watchEffect } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
 import { useRoute } from 'vue-router'
 import FrontPopupCard from '../../../../components/front/FrontPopupCard.vue'
 import FrontPopupCloseButton from '../../../../components/front/FrontPopupCloseButton.vue'
 import FrontPopupShell from '../../../../components/front/FrontPopupShell.vue'
 import FrontStrokeIcon from '../../../../components/front/FrontStrokeIcon.vue'
 import { mockProducts, mockOrders, mockRepayments } from '../../../../admin/mock/cryptoLending'
+import { applyScorecardToPolicy, lendingCreditPolicy } from '../../../../admin/mock/lendingCreditConfig'
+import {
+  accountCreditRemaining,
+  borrowCreditRemaining as computeBorrowCreditRemaining,
+  LENDING_CREDIT_ACTIVE_ORDER_STATUSES,
+  sumActiveDebt
+} from '../../../../admin/constants/lendingCredit'
 import {
   PRODUCT_STATUS,
   PRODUCT_STATUS_LABELS,
@@ -24,6 +31,11 @@ const route = useRoute()
 const products = ref([...mockProducts])
 const orders = ref([...mockOrders])
 const repayments = ref([...mockRepayments])
+
+/** 演示：进入借贷页时按管理端「上限模板 + 评分规则」重算生效授信（生产多为服务端按用户实时计算） */
+onMounted(() => {
+  applyScorecardToPolicy()
+})
 
 /** 借出币种筛选（顶部资产卡；用弹层选择，避免卡内 Tab 过窄） */
 const loanCurrencyFilter = ref('')
@@ -61,7 +73,7 @@ const liquidityTotal = computed(() =>
   filteredProducts.value.reduce((s, p) => s + (Number(p.availableLiquidity) || 0), 0)
 )
 
-const activeStatuses = [LOAN_ORDER_STATUS.PENDING, LOAN_ORDER_STATUS.ACTIVE, LOAN_ORDER_STATUS.REPAYING]
+const activeStatuses = LENDING_CREDIT_ACTIVE_ORDER_STATUSES
 
 /** 当前筛选下的待还（记录区与「待还数量」卡） */
 const pendingRepayTotal = computed(() =>
@@ -71,20 +83,20 @@ const pendingRepayTotal = computed(() =>
     .reduce((s, o) => s + (Number(o.totalDebt) || 0), 0)
 )
 
-/** 全量待还：授信剩余与借款校验共用，避免「币种筛选」把可借额度算小却仍允许借大额 */
-const globalPendingRepayTotal = computed(() =>
-  orders.value
-    .filter((o) => activeStatuses.includes(o.status))
-    .reduce((s, o) => s + (Number(o.totalDebt) || 0), 0)
-)
+/** 全量在贷债务（授信「已用」与账户剩余共用此口径） */
+const globalPendingRepayTotal = computed(() => sumActiveDebt(orders.value, activeStatuses))
 
-/** Headline credit stats; currency filter affects summary context */
-const demoTotalCredit = 2_500_000
 const demoWalletBalance = 128_430.55
 
 const remainingBorrowApprox = computed(() =>
-  Math.max(0, Math.round(demoTotalCredit - globalPendingRepayTotal.value))
+  accountCreditRemaining(lendingCreditPolicy, orders.value)
 )
+
+const borrowCreditRemaining = computed(() => {
+  const p = borrowProduct.value
+  if (!p?.loanCurrency) return remainingBorrowApprox.value
+  return computeBorrowCreditRemaining(lendingCreditPolicy, orders.value, p.loanCurrency)
+})
 
 const recordTab = ref('current')
 /** Hero 主入口：借币一览 / 我的记录（与 AI 量化、流动性列表一致） */
@@ -357,14 +369,18 @@ const borrowSubmitValid = computed(() => {
   if (!Number.isFinite(n) || n <= 0) return false
   if (!Number.isFinite(min) || n < min) return false
   if (Number.isFinite(max) && max > 0 && n > max) return false
-  if (n > remainingBorrowApprox.value) return false
+  if (n > borrowCreditRemaining.value) return false
   return true
 })
 
 function fillBorrowAll() {
   const p = borrowProduct.value
   if (!p) return
-  borrowAmount.value = String(p.maxLoanAmount ?? '')
+  const cap = borrowCreditRemaining.value
+  const maxLoan = Number(p.maxLoanAmount)
+  const lim =
+    Number.isFinite(maxLoan) && maxLoan > 0 ? Math.min(maxLoan, cap) : cap
+  borrowAmount.value = String(lim > 0 ? lim : '')
 }
 
 const borrowCanSubmit = computed(
@@ -644,19 +660,19 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
               <div class="flex items-start justify-between gap-2 border-b border-white/[0.06] pb-2.5 sm:items-center sm:gap-3 sm:pb-3">
                 <dt class="shrink-0 text-white/45">授信总额</dt>
                 <dd class="max-w-[min(100%,11rem)] text-right text-[11px] font-semibold tabular-nums text-white sm:max-w-none sm:text-sm">
-                  {{ demoTotalCredit.toLocaleString() }} USDT
+                  {{ lendingCreditPolicy.accountTotalCapNotional.toLocaleString() }} USDT
                 </dd>
               </div>
               <div class="flex items-start justify-between gap-2 border-b border-white/[0.06] pb-2.5 sm:items-center sm:gap-3 sm:pb-3">
                 <dt class="shrink-0 text-white/45">已用额度</dt>
                 <dd class="max-w-[min(100%,11rem)] text-right text-[11px] font-semibold tabular-nums text-white sm:max-w-none sm:text-sm">
-                  {{ Math.round(globalPendingRepayTotal).toLocaleString() }} USDT
+                  {{ Math.round(globalPendingRepayTotal).toLocaleString() }}
                 </dd>
               </div>
               <div class="flex items-start justify-between gap-2 pb-1 sm:items-center sm:gap-3">
                 <dt class="shrink-0 text-white/45">剩余额度</dt>
                 <dd class="max-w-[min(100%,11rem)] text-right text-[11px] font-semibold tabular-nums text-lime-200/90 sm:max-w-none sm:text-sm">
-                  {{ remainingBorrowApprox.toLocaleString() }} USDT
+                  {{ remainingBorrowApprox.toLocaleString() }}
                 </dd>
               </div>
             </dl>
@@ -1016,9 +1032,6 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
         <h2 id="lending-currency-picker-title" class="pr-10 text-lg font-semibold tracking-tight text-white">
           选择借出币种
         </h2>
-        <p class="mt-1.5 text-[13px] leading-relaxed text-white/40">
-          筛选借币期限列表与顶部额度统计口径。
-        </p>
         <div
           class="mt-5 overflow-hidden rounded-xl border border-white/[0.08] bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
         >
@@ -1138,9 +1151,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
               <div class="flex flex-wrap items-baseline justify-between gap-2">
                 <span class="text-sm font-medium text-white/75">借币数量</span>
                 <span class="text-xs text-white/45">
-                  授信剩余（演示 · 全量待还后 · {{ borrowProduct.loanCurrency }}）：{{
-                    remainingBorrowApprox.toLocaleString()
-                  }}
+                  本单可借上限：{{ borrowCreditRemaining.toLocaleString() }} {{ borrowProduct.loanCurrency }}
                 </span>
               </div>
               <div class="mt-2 flex gap-2">
@@ -1167,8 +1178,8 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                 class="mt-2 text-xs leading-relaxed text-amber-200/90"
               >
                 请输入 {{ borrowProduct.minLoanAmount?.toLocaleString() }} –
-                {{ borrowProduct.maxLoanAmount?.toLocaleString() }} 范围内，且不超过授信剩余
-                {{ remainingBorrowApprox.toLocaleString() }} {{ borrowProduct.loanCurrency }} 的金额。
+                {{ borrowProduct.maxLoanAmount?.toLocaleString() }} 范围内，且不超过本单可借上限
+                {{ borrowCreditRemaining.toLocaleString() }} {{ borrowProduct.loanCurrency }}。
               </p>
             </div>
 

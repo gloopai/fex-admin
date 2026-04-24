@@ -275,6 +275,11 @@ export const consoleRoutes = [
     component: () => import('../../pages/admin/lending/LendingGuidePage.vue')
   },
   {
+    path: 'lending/credit-policy',
+    name: 'lending-credit-policy',
+    component: () => import('../../pages/admin/lending/LendingCreditPolicyPage.vue')
+  },
+  {
     path: 'ai-quant',
     redirect: '/admin/ai-quant/products'
   },

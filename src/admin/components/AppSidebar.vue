@@ -2,7 +2,15 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { getSiteConfigSnapshot } from '../mock/siteConfig'
 import { navTree } from '../config/nav'
+import { useAdminPermissionsStore } from '../stores/adminPermissions'
+import { filterNavTreeByPermissions } from '../utils/filterNavByPermissions'
 import SidebarNode from './SidebarNode.vue'
+
+const permStore = useAdminPermissionsStore()
+
+const filteredNavTree = computed(() =>
+  filterNavTreeByPermissions(navTree, (keys) => permStore.canAny(keys))
+)
 
 const props = defineProps({
   mobileOpen: {
@@ -103,7 +111,7 @@ const sidebarClass = computed(() => {
 
       <nav class="flex-1 overflow-y-auto px-3 py-3">
         <ul class="space-y-1">
-          <SidebarNode v-for="item in navTree" :key="item.title + (item.path || '')" :item="item" :level="0" />
+          <SidebarNode v-for="item in filteredNavTree" :key="item.title + (item.path || '')" :item="item" :level="0" />
         </ul>
       </nav>
     </div>
