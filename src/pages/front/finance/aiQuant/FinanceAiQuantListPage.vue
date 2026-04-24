@@ -495,7 +495,7 @@ const rentSubmitValid = computed(() => {
 
           <div
             v-if="heroPanel === 'market'"
-            class="pointer-events-none relative mx-auto h-36 w-36 shrink-0 sm:h-40 sm:w-40 lg:mx-0 lg:h-44 lg:w-44"
+            class="pointer-events-none relative mx-auto hidden h-36 w-36 shrink-0 sm:h-40 sm:w-40 md:block lg:mx-0 lg:h-44 lg:w-44"
             aria-hidden="true"
           >
             <div
