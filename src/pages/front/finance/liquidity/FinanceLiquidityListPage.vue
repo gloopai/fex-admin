@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch, watchEffect } from 'vue'
 import { useRoute } from 'vue-router'
 import FrontPopupCard from '../../../../components/front/FrontPopupCard.vue'
 import FrontPopupCloseButton from '../../../../components/front/FrontPopupCloseButton.vue'
@@ -75,9 +75,131 @@ function statusPillClass(status) {
   return 'bg-white/10 text-white/55'
 }
 
-function orderStatusClass(status) {
-  return orderStatusMeta[status]?.class ?? 'bg-white/10 text-white/60'
+function orderStatusPillClass(status) {
+  if (status === ORDER_STATUS.LOCKED) return 'bg-sky-400/15 text-sky-200'
+  if (status === ORDER_STATUS.COMPLETED) return 'bg-lime-400/12 text-lime-200'
+  if (status === ORDER_STATUS.EARLY_REDEEMED) return 'bg-rose-400/12 text-rose-200'
+  return 'bg-white/10 text-white/55'
 }
+
+/** 订单：提前赎回 / 到期领取（mock 更新本地 orders） */
+const orderActionOpen = ref(false)
+const orderActionKind = ref('early')
+const orderActionTarget = ref(null)
+let clearOrderActionTimer = null
+
+function productForOrder(order) {
+  if (!order?.productId) return null
+  return products.value.find((p) => p.id === order.productId) ?? null
+}
+
+function formatNowUtc8() {
+  const d = new Date()
+  const parts = new Intl.DateTimeFormat('zh-CN', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  }).formatToParts(d)
+  const get = (t) => parts.find((x) => x.type === t)?.value ?? ''
+  return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')}:${get('second')}`
+}
+
+function isOrderMatured(order) {
+  const dr = Number(order?.daysRemaining)
+  return Number.isFinite(dr) && dr <= 0
+}
+
+const orderActionProduct = computed(() => productForOrder(orderActionTarget.value))
+
+const earlyRedeemPenaltyPct = computed(() => {
+  const p = orderActionProduct.value
+  const fee = Number(p?.earlyRedeemFee)
+  return Number.isFinite(fee) && fee >= 0 ? fee : 0
+})
+
+const earlyRedeemFeeAmount = computed(() => {
+  const amt = Number(orderActionTarget.value?.amount) || 0
+  return amt * (earlyRedeemPenaltyPct.value / 100)
+})
+
+const earlyRedeemNetPrincipal = computed(() => {
+  const amt = Number(orderActionTarget.value?.amount) || 0
+  return Math.max(0, amt - earlyRedeemFeeAmount.value)
+})
+
+function openEarlyRedeem(order) {
+  if (clearOrderActionTimer != null) {
+    clearTimeout(clearOrderActionTimer)
+    clearOrderActionTimer = null
+  }
+  orderActionKind.value = 'early'
+  orderActionTarget.value = order
+  orderActionOpen.value = true
+}
+
+function openSettleOrder(order) {
+  if (clearOrderActionTimer != null) {
+    clearTimeout(clearOrderActionTimer)
+    clearOrderActionTimer = null
+  }
+  orderActionKind.value = 'settle'
+  orderActionTarget.value = order
+  orderActionOpen.value = true
+}
+
+function closeOrderAction() {
+  orderActionOpen.value = false
+}
+
+function onOrderActionEscape(e) {
+  if (e.key === 'Escape' && orderActionOpen.value) closeOrderAction()
+}
+
+function applyOrderStatusPatch(orderId, patch) {
+  const idx = orders.value.findIndex((x) => x.id === orderId)
+  if (idx === -1) return
+  orders.value[idx] = { ...orders.value[idx], ...patch }
+  orders.value = [...orders.value]
+}
+
+function confirmOrderAction() {
+  const o = orderActionTarget.value
+  if (!o) return
+  const t = formatNowUtc8()
+  if (orderActionKind.value === 'early') {
+    applyOrderStatusPatch(o.id, {
+      status: ORDER_STATUS.EARLY_REDEEMED,
+      completedAt: t,
+      daysRemaining: 0
+    })
+  } else {
+    applyOrderStatusPatch(o.id, {
+      status: ORDER_STATUS.COMPLETED,
+      completedAt: t,
+      daysRemaining: 0
+    })
+  }
+  orderActionOpen.value = false
+}
+
+watch(orderActionOpen, (open) => {
+  if (typeof window === 'undefined') return
+  if (open) {
+    window.addEventListener('keydown', onOrderActionEscape)
+  } else {
+    window.removeEventListener('keydown', onOrderActionEscape)
+    if (clearOrderActionTimer != null) clearTimeout(clearOrderActionTimer)
+    clearOrderActionTimer = window.setTimeout(() => {
+      orderActionTarget.value = null
+      clearOrderActionTimer = null
+    }, 360)
+  }
+})
 
 const mineDialogOpen = ref(false)
 const mineProduct = ref(null)
@@ -107,8 +229,6 @@ function onMineDialogEscape(e) {
 }
 
 watch(mineDialogOpen, (open) => {
-  if (typeof document === 'undefined') return
-  document.body.style.overflow = open ? 'hidden' : ''
   if (typeof window === 'undefined') return
   if (open) {
     if (clearMineRefsTimer != null) {
@@ -127,10 +247,19 @@ watch(mineDialogOpen, (open) => {
   }
 })
 
+watchEffect(() => {
+  if (typeof document === 'undefined') return
+  document.body.style.overflow = mineDialogOpen.value || orderActionOpen.value ? 'hidden' : ''
+})
+
 onUnmounted(() => {
   if (clearMineRefsTimer != null) clearTimeout(clearMineRefsTimer)
+  if (clearOrderActionTimer != null) clearTimeout(clearOrderActionTimer)
   if (typeof document !== 'undefined') document.body.style.overflow = ''
-  if (typeof window !== 'undefined') window.removeEventListener('keydown', onMineDialogEscape)
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('keydown', onMineDialogEscape)
+    window.removeEventListener('keydown', onOrderActionEscape)
+  }
 })
 
 const mineCanSubmit = computed(
@@ -346,9 +475,13 @@ const mineMinVipLabel = computed(() => {
                     }}</span>
                     <div class="min-w-0 flex-1">
                       <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                        <span class="text-[15px] font-semibold leading-snug text-white sm:text-base">{{
-                          r.product.name
-                        }}</span>
+                        <RouterLink
+                          :to="`${prefix}/finance/liquidity/${r.product.id}`"
+                          class="text-[15px] font-semibold leading-snug text-white transition hover:text-lime-300 sm:text-base"
+                          @click.stop
+                        >
+                          {{ r.product.name }}
+                        </RouterLink>
                         <span
                           class="shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-semibold sm:px-2 sm:text-[10px]"
                           :class="statusPillClass(r.product.status)"
@@ -478,8 +611,9 @@ const mineMinVipLabel = computed(() => {
                   <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">下单时间</th>
                   <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">金额</th>
                   <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">到期</th>
-                  <th class="hidden px-3 py-2.5 font-semibold lg:table-cell lg:px-5 lg:py-3">收益</th>
-                  <th class="px-3 py-2.5 text-right font-semibold md:px-5 md:py-3 md:text-left">状态</th>
+                <th class="hidden px-3 py-2.5 font-semibold lg:table-cell lg:px-5 lg:py-3">收益</th>
+                <th class="px-3 py-2.5 text-right font-semibold md:px-5 md:py-3 md:text-left">操作</th>
+                <th class="px-3 py-2.5 text-right font-semibold md:px-5 md:py-3 md:text-left">状态</th>
                 </tr>
               </thead>
               <tbody>
@@ -504,6 +638,35 @@ const mineMinVipLabel = computed(() => {
                       <span class="text-white/35">收益</span>
                       <span class="text-right tabular-nums text-lime-300/90">{{ o.totalInterest }} {{ o.currency }}</span>
                     </div>
+                    <div
+                      v-if="orderTab === 'active' && o.status === ORDER_STATUS.LOCKED"
+                      class="mt-3 flex flex-wrap gap-2 border-t border-white/[0.06] pt-3 md:hidden"
+                    >
+                      <button
+                        v-if="isOrderMatured(o)"
+                        type="button"
+                        class="touch-manipulation rounded-lg bg-lime-400 px-3 py-2 text-xs font-semibold text-black"
+                        @click="openSettleOrder(o)"
+                      >
+                        领取本息
+                      </button>
+                      <template v-else>
+                        <button
+                          v-if="productForOrder(o)?.earlyRedeemEnabled"
+                          type="button"
+                          class="touch-manipulation rounded-lg border border-white/25 px-3 py-2 text-xs font-semibold text-white/85"
+                          @click="openEarlyRedeem(o)"
+                        >
+                          提前赎回
+                        </button>
+                        <span
+                          v-else
+                          class="inline-flex items-center rounded-lg border border-white/10 px-3 py-2 text-xs text-white/40"
+                        >
+                          不可提前赎回
+                        </span>
+                      </template>
+                    </div>
                   </td>
                   <td class="hidden tabular-nums text-white/70 md:table-cell md:px-5 md:py-3">{{ o.lockDays }} 天</td>
                   <td class="hidden tabular-nums text-white/55 md:table-cell md:px-5 md:py-3">{{ o.lockedAt }}</td>
@@ -513,11 +676,42 @@ const mineMinVipLabel = computed(() => {
                     {{ o.totalInterest }} {{ o.currency }}
                   </td>
                   <td
-                    class="max-md:block max-md:w-full max-md:px-3 max-md:pb-4 max-md:pt-3 md:table-cell md:px-5 md:py-3 md:text-left"
+                    class="max-md:block max-md:w-full max-md:px-3 max-md:pb-2 max-md:pt-2 md:table-cell md:px-5 md:py-3 md:text-left"
+                  >
+                    <div v-if="orderTab === 'active' && o.status === ORDER_STATUS.LOCKED" class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                      <button
+                        v-if="isOrderMatured(o)"
+                        type="button"
+                        class="hidden touch-manipulation rounded-lg bg-lime-400 px-3 py-2 text-xs font-semibold text-black md:inline-flex"
+                        @click="openSettleOrder(o)"
+                      >
+                        领取本息
+                      </button>
+                      <template v-else>
+                        <button
+                          v-if="productForOrder(o)?.earlyRedeemEnabled"
+                          type="button"
+                          class="hidden touch-manipulation rounded-lg border border-white/25 px-3 py-2 text-xs font-semibold text-white/85 md:inline-flex"
+                          @click="openEarlyRedeem(o)"
+                        >
+                          提前赎回
+                        </button>
+                        <span
+                          v-else
+                          class="hidden text-xs text-white/40 md:inline"
+                        >
+                          —
+                        </span>
+                      </template>
+                    </div>
+                    <span v-else class="text-xs text-white/35 md:text-sm">—</span>
+                  </td>
+                  <td
+                    class="max-md:block max-md:w-full max-md:px-3 max-md:pb-4 max-md:pt-1 md:table-cell md:px-5 md:py-3 md:text-left"
                   >
                     <span
                       class="inline-flex min-h-[1.75rem] items-center rounded-full px-2.5 py-1 text-[11px] font-semibold sm:text-xs"
-                      :class="orderStatusClass(o.status)"
+                      :class="orderStatusPillClass(o.status)"
                     >
                       {{ orderStatusMeta[o.status]?.label ?? o.status }}
                     </span>
@@ -532,6 +726,76 @@ const mineMinVipLabel = computed(() => {
         </section>
       </template>
     </div>
+
+    <FrontPopupShell
+      v-model="orderActionOpen"
+      aria-labelledby="liquidity-order-action-title"
+      close-on-backdrop
+      @backdrop-click="closeOrderAction"
+    >
+      <FrontPopupCard v-if="orderActionTarget" variant="padded" wide @click.stop>
+        <FrontPopupCloseButton @click="closeOrderAction" />
+        <h2 id="liquidity-order-action-title" class="pr-10 text-lg font-semibold tracking-tight text-white">
+          {{ orderActionKind === 'settle' ? '到期领取本息' : '提前赎回' }}
+        </h2>
+        <p class="mt-1.5 text-sm text-white/45">
+          {{ orderActionTarget.productName }} · {{ orderActionTarget.amount }} {{ orderActionTarget.currency }}
+        </p>
+        <template v-if="orderActionKind === 'early'">
+          <dl class="mt-4 space-y-2 rounded-xl border border-white/[0.08] bg-black/35 px-3 py-3 text-sm">
+            <div class="flex justify-between gap-3">
+              <dt class="text-white/45">本金</dt>
+              <dd class="font-semibold tabular-nums text-white">{{ orderActionTarget.amount }} {{ orderActionTarget.currency }}</dd>
+            </div>
+            <div class="flex justify-between gap-3">
+              <dt class="text-white/45">违约金（约 {{ earlyRedeemPenaltyPct }}%）</dt>
+              <dd class="font-semibold tabular-nums text-amber-200/90">
+                {{ earlyRedeemFeeAmount.toFixed(4) }} {{ orderActionTarget.currency }}
+              </dd>
+            </div>
+            <div class="flex justify-between gap-3 border-t border-white/[0.08] pt-2">
+              <dt class="text-white/45">预计到账本金（演示）</dt>
+              <dd class="font-semibold tabular-nums text-lime-200/95">
+                {{ earlyRedeemNetPrincipal.toFixed(4) }} {{ orderActionTarget.currency }}
+              </dd>
+            </div>
+          </dl>
+          <p class="mt-3 text-xs leading-relaxed text-white/38">
+            已计未派发利息以实际结算为准；确认后订单将标记为「提前赎回」。
+          </p>
+        </template>
+        <template v-else>
+          <p class="mt-4 rounded-xl border border-lime-400/20 bg-lime-400/[0.08] px-3 py-3 text-sm text-lime-100/90">
+            锁定期已满，确认领取后本息将入账至您的资金账户（演示环境仅更新订单状态）。
+          </p>
+          <dl class="mt-3 space-y-2 text-sm text-white/70">
+            <div class="flex justify-between gap-3">
+              <dt class="text-white/45">本金 + 已计收益</dt>
+              <dd class="tabular-nums text-white">
+                {{ orderActionTarget.amount }} + {{ orderActionTarget.totalInterest }}
+                {{ orderActionTarget.currency }}
+              </dd>
+            </div>
+          </dl>
+        </template>
+        <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            class="rounded-lg border border-white/20 px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/10"
+            @click="closeOrderAction"
+          >
+            取消
+          </button>
+          <button
+            type="button"
+            class="rounded-lg bg-lime-400 px-4 py-2.5 text-sm font-semibold text-black hover:bg-lime-300"
+            @click="confirmOrderAction"
+          >
+            确认{{ orderActionKind === 'settle' ? '领取' : '赎回' }}
+          </button>
+        </div>
+      </FrontPopupCard>
+    </FrontPopupShell>
 
     <FrontPopupShell
       v-model="mineDialogOpen"
@@ -614,6 +878,14 @@ const mineMinVipLabel = computed(() => {
             <li>认证：{{ lockedMinKycRequirementPhrase(mineProduct.minKycLevel) }}</li>
             <li>{{ mineLimitDesc }}</li>
           </ul>
+
+          <RouterLink
+            class="mt-4 inline-flex text-xs font-medium text-lime-300/90 transition hover:text-lime-200"
+            :to="`${prefix}/finance/liquidity/${mineProduct.id}`"
+            @click="closeMineDialog"
+          >
+            查看产品说明与规则 →
+          </RouterLink>
 
           <div v-if="mineCanSubmit" class="mt-5 border-t border-white/[0.08] pt-5">
             <label class="block">

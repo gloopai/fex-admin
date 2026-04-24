@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch, watchEffect } from 'vue'
 import { useRoute } from 'vue-router'
 import FrontPopupCard from '../../../../components/front/FrontPopupCard.vue'
 import FrontPopupCloseButton from '../../../../components/front/FrontPopupCloseButton.vue'
@@ -155,7 +155,8 @@ const buyOrders = computed(() =>
       o.status === ORDER_STATUS.RUNNING ||
       o.status === ORDER_STATUS.COMPLETED ||
       o.status === ORDER_STATUS.SETTLED ||
-      o.status === ORDER_STATUS.LOCKED
+      o.status === ORDER_STATUS.LOCKED ||
+      o.status === ORDER_STATUS.CANCELLED
   )
 )
 
@@ -213,6 +214,35 @@ function formatValueDateUtc8() {
   return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')}:${get('second')} (UTC+8)`
 }
 
+/** 订单结算/赎回时间（与 mock 字段风格一致，无时区后缀） */
+function formatAiOrderSettledAt() {
+  const d = new Date()
+  const parts = new Intl.DateTimeFormat('zh-CN', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  }).formatToParts(d)
+  const get = (t) => parts.find((x) => x.type === t)?.value ?? ''
+  return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')}:${get('second')}`
+}
+
+function productForAiOrder(o) {
+  if (!o?.productId) return null
+  return products.value.find((p) => p.id === o.productId) ?? null
+}
+
+function canApplyEarlyRedeemAiOrder(o) {
+  if (!o || o.status !== ORDER_STATUS.RUNNING) return false
+  const p = productForAiOrder(o)
+  if (p && p.earlyRedeemEnabled === false) return false
+  return true
+}
+
 function formatTierAmountPlain(min, max, productCurrency) {
   const cur = displayAssetCurrency(productCurrency)
   const a = Number(min)
@@ -252,6 +282,7 @@ function openRentDialog(row) {
     clearTimeout(clearRentTimer)
     clearRentTimer = null
   }
+  aiRedeemOpen.value = false
   rentRow.value = row
   rentAmount.value = ''
   rentOpen.value = true
@@ -265,9 +296,50 @@ function onRentEscape(e) {
   if (e.key === 'Escape' && rentOpen.value) closeRentDialog()
 }
 
+/** 运行中订单：申请提前赎回（演示） */
+const aiRedeemOpen = ref(false)
+const aiRedeemOrder = ref(null)
+let clearAiRedeemTimer = null
+
+const aiRedeemProductSnapshot = computed(() =>
+  aiRedeemOrder.value ? productForAiOrder(aiRedeemOrder.value) : null
+)
+
+function openAiRedeemDialog(order) {
+  if (!canApplyEarlyRedeemAiOrder(order)) return
+  if (clearAiRedeemTimer != null) {
+    clearTimeout(clearAiRedeemTimer)
+    clearAiRedeemTimer = null
+  }
+  rentOpen.value = false
+  aiRedeemOrder.value = order
+  aiRedeemOpen.value = true
+}
+
+function closeAiRedeemDialog() {
+  aiRedeemOpen.value = false
+}
+
+function onAiRedeemEscape(e) {
+  if (e.key === 'Escape' && aiRedeemOpen.value) closeAiRedeemDialog()
+}
+
+function confirmAiEarlyRedeem() {
+  const o = aiRedeemOrder.value
+  if (!o || !canApplyEarlyRedeemAiOrder(o)) return
+  const now = formatAiOrderSettledAt()
+  const idx = orders.value.findIndex((x) => x.id === o.id)
+  if (idx === -1) return
+  orders.value[idx] = {
+    ...orders.value[idx],
+    status: ORDER_STATUS.EARLY_REDEEMED,
+    settledAt: now
+  }
+  orders.value = [...orders.value]
+  aiRedeemOpen.value = false
+}
+
 watch(rentOpen, (open) => {
-  if (typeof document === 'undefined') return
-  document.body.style.overflow = open ? 'hidden' : ''
   if (typeof window === 'undefined') return
   if (open) {
     if (clearRentTimer != null) {
@@ -286,10 +358,33 @@ watch(rentOpen, (open) => {
   }
 })
 
+watch(aiRedeemOpen, (open) => {
+  if (typeof window === 'undefined') return
+  if (open) {
+    window.addEventListener('keydown', onAiRedeemEscape)
+  } else {
+    window.removeEventListener('keydown', onAiRedeemEscape)
+    if (clearAiRedeemTimer != null) clearTimeout(clearAiRedeemTimer)
+    clearAiRedeemTimer = window.setTimeout(() => {
+      aiRedeemOrder.value = null
+      clearAiRedeemTimer = null
+    }, 360)
+  }
+})
+
+watchEffect(() => {
+  if (typeof document === 'undefined') return
+  document.body.style.overflow = rentOpen.value || aiRedeemOpen.value ? 'hidden' : ''
+})
+
 onUnmounted(() => {
   if (clearRentTimer != null) clearTimeout(clearRentTimer)
+  if (clearAiRedeemTimer != null) clearTimeout(clearAiRedeemTimer)
   if (typeof document !== 'undefined') document.body.style.overflow = ''
-  if (typeof window !== 'undefined') window.removeEventListener('keydown', onRentEscape)
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('keydown', onRentEscape)
+    window.removeEventListener('keydown', onAiRedeemEscape)
+  }
 })
 
 function fillRentAll() {
@@ -569,6 +664,83 @@ function fillRentAll() {
             </p>
           </div>
         </div>
+
+        <!-- 运行中订单操作入口（仅「我的托管」：与机器人市场区分，便于验收赎回流程） -->
+        <div
+          class="overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.02] sm:rounded-2xl"
+        >
+          <div
+            class="border-b border-white/[0.08] bg-black/30 px-3 py-2.5 sm:flex sm:items-center sm:justify-between sm:gap-3 sm:px-4 sm:py-3 md:px-5"
+          >
+            <p class="text-[10px] font-semibold uppercase tracking-wide text-white/40 sm:text-[11px]">
+              运行中 · 快捷操作
+            </p>
+            <p class="mt-0.5 text-[11px] leading-snug text-white/35 sm:mt-0 sm:text-xs">
+              与下方「购买」记录一致；支持提前赎回的产品可在此发起演示。
+            </p>
+          </div>
+          <div class="overflow-x-auto">
+            <table
+              v-if="runningOrdersTab.length"
+              class="w-full min-w-0 border-collapse text-left text-xs text-white/85 sm:text-sm md:min-w-[560px] md:table-auto max-md:table-fixed"
+            >
+              <thead class="hidden md:table-header-group">
+                <tr
+                  class="border-b border-white/[0.08] text-[10px] font-semibold uppercase tracking-wide text-white/40"
+                >
+                  <th class="px-3 py-2.5 md:px-5">产品</th>
+                  <th class="hidden px-3 py-2.5 md:table-cell md:px-5">本金</th>
+                  <th class="px-3 py-2.5 text-right md:px-5 md:text-left">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="o in runningOrdersTab"
+                  :key="`mine-run-${o.id}`"
+                  class="border-b border-white/[0.06] transition hover:bg-white/[0.02] max-md:block max-md:last:border-0 md:table-row"
+                >
+                  <td class="min-w-0 max-md:block max-md:w-full max-md:px-3 max-md:pb-0 max-md:pt-4 md:table-cell md:px-5 md:py-3">
+                    <p class="text-[14px] font-medium leading-snug text-white sm:text-sm">{{ o.productName }}</p>
+                    <p class="mt-0.5 tabular-nums text-[11px] text-white/55 sm:text-xs">
+                      {{ o.principal }} {{ o.currency }}
+                    </p>
+                    <div v-if="canApplyEarlyRedeemAiOrder(o)" class="mt-3 md:hidden">
+                      <button
+                        type="button"
+                        class="w-full touch-manipulation rounded-lg border border-lime-400/45 py-2.5 text-xs font-semibold text-lime-200 transition hover:bg-lime-400/10"
+                        @click="openAiRedeemDialog(o)"
+                      >
+                        申请赎回
+                      </button>
+                    </div>
+                    <div v-else class="mt-3 md:hidden">
+                      <p
+                        class="rounded-lg border border-white/[0.08] bg-black/30 py-2.5 text-center text-[11px] text-white/40"
+                      >
+                        不可提前赎回
+                      </p>
+                    </div>
+                  </td>
+                  <td class="hidden tabular-nums text-white/80 md:table-cell md:px-5 md:py-3">
+                    {{ o.principal }} {{ o.currency }}
+                  </td>
+                  <td class="max-md:hidden md:table-cell md:px-5 md:py-3 md:text-left">
+                    <button
+                      v-if="canApplyEarlyRedeemAiOrder(o)"
+                      type="button"
+                      class="touch-manipulation rounded-lg border border-lime-400/45 px-3 py-1.5 text-xs font-semibold text-lime-200 transition hover:bg-lime-400/10"
+                      @click="openAiRedeemDialog(o)"
+                    >
+                      申请赎回
+                    </button>
+                    <span v-else class="text-xs text-white/35">不可提前赎回</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p v-else class="px-3 py-10 text-center text-sm text-white/40 sm:py-12">当前币种暂无运行中托管</p>
+          </div>
+        </div>
       </div>
 
       <!-- 记录：二级用底边线 Tab，与 Hero 胶囊主入口区分 -->
@@ -633,7 +805,7 @@ function fillRentAll() {
           <!-- 购买 -->
           <table
             v-if="recordTab === 'buy' && buyOrders.length"
-            class="w-full min-w-0 border-collapse text-left text-xs text-white/85 sm:text-sm md:min-w-[880px] md:table-auto max-md:table-fixed"
+            class="w-full min-w-0 border-collapse text-left text-xs text-white/85 sm:text-sm md:min-w-[960px] md:table-auto max-md:table-fixed"
           >
             <thead class="hidden md:table-header-group">
               <tr class="border-b border-white/[0.08] text-[10px] font-semibold uppercase tracking-wide text-white/40">
@@ -643,6 +815,7 @@ function fillRentAll() {
                 <th class="hidden px-3 py-2.5 md:table-cell md:px-5">支付金额</th>
                 <th class="hidden px-3 py-2.5 lg:table-cell lg:px-5">累计收益</th>
                 <th class="hidden px-3 py-2.5 md:table-cell md:px-5">日收益</th>
+                <th class="px-3 py-2.5 text-right md:px-5 md:text-left">操作</th>
                 <th class="px-3 py-2.5 text-right md:px-5">状态</th>
               </tr>
             </thead>
@@ -670,6 +843,22 @@ function fillRentAll() {
                     <span class="text-white/35">日收益</span>
                     <span class="text-right tabular-nums text-white/70">{{ o.expectedDailyYield }}</span>
                   </div>
+                  <div v-if="o.status === ORDER_STATUS.RUNNING" class="mt-3 md:hidden">
+                    <button
+                      v-if="canApplyEarlyRedeemAiOrder(o)"
+                      type="button"
+                      class="w-full touch-manipulation rounded-lg border border-lime-400/45 py-2.5 text-xs font-semibold text-lime-200 transition hover:bg-lime-400/10"
+                      @click="openAiRedeemDialog(o)"
+                    >
+                      申请赎回
+                    </button>
+                    <p
+                      v-else
+                      class="rounded-lg border border-white/[0.08] bg-black/30 py-2.5 text-center text-[11px] text-white/40"
+                    >
+                      不可提前赎回
+                    </p>
+                  </div>
                 </td>
                 <td class="hidden tabular-nums text-white/55 md:table-cell md:px-5 md:py-3">{{ o.startDate }}</td>
                 <td class="hidden tabular-nums text-white/55 lg:table-cell lg:px-5 lg:py-3">{{ o.endDate }}</td>
@@ -682,8 +871,22 @@ function fillRentAll() {
                 <td class="hidden tabular-nums text-white/60 md:table-cell md:px-5 md:py-3">
                   {{ o.expectedDailyYield }}
                 </td>
+                <td class="max-md:hidden md:table-cell md:px-5 md:py-3 md:text-left">
+                  <template v-if="o.status === ORDER_STATUS.RUNNING">
+                    <button
+                      v-if="canApplyEarlyRedeemAiOrder(o)"
+                      type="button"
+                      class="touch-manipulation rounded-lg border border-lime-400/45 px-3 py-1.5 text-xs font-semibold text-lime-200 transition hover:bg-lime-400/10"
+                      @click="openAiRedeemDialog(o)"
+                    >
+                      申请赎回
+                    </button>
+                    <span v-else class="text-xs text-white/35">不可提前赎回</span>
+                  </template>
+                  <span v-else class="text-xs text-white/35">—</span>
+                </td>
                 <td
-                  class="max-md:block max-md:w-full max-md:px-3 max-md:pb-4 max-md:pt-3 md:table-cell md:px-5 md:py-3 md:text-left"
+                  class="max-md:block max-md:w-full max-md:px-3 max-md:pb-4 max-md:pt-1 md:table-cell md:px-5 md:py-3 md:text-left"
                 >
                   <span
                     class="inline-flex min-h-[1.75rem] items-center rounded-full px-2.5 py-1 text-[11px] font-semibold sm:text-xs md:px-2.5"
@@ -820,6 +1023,61 @@ function fillRentAll() {
       </section>
       </template>
     </div>
+
+    <FrontPopupShell
+      v-model="aiRedeemOpen"
+      aria-labelledby="ai-quant-redeem-dialog-title"
+      close-on-backdrop
+      @backdrop-click="closeAiRedeemDialog"
+    >
+      <FrontPopupCard v-if="aiRedeemOrder" variant="padded" wide @click.stop>
+        <FrontPopupCloseButton @click="closeAiRedeemDialog" />
+        <h2 id="ai-quant-redeem-dialog-title" class="pr-10 text-lg font-semibold tracking-tight text-white">
+          确认提前赎回
+        </h2>
+        <p class="mt-1.5 text-[13px] leading-relaxed text-white/45">
+          演示环境：确认后订单将标记为「提前赎回」，并可在「赎回」页签查看。
+        </p>
+        <dl class="mt-4 space-y-2 rounded-xl border border-white/[0.08] bg-black/35 px-3 py-3 text-sm">
+          <div class="flex justify-between gap-3">
+            <dt class="text-white/45">产品</dt>
+            <dd class="text-right text-white/90">{{ aiRedeemOrder.productName }}</dd>
+          </div>
+          <div class="flex justify-between gap-3">
+            <dt class="text-white/45">本金</dt>
+            <dd class="tabular-nums font-medium text-white">
+              {{ aiRedeemOrder.principal }} {{ aiRedeemOrder.currency }}
+            </dd>
+          </div>
+          <div class="flex justify-between gap-3 border-t border-white/[0.06] pt-2">
+            <dt class="text-white/45">规则手续费（约）</dt>
+            <dd class="tabular-nums text-amber-200/90">
+              {{
+                aiRedeemProductSnapshot?.earlyRedeemFeePercent != null
+                  ? `${aiRedeemProductSnapshot.earlyRedeemFeePercent}%`
+                  : '—'
+              }}
+            </dd>
+          </div>
+        </dl>
+        <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            class="rounded-lg border border-white/20 px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/10"
+            @click="closeAiRedeemDialog"
+          >
+            取消
+          </button>
+          <button
+            type="button"
+            class="rounded-lg bg-lime-400 px-4 py-2.5 text-sm font-semibold text-black shadow-sm transition hover:bg-lime-300"
+            @click="confirmAiEarlyRedeem"
+          >
+            确认赎回
+          </button>
+        </div>
+      </FrontPopupCard>
+    </FrontPopupShell>
 
     <FrontPopupShell
       v-model="rentOpen"

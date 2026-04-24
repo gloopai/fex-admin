@@ -75,6 +75,27 @@ const products = [
     lendableRatio: 60,
     status: PRODUCT_STATUS.SOLD_OUT,
     createdAt: '2026-02-20'
+  },
+  {
+    id: 'prod-4',
+    name: 'USDC 体验档（已下架）',
+    currency: 'USDC',
+    icon: '$',
+    periods: [{ days: 2, annualRate: 72, minAmount: 10, maxAmount: 500 }],
+    earlyRedeemEnabled: true,
+    earlyRedeemFee: 4,
+    minVipLevel: 0,
+    minKycLevel: 'none',
+    purchaseLimitType: PURCHASE_LIMIT_TYPE.NONE,
+    lifetimeLimit: 0,
+    periodLimit: 0,
+    periodDays: 0,
+    totalLocked: 0,
+    totalOrders: 0,
+    totalYield: 0,
+    lendableRatio: 0,
+    status: PRODUCT_STATUS.DISABLED,
+    createdAt: '2025-11-01'
   }
 ]
 
@@ -93,9 +114,9 @@ const orders = [
     totalInterest: 194.4,
     status: ORDER_STATUS.LOCKED,
     lockedAt: '2026-03-01 14:22:10',
-    unlockAt: '2026-03-11 14:22:10',
+    unlockAt: '2026-03-09 14:22:10',
     completedAt: null,
-    daysRemaining: 3
+    daysRemaining: 0
   },
   {
     id: 'ord-1002',
@@ -164,6 +185,24 @@ const orders = [
     unlockAt: '2026-03-26 08:30:12',
     completedAt: null,
     daysRemaining: 18
+  },
+  /** 与 alerts.alert-302 对齐；未到期 + 可提前赎回，便于与 ord-1001（到期领取）对照 */
+  {
+    id: 'ord-1006',
+    userId: 'user-4421',
+    userName: 'frank_investor',
+    productId: 'prod-1',
+    productName: 'USDT 定期理财',
+    currency: 'USDT',
+    amount: 8000,
+    lockDays: 5,
+    dailyRate: 0.3388,
+    totalInterest: 320,
+    status: ORDER_STATUS.LOCKED,
+    lockedAt: '2026-03-05 10:15:30',
+    unlockAt: '2026-03-09 10:15:30',
+    completedAt: null,
+    daysRemaining: 2
   }
 ]
 

@@ -49,7 +49,9 @@ export const frontDesktopRoutes = [
       },
       {
         path: 'liquidity/:productId',
-        redirect: '/front/finance/liquidity'
+        name: 'front-finance-liquidity-detail',
+        component: () => import('../../pages/front/finance/liquidity/FinanceLiquidityDetailPage.vue'),
+        meta: { title: '锁仓产品' }
       },
       {
         path: 'lending',

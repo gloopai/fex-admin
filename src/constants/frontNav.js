@@ -60,7 +60,7 @@ export function getFrontTradeNavLinks(prefix) {
   return getFrontTradeNavLinksFlat(prefix)
 }
 
-/** 左侧主导航：首页、行情、资产（「金融」为顶栏下拉，见 getFrontFinanceChannelEntries） */
+/** 顶栏常驻链：首页、行情、资产；「交易」「金融」为顶栏下拉（顺序：交易 → 金融），频道见 getFrontFinanceChannelEntries */
 export function getFrontMainNavLinks(prefix) {
   return [
     { key: 'home', label: '首页', to: `${prefix}/home` },

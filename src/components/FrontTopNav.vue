@@ -66,7 +66,7 @@ const searchPanelRef = ref(null)
 let downloadLeaveTimer = null
 
 const mainLinks = computed(() => getFrontMainNavLinks(props.prefix))
-/** 主导航中位于「金融 / 交易」之前的链接（首页、行情） */
+/** 主导航中位于「交易 / 金融」之前的链接（首页、行情） */
 const mainLinksLead = computed(() => mainLinks.value.filter((i) => i.key !== 'assets'))
 const mainLinkAssets = computed(() => mainLinks.value.find((i) => i.key === 'assets'))
 const tradeMenuGroups = computed(() => getFrontTradeMenuGroups(props.prefix))
@@ -637,6 +637,73 @@ function drawerRowClass(item) {
             <button
               type="button"
               class="inline-flex items-center gap-1"
+              :class="tradeTriggerClass()"
+              :aria-expanded="tradeOpen"
+              aria-haspopup="true"
+              aria-controls="front-trade-panel"
+              @click="toggleTradeMenu"
+            >
+              交易
+              <svg
+                class="h-3 w-3 shrink-0 opacity-70 transition-transform duration-200"
+                :class="tradeOpen ? 'rotate-180' : ''"
+                viewBox="0 0 12 12"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M3 4.5 6 7.5 9 4.5"
+                  stroke="currentColor"
+                  stroke-width="1.25"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+            <Transition
+              enter-active-class="transition duration-150 ease-out"
+              enter-from-class="opacity-0 -translate-y-1"
+              enter-to-class="opacity-100 translate-y-0"
+              leave-active-class="transition duration-100 ease-in"
+              leave-from-class="opacity-100 translate-y-0"
+              leave-to-class="opacity-0 -translate-y-1"
+            >
+              <div
+                v-show="tradeOpen"
+                id="front-trade-panel"
+                class="absolute left-0 top-full z-30 mt-1.5 flex min-w-[22rem] divide-x divide-[#1f2429] overflow-hidden rounded-md border border-[#1f2429] bg-[#1e2329] py-1.5 shadow-xl shadow-black/50"
+                role="menu"
+              >
+                <div
+                  v-for="group in tradeMenuGroups"
+                  :key="group.key"
+                  class="min-w-0 flex-1 px-0.5 first:pl-0 last:pr-0"
+                >
+                  <p
+                    class="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#848e9c]"
+                  >
+                    {{ group.label }}
+                  </p>
+                  <RouterLink
+                    v-for="item in group.items"
+                    :key="item.key"
+                    :to="item.to"
+                    role="menuitem"
+                    class="block px-3 py-2 text-sm transition-colors lg:text-[0.9375rem] lg:leading-snug"
+                    :class="dropdownItemClass(item.to)"
+                    @click="tradeOpen = false"
+                  >
+                    {{ item.label }}
+                  </RouterLink>
+                </div>
+              </div>
+            </Transition>
+          </div>
+
+          <div class="relative">
+            <button
+              type="button"
+              class="inline-flex items-center gap-1"
               :class="financeTriggerClass()"
               :aria-expanded="financeOpen"
               aria-haspopup="true"
@@ -732,73 +799,6 @@ function drawerRowClass(item) {
                     @click="financeOpen = false"
                   >
                     金融首页
-                  </RouterLink>
-                </div>
-              </div>
-            </Transition>
-          </div>
-
-          <div class="relative">
-            <button
-              type="button"
-              class="inline-flex items-center gap-1"
-              :class="tradeTriggerClass()"
-              :aria-expanded="tradeOpen"
-              aria-haspopup="true"
-              aria-controls="front-trade-panel"
-              @click="toggleTradeMenu"
-            >
-              交易
-              <svg
-                class="h-3 w-3 shrink-0 opacity-70 transition-transform duration-200"
-                :class="tradeOpen ? 'rotate-180' : ''"
-                viewBox="0 0 12 12"
-                fill="none"
-                aria-hidden="true"
-              >
-                <path
-                  d="M3 4.5 6 7.5 9 4.5"
-                  stroke="currentColor"
-                  stroke-width="1.25"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-            </button>
-            <Transition
-              enter-active-class="transition duration-150 ease-out"
-              enter-from-class="opacity-0 -translate-y-1"
-              enter-to-class="opacity-100 translate-y-0"
-              leave-active-class="transition duration-100 ease-in"
-              leave-from-class="opacity-100 translate-y-0"
-              leave-to-class="opacity-0 -translate-y-1"
-            >
-              <div
-                v-show="tradeOpen"
-                id="front-trade-panel"
-                class="absolute left-0 top-full z-30 mt-1.5 flex min-w-[22rem] divide-x divide-[#1f2429] overflow-hidden rounded-md border border-[#1f2429] bg-[#1e2329] py-1.5 shadow-xl shadow-black/50"
-                role="menu"
-              >
-                <div
-                  v-for="group in tradeMenuGroups"
-                  :key="group.key"
-                  class="min-w-0 flex-1 px-0.5 first:pl-0 last:pr-0"
-                >
-                  <p
-                    class="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#848e9c]"
-                  >
-                    {{ group.label }}
-                  </p>
-                  <RouterLink
-                    v-for="item in group.items"
-                    :key="item.key"
-                    :to="item.to"
-                    role="menuitem"
-                    class="block px-3 py-2 text-sm transition-colors lg:text-[0.9375rem] lg:leading-snug"
-                    :class="dropdownItemClass(item.to)"
-                    @click="tradeOpen = false"
-                  >
-                    {{ item.label }}
                   </RouterLink>
                 </div>
               </div>
@@ -1211,13 +1211,13 @@ function drawerRowClass(item) {
                 aria-hidden="true"
               />
               <p class="mb-2 mt-5 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#b0b8c1] sm:tracking-wider">
-                金融
+                交易
               </p>
               <div class="space-y-0.5">
                 <RouterLink
-                  v-for="item in drawerFinanceNav"
+                  v-for="item in drawerTradeLinksResolved"
                   :key="item.key"
-                  :to="item.to"
+                  :to="item.linkTo"
                   role="menuitem"
                   :class="drawerRowClass(item)"
                   @click="mobileOpen = false"
@@ -1248,13 +1248,13 @@ function drawerRowClass(item) {
                 aria-hidden="true"
               />
               <p class="mb-2 mt-5 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#b0b8c1] sm:tracking-wider">
-                交易
+                金融
               </p>
               <div class="space-y-0.5">
                 <RouterLink
-                  v-for="item in drawerTradeLinksResolved"
+                  v-for="item in drawerFinanceNav"
                   :key="item.key"
-                  :to="item.linkTo"
+                  :to="item.to"
                   role="menuitem"
                   :class="drawerRowClass(item)"
                   @click="mobileOpen = false"

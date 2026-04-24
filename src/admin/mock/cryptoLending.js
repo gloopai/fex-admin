@@ -121,6 +121,28 @@ export const mockProducts = [
     activeOrders: 134,
     createTime: '2024-02-15 13:45:00',
     updateTime: '2024-03-06 11:00:00'
+  },
+  {
+    productId: 'LND-006',
+    productName: 'SOL小额借贷（已停用）',
+    collateralType: 'SOL',
+    loanCurrency: 'USDC',
+    minLoanAmount: 50,
+    maxLoanAmount: 20000,
+    interestRate: 11.0,
+    interestRateType: INTEREST_RATE_TYPE.FIXED,
+    ltvRatio: 55,
+    liquidationThreshold: 70,
+    minLoanDuration: 7,
+    maxLoanDuration: 90,
+    liquidationPenalty: 6,
+    status: PRODUCT_STATUS.INACTIVE,
+    totalLent: 120000,
+    availableLiquidity: 0,
+    activeUsers: 0,
+    activeOrders: 0,
+    createTime: '2023-06-01 10:00:00',
+    updateTime: '2024-01-01 00:00:00'
   }
 ]
 
@@ -398,6 +420,40 @@ export const mockOrders = [
     riskLevel: RISK_LEVEL.HIGH,
     purpose: '投资扩张资金',
     remarks: '抵押资产价格大幅下跌，触发清算'
+  },
+  {
+    orderId: 'ORD-20240308-008',
+    userId: 'USR-10007',
+    userName: '周八',
+    email: 'zhouba@example.com',
+    phone: '+86 136****2222',
+    creditScore: 700,
+    productId: 'LND-003',
+    productName: 'USDT稳定币借贷',
+    collateralType: 'USDT',
+    collateralAmount: 12000,
+    collateralValue: 12000,
+    loanCurrency: 'USDC',
+    loanAmount: 0,
+    requestedAmount: 8000,
+    initialLtv: 0,
+    currentLtv: 0,
+    interestRate: 6.8,
+    interestAccrued: 0,
+    totalDebt: 0,
+    liquidationPrice: 0.95,
+    currentPrice: 1.0,
+    liquidationThreshold: 95,
+    status: LOAN_ORDER_STATUS.CANCELLED,
+    loanDuration: 30,
+    daysElapsed: 0,
+    daysRemaining: 0,
+    createTime: '2024-03-08 08:00:00',
+    updateTime: '2024-03-08 08:30:00',
+    maturityDate: '2024-03-08 08:30:00',
+    riskLevel: RISK_LEVEL.LOW,
+    purpose: '演示：审核未通过已取消',
+    remarks: '风控复核未通过，订单关闭'
   }
 ]
 
@@ -488,6 +544,41 @@ export const mockRepayments = [
     repaymentTime: null,
     createTime: '2024-02-28 00:00:00',
     failureReason: '余额不足'
+  },
+  {
+    repaymentId: 'REP-20240309-006',
+    orderId: 'ORD-20240308-001',
+    userId: 'USR-10001',
+    userName: '张三',
+    productName: 'BTC标准借贷',
+    repaymentType: REPAYMENT_TYPE.PARTIAL,
+    amount: 5000,
+    interestPaid: 0,
+    principalPaid: 0,
+    remainingDebt: 87745.5,
+    status: REPAYMENT_STATUS.PENDING,
+    paymentMethod: '链上转账（待确认）',
+    transactionId: null,
+    repaymentTime: null,
+    createTime: '2024-03-09 09:00:00'
+  },
+  {
+    repaymentId: 'REP-20240201-007',
+    orderId: 'ORD-20240308-002',
+    userId: 'USR-10002',
+    userName: '李四',
+    productName: 'ETH灵活借贷',
+    repaymentType: REPAYMENT_TYPE.INTEREST_ONLY,
+    amount: 1200,
+    interestPaid: 0,
+    principalPaid: 0,
+    remainingDebt: 98067.8,
+    status: REPAYMENT_STATUS.OVERDUE,
+    paymentMethod: '自动扣款',
+    transactionId: null,
+    repaymentTime: null,
+    createTime: '2024-02-01 00:00:00',
+    failureReason: '扣款失败，已逾期'
   }
 ]
 

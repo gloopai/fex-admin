@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch, watchEffect } from 'vue'
 import { useRoute } from 'vue-router'
 import FrontPopupCard from '../../../../components/front/FrontPopupCard.vue'
 import FrontPopupCloseButton from '../../../../components/front/FrontPopupCloseButton.vue'
@@ -11,7 +11,9 @@ import {
   PRODUCT_STATUS_LABELS,
   LOAN_ORDER_STATUS,
   LOAN_ORDER_STATUS_LABELS,
+  REPAYMENT_STATUS,
   REPAYMENT_STATUS_LABELS,
+  REPAYMENT_TYPE,
   REPAYMENT_TYPE_LABELS
 } from '../../../../admin/constants/cryptoLending'
 
@@ -81,6 +83,139 @@ const recordTab = ref('current')
 /** Hero 主入口：借币一览 / 我的记录（与 AI 量化、流动性列表一致） */
 const heroPanel = ref('overview')
 
+/** 还款弹窗（mock 更新订单 + 还款记录） */
+const repayOpen = ref(false)
+const repayOrder = ref(null)
+const repayAmount = ref('')
+let clearRepayTimer = null
+
+function formatLendingNow() {
+  const d = new Date()
+  const parts = new Intl.DateTimeFormat('zh-CN', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  }).formatToParts(d)
+  const get = (t) => parts.find((x) => x.type === t)?.value ?? ''
+  return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')}:${get('second')}`
+}
+
+function openRepayDialog(order) {
+  if (
+    order.status !== LOAN_ORDER_STATUS.ACTIVE &&
+    order.status !== LOAN_ORDER_STATUS.REPAYING
+  ) {
+    return
+  }
+  if (clearRepayTimer != null) {
+    clearTimeout(clearRepayTimer)
+    clearRepayTimer = null
+  }
+  currencyPickerOpen.value = false
+  borrowOpen.value = false
+  repayOrder.value = order
+  const debt = Number(order.totalDebt) || 0
+  repayAmount.value = debt > 0 ? String(debt) : ''
+  repayOpen.value = true
+}
+
+function closeRepayDialog() {
+  repayOpen.value = false
+}
+
+function onRepayEscape(e) {
+  if (e.key === 'Escape' && repayOpen.value) closeRepayDialog()
+}
+
+function fillRepayAll() {
+  const o = repayOrder.value
+  if (!o) return
+  repayAmount.value = String(Number(o.totalDebt) || 0)
+}
+
+const parsedRepay = computed(() => {
+  const n = Number(String(repayAmount.value).replace(/,/g, ''))
+  return Number.isFinite(n) && n >= 0 ? n : 0
+})
+
+const repayConfirmEnabled = computed(() => {
+  const o = repayOrder.value
+  if (!o) return false
+  const debt = Number(o.totalDebt) || 0
+  const pay = parsedRepay.value
+  return pay > 0 && debt > 0 && pay <= debt
+})
+
+function confirmRepay() {
+  const o = repayOrder.value
+  if (!o) return
+  const debt = Number(o.totalDebt) || 0
+  let pay = parsedRepay.value
+  if (pay <= 0 || debt <= 0) return
+  pay = Math.min(pay, debt)
+  const accrued = Number(o.interestAccrued) || 0
+  const interestPaid = Math.min(pay, accrued)
+  const principalPaid = pay - interestPaid
+  const newDebt = Math.max(0, debt - pay)
+  const newAccrued = Math.max(0, accrued - interestPaid)
+  const now = formatLendingNow()
+  const idx = orders.value.findIndex((x) => x.orderId === o.orderId)
+  if (idx === -1) return
+  const nextStatus =
+    newDebt <= 0 ? LOAN_ORDER_STATUS.COMPLETED : LOAN_ORDER_STATUS.REPAYING
+  orders.value[idx] = {
+    ...orders.value[idx],
+    totalDebt: newDebt,
+    interestAccrued: newAccrued,
+    status: nextStatus,
+    updateTime: now,
+    daysRemaining: newDebt <= 0 ? 0 : o.daysRemaining
+  }
+  orders.value = [...orders.value]
+  const rid = `REP-DEMO-${Date.now()}`
+  repayments.value = [
+    {
+      repaymentId: rid,
+      orderId: o.orderId,
+      userId: o.userId,
+      userName: o.userName,
+      productName: o.productName,
+      repaymentType: newDebt <= 0 ? REPAYMENT_TYPE.FULL : REPAYMENT_TYPE.PARTIAL,
+      amount: pay,
+      interestPaid,
+      principalPaid,
+      remainingDebt: newDebt,
+      status: REPAYMENT_STATUS.COMPLETED,
+      paymentMethod: '钱包余额（演示）',
+      transactionId: `TXN-${rid}`,
+      repaymentTime: now,
+      createTime: now
+    },
+    ...repayments.value
+  ]
+  repayOpen.value = false
+}
+
+watch(repayOpen, (open) => {
+  if (typeof window === 'undefined') return
+  if (open) {
+    window.addEventListener('keydown', onRepayEscape)
+  } else {
+    window.removeEventListener('keydown', onRepayEscape)
+    if (clearRepayTimer != null) clearTimeout(clearRepayTimer)
+    clearRepayTimer = window.setTimeout(() => {
+      repayOrder.value = null
+      repayAmount.value = ''
+      clearRepayTimer = null
+    }, 360)
+  }
+})
+
 const currentOrders = computed(() =>
   orders.value.filter((o) => activeStatuses.includes(o.status))
 )
@@ -97,6 +232,7 @@ const historyOrders = computed(() =>
 function statusClass(s) {
   if (s === PRODUCT_STATUS.ACTIVE) return 'bg-lime-400/12 text-lime-200'
   if (s === PRODUCT_STATUS.SUSPENDED) return 'bg-amber-400/15 text-amber-200'
+  if (s === PRODUCT_STATUS.INACTIVE) return 'bg-white/10 text-white/45'
   return 'bg-white/10 text-white/50'
 }
 
@@ -112,6 +248,7 @@ function openBorrowDialog(p) {
     clearBorrowTimer = null
   }
   currencyPickerOpen.value = false
+  repayOpen.value = false
   borrowProduct.value = p
   borrowAmount.value = ''
   borrowOpen.value = true
@@ -139,8 +276,6 @@ function applyLoanCurrency(code) {
 }
 
 watch(borrowOpen, (open) => {
-  if (typeof document === 'undefined') return
-  document.body.style.overflow = open || currencyPickerOpen.value ? 'hidden' : ''
   if (typeof window === 'undefined') return
   if (open) {
     if (clearBorrowTimer != null) {
@@ -156,28 +291,32 @@ watch(borrowOpen, (open) => {
       borrowAmount.value = ''
       clearBorrowTimer = null
     }, 360)
-    if (!currencyPickerOpen.value) document.body.style.overflow = ''
   }
 })
 
 watch(currencyPickerOpen, (open) => {
-  if (typeof document === 'undefined') return
   if (typeof window === 'undefined') return
   if (open) {
-    document.body.style.overflow = 'hidden'
     window.addEventListener('keydown', onCurrencyPickerEscape)
   } else {
     window.removeEventListener('keydown', onCurrencyPickerEscape)
-    if (!borrowOpen.value) document.body.style.overflow = ''
   }
+})
+
+watchEffect(() => {
+  if (typeof document === 'undefined') return
+  document.body.style.overflow =
+    borrowOpen.value || currencyPickerOpen.value || repayOpen.value ? 'hidden' : ''
 })
 
 onUnmounted(() => {
   if (clearBorrowTimer != null) clearTimeout(clearBorrowTimer)
+  if (clearRepayTimer != null) clearTimeout(clearRepayTimer)
   if (typeof document !== 'undefined') document.body.style.overflow = ''
   if (typeof window !== 'undefined') {
     window.removeEventListener('keydown', onBorrowEscape)
     window.removeEventListener('keydown', onCurrencyPickerEscape)
+    window.removeEventListener('keydown', onRepayEscape)
   }
 })
 
@@ -628,6 +767,8 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                   <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">借款金额</th>
                   <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">利率</th>
                   <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">到期</th>
+                  <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">待还</th>
+                  <th class="px-3 py-2.5 text-right font-semibold md:px-5 md:py-3 md:text-left">操作</th>
                   <th class="px-3 py-2.5 text-right font-semibold md:px-5 md:py-3 md:text-left">状态</th>
                 </tr>
               </thead>
@@ -649,6 +790,22 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                       <span class="text-right font-medium tabular-nums text-lime-300/90">{{ o.interestRate }}%</span>
                       <span class="text-white/35">到期</span>
                       <span class="text-right tabular-nums text-white/70">{{ o.maturityDate }}</span>
+                      <span class="text-white/35">待还</span>
+                      <span class="text-right font-medium tabular-nums text-white/85">{{ o.totalDebt?.toLocaleString() }}</span>
+                    </div>
+                    <div
+                      v-if="
+                        o.status === LOAN_ORDER_STATUS.ACTIVE || o.status === LOAN_ORDER_STATUS.REPAYING
+                      "
+                      class="mt-3 md:hidden"
+                    >
+                      <button
+                        type="button"
+                        class="w-full touch-manipulation rounded-lg border border-lime-400/45 py-2.5 text-xs font-semibold text-lime-200 transition hover:bg-lime-400/10"
+                        @click="openRepayDialog(o)"
+                      >
+                        还款
+                      </button>
                     </div>
                   </td>
                   <td class="hidden px-3 py-2.5 tabular-nums md:table-cell md:px-5 md:py-3">
@@ -660,8 +817,26 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                   <td class="hidden tabular-nums text-white/50 md:table-cell md:px-5 md:py-3">
                     {{ o.maturityDate }}
                   </td>
+                  <td class="hidden tabular-nums text-white/80 md:table-cell md:px-5 md:py-3">
+                    {{ o.totalDebt?.toLocaleString() }}
+                  </td>
                   <td
-                    class="max-md:block max-md:w-full max-md:px-3 max-md:pb-4 max-md:pt-3 md:table-cell md:px-5 md:py-3 md:text-left"
+                    class="max-md:hidden md:table-cell md:px-5 md:py-3 md:text-left"
+                  >
+                    <button
+                      v-if="
+                        o.status === LOAN_ORDER_STATUS.ACTIVE || o.status === LOAN_ORDER_STATUS.REPAYING
+                      "
+                      type="button"
+                      class="touch-manipulation rounded-lg border border-lime-400/45 px-3 py-1.5 text-xs font-semibold text-lime-200 transition hover:bg-lime-400/10"
+                      @click="openRepayDialog(o)"
+                    >
+                      还款
+                    </button>
+                    <span v-else class="text-xs text-white/35">—</span>
+                  </td>
+                  <td
+                    class="max-md:block max-md:w-full max-md:px-3 max-md:pb-4 max-md:pt-1 md:table-cell md:px-5 md:py-3 md:text-left"
                   >
                     <span class="text-[11px] leading-snug text-white/85 sm:text-xs md:text-sm">
                       {{ LOAN_ORDER_STATUS_LABELS[o.status] ?? o.status }}
@@ -792,6 +967,86 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
         </section>
       </template>
     </div>
+
+    <!-- 还款（演示：更新订单与还款记录） -->
+    <FrontPopupShell
+      v-model="repayOpen"
+      aria-labelledby="lending-repay-dialog-title"
+      close-on-backdrop
+      @backdrop-click="closeRepayDialog"
+    >
+      <FrontPopupCard v-if="repayOrder" variant="padded" wide @click.stop>
+        <FrontPopupCloseButton @click="closeRepayDialog" />
+        <h2 id="lending-repay-dialog-title" class="pr-10 text-lg font-semibold tracking-tight text-white">
+          确认还款
+        </h2>
+        <p class="mt-1.5 text-[13px] leading-relaxed text-white/45">
+          演示环境：提交后将按比例冲减已计利息与本金，并写入「还款」记录。
+        </p>
+        <dl class="mt-4 space-y-2 rounded-xl border border-white/[0.08] bg-black/35 px-3 py-3 text-sm">
+          <div class="flex justify-between gap-3">
+            <dt class="text-white/45">订单</dt>
+            <dd class="font-mono text-xs text-white/80">{{ repayOrder.orderId }}</dd>
+          </div>
+          <div class="flex justify-between gap-3">
+            <dt class="text-white/45">产品</dt>
+            <dd class="text-right text-white/90">{{ repayOrder.productName }}</dd>
+          </div>
+          <div class="flex justify-between gap-3">
+            <dt class="text-white/45">币种</dt>
+            <dd class="font-medium text-white">{{ repayOrder.loanCurrency }}</dd>
+          </div>
+          <div class="flex justify-between gap-3 border-t border-white/[0.06] pt-2">
+            <dt class="text-white/45">待还总额</dt>
+            <dd class="tabular-nums font-semibold text-white">
+              {{ repayOrder.totalDebt?.toLocaleString() }} {{ repayOrder.loanCurrency }}
+            </dd>
+          </div>
+          <div class="flex justify-between gap-3">
+            <dt class="text-white/45">已计利息</dt>
+            <dd class="tabular-nums text-lime-200/90">
+              {{ repayOrder.interestAccrued?.toLocaleString() }} {{ repayOrder.loanCurrency }}
+            </dd>
+          </div>
+        </dl>
+        <div class="mt-5">
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <span class="text-sm font-medium text-white/75">还款金额</span>
+            <button
+              type="button"
+              class="text-xs font-semibold text-lime-300/95 underline-offset-2 hover:underline"
+              @click="fillRepayAll"
+            >
+              全额
+            </button>
+          </div>
+          <input
+            v-model="repayAmount"
+            type="text"
+            inputmode="decimal"
+            class="mt-2 w-full rounded-lg border border-white/[0.12] bg-black/40 px-3 py-2.5 text-[15px] text-white placeholder:text-white/30 focus:border-lime-400/45 focus:outline-none focus:ring-2 focus:ring-lime-400/25"
+            placeholder="输入还款金额"
+          />
+        </div>
+        <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            class="rounded-lg border border-white/20 px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/10"
+            @click="closeRepayDialog"
+          >
+            取消
+          </button>
+          <button
+            type="button"
+            class="rounded-lg bg-lime-400 px-4 py-2.5 text-sm font-semibold text-[#0b0e11] shadow-sm transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-40"
+            :disabled="!repayConfirmEnabled"
+            @click="confirmRepay"
+          >
+            确认还款
+          </button>
+        </div>
+      </FrontPopupCard>
+    </FrontPopupShell>
 
     <!-- 借出币种（弹层，避免资产卡内 Tab 过窄） -->
     <FrontPopupShell
