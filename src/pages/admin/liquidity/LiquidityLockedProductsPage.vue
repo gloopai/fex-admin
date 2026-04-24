@@ -18,6 +18,7 @@ import { createLockedProductsMock } from '../../../admin/mock/liquidityLocked'
 const products = ref(createLockedProductsMock())
 const search = ref('')
 const statusFilter = ref(COMMON_FILTER_ALL)
+const currencyFilter = ref(COMMON_FILTER_ALL)
 
 const showProductModal = ref(false)
 const editingProductId = ref('')
@@ -39,7 +40,6 @@ const productForm = reactive({
 
 const openCreateProduct = () => {
 	editingProductId.value = ''
-	activeTab.value = 'base'
 	productForm.name = ''
 	productForm.currency = 'USDT'
 	productForm.periods = [{ days: 10, annualRate: 12, minAmount: 100, maxAmount: 5000 }]
@@ -57,7 +57,6 @@ const openCreateProduct = () => {
 
 const openEditProduct = (product) => {
 	editingProductId.value = product.id
-	activeTab.value = 'base'
 	productForm.name = product.name
 	productForm.currency = product.currency
 	productForm.periods = product.periods.map((p) => ({
@@ -119,27 +118,58 @@ const saveProduct = () => {
 
 const filteredProducts = computed(() => {
 	const kw = search.value.trim().toLowerCase()
-	return products.value.filter(p => {
+	return products.value.filter((p) => {
 		const matchStatus = statusFilter.value === COMMON_FILTER_ALL || p.status === statusFilter.value
+		const matchCurrency = currencyFilter.value === COMMON_FILTER_ALL || p.currency === currencyFilter.value
 		const matchKeyword = !kw || `${p.name} ${p.currency}`.toLowerCase().includes(kw)
-		return matchStatus && matchKeyword
+		return matchStatus && matchCurrency && matchKeyword
 	})
 })
+
+const toggleProductStatus = (product) => {
+	const newStatus =
+		product.status === PRODUCT_STATUS.ENABLED ? PRODUCT_STATUS.DISABLED : PRODUCT_STATUS.ENABLED
+	products.value = products.value.map((p) => (p.id === product.id ? { ...p, status: newStatus } : p))
+}
+
+const copyProductId = async (productId) => {
+	try {
+		await navigator.clipboard.writeText(productId)
+		alert('产品ID已复制到剪贴板')
+	} catch {
+		const textarea = document.createElement('textarea')
+		textarea.value = productId
+		textarea.style.position = 'fixed'
+		textarea.style.opacity = '0'
+		document.body.appendChild(textarea)
+		textarea.select()
+		try {
+			document.execCommand('copy')
+			alert('产品ID已复制到剪贴板')
+		} catch {
+			alert('复制失败，请手动复制')
+		}
+		document.body.removeChild(textarea)
+	}
+}
+
+const minVipOptionLabel = (level) =>
+	LOCKED_MIN_VIP_OPTIONS.find((o) => o.value === (level ?? 0))?.label ?? '无要求'
+
+/** 单利：本金 × 年化% × (天数/365) */
+const previewLockInterest = (principal, annualPct, days) => {
+	const p = Number(principal)
+	const a = Number(annualPct)
+	const d = Number(days)
+	if (Number.isNaN(p) || Number.isNaN(a) || Number.isNaN(d)) return 0
+	return (p * (a / 100) * d) / 365
+}
 
 const fmtNumber = (val, decimals = 2) => Number(val).toFixed(decimals)
 const fmtCurrency = (val, currency, decimals = 2) => {
 	if (currency === 'BTC' || currency === 'ETH') return `${fmtNumber(val, decimals === 2 ? 4 : decimals)} ${currency}`
 	return `${Number(val).toLocaleString()} ${currency}`
 }
-
-// 配置分步：基础（含上下架）→ 收益阶梯 → 赎回规则 → 限购
-const tabs = [
-	{ key: 'base', label: '基础信息' },
-	{ key: 'periods', label: '锁仓与收益' },
-	{ key: 'redeem', label: '提前赎回' },
-	{ key: 'limit', label: '限购策略' }
-]
-const activeTab = ref('base')
 
 const applyPresetDays = (days) => {
 	if (productForm.periods.some((p) => Number(p.days) === days)) return
@@ -148,357 +178,573 @@ const applyPresetDays = (days) => {
 </script>
 
 <template>
-	<section class="space-y-4">
-		<header class="flex flex-wrap items-start justify-between gap-4">
+	<section class="space-y-5">
+		<header class="flex items-center justify-between">
 			<div>
 				<h1 class="text-3xl font-semibold text-slate-900">流动性挖矿产品</h1>
-				<p class="mt-1 text-sm text-slate-500">流动性挖矿（锁仓版）：维护展示名称、多档锁仓年化收益、赎回与限购及申购门槛，与前台申购页一致</p>
+				<p class="mt-1 text-sm text-slate-500">配置锁仓产品、多档年化收益、赎回与限购及申购门槛</p>
 			</div>
-			<button type="button" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" @click="openCreateProduct">+ 新增产品</button>
+			<button
+				type="button"
+				class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+				@click="openCreateProduct"
+			>
+				+ 创建产品
+			</button>
 		</header>
 
-		<article class="rounded-xl border border-slate-200 bg-white">
-			<div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4">
-				<div class="inline-flex items-center gap-3 text-sm">
-					<button type="button" class="font-medium" :class="statusFilter === COMMON_FILTER_ALL ? 'text-blue-600' : 'text-slate-500'" @click="statusFilter = COMMON_FILTER_ALL">全部</button>
-					<button type="button" class="font-medium" :class="statusFilter === PRODUCT_STATUS.ENABLED ? 'text-blue-600' : 'text-slate-500'" @click="statusFilter = PRODUCT_STATUS.ENABLED">上架中</button>
-					<button type="button" class="font-medium" :class="statusFilter === PRODUCT_STATUS.DISABLED ? 'text-blue-600' : 'text-slate-500'" @click="statusFilter = PRODUCT_STATUS.DISABLED">已下架</button>
-					<button type="button" class="font-medium" :class="statusFilter === PRODUCT_STATUS.SOLD_OUT ? 'text-blue-600' : 'text-slate-500'" @click="statusFilter = PRODUCT_STATUS.SOLD_OUT">已售罄</button>
+		<div class="rounded-xl border border-slate-200 bg-white p-4">
+			<div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+				<div>
+					<input
+						v-model="search"
+						type="search"
+						placeholder="搜索产品名称或币种"
+						class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+					/>
 				</div>
-				<input v-model="search" type="text" placeholder="搜索产品名称或币种..." class="w-full max-w-sm rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500" />
+				<div>
+					<select
+						v-model="statusFilter"
+						class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+					>
+						<option :value="COMMON_FILTER_ALL">全部状态</option>
+						<option v-for="(meta, key) in productStatusMeta" :key="key" :value="key">{{ meta.label }}</option>
+					</select>
+				</div>
+				<div>
+					<select
+						v-model="currencyFilter"
+						class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+					>
+						<option :value="COMMON_FILTER_ALL">全部币种</option>
+						<option v-for="currency in SUPPORTED_CURRENCIES" :key="currency" :value="currency">{{ currency }}</option>
+					</select>
+				</div>
 			</div>
+		</div>
 
-			<div class="space-y-3 p-4">
-				<article v-for="product in filteredProducts" :key="product.id" class="rounded-xl border border-slate-200 bg-white p-4">
-					<div class="flex flex-wrap items-start justify-between gap-3">
-						<div>
-							<div class="flex items-center gap-2">
-								<h3 class="text-lg font-semibold text-slate-900">{{ product.name }}</h3>
-								<span class="rounded-md px-2 py-0.5 text-xs font-medium" :class="productStatusMeta[product.status].class">{{ productStatusMeta[product.status].label }}</span>
+		<article class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+			<table class="w-full">
+				<thead class="border-b border-slate-200 bg-slate-50">
+					<tr>
+						<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">产品信息</th>
+						<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">锁仓与年化</th>
+						<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">提前赎回</th>
+						<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">限购与门槛</th>
+						<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">运营数据</th>
+						<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">状态</th>
+						<th class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500">操作</th>
+					</tr>
+				</thead>
+				<tbody class="divide-y divide-slate-200">
+					<tr v-for="product in filteredProducts" :key="product.id" class="transition hover:bg-slate-50">
+						<td class="px-6 py-4">
+							<div class="font-medium text-slate-900">{{ product.name }}</div>
+							<div class="mt-0.5 flex items-center gap-1.5">
+								<span class="font-mono text-xs text-slate-400">{{ product.id }}</span>
+								<button
+									type="button"
+									class="rounded p-0.5 text-slate-400 transition hover:bg-blue-50 hover:text-blue-600"
+									title="复制产品ID"
+									@click="copyProductId(product.id)"
+								>
+									<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+										/>
+									</svg>
+								</button>
 							</div>
-							<p class="mt-0.5 text-sm text-slate-500">{{ product.currency }} · {{ product.periods.length }} 个周期可选</p>
-							<div class="mt-2 flex flex-wrap gap-1.5">
-								<span v-for="(period, idx) in product.periods" :key="idx" class="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-									{{ period.days }}天 · 年化 {{ lockYieldAnnualPct(period).toFixed(2) }}%
-								</span>
+							<div class="mt-1 text-sm text-slate-500">{{ product.currency }} · {{ product.periods.length }} 档</div>
+						</td>
+						<td class="px-6 py-4">
+							<div class="space-y-1 text-xs">
+								<div
+									v-for="(period, idx) in product.periods"
+									:key="idx"
+									class="flex items-center justify-between gap-2"
+								>
+									<span class="text-slate-600">{{ period.days }} 天</span>
+									<span class="font-medium text-emerald-600">{{ lockYieldAnnualPct(period).toFixed(2) }}%</span>
+								</div>
 							</div>
-						</div>
-						<button type="button" class="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50" @click="openEditProduct(product)">编辑</button>
-					</div>
-
-					<div class="mt-3 grid gap-3 md:grid-cols-4">
-						<div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
-							<p class="text-xs text-slate-500">总锁仓</p>
-							<p class="mt-1 font-semibold text-slate-900">{{ fmtCurrency(product.totalLocked, product.currency) }}</p>
-						</div>
-						<div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
-							<p class="text-xs text-slate-500">订单数</p>
-							<p class="mt-1 font-semibold text-slate-900">{{ product.totalOrders }}</p>
-						</div>
-						<div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
-							<p class="text-xs text-slate-500">提前赎回</p>
-							<p class="mt-1 font-semibold" :class="product.earlyRedeemEnabled ? 'text-amber-600' : 'text-slate-500'">{{ product.earlyRedeemEnabled ? `${product.earlyRedeemFee}% 违约金` : '不支持' }}</p>
-						</div>
-						<div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
-							<p class="text-xs text-slate-500">限购策略</p>
-							<p class="mt-1 text-xs font-medium text-slate-700">
-								<span v-if="product.purchaseLimitType === PURCHASE_LIMIT_TYPE.LIFETIME">终身 {{ fmtCurrency(product.lifetimeLimit, product.currency) }}</span>
-								<span v-else-if="product.purchaseLimitType === PURCHASE_LIMIT_TYPE.PERIOD">{{ product.periodDays }}天 {{ fmtCurrency(product.periodLimit, product.currency) }}</span>
-								<span v-else>不限购</span>
-							</p>
-							<p class="mt-1 text-[11px] text-slate-500">
-								{{ (product.minVipLevel ?? 0) === 0 ? 'VIP 无门槛' : `最低 VIP ${product.minVipLevel}` }} · {{ lockedMinKycLabel(product.minKycLevel) }}
-							</p>
-						</div>
-					</div>
-				</article>
-			</div>
+						</td>
+						<td class="px-6 py-4 text-sm text-slate-600">
+							<span v-if="product.earlyRedeemEnabled" class="text-amber-700">违约金 {{ product.earlyRedeemFee }}%</span>
+							<span v-else>不支持</span>
+						</td>
+						<td class="px-6 py-4 text-sm text-slate-600">
+							<div v-if="product.purchaseLimitType === PURCHASE_LIMIT_TYPE.LIFETIME">终身 {{ fmtCurrency(product.lifetimeLimit, product.currency) }}</div>
+							<div v-else-if="product.purchaseLimitType === PURCHASE_LIMIT_TYPE.PERIOD">
+								{{ product.periodDays }} 天 / {{ fmtCurrency(product.periodLimit, product.currency) }}
+							</div>
+							<div v-else>不限购</div>
+							<div class="mt-1 text-xs text-slate-500">
+								{{ minVipOptionLabel(product.minVipLevel) }} · {{ lockedMinKycLabel(product.minKycLevel) }}
+							</div>
+						</td>
+						<td class="px-6 py-4 text-sm text-slate-600">
+							<div>锁仓 {{ fmtCurrency(product.totalLocked, product.currency) }}</div>
+							<div>订单 {{ product.totalOrders }} 笔</div>
+						</td>
+						<td class="px-6 py-4">
+							<span :class="['rounded-full px-2 py-1 text-xs font-medium', productStatusMeta[product.status].class]">
+								{{ productStatusMeta[product.status].label }}
+							</span>
+						</td>
+						<td class="px-6 py-4 text-right">
+							<button
+								type="button"
+								class="mr-3 text-sm font-medium text-blue-600 transition hover:text-blue-800"
+								@click="openEditProduct(product)"
+							>
+								编辑
+							</button>
+							<button
+								type="button"
+								class="text-sm font-medium text-slate-600 transition hover:text-slate-800"
+								@click="toggleProductStatus(product)"
+							>
+								{{ product.status === PRODUCT_STATUS.ENABLED ? '下架' : '上架' }}
+							</button>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			<div v-if="filteredProducts.length === 0" class="py-12 text-center text-slate-500">暂无产品数据</div>
 		</article>
 
-		<!-- 产品编辑弹窗：Teleport 到 body，避免主区域 overflow 导致遮罩仅覆盖内容区 -->
 		<Teleport to="body">
 			<div
 				v-if="showProductModal"
-				class="fixed inset-0 z-[100] grid min-h-[100dvh] w-full place-items-center overflow-y-auto bg-black/50 p-4 sm:p-6"
+				class="fixed inset-0 z-[100] flex min-h-[100dvh] w-full items-center justify-center overflow-y-auto bg-black/50 p-4 sm:p-6"
 				role="dialog"
 				aria-modal="true"
 			>
-			<section class="w-full max-w-2xl rounded-xl bg-white shadow-xl">
-				<header class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-					<h2 class="text-xl font-semibold text-slate-900">{{ editingProductId ? '编辑产品' : '新增产品' }}</h2>
-					<button type="button" class="text-2xl text-slate-400" @click="showProductModal = false">×</button>
-				</header>
-				<div class="px-5 pt-4">
-					<nav class="mb-4 flex flex-wrap gap-1 border-b border-slate-200">
+				<div class="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
+					<div class="flex shrink-0 items-center justify-between border-b border-slate-200 px-6 py-4">
+						<div>
+							<h2 class="text-xl font-semibold text-slate-900">{{ editingProductId ? '编辑产品' : '创建产品' }}</h2>
+							<p class="mt-1 text-sm text-slate-500">配置产品信息，右侧实时预览效果</p>
+						</div>
+						<button type="button" class="text-slate-400 transition hover:text-slate-600" @click="showProductModal = false">
+							<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+							</svg>
+						</button>
+					</div>
+
+					<div class="flex min-h-0 flex-1 overflow-hidden">
+						<div class="flex w-3/5 flex-col border-r border-slate-200">
+							<div class="flex-1 space-y-6 overflow-y-auto p-6">
+								<div>
+									<h3 class="mb-3 font-semibold text-slate-900">基础信息</h3>
+									<div class="grid grid-cols-2 gap-4">
+										<div>
+											<label class="mb-1 block text-sm font-medium text-slate-700">产品名称</label>
+											<input
+												v-model="productForm.name"
+												type="text"
+												placeholder="例如：USDT 稳健锁仓"
+												class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+											/>
+										</div>
+										<div>
+											<label class="mb-1 block text-sm font-medium text-slate-700">计价币种</label>
+											<select
+												v-model="productForm.currency"
+												class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+											>
+												<option v-for="curr in SUPPORTED_CURRENCIES" :key="curr" :value="curr">{{ curr }}</option>
+											</select>
+										</div>
+										<div class="col-span-2">
+											<label class="mb-1 block text-sm font-medium text-slate-700">产品状态</label>
+											<select
+												v-model="productForm.status"
+												class="w-full max-w-md rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+											>
+												<option :value="PRODUCT_STATUS.ENABLED">上架中（可申购）</option>
+												<option :value="PRODUCT_STATUS.DISABLED">已下架</option>
+												<option :value="PRODUCT_STATUS.SOLD_OUT">已售罄</option>
+											</select>
+										</div>
+									</div>
+								</div>
+
+								<div>
+									<div class="mb-3 flex items-center justify-between">
+										<h3 class="font-semibold text-slate-900">锁仓与收益</h3>
+										<button
+											type="button"
+											class="text-sm font-medium text-blue-600 transition hover:text-blue-800"
+											@click="addPeriod"
+										>
+											+ 添加档位
+										</button>
+									</div>
+									<p class="mb-3 text-xs text-slate-500">年化按单利口径展示；常用天数可一键追加。</p>
+									<div class="mb-3 flex flex-wrap gap-2">
+										<button
+											v-for="d in LOCK_PERIODS"
+											:key="d"
+											type="button"
+											class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-blue-300 hover:text-blue-700"
+											@click="applyPresetDays(d)"
+										>
+											{{ d }} 天
+										</button>
+									</div>
+									<div class="space-y-3">
+										<div
+											v-for="(period, idx) in productForm.periods"
+											:key="idx"
+											class="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3"
+										>
+											<div class="flex-1 space-y-2">
+												<div class="grid grid-cols-2 gap-2">
+													<input
+														v-model.number="period.days"
+														type="number"
+														min="1"
+														placeholder="天数"
+														class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+													/>
+													<input
+														v-model.number="period.annualRate"
+														type="number"
+														min="0"
+														step="0.01"
+														placeholder="年化 %"
+														class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+													/>
+												</div>
+												<div class="grid grid-cols-2 gap-2">
+													<input
+														v-model.number="period.minAmount"
+														type="number"
+														min="0"
+														step="0.01"
+														placeholder="单笔最小"
+														class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+													/>
+													<input
+														v-model.number="period.maxAmount"
+														type="number"
+														min="0"
+														step="0.01"
+														placeholder="单笔最大"
+														class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+													/>
+												</div>
+											</div>
+											<button
+												type="button"
+												class="mt-1 text-sm text-red-600 transition hover:text-red-800"
+												@click="removePeriod(idx)"
+											>
+												删除
+											</button>
+										</div>
+									</div>
+								</div>
+
+								<div>
+									<h3 class="mb-3 font-semibold text-slate-900">赎回规则</h3>
+									<div class="space-y-3">
+										<label class="flex items-center">
+											<input v-model="productForm.earlyRedeemEnabled" type="checkbox" class="mr-2 rounded border-slate-300" />
+											<span class="text-sm text-slate-700">允许提前赎回</span>
+										</label>
+										<div v-if="productForm.earlyRedeemEnabled">
+											<label class="mb-1 block text-sm font-medium text-slate-700">违约金（占本金 %）</label>
+											<input
+												v-model.number="productForm.earlyRedeemFee"
+												type="number"
+												min="0"
+												step="0.1"
+												class="w-full max-w-xs rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+											/>
+										</div>
+									</div>
+								</div>
+
+								<div>
+									<h3 class="mb-3 font-semibold text-slate-900">限购规则</h3>
+									<div class="grid grid-cols-3 gap-3">
+										<button
+											type="button"
+											:class="[
+												'rounded-lg border-2 p-3 text-center text-sm transition',
+												productForm.purchaseLimitType === PURCHASE_LIMIT_TYPE.NONE
+													? 'border-blue-500 bg-blue-50 text-blue-800'
+													: 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+											]"
+											@click="productForm.purchaseLimitType = PURCHASE_LIMIT_TYPE.NONE"
+										>
+											<div class="font-semibold">不限购</div>
+										</button>
+										<button
+											type="button"
+											:class="[
+												'rounded-lg border-2 p-3 text-center text-sm transition',
+												productForm.purchaseLimitType === PURCHASE_LIMIT_TYPE.LIFETIME
+													? 'border-blue-500 bg-blue-50 text-blue-800'
+													: 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+											]"
+											@click="productForm.purchaseLimitType = PURCHASE_LIMIT_TYPE.LIFETIME"
+										>
+											<div class="font-semibold">终身限购</div>
+										</button>
+										<button
+											type="button"
+											:class="[
+												'rounded-lg border-2 p-3 text-center text-sm transition',
+												productForm.purchaseLimitType === PURCHASE_LIMIT_TYPE.PERIOD
+													? 'border-blue-500 bg-blue-50 text-blue-800'
+													: 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+											]"
+											@click="productForm.purchaseLimitType = PURCHASE_LIMIT_TYPE.PERIOD"
+										>
+											<div class="font-semibold">周期限购</div>
+										</button>
+									</div>
+									<div v-if="productForm.purchaseLimitType === PURCHASE_LIMIT_TYPE.LIFETIME" class="mt-4">
+										<label class="mb-1 block text-sm font-medium text-slate-700">终身限购额度</label>
+										<input
+											v-model.number="productForm.lifetimeLimit"
+											type="number"
+											min="0"
+											class="w-full max-w-md rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+										/>
+									</div>
+									<div v-if="productForm.purchaseLimitType === PURCHASE_LIMIT_TYPE.PERIOD" class="mt-4 grid grid-cols-2 gap-4">
+										<div>
+											<label class="mb-1 block text-sm font-medium text-slate-700">周期天数</label>
+											<input
+												v-model.number="productForm.periodDays"
+												type="number"
+												min="1"
+												class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+											/>
+										</div>
+										<div>
+											<label class="mb-1 block text-sm font-medium text-slate-700">周期内限额</label>
+											<input
+												v-model.number="productForm.periodLimit"
+												type="number"
+												min="0"
+												class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+											/>
+										</div>
+									</div>
+									<div class="mt-4 grid grid-cols-2 gap-4 border-t border-slate-200 pt-4">
+										<div>
+											<label class="mb-1 block text-sm font-medium text-slate-700">最低 VIP</label>
+											<select
+												v-model.number="productForm.minVipLevel"
+												class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+											>
+												<option v-for="opt in LOCKED_MIN_VIP_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+											</select>
+										</div>
+										<div>
+											<label class="mb-1 block text-sm font-medium text-slate-700">最低认证</label>
+											<select
+												v-model="productForm.minKycLevel"
+												class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+											>
+												<option v-for="opt in LOCKED_MIN_KYC_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+											</select>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<div class="flex w-2/5 flex-col bg-slate-50">
+							<div class="flex-1 space-y-4 overflow-y-auto p-6">
+								<div>
+									<h4 class="mb-3 flex items-center gap-2 text-sm font-medium text-slate-900">
+										<svg class="h-4 w-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+											<path
+												fill-rule="evenodd"
+												d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+												clip-rule="evenodd"
+											/>
+										</svg>
+										产品卡片预览
+									</h4>
+									<div class="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
+										<div class="flex items-start justify-between">
+											<div class="flex items-center gap-3">
+												<div
+													class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-lg font-semibold text-white"
+												>
+													{{ productForm.currency.slice(0, 1) }}
+												</div>
+												<div>
+													<div class="font-semibold text-slate-900">{{ productForm.name || '产品名称' }}</div>
+													<div class="text-xs text-slate-500">
+														{{ productForm.currency }} · {{ minVipOptionLabel(productForm.minVipLevel) }}
+													</div>
+												</div>
+											</div>
+											<span :class="['rounded-full px-2 py-1 text-xs font-medium', productStatusMeta[productForm.status].class]">
+												{{ productStatusMeta[productForm.status].label }}
+											</span>
+										</div>
+										<div class="flex items-center justify-between border-t border-slate-200 pt-2 text-sm">
+											<span class="text-slate-600">提前赎回</span>
+											<span class="font-medium text-slate-900">{{
+												productForm.earlyRedeemEnabled ? `违约金 ${productForm.earlyRedeemFee}%` : '不支持'
+											}}</span>
+										</div>
+									</div>
+								</div>
+
+								<div>
+									<h4 class="mb-3 flex items-center gap-2 text-sm font-medium text-slate-900">
+										<svg class="h-4 w-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+											<path
+												fill-rule="evenodd"
+												d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z"
+												clip-rule="evenodd"
+											/>
+										</svg>
+										锁仓档位预览
+									</h4>
+									<div class="rounded-xl border border-slate-200 bg-white p-4">
+										<div v-if="productForm.periods.length === 0" class="py-6 text-center text-sm text-slate-400">暂无档位</div>
+										<div v-else class="space-y-2">
+											<div
+												v-for="(period, idx) in productForm.periods"
+												:key="idx"
+												class="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-3"
+											>
+												<div>
+													<div class="text-xs font-medium text-slate-900">锁仓 {{ period.days }} 天</div>
+													<div class="text-xs text-slate-600">
+														{{ period.minAmount }} – {{ period.maxAmount }} {{ productForm.currency }}
+													</div>
+												</div>
+												<div class="text-right">
+													<div class="text-sm font-semibold text-emerald-600">{{ Number(period.annualRate || 0).toFixed(2) }}%</div>
+													<div class="text-xs text-slate-500">年化</div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+
+								<div>
+									<h4 class="mb-3 flex items-center gap-2 text-sm font-medium text-slate-900">
+										<svg class="h-4 w-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+											<path
+												fill-rule="evenodd"
+												d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+												clip-rule="evenodd"
+											/>
+										</svg>
+										收益计算示例
+									</h4>
+									<div class="rounded-xl border border-slate-200 bg-white p-4">
+										<div v-if="productForm.periods.length === 0" class="py-6 text-center text-sm text-slate-400">配置档位后查看</div>
+										<div v-else class="space-y-3">
+											<div
+												v-for="(period, idx) in productForm.periods.slice(0, 2)"
+												:key="idx"
+												class="space-y-1 rounded-lg border border-blue-200 bg-gradient-to-r from-blue-50 to-emerald-50 p-3 text-xs"
+											>
+												<div class="mb-1 text-slate-600">{{ period.days }} 天档 · 按单利估算</div>
+												<div class="flex justify-between">
+													<span class="text-slate-600">最小申购</span>
+													<span class="font-medium text-slate-900">{{ period.minAmount }} {{ productForm.currency }}</span>
+												</div>
+												<div class="flex justify-between">
+													<span class="text-slate-600">锁满期收益</span>
+													<span class="font-semibold text-emerald-600">{{
+														previewLockInterest(period.minAmount, period.annualRate, period.days).toFixed(4)
+													}}
+													{{ productForm.currency }}</span>
+												</div>
+												<div class="flex justify-between">
+													<span class="text-slate-600">30 天等价</span>
+													<span class="font-medium text-emerald-700">{{
+														previewLockInterest(period.minAmount, period.annualRate, 30).toFixed(4)
+													}}
+													{{ productForm.currency }}</span>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+
+								<div>
+									<h4 class="mb-3 flex items-center gap-2 text-sm font-medium text-slate-900">
+										<svg class="h-4 w-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+											<path
+												fill-rule="evenodd"
+												d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+												clip-rule="evenodd"
+											/>
+										</svg>
+										规则摘要
+									</h4>
+									<div class="space-y-2 rounded-xl border border-slate-200 bg-white p-4 text-xs text-slate-600">
+										<div class="flex gap-2">
+											<span class="text-blue-600">•</span>
+											<span>认证：{{ lockedMinKycLabel(productForm.minKycLevel) }}</span>
+										</div>
+										<div class="flex gap-2">
+											<span class="text-blue-600">•</span>
+											<span>
+												限购：
+												<template v-if="productForm.purchaseLimitType === PURCHASE_LIMIT_TYPE.LIFETIME"
+													>终身 {{ productForm.lifetimeLimit }} {{ productForm.currency }}</template
+												>
+												<template v-else-if="productForm.purchaseLimitType === PURCHASE_LIMIT_TYPE.PERIOD"
+													>{{ productForm.periodDays }} 天内 {{ productForm.periodLimit }} {{ productForm.currency }}</template
+												>
+												<template v-else>不限购</template>
+											</span>
+										</div>
+										<div v-if="productForm.earlyRedeemEnabled" class="flex gap-2">
+											<span class="text-blue-600">•</span>
+											<span>提前赎回违约金 {{ productForm.earlyRedeemFee }}%</span>
+										</div>
+										<div v-else class="flex gap-2">
+											<span class="text-amber-600">•</span>
+											<span class="text-amber-800">不支持提前赎回</span>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="flex shrink-0 justify-end gap-3 border-t border-slate-200 px-6 py-4">
 						<button
-							v-for="tab in tabs"
-							:key="tab.key"
 							type="button"
-							@click="activeTab = tab.key"
-							:class="[
-								'rounded-t px-3 py-2 text-sm font-medium sm:px-4',
-								activeTab === tab.key ? 'border-x border-t border-slate-200 bg-white text-blue-600' : 'bg-slate-100 text-slate-500 hover:text-slate-700'
-							]"
+							class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+							@click="showProductModal = false"
 						>
-							{{ tab.label }}
+							取消
 						</button>
-					</nav>
+						<button
+							type="button"
+							class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+							@click="saveProduct"
+						>
+							保存产品
+						</button>
+					</div>
 				</div>
-				<div class="max-h-[60vh] overflow-y-auto px-5 pb-4">
-					<section v-if="activeTab === 'base'" class="space-y-3">
-						<div>
-							<h3 class="text-base font-semibold text-slate-800">基础信息</h3>
-							<p class="mt-1 text-xs text-slate-500">展示名称、计价币种与上下架状态；收益档位在「锁仓与收益」中配置。</p>
-						</div>
-						<div class="grid gap-x-5 gap-y-4 md:grid-cols-2">
-							<div class="lb-stack">
-								<div class="lb-label-row">
-									<span class="lb-label">产品名称</span>
-									<span class="lb-label-aux">必填</span>
-								</div>
-								<input v-model="productForm.name" type="text" class="lb-ctrl" placeholder="如：USDT 稳健锁仓" autocomplete="off" />
-							</div>
-							<div class="lb-stack">
-								<div class="lb-label-row">
-									<span class="lb-label">计价币种</span>
-								</div>
-								<select v-model="productForm.currency" class="lb-ctrl lb-select">
-									<option v-for="curr in SUPPORTED_CURRENCIES" :key="curr" :value="curr">{{ curr }}</option>
-								</select>
-							</div>
-							<div class="lb-stack md:col-span-2">
-								<div class="lb-label-row">
-									<span class="lb-label">上下架</span>
-								</div>
-								<select v-model="productForm.status" class="lb-ctrl lb-select max-w-md">
-									<option :value="PRODUCT_STATUS.ENABLED">上架中（可申购）</option>
-									<option :value="PRODUCT_STATUS.DISABLED">已下架（前端隐藏或不可申购）</option>
-									<option :value="PRODUCT_STATUS.SOLD_OUT">已售罄（展示但不可申购）</option>
-								</select>
-								<p class="lb-hint">与 C 端列表可见性一致；「已售罄」可用于额度抢光但仍保留展示。</p>
-							</div>
-						</div>
-					</section>
-					<section v-else-if="activeTab === 'periods'" class="space-y-3">
-						<div>
-							<h3 class="text-base font-semibold text-slate-800">锁仓与收益</h3>
-							<p class="mt-1 text-xs text-slate-500">每一行对应 C 端可选的一档：锁仓天数、年化收益率（%，按单利口径展示）、该档单笔申购上下限（与计价币种一致）。</p>
-						</div>
-						<div class="lb-stack">
-							<div class="lb-label-row">
-								<span class="lb-label">常用锁仓天数</span>
-								<span class="lb-label-aux">点击追加一档</span>
-							</div>
-							<div class="flex flex-wrap gap-2">
-								<button
-									v-for="d in LOCK_PERIODS"
-									:key="d"
-									type="button"
-									class="h-9 shrink-0 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 transition hover:border-blue-300 hover:text-blue-700"
-									@click="applyPresetDays(d)"
-								>
-									{{ d }} 天
-								</button>
-							</div>
-						</div>
-						<div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
-							<div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-								<span class="text-sm font-medium text-slate-800">收益档位列表</span>
-								<button type="button" class="h-9 rounded-md bg-blue-600 px-3 text-sm font-medium text-white transition hover:bg-blue-700" @click="addPeriod">+ 空白档位</button>
-							</div>
-							<div class="overflow-x-auto rounded-md border border-slate-200 bg-white">
-								<div class="max-h-64 overflow-y-auto">
-									<table class="lb-table min-w-full text-sm">
-										<thead>
-											<tr class="border-b border-slate-200 bg-slate-50 text-left text-slate-500">
-												<th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide">锁仓天数</th>
-												<th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide">年化 %</th>
-												<th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide">单笔最小</th>
-												<th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide">单笔最大</th>
-												<th class="w-12 px-2 py-2.5 text-center text-xs font-semibold uppercase tracking-wide">操作</th>
-											</tr>
-										</thead>
-										<tbody>
-											<tr v-for="(period, idx) in productForm.periods" :key="idx" class="border-b border-slate-100 last:border-0 odd:bg-white even:bg-slate-50/80">
-												<td class="p-2 align-middle">
-													<input v-model.number="period.days" type="number" min="1" inputmode="numeric" class="lb-cell-in w-[4.5rem]" />
-												</td>
-												<td class="p-2 align-middle">
-													<input v-model.number="period.annualRate" type="number" min="0" step="0.01" inputmode="decimal" class="lb-cell-in w-[6.25rem]" />
-												</td>
-												<td class="p-2 align-middle">
-													<input v-model.number="period.minAmount" type="number" min="0" inputmode="decimal" class="lb-cell-in min-w-[6.5rem] max-w-[10rem]" />
-												</td>
-												<td class="p-2 align-middle">
-													<input v-model.number="period.maxAmount" type="number" min="0" inputmode="decimal" class="lb-cell-in min-w-[6.5rem] max-w-[10rem]" />
-												</td>
-												<td class="p-2 align-middle text-center">
-													<button type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-base text-rose-600 transition hover:border-rose-200 hover:bg-rose-50" title="删除该档" @click="removePeriod(idx)">×</button>
-												</td>
-											</tr>
-										</tbody>
-									</table>
-								</div>
-							</div>
-						</div>
-					</section>
-					<section v-else-if="activeTab === 'redeem'" class="space-y-3">
-						<div>
-							<h3 class="text-base font-semibold text-slate-800">提前赎回</h3>
-							<p class="mt-1 text-xs text-slate-500">关闭后用户仅可持有到期；开启时可按违约金比例扣除后赎回（比例相对本金）。</p>
-						</div>
-						<div class="rounded-lg border border-slate-200 bg-slate-50/80 p-4">
-							<div class="lb-stack max-w-xl">
-								<div class="lb-label-row">
-									<span class="lb-label">提前赎回</span>
-								</div>
-								<label class="flex h-10 cursor-pointer items-center gap-2.5 rounded-md border border-transparent px-1">
-									<input v-model="productForm.earlyRedeemEnabled" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
-									<span class="text-sm text-slate-700">允许用户在锁仓期内申请提前赎回</span>
-								</label>
-							</div>
-							<div v-if="productForm.earlyRedeemEnabled" class="lb-stack mt-4 max-w-xs border-t border-slate-200 pt-4">
-								<div class="lb-label-row">
-									<span class="lb-label">违约金比例</span>
-									<span class="lb-label-aux">相对本金</span>
-								</div>
-								<div class="flex items-center gap-2">
-									<input v-model.number="productForm.earlyRedeemFee" type="number" min="0" step="0.1" inputmode="decimal" class="lb-ctrl w-28 flex-none tabular-nums" />
-									<span class="text-sm font-medium text-slate-500">%</span>
-								</div>
-								<p class="lb-hint">自本金扣收；未开启提前赎回时本项不生效。</p>
-							</div>
-						</div>
-					</section>
-					<section v-else-if="activeTab === 'limit'" class="space-y-3">
-						<div>
-							<h3 class="text-base font-semibold text-slate-800">限购策略</h3>
-							<p class="mt-1 text-xs text-slate-500">按单用户维度控制可申购规模，并设置 VIP 与认证门槛；用于赔付、流动性敞口与合规分层。</p>
-						</div>
-					<div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-						<button type="button" @click="productForm.purchaseLimitType = PURCHASE_LIMIT_TYPE.NONE" 
-								:class="['rounded-lg border-2 p-4 text-center transition cursor-pointer', 
-										productForm.purchaseLimitType === PURCHASE_LIMIT_TYPE.NONE 
-										? 'border-blue-500 bg-blue-50 text-blue-700' 
-										: 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50']">
-							<div class="font-semibold">不限购</div>
-							<div class="text-xs mt-1 text-slate-500">不设置限购策略</div>
-						</button>
-						
-						<button type="button" @click="productForm.purchaseLimitType = PURCHASE_LIMIT_TYPE.LIFETIME"
-								:class="['rounded-lg border-2 p-4 text-center transition cursor-pointer',
-										productForm.purchaseLimitType === PURCHASE_LIMIT_TYPE.LIFETIME
-										? 'border-blue-500 bg-blue-50 text-blue-700'
-										: 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50']">
-							<div class="font-semibold">终身限购</div>
-							<div class="text-xs mt-1 text-slate-500">单用户终身限额</div>
-						</button>
-						
-						<button type="button" @click="productForm.purchaseLimitType = PURCHASE_LIMIT_TYPE.PERIOD"
-								:class="['rounded-lg border-2 p-4 text-center transition cursor-pointer',
-										productForm.purchaseLimitType === PURCHASE_LIMIT_TYPE.PERIOD
-										? 'border-blue-500 bg-blue-50 text-blue-700'
-										: 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50']">
-							<div class="font-semibold">周期限购</div>
-							<div class="text-xs mt-1 text-slate-500">按周期设置限额</div>
-						</button>
-					</div>
-					
-					<div v-if="productForm.purchaseLimitType === PURCHASE_LIMIT_TYPE.LIFETIME" class="lb-stack max-w-lg">
-						<div class="lb-label-row">
-							<span class="lb-label">终身限购额度</span>
-							<span class="lb-label-aux">单用户累计</span>
-						</div>
-						<input v-model.number="productForm.lifetimeLimit" type="number" min="0" inputmode="decimal" class="lb-ctrl tabular-nums" />
-					</div>
-					<div v-if="productForm.purchaseLimitType === PURCHASE_LIMIT_TYPE.PERIOD" class="grid gap-x-5 gap-y-4 sm:grid-cols-2">
-						<div class="lb-stack">
-							<div class="lb-label-row">
-								<span class="lb-label">周期天数</span>
-								<span class="lb-label-aux">限购滚动窗口</span>
-							</div>
-							<input v-model.number="productForm.periodDays" type="number" min="1" inputmode="numeric" class="lb-ctrl tabular-nums" />
-						</div>
-						<div class="lb-stack">
-							<div class="lb-label-row">
-								<span class="lb-label">周期限购额度</span>
-								<span class="lb-label-aux">每窗口上限</span>
-							</div>
-							<input v-model.number="productForm.periodLimit" type="number" min="0" inputmode="decimal" class="lb-ctrl tabular-nums" />
-						</div>
-					</div>
-					<div class="rounded-lg border border-slate-200 bg-slate-50/90 p-4">
-						<div class="lb-label-row mb-3 border-b border-slate-200/80 pb-2">
-							<span class="text-sm font-semibold text-slate-800">申购门槛</span>
-						</div>
-						<div class="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
-							<div class="lb-stack">
-								<div class="lb-label-row">
-									<span class="lb-label">最低 VIP 等级</span>
-								</div>
-								<select v-model.number="productForm.minVipLevel" class="lb-ctrl lb-select">
-									<option v-for="opt in LOCKED_MIN_VIP_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-								</select>
-								<p class="lb-hint">低于所选 VIP 的用户无法发起申购。</p>
-							</div>
-							<div class="lb-stack">
-								<div class="lb-label-row">
-									<span class="lb-label">最低认证等级</span>
-								</div>
-								<select v-model="productForm.minKycLevel" class="lb-ctrl lb-select">
-									<option v-for="opt in LOCKED_MIN_KYC_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-								</select>
-								<p class="lb-hint">用户认证等级须不低于所选档位方可申购。</p>
-							</div>
-						</div>
-					</div>
-					</section>
-		</div>
-		<footer class="flex justify-end gap-3 border-t border-slate-200 px-5 py-4">
-			<button type="button" class="h-10 rounded-md border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50" @click="showProductModal = false">取消</button>
-			<button type="button" class="h-10 rounded-md bg-blue-600 px-5 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700" @click="saveProduct">保存</button>
-		</footer>
-	</section>
 			</div>
 		</Teleport>
-</section>
+	</section>
 </template>
-
-<style scoped>
-.lb-stack {
-	@apply flex flex-col gap-1.5;
-}
-.lb-label-row {
-	@apply flex min-h-[1.125rem] items-baseline justify-between gap-2;
-}
-.lb-label {
-	@apply text-sm font-medium tracking-tight text-slate-700;
-}
-.lb-label-aux {
-	@apply shrink-0 text-right text-xs font-normal tabular-nums text-slate-400;
-}
-.lb-ctrl {
-	@apply h-10 w-full min-w-0 rounded-md border border-slate-300 bg-white px-3 text-sm leading-5 text-slate-900 shadow-sm;
-	@apply transition-[border-color,box-shadow] placeholder:text-slate-400;
-	@apply focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20;
-}
-.lb-select {
-	@apply cursor-pointer bg-white pr-9;
-	background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
-	background-position: right 0.5rem center;
-	background-size: 1.25rem 1.25rem;
-	background-repeat: no-repeat;
-	-webkit-appearance: none;
-	appearance: none;
-}
-.lb-hint {
-	@apply text-xs leading-relaxed text-slate-500;
-}
-.lb-cell-in {
-	@apply h-9 w-full min-w-0 rounded-md border border-slate-300 bg-white px-2.5 text-sm tabular-nums text-slate-900 shadow-sm;
-	@apply focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/30;
-}
-.lb-table tbody tr:hover {
-	@apply bg-slate-50/90;
-}
-</style>
