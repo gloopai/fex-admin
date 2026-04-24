@@ -22,7 +22,7 @@ const controlCards = [
   },
   {
     title: '金融增值',
-    desc: '流动性锁仓、抵押借贷与 AI 量化策略入口集中呈现；规则与参数与后台配置对齐（演示数据）。',
+    desc: '流动性锁仓、信用借贷与 AI 量化策略入口集中呈现；规则与参数与后台配置对齐（演示数据）。',
     to: `${prefix}/finance`,
     icon: 'chart'
   }
@@ -94,7 +94,7 @@ const footerColumns = [
     links: [
       { label: '金融首页', to: `${prefix}/finance` },
       { label: '流动性挖矿', to: `${prefix}/finance/liquidity` },
-      { label: '抵押借贷', to: `${prefix}/finance/lending` },
+      { label: '信用借贷', to: `${prefix}/finance/lending` },
       { label: 'AI 量化', to: `${prefix}/finance/ai-quant` }
     ]
   },

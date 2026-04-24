@@ -59,7 +59,7 @@ const channelVisual = {
       />
     </div>
 
-    <section class="relative mx-auto max-w-7xl px-5 pb-16 pt-12 sm:px-8 sm:pb-20 sm:pt-16 md:pt-20 lg:px-10 lg:pb-28 lg:pt-24">
+    <section class="relative mx-auto max-w-7xl px-5 pb-10 pt-8 sm:px-8 sm:pb-12 sm:pt-10 lg:px-10 lg:pb-14 lg:pt-12">
       <p
         class="text-center text-[11px] font-bold uppercase tracking-[0.35em] text-lime-400/85 sm:text-left"
       >
@@ -76,7 +76,7 @@ const channelVisual = {
       <p
         class="mx-auto mt-5 max-w-2xl text-center text-base leading-relaxed text-white/55 sm:mx-0 sm:text-left sm:text-lg"
       >
-        锁仓理财、抵押借贷与 AI 量化三大频道独立运营；各频道涉及收益的展示均为年化口径（演示数据与后台字段对齐，正式环境将接入账户与订单）。
+        锁仓理财、信用借贷与 AI 量化三大频道独立运营；各频道涉及收益的展示均为年化口径（演示数据与后台字段对齐，正式环境将接入账户与订单）。
       </p>
 
       <div

@@ -45,22 +45,17 @@ export const frontDesktopRoutes = [
       },
       {
         path: 'liquidity/:productId/rules',
-        redirect: (to) => ({
-          name: 'front-finance-liquidity-detail',
-          params: { productId: to.params.productId }
-        })
+        redirect: '/front/finance/liquidity'
       },
       {
         path: 'liquidity/:productId',
-        name: 'front-finance-liquidity-detail',
-        component: () => import('../../pages/front/finance/liquidity/FinanceLiquidityDetailPage.vue'),
-        meta: { title: '产品详情' }
+        redirect: '/front/finance/liquidity'
       },
       {
         path: 'lending',
         name: 'front-finance-lending',
         component: () => import('../../pages/front/finance/lending/FinanceLendingListPage.vue'),
-        meta: { title: '抵押借贷' }
+        meta: { title: '信用借贷' }
       },
       {
         path: 'lending/rules',

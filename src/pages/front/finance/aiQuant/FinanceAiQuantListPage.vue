@@ -55,7 +55,7 @@ function statusPill(s) {
         class="pointer-events-none absolute left-1/2 top-0 h-72 w-[min(100%,28rem)] -translate-x-1/2 rounded-full bg-fuchsia-500/15 blur-3xl"
         aria-hidden="true"
       />
-      <div class="relative mx-auto max-w-7xl px-5 py-14 sm:px-8 sm:py-16 md:py-20 lg:px-10 lg:py-24">
+      <div class="relative mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12">
         <nav class="text-sm text-white/40">
           <RouterLink :to="`${prefix}/finance`" class="transition hover:text-lime-300">金融</RouterLink>
           <span class="mx-2 text-white/20">/</span>
@@ -71,7 +71,7 @@ function statusPill(s) {
       </div>
     </header>
 
-    <div class="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14 lg:px-10 lg:py-16">
+    <div class="mx-auto max-w-7xl px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
       <label class="block max-w-xl">
         <span class="sr-only">搜索策略</span>
         <input

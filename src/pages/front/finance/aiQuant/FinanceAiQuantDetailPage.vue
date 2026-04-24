@@ -47,7 +47,7 @@ const settlementLabel = computed(() => {
         class="pointer-events-none absolute left-1/2 top-0 h-64 w-[min(100%,26rem)] -translate-x-1/2 rounded-full bg-fuchsia-500/12 blur-3xl"
         aria-hidden="true"
       />
-      <div class="relative mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-12 lg:px-10 lg:py-14">
+      <div class="relative mx-auto max-w-7xl px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
         <nav class="text-sm text-white/45">
           <RouterLink :to="`${prefix}/finance`" class="transition hover:text-lime-300">金融</RouterLink>
           <span class="mx-2 text-white/20">/</span>
@@ -92,7 +92,7 @@ const settlementLabel = computed(() => {
       </div>
     </header>
 
-    <div class="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-12 lg:px-10 lg:py-14">
+    <div class="mx-auto max-w-7xl px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
       <div class="grid gap-6 lg:grid-cols-2 lg:gap-8">
         <section class="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-6 lg:rounded-3xl lg:p-8">
           <h2 class="text-base font-semibold text-white lg:text-lg">收益档位</h2>

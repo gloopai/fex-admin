@@ -90,7 +90,7 @@ export function getFrontFinanceChannelEntries(prefix) {
     },
     {
       key: 'lending',
-      label: '抵押借贷',
+      label: '信用借贷',
       tag: 'Borrow',
       desc: '质押持仓释放借出币种流动性，利率与期限结构化展示。',
       to: `${b}/lending`

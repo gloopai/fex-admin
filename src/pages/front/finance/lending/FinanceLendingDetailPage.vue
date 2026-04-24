@@ -56,11 +56,11 @@ function statusPillClass(s) {
         class="pointer-events-none absolute -right-20 top-1/4 h-72 w-72 rounded-full bg-sky-400/12 blur-3xl"
         aria-hidden="true"
       />
-      <div class="relative mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-12 lg:px-10 lg:py-14">
+      <div class="relative mx-auto max-w-7xl px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
         <nav class="text-sm text-white/45">
           <RouterLink :to="`${prefix}/finance`" class="transition hover:text-lime-300">金融</RouterLink>
           <span class="mx-2 text-white/20">/</span>
-          <RouterLink :to="`${prefix}/finance/lending`" class="transition hover:text-lime-300">抵押借贷</RouterLink>
+          <RouterLink :to="`${prefix}/finance/lending`" class="transition hover:text-lime-300">信用借贷</RouterLink>
           <span class="mx-2 text-white/20">/</span>
           <span class="text-white/75">{{ product.productName }}</span>
         </nav>
@@ -99,7 +99,7 @@ function statusPillClass(s) {
       </div>
     </header>
 
-    <div class="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-12 lg:px-10 lg:py-14">
+    <div class="mx-auto max-w-7xl px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
       <div class="grid gap-6 lg:grid-cols-2 lg:gap-8">
         <section class="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-6 lg:rounded-3xl lg:p-8">
           <h2 class="text-base font-semibold text-white lg:text-lg">借贷参数</h2>
@@ -161,7 +161,7 @@ function statusPillClass(s) {
       :to="`${prefix}/finance/lending`"
       class="mt-6 inline-flex rounded-xl border border-white/[0.12] bg-white/[0.05] px-5 py-2.5 text-sm font-semibold text-lime-300 transition hover:bg-white/[0.08]"
     >
-      返回抵押借贷列表
+      返回信用借贷列表
     </RouterLink>
   </div>
 </template>
