@@ -1,61 +1,56 @@
 <template>
-  <section class="flex min-h-screen w-full max-w-none flex-col bg-slate-100">
-    <header
-      class="w-full shrink-0 border-b border-slate-200 bg-white px-6 py-4 lg:px-10"
-    >
-      <div class="min-w-0">
-        <p class="text-xs font-medium uppercase tracking-wide text-slate-400">抵押借贷 · 运营配置</p>
-        <h1 class="mt-0.5 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">额度与打分</h1>
+  <section class="space-y-4">
+    <header class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <h1 class="text-3xl font-semibold text-slate-900">额度与打分</h1>
+        <p class="mt-1 text-sm text-slate-500">配置授信额度模板与评分规则，按用户维度折算可借上限</p>
       </div>
     </header>
 
-    <div v-if="visibleTabs.length > 1" class="w-full shrink-0 border-b border-slate-200 bg-white px-6 lg:px-10">
-      <div
-        class="-mb-px flex gap-0 overflow-x-auto scrollbar-thin sm:gap-1"
-        role="tablist"
-        aria-label="授信中心分区"
-      >
-        <button
-          v-for="t in visibleTabs"
-          :key="t.id"
-          type="button"
-          role="tab"
-          :aria-selected="mainTab === t.id"
-          class="whitespace-nowrap px-3 py-3 text-sm font-medium transition-colors sm:px-4"
-          :class="
-            mainTab === t.id
-              ? 'border-b-2 border-blue-600 text-blue-600'
-              : 'border-b-2 border-transparent text-slate-600 hover:border-slate-200 hover:text-slate-900'
-          "
-          @click="mainTab = t.id"
-        >
-          {{ t.label }}
-        </button>
-      </div>
-    </div>
-
     <div
       v-if="visibleTabs.length === 0"
-      class="flex flex-1 items-center justify-center px-6 py-16 text-center text-sm text-slate-600"
+      class="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500"
     >
       <p class="font-medium text-slate-800">暂无授信中心权限</p>
       <p class="mt-2">请联系管理员在 RBAC 中分配「借贷 · 授信」相关权限。</p>
     </div>
 
-    <div v-else class="flex min-h-0 w-full flex-1 flex-col overflow-hidden">
+    <article v-else class="rounded-xl border border-slate-200 bg-white">
+      <div v-if="visibleTabs.length > 1" class="border-b border-slate-200 px-4 lg:px-6">
+        <div
+          class="-mb-px flex gap-1 overflow-x-auto"
+          role="tablist"
+          aria-label="授信中心分区"
+        >
+          <button
+            v-for="t in visibleTabs"
+            :key="t.id"
+            type="button"
+            role="tab"
+            :aria-selected="mainTab === t.id"
+            class="whitespace-nowrap px-4 py-3 text-sm font-medium transition-colors"
+            :class="
+              mainTab === t.id
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'border-b-2 border-transparent text-slate-600 hover:text-slate-900'
+            "
+            @click="mainTab = t.id"
+          >
+            {{ t.label }}
+          </button>
+        </div>
+      </div>
+
+      <div class="space-y-4 p-4">
       <!-- 额度模板 -->
-      <div
-        v-show="mainTab === 'limits'"
-        class="w-full flex-1 overflow-y-auto px-6 py-6 pb-16 lg:px-10"
-      >
-        <div class="w-full space-y-6">
-        <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm sm:px-5">
-          <p class="leading-relaxed text-slate-600">
+      <div v-show="mainTab === 'limits'" class="space-y-4">
+        <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+          <p class="leading-relaxed">
             与「每项得几分」无关：这里只决定<strong class="text-slate-800">满分时</strong>账户总授信上限，以及<strong class="text-slate-800">低分保底</strong>（再差也保留模板的几成）。修改后请点下方<strong class="text-slate-800">保存</strong>生效。
           </p>
         </div>
 
-        <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="rounded-xl border border-slate-200 bg-white p-4">
           <h2 class="text-sm font-semibold text-slate-800">低分保底比例（minScale）</h2>
           <p class="mt-1 text-xs text-slate-500">
             得分率 0 时，scale 不低于该值；得分率 1 时，scale 为 1。建议 0.2～0.5。
@@ -84,9 +79,9 @@
           <p v-if="!minScaleValid" class="mt-2 text-xs text-amber-700">超出 0.05～0.95 时，计算会按边界值夹取。</p>
         </div>
 
-        <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
           <table class="w-full text-left text-sm">
-            <thead class="border-b border-slate-100 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <thead class="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
               <tr>
                 <th class="px-4 py-3">项目</th>
                 <th class="px-4 py-3 text-right">模板（满分时）</th>
@@ -119,25 +114,23 @@
           />
         </div>
 
-        <div v-if="canEditLimits" class="flex flex-wrap items-center gap-3 border-t border-slate-200 pt-4">
+        <div
+          v-if="canEditLimits"
+          class="flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 pt-4"
+        >
           <button
             type="button"
-            class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+            class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
             @click="saveLimitsTemplate"
           >
             保存
           </button>
           <span v-if="limitsSaveHint" class="text-sm font-medium text-emerald-600">{{ limitsSaveHint }}</span>
         </div>
-        </div>
       </div>
 
       <!-- 评分与规则 -->
-      <div
-        v-show="mainTab === 'scorecard'"
-        class="w-full flex-1 overflow-y-auto px-6 py-6 pb-16 lg:px-10"
-      >
-        <div class="w-full space-y-4">
+      <div v-show="mainTab === 'scorecard'" class="space-y-4">
         <div
           v-if="!canEditScorecard"
           class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900"
@@ -150,25 +143,23 @@
           每项默认<strong class="text-slate-700">预览</strong>当前配置；点<strong class="text-slate-700">编辑</strong>修改，<strong class="text-slate-700">保存</strong>后回到预览，<strong class="text-slate-700">取消</strong>放弃本次修改。
         </p>
 
-        <div class="flex flex-wrap items-center justify-between gap-3">
+        <div v-if="canEditLimits" class="flex flex-wrap items-center gap-2">
           <button
-            v-if="canEditLimits"
             type="button"
-            class="text-sm font-medium text-blue-600 hover:text-blue-800"
+            class="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
             @click="mainTab = 'limits'"
           >
             ← {{ LIMITS_TAB_LABEL }}
           </button>
-          <span v-else></span>
         </div>
 
         <div class="space-y-4">
           <article
             v-for="dim in orderedDimensions"
             :key="dim.key"
-            class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+            class="overflow-hidden rounded-xl border border-slate-200 bg-white"
           >
-            <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-3 sm:flex sm:items-start sm:justify-between sm:px-5">
+            <div class="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 p-4 sm:items-center">
               <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-2">
                   <span
@@ -176,7 +167,7 @@
                   >
                     {{ groupShortLabel(dim.group) }}
                   </span>
-                  <h3 class="text-base font-semibold text-slate-900" :title="dim.key">{{ dim.label }}</h3>
+                  <h3 class="text-lg font-semibold text-slate-900" :title="dim.key">{{ dim.label }}</h3>
                   <span
                     v-if="dim.scoreRule"
                     class="rounded-full px-2 py-0.5 text-[10px] font-medium ring-1"
@@ -191,7 +182,7 @@
                 </div>
                 <p class="mt-1 line-clamp-2 text-xs text-slate-500">{{ dim.description }}</p>
               </div>
-              <div class="mt-2 flex shrink-0 flex-col items-end gap-2 sm:mt-0">
+              <div class="flex shrink-0 flex-col items-end gap-2 sm:items-end">
                 <div
                   v-if="canEditScorecard && dim.scoreRule"
                   class="flex flex-wrap justify-end gap-2"
@@ -199,7 +190,7 @@
                   <template v-if="!isScorecardEditing(dim)">
                     <button
                       type="button"
-                      class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+                      class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-100"
                       @click="enterScorecardEdit(dim)"
                     >
                       编辑
@@ -208,14 +199,14 @@
                   <template v-else>
                     <button
                       type="button"
-                      class="rounded-lg border border-blue-600 bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700"
+                      class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
                       @click="saveScorecardEdit(dim)"
                     >
                       保存
                     </button>
                     <button
                       type="button"
-                      class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+                      class="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
                       @click="cancelScorecardEdit(dim)"
                     >
                       取消
@@ -231,11 +222,11 @@
               </div>
             </div>
 
-            <div class="space-y-3 px-4 py-4 sm:px-5">
+            <div class="space-y-3 p-4">
               <!-- 预览模式：只读汇总 + 分档表 -->
               <div
                 v-if="dim.scoreRule && !isScorecardEditing(dim)"
-                class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
+                class="rounded-lg border border-slate-200 bg-white p-4"
                 :class="{ 'opacity-70': dim.scoreRule.enabled === false }"
               >
                 <p class="text-xs font-semibold text-slate-800">配置预览</p>
@@ -473,9 +464,9 @@
             </div>
           </article>
         </div>
-        </div>
       </div>
     </div>
+    </article>
   </section>
 </template>
 
