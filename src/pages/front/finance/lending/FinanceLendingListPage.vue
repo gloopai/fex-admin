@@ -16,6 +16,7 @@ import {
   REPAYMENT_TYPE,
   REPAYMENT_TYPE_LABELS
 } from '../../../../admin/constants/cryptoLending'
+import { FINANCE_FX as fx } from '../../../../constants/frontFinanceUi'
 
 const prefix = '/front'
 const route = useRoute()
@@ -347,23 +348,15 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
 </script>
 
 <template>
-  <div class="min-h-[calc(100dvh-3.5rem)] bg-[#050505] pb-8 lg:pb-10">
-    <header class="relative overflow-hidden border-b border-white/[0.06] bg-[#050505]">
+  <div :class="fx.pageRoot">
+    <header :class="fx.header">
       <div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-        <div
-          class="absolute -left-1/4 top-0 h-[20rem] w-[20rem] rounded-full bg-lime-400/[0.07] blur-[100px] sm:h-[26rem] sm:w-[26rem]"
-        />
-        <div
-          class="absolute -right-1/4 bottom-0 h-[16rem] w-[16rem] rounded-full bg-lime-400/[0.05] blur-[90px] sm:h-[22rem] sm:w-[22rem]"
-        />
-        <div
-          class="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_0%,#050505_55%,#050505_100%)]"
-        />
+        <div :class="fx.headerGlowL" />
+        <div :class="fx.headerGlowR" />
+        <div :class="fx.headerGrad" />
       </div>
-      <div
-        class="relative mx-auto max-w-7xl px-4 pb-6 pt-6 sm:px-8 sm:pb-8 sm:pt-8 lg:px-10 lg:pb-10 lg:pt-10"
-      >
-        <nav class="text-xs text-white/40 sm:text-sm">
+      <div :class="fx.headerInner">
+        <nav :class="fx.breadcrumbNav">
           <RouterLink :to="`${prefix}/finance`" class="transition hover:text-lime-300">金融</RouterLink>
           <span class="mx-1.5 text-white/20 sm:mx-2">/</span>
           <span class="text-white/70">信用借贷</span>
@@ -372,32 +365,19 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
         <div class="mt-4 flex flex-col gap-5 sm:gap-6 lg:flex-row lg:items-end lg:justify-between lg:gap-10">
           <div class="min-w-0 flex-1 space-y-5 sm:space-y-6">
             <div>
-              <p
-                class="inline-flex items-center gap-2 rounded-full border border-lime-400/25 bg-lime-400/[0.08] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.28em] text-lime-200/95 sm:text-[11px] sm:tracking-[0.3em]"
-              >
+              <p :class="fx.kicker">
                 Borrow · 信用借币
               </p>
-              <h1
-                class="mt-2 text-3xl font-bold tracking-tight text-white sm:mt-3 sm:text-4xl md:text-5xl lg:text-[3.25rem] lg:leading-tight"
-              >
+              <h1 :class="fx.h1">
                 信用借贷
               </h1>
             </div>
-            <div
-              class="inline-flex w-full max-w-full rounded-xl border border-white/[0.07] bg-black/40 p-1 shadow-inner shadow-black/20 sm:w-fit"
-              role="tablist"
-              aria-label="页面主入口"
-            >
+            <div :class="fx.heroSegmentWrap" role="tablist" aria-label="页面主入口">
               <button
                 type="button"
                 role="tab"
                 :aria-selected="heroPanel === 'overview'"
-                class="min-h-[2.75rem] min-w-0 flex-1 rounded-lg px-3 py-2.5 text-center text-sm font-semibold tracking-tight transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505] sm:min-h-[3rem] sm:flex-none sm:px-6 sm:py-2.5 sm:text-[15px] md:text-base"
-                :class="
-                  heroPanel === 'overview'
-                    ? 'bg-white/[0.1] text-lime-200 shadow-sm'
-                    : 'text-white/45 hover:text-white/75'
-                "
+                :class="[fx.heroTab, heroPanel === 'overview' ? fx.heroTabOn : fx.heroTabOff]"
                 @click="heroPanel = 'overview'"
               >
                 借币一览
@@ -406,12 +386,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                 type="button"
                 role="tab"
                 :aria-selected="heroPanel === 'records'"
-                class="min-h-[2.75rem] min-w-0 flex-1 rounded-lg px-3 py-2.5 text-center text-sm font-semibold tracking-tight transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505] sm:min-h-[3rem] sm:flex-none sm:px-6 sm:py-2.5 sm:text-[15px] md:text-base"
-                :class="
-                  heroPanel === 'records'
-                    ? 'bg-white/[0.1] text-lime-200 shadow-sm'
-                    : 'text-white/45 hover:text-white/75'
-                "
+                :class="[fx.heroTab, heroPanel === 'records' ? fx.heroTabOn : fx.heroTabOff]"
                 @click="heroPanel = 'records'"
               >
                 我的记录
@@ -441,15 +416,13 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
       </div>
     </header>
 
-    <div class="mx-auto max-w-7xl px-4 py-5 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
+    <div :class="fx.mainWrap">
       <template v-if="heroPanel === 'overview'">
       <!-- 顶部四卡 -->
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
-        <div
-          class="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-white/[0.08] bg-white/[0.035] px-4 py-3.5 sm:px-5 sm:py-4"
-        >
+        <div :class="['flex min-w-0 items-center justify-between gap-3', fx.statCard]">
           <div class="min-w-0 flex-1 pr-1">
-            <p class="text-[11px] font-medium uppercase tracking-wide text-white/40">资产</p>
+            <p :class="fx.statCardLabel">资产</p>
             <div class="mt-1.5 flex min-w-0 items-center gap-0.5">
               <p
                 class="min-w-0 truncate text-lg font-bold tabular-nums tracking-tight sm:text-xl"
@@ -483,11 +456,9 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
           </button>
         </div>
 
-        <div
-          class="flex items-center justify-between gap-3 rounded-xl border border-white/[0.08] bg-white/[0.035] px-4 py-3.5 sm:px-5 sm:py-4"
-        >
+        <div :class="['flex items-center justify-between gap-3', fx.statCard]">
           <div class="min-w-0">
-            <p class="text-[11px] font-medium uppercase tracking-wide text-white/40">可流动性</p>
+            <p :class="fx.statCardLabel">可流动性</p>
             <p class="mt-1.5 truncate text-lg font-bold tabular-nums text-white sm:text-xl">
               {{ formatUsdCompact(liquidityTotal) }}
             </p>
@@ -500,11 +471,9 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
           </div>
         </div>
 
-        <div
-          class="flex items-center justify-between gap-3 rounded-xl border border-white/[0.08] bg-white/[0.035] px-4 py-3.5 sm:px-5 sm:py-4"
-        >
+        <div :class="['flex items-center justify-between gap-3', fx.statCard]">
           <div class="min-w-0">
-            <p class="text-[11px] font-medium uppercase tracking-wide text-white/40">可借数量</p>
+            <p :class="fx.statCardLabel">可借数量</p>
             <p class="mt-1.5 truncate text-lg font-bold tabular-nums text-lime-300 sm:text-xl">
               {{ remainingBorrowApprox.toLocaleString() }}
             </p>
@@ -517,11 +486,9 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
           </div>
         </div>
 
-        <div
-          class="flex items-center justify-between gap-3 rounded-xl border border-white/[0.08] bg-white/[0.035] px-4 py-3.5 sm:px-5 sm:py-4"
-        >
+        <div :class="['flex items-center justify-between gap-3', fx.statCard]">
           <div class="min-w-0">
-            <p class="text-[11px] font-medium uppercase tracking-wide text-white/40">待还数量</p>
+            <p :class="fx.statCardLabel">待还数量</p>
             <p class="mt-1.5 truncate text-lg font-bold tabular-nums text-white sm:text-xl">
               {{ Math.round(pendingRepayTotal).toLocaleString() }}
             </p>
@@ -541,16 +508,13 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
           <h2 class="mb-3 text-base font-semibold leading-snug tracking-tight text-lime-200/95 sm:text-lg">
             借币期限
           </h2>
-          <div
-            class="overflow-x-auto rounded-xl border border-white/[0.08] bg-white/[0.025] sm:rounded-2xl max-md:-mx-1 max-md:rounded-lg max-md:border-white/[0.06]"
-          >
+          <div :class="fx.tableWrapMarketNoTop">
             <table
-              class="w-full min-w-0 border-collapse text-left text-sm text-white/90 max-md:table-fixed md:min-w-[640px] md:table-auto"
+              class="w-full min-w-0 border-collapse text-left max-md:table-fixed md:min-w-[640px] md:table-auto sm:text-sm"
+              :class="fx.tableBodyText"
             >
               <thead class="hidden md:table-header-group">
-                <tr
-                  class="border-b border-white/[0.08] text-[10px] font-semibold uppercase tracking-wide text-white/40 sm:text-[11px]"
-                >
+                <tr :class="fx.tableHeadRow">
                   <th class="px-4 py-2.5 font-semibold md:px-5 md:py-3">币种</th>
                   <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">利率</th>
                   <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">还款周期</th>
@@ -615,7 +579,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                     <button
                       v-if="p.status === PRODUCT_STATUS.ACTIVE"
                       type="button"
-                      class="inline-flex w-full min-h-[2.75rem] touch-manipulation items-center justify-center rounded-lg border border-lime-400/50 px-4 py-2.5 text-sm font-semibold text-lime-200 transition hover:bg-lime-400/10 max-md:w-full md:min-h-0 md:w-auto md:px-4 md:py-2 md:text-xs lg:text-sm"
+                      :class="fx.btnSecondaryBlock"
                       @click="openBorrowDialog(p)"
                     >
                       借款
@@ -623,7 +587,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                     <RouterLink
                       v-else
                       :to="`${prefix}/finance/lending/${p.productId}`"
-                      class="inline-flex w-full min-h-[2.75rem] touch-manipulation items-center justify-center rounded-lg border border-white/20 px-4 py-2.5 text-sm font-medium text-white/60 transition hover:bg-white/10 max-md:w-full md:min-h-0 md:w-auto md:px-4 md:py-2 md:text-xs lg:text-sm"
+                      :class="fx.btnMutedOutline"
                     >
                       查看
                     </RouterLink>
@@ -672,7 +636,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
             </dl>
             <RouterLink
               :to="{ path: `${prefix}/login`, query: { redirect: route.path } }"
-              class="mt-4 flex min-h-11 w-full items-center justify-center rounded-lg border border-lime-400/45 py-2.5 text-sm font-semibold text-lime-200 transition hover:bg-lime-400/10 sm:mt-5"
+              :class="['mt-4 flex w-full items-center justify-center sm:mt-5', fx.btnSecondaryBlock]"
             >
               获取借款额度
             </RouterLink>
@@ -685,12 +649,10 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
       </template>
 
       <template v-else>
-        <section class="overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.02] sm:rounded-2xl">
-          <div
-            class="flex flex-col gap-2 border-b border-white/[0.08] bg-black/30 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-4 sm:py-3 md:px-5"
-          >
+        <section :class="fx.panelRecords">
+          <div :class="fx.panelRecordsHeader">
             <div class="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
-              <p class="text-[10px] font-semibold uppercase tracking-wide text-white/40 sm:text-[11px]">记录明细</p>
+              <p :class="fx.sectionKicker">记录明细</p>
               <span
                 v-if="recordTab === 'current' && currentOrders.length"
                 class="text-[11px] tabular-nums text-white/40 sm:text-xs"
@@ -704,21 +666,12 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                 class="text-[11px] tabular-nums text-white/40 sm:text-xs"
               >本页共 {{ historyOrders.length }} 条</span>
             </div>
-            <div
-              class="grid w-full grid-cols-3 gap-0 rounded-lg border border-white/[0.06] bg-black/40 p-0.5 sm:flex sm:w-auto sm:max-w-full sm:shrink-0 sm:overflow-x-auto sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-              role="tablist"
-              aria-label="记录类型"
-            >
+            <div :class="fx.recordTablist3" role="tablist" aria-label="记录类型">
               <button
                 type="button"
                 role="tab"
                 :aria-selected="recordTab === 'current'"
-                class="min-h-[2.5rem] rounded-md border-b-2 border-transparent px-1 py-2 text-center text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 sm:min-h-0 sm:rounded-none sm:border-transparent sm:px-4 sm:pb-2.5 sm:text-left sm:text-sm sm:text-[15px]"
-                :class="
-                  recordTab === 'current'
-                    ? 'border-b-2 border-lime-400 text-white max-sm:border-transparent max-sm:bg-white/[0.12] max-sm:text-lime-200 sm:bg-transparent'
-                    : 'border-b-2 border-transparent text-white/45 hover:text-white/75 sm:text-white/45'
-                "
+                :class="[fx.recordTab, recordTab === 'current' ? fx.recordTabOn : fx.recordTabOff]"
                 @click="recordTab = 'current'"
               >
                 当前
@@ -727,12 +680,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                 type="button"
                 role="tab"
                 :aria-selected="recordTab === 'repayment'"
-                class="min-h-[2.5rem] rounded-md border-b-2 border-transparent px-1 py-2 text-center text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 sm:min-h-0 sm:rounded-none sm:border-transparent sm:px-4 sm:pb-2.5 sm:text-left sm:text-sm sm:text-[15px]"
-                :class="
-                  recordTab === 'repayment'
-                    ? 'border-b-2 border-lime-400 text-white max-sm:border-transparent max-sm:bg-white/[0.12] max-sm:text-lime-200 sm:bg-transparent'
-                    : 'border-b-2 border-transparent text-white/45 hover:text-white/75 sm:text-white/45'
-                "
+                :class="[fx.recordTab, recordTab === 'repayment' ? fx.recordTabOn : fx.recordTabOff]"
                 @click="recordTab = 'repayment'"
               >
                 还款
@@ -741,12 +689,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                 type="button"
                 role="tab"
                 :aria-selected="recordTab === 'history'"
-                class="min-h-[2.5rem] rounded-md border-b-2 border-transparent px-1 py-2 text-center text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 sm:min-h-0 sm:rounded-none sm:border-transparent sm:px-4 sm:pb-2.5 sm:text-left sm:text-sm sm:text-[15px]"
-                :class="
-                  recordTab === 'history'
-                    ? 'border-b-2 border-lime-400 text-white max-sm:border-transparent max-sm:bg-white/[0.12] max-sm:text-lime-200 sm:bg-transparent'
-                    : 'border-b-2 border-transparent text-white/45 hover:text-white/75 sm:text-white/45'
-                "
+                :class="[fx.recordTab, recordTab === 'history' ? fx.recordTabOn : fx.recordTabOff]"
                 @click="recordTab = 'history'"
               >
                 历史
@@ -757,12 +700,10 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
             <!-- 当前记录 -->
             <table
               v-if="recordTab === 'current'"
-              class="w-full min-w-0 border-collapse text-left text-xs text-white/85 sm:text-sm max-md:table-fixed md:min-w-[560px] md:table-auto"
+              :class="['w-full min-w-0 border-collapse text-left max-md:table-fixed md:min-w-[560px] md:table-auto', fx.tableBodyText]"
             >
               <thead class="hidden md:table-header-group">
-                <tr
-                  class="border-b border-white/[0.08] text-[10px] font-semibold uppercase tracking-wide text-white/40 sm:text-[11px]"
-                >
+                <tr :class="fx.tableHeadRow">
                   <th class="px-3 py-2.5 font-semibold md:px-5 md:py-3">借币</th>
                   <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">借款金额</th>
                   <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">利率</th>
@@ -801,7 +742,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                     >
                       <button
                         type="button"
-                        class="w-full touch-manipulation rounded-lg border border-lime-400/45 py-2.5 text-xs font-semibold text-lime-200 transition hover:bg-lime-400/10"
+                        :class="fx.btnTableActionBlock"
                         @click="openRepayDialog(o)"
                       >
                         还款
@@ -828,7 +769,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                         o.status === LOAN_ORDER_STATUS.ACTIVE || o.status === LOAN_ORDER_STATUS.REPAYING
                       "
                       type="button"
-                      class="touch-manipulation rounded-lg border border-lime-400/45 px-3 py-1.5 text-xs font-semibold text-lime-200 transition hover:bg-lime-400/10"
+                      :class="fx.btnTableAction"
                       @click="openRepayDialog(o)"
                     >
                       还款
@@ -849,12 +790,10 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
             <!-- 还款记录 -->
             <table
               v-else-if="recordTab === 'repayment'"
-              class="w-full min-w-0 border-collapse text-left text-xs text-white/85 sm:text-sm max-md:table-fixed md:min-w-[560px] md:table-auto"
+              :class="['w-full min-w-0 border-collapse text-left max-md:table-fixed md:min-w-[560px] md:table-auto', fx.tableBodyText]"
             >
               <thead class="hidden md:table-header-group">
-                <tr
-                  class="border-b border-white/[0.08] text-[10px] font-semibold uppercase tracking-wide text-white/40 sm:text-[11px]"
-                >
+                <tr :class="fx.tableHeadRow">
                   <th class="px-3 py-2.5 font-semibold md:px-5 md:py-3">产品 / 金额</th>
                   <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">金额</th>
                   <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">类型</th>
@@ -907,12 +846,10 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
             <!-- 历史记录 -->
             <table
               v-else
-              class="w-full min-w-0 border-collapse text-left text-xs text-white/85 sm:text-sm max-md:table-fixed md:min-w-[560px] md:table-auto"
+              :class="['w-full min-w-0 border-collapse text-left max-md:table-fixed md:min-w-[560px] md:table-auto', fx.tableBodyText]"
             >
               <thead class="hidden md:table-header-group">
-                <tr
-                  class="border-b border-white/[0.08] text-[10px] font-semibold uppercase tracking-wide text-white/40 sm:text-[11px]"
-                >
+                <tr :class="fx.tableHeadRow">
                   <th class="px-3 py-2.5 font-semibold md:px-5 md:py-3">订单</th>
                   <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">借款金额</th>
                   <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">更新时间</th>
@@ -1012,11 +949,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
         <div class="mt-5">
           <div class="flex flex-wrap items-baseline justify-between gap-2">
             <span class="text-sm font-medium text-white/75">还款金额</span>
-            <button
-              type="button"
-              class="text-xs font-semibold text-lime-300/95 underline-offset-2 hover:underline"
-              @click="fillRepayAll"
-            >
+            <button type="button" :class="fx.linkAccent" @click="fillRepayAll">
               全额
             </button>
           </div>
@@ -1024,21 +957,18 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
             v-model="repayAmount"
             type="text"
             inputmode="decimal"
-            class="mt-2 w-full rounded-lg border border-white/[0.12] bg-black/40 px-3 py-2.5 text-[15px] text-white placeholder:text-white/30 focus:border-lime-400/45 focus:outline-none focus:ring-2 focus:ring-lime-400/25"
+            class="mt-2 w-full"
+            :class="fx.input"
             placeholder="输入还款金额"
           />
         </div>
         <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <button
-            type="button"
-            class="rounded-lg border border-white/20 px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/10"
-            @click="closeRepayDialog"
-          >
+          <button type="button" :class="fx.btnGhost" @click="closeRepayDialog">
             取消
           </button>
           <button
             type="button"
-            class="rounded-lg bg-lime-400 px-4 py-2.5 text-sm font-semibold text-[#0b0e11] shadow-sm transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-40"
+            :class="fx.btnPrimary"
             :disabled="!repayConfirmEnabled"
             @click="confirmRepay"
           >
@@ -1193,13 +1123,9 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                   type="text"
                   inputmode="decimal"
                   :placeholder="`最少 ${borrowProduct.minLoanAmount} 起`"
-                  class="min-w-0 flex-1 rounded-lg border border-white/[0.12] bg-black/40 px-3 py-2.5 text-[15px] text-white placeholder:text-white/30 focus:border-lime-400/45 focus:outline-none focus:ring-2 focus:ring-lime-400/25"
+                  :class="fx.inputFlex"
                 />
-                <button
-                  type="button"
-                  class="shrink-0 rounded-lg border border-lime-400/50 px-3 py-2.5 text-xs font-semibold text-lime-200 transition hover:bg-lime-400/10 sm:px-4 sm:text-sm"
-                  @click="fillBorrowAll"
-                >
+                <button type="button" :class="fx.inputSideBtn" @click="fillBorrowAll">
                   全部
                 </button>
               </div>
@@ -1212,17 +1138,13 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
             </div>
 
             <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                class="rounded-lg border border-white/20 px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/10"
-                @click="closeBorrowDialog"
-              >
+              <button type="button" :class="fx.btnGhost" @click="closeBorrowDialog">
                 取消
               </button>
               <RouterLink
                 v-if="borrowCanSubmit"
                 :to="{ path: `${prefix}/login`, query: { redirect: route.path } }"
-                class="inline-flex items-center justify-center rounded-lg bg-lime-400 px-4 py-2.5 text-sm font-semibold text-[#0b0e11] shadow-sm transition hover:bg-lime-300"
+                :class="['inline-flex items-center justify-center', fx.btnPrimary]"
                 @click="closeBorrowDialog"
               >
                 申购

@@ -15,6 +15,7 @@ import {
   lockYieldAnnualPct,
   lockedMinKycRequirementPhrase
 } from '../../../../admin/constants/liquidityLocked'
+import { FINANCE_FX as fx } from '../../../../constants/frontFinanceUi'
 
 const prefix = '/front'
 const route = useRoute()
@@ -310,23 +311,15 @@ const mineMinVipLabel = computed(() => {
 </script>
 
 <template>
-  <div class="min-h-[calc(100dvh-3.5rem)] bg-[#050505] pb-8 lg:pb-10">
-    <header class="relative overflow-hidden border-b border-white/[0.06] bg-[#050505]">
+  <div :class="fx.pageRoot">
+    <header :class="fx.header">
       <div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-        <div
-          class="absolute -left-1/4 top-0 h-[20rem] w-[20rem] rounded-full bg-lime-400/[0.07] blur-[100px] sm:h-[26rem] sm:w-[26rem]"
-        />
-        <div
-          class="absolute -right-1/4 bottom-0 h-[16rem] w-[16rem] rounded-full bg-lime-400/[0.05] blur-[90px] sm:h-[22rem] sm:w-[22rem]"
-        />
-        <div
-          class="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_0%,#050505_55%,#050505_100%)]"
-        />
+        <div :class="fx.headerGlowL" />
+        <div :class="fx.headerGlowR" />
+        <div :class="fx.headerGrad" />
       </div>
-      <div
-        class="relative mx-auto max-w-7xl px-4 pb-6 pt-6 sm:px-8 sm:pb-8 sm:pt-8 lg:px-10 lg:pb-10 lg:pt-10"
-      >
-        <nav class="text-xs text-white/40 sm:text-sm">
+      <div :class="fx.headerInner">
+        <nav :class="fx.breadcrumbNav">
           <RouterLink :to="`${prefix}/finance`" class="transition hover:text-lime-300">金融</RouterLink>
           <span class="mx-1.5 text-white/20 sm:mx-2">/</span>
           <span class="text-white/70">流动性挖矿</span>
@@ -335,32 +328,19 @@ const mineMinVipLabel = computed(() => {
         <div class="mt-4 flex flex-col gap-5 sm:gap-6 lg:flex-row lg:items-end lg:justify-between lg:gap-10">
           <div class="min-w-0 flex-1 space-y-5 sm:space-y-6">
             <div>
-              <p
-                class="inline-flex items-center gap-2 rounded-full border border-lime-400/25 bg-lime-400/[0.08] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.28em] text-lime-200/95 sm:text-[11px] sm:tracking-[0.3em]"
-              >
+              <p :class="fx.kicker">
                 Earn · 锁仓理财
               </p>
-              <h1
-                class="mt-2 text-3xl font-bold tracking-tight text-white sm:mt-3 sm:text-4xl md:text-5xl lg:text-[3.25rem] lg:leading-tight"
-              >
+              <h1 :class="fx.h1">
                 流动性挖矿
               </h1>
             </div>
-            <div
-              class="inline-flex w-full max-w-full rounded-xl border border-white/[0.07] bg-black/40 p-1 shadow-inner shadow-black/20 sm:w-fit"
-              role="tablist"
-              aria-label="页面主入口"
-            >
+            <div :class="fx.heroSegmentWrap" role="tablist" aria-label="页面主入口">
               <button
                 type="button"
                 role="tab"
                 :aria-selected="heroPanel === 'products'"
-                class="min-h-[2.75rem] min-w-0 flex-1 rounded-lg px-3 py-2.5 text-center text-sm font-semibold tracking-tight transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505] sm:min-h-[3rem] sm:flex-none sm:px-6 sm:py-2.5 sm:text-[15px] md:text-base"
-                :class="
-                  heroPanel === 'products'
-                    ? 'bg-white/[0.1] text-lime-200 shadow-sm'
-                    : 'text-white/45 hover:text-white/75'
-                "
+                :class="[fx.heroTab, heroPanel === 'products' ? fx.heroTabOn : fx.heroTabOff]"
                 @click="heroPanel = 'products'"
               >
                 挖矿产品
@@ -369,12 +349,7 @@ const mineMinVipLabel = computed(() => {
                 type="button"
                 role="tab"
                 :aria-selected="heroPanel === 'orders'"
-                class="min-h-[2.75rem] min-w-0 flex-1 rounded-lg px-3 py-2.5 text-center text-sm font-semibold tracking-tight transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505] sm:min-h-[3rem] sm:flex-none sm:px-6 sm:py-2.5 sm:text-[15px] md:text-base"
-                :class="
-                  heroPanel === 'orders'
-                    ? 'bg-white/[0.1] text-lime-200 shadow-sm'
-                    : 'text-white/45 hover:text-white/75'
-                "
+                :class="[fx.heroTab, heroPanel === 'orders' ? fx.heroTabOn : fx.heroTabOff]"
                 @click="heroPanel = 'orders'"
               >
                 我的订单
@@ -404,25 +379,16 @@ const mineMinVipLabel = computed(() => {
       </div>
     </header>
 
-    <div class="mx-auto max-w-7xl px-4 py-5 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
+    <div :class="fx.mainWrap">
       <template v-if="heroPanel === 'products'">
-        <div class="flex w-full min-w-0 flex-wrap items-center gap-2">
-          <p class="w-full text-[10px] font-semibold uppercase tracking-wider text-white/35 sm:hidden">资产</p>
-          <div
-            class="flex w-full min-w-0 max-w-full flex-nowrap gap-1 overflow-x-auto rounded-xl border border-white/[0.08] bg-black/35 p-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:overflow-x-visible [&::-webkit-scrollbar]:hidden"
-            role="tablist"
-            aria-label="锁仓币种"
-          >
+        <div :class="fx.filterRailWrap">
+          <p :class="fx.filterMobileLabel">资产</p>
+          <div :class="fx.filterChipWrap" role="tablist" aria-label="锁仓币种">
             <button
               type="button"
               role="tab"
               :aria-selected="currencyTab === ''"
-              class="min-h-[2.5rem] shrink-0 touch-manipulation rounded-lg px-3 py-2 text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 sm:min-h-0 sm:px-4 sm:text-sm"
-              :class="
-                currencyTab === ''
-                  ? 'bg-white/[0.12] text-white shadow-sm'
-                  : 'text-white/45 hover:bg-white/[0.05] hover:text-white/75'
-              "
+              :class="[fx.filterChip, currencyTab === '' ? fx.filterChipOn : fx.filterChipOff]"
               @click="currencyTab = ''"
             >
               全部
@@ -433,12 +399,7 @@ const mineMinVipLabel = computed(() => {
               type="button"
               role="tab"
               :aria-selected="currencyTab === c"
-              class="min-h-[2.5rem] shrink-0 touch-manipulation rounded-lg px-3 py-2 text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 sm:min-h-0 sm:px-4 sm:text-sm"
-              :class="
-                currencyTab === c
-                  ? 'bg-white/[0.12] text-white shadow-sm'
-                  : 'text-white/45 hover:bg-white/[0.05] hover:text-white/75'
-              "
+              :class="[fx.filterChip, currencyTab === c ? fx.filterChipOn : fx.filterChipOff]"
               @click="currencyTab = c"
             >
               {{ c }}
@@ -446,15 +407,13 @@ const mineMinVipLabel = computed(() => {
           </div>
         </div>
 
-        <div
-          class="mt-5 overflow-x-auto rounded-xl border border-white/[0.08] bg-white/[0.025] sm:mt-6 sm:rounded-2xl lg:mt-6 max-md:-mx-1 max-md:rounded-lg max-md:border-white/[0.06]"
-        >
+        <div :class="fx.tableWrapMarket">
           <table
             v-if="periodRows.length"
             class="w-full min-w-0 border-collapse text-left text-sm text-white/90 max-md:table-fixed md:min-w-[640px] md:table-auto"
           >
             <thead class="hidden md:table-header-group">
-              <tr class="border-b border-white/[0.08] text-[10px] font-semibold uppercase tracking-wide text-white/40 sm:text-[11px]">
+              <tr :class="fx.tableHeadRow">
                 <th class="px-4 py-2.5 font-semibold md:px-5 md:py-3">产品</th>
                 <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">参考年化</th>
                 <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">期限</th>
@@ -525,7 +484,7 @@ const mineMinVipLabel = computed(() => {
                   <button
                     v-if="r.product.status === PRODUCT_STATUS.ENABLED"
                     type="button"
-                    class="inline-flex w-full min-h-[2.75rem] touch-manipulation items-center justify-center rounded-lg bg-lime-400 px-4 py-2.5 text-sm font-semibold text-black shadow-sm transition hover:bg-lime-300 max-md:w-full md:min-h-0 md:w-auto md:px-4 md:py-2 md:text-xs lg:text-sm"
+                    :class="fx.btnPrimaryBlock"
                     @click="openMineDialog(r.product, r.period)"
                   >
                     立即挖矿
@@ -533,7 +492,7 @@ const mineMinVipLabel = computed(() => {
                   <button
                     v-else
                     type="button"
-                    class="inline-flex w-full min-h-[2.75rem] touch-manipulation items-center justify-center rounded-lg border border-white/20 bg-transparent px-4 py-2.5 text-sm font-semibold text-white/70 transition hover:bg-white/10 hover:text-white/85 max-md:w-full md:min-h-0 md:w-auto md:px-4 md:py-2 md:text-xs lg:text-sm"
+                    :class="fx.btnMutedOutline"
                     @click="openMineDialog(r.product, r.period)"
                   >
                     查看说明
@@ -547,36 +506,21 @@ const mineMinVipLabel = computed(() => {
       </template>
 
       <template v-else>
-        <section
-          id="my-liquidity-orders"
-          class="overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.02] sm:rounded-2xl"
-          aria-label="锁仓订单列表"
-        >
-          <div
-            class="flex flex-col gap-2 border-b border-white/[0.08] bg-black/30 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-4 sm:py-3 md:px-5"
-          >
+        <section id="my-liquidity-orders" :class="fx.panelRecords" aria-label="锁仓订单列表">
+          <div :class="fx.panelRecordsHeader">
             <div class="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
-              <p class="text-[10px] font-semibold uppercase tracking-wide text-white/40 sm:text-[11px]">订单明细</p>
+              <p :class="fx.sectionKicker">订单明细</p>
               <span
                 v-if="ordersForTab.length > 0"
                 class="text-[11px] tabular-nums text-white/40 sm:text-xs"
               >本页共 {{ ordersForTab.length }} 条</span>
             </div>
-            <div
-              class="grid w-full grid-cols-2 gap-0 rounded-lg border border-white/[0.06] bg-black/40 p-0.5 sm:flex sm:w-auto sm:max-w-full sm:shrink-0 sm:overflow-x-auto sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-              role="tablist"
-              aria-label="订单状态"
-            >
+            <div :class="fx.recordTablist2" role="tablist" aria-label="订单状态">
               <button
                 type="button"
                 role="tab"
                 :aria-selected="orderTab === 'active'"
-                class="min-h-[2.5rem] rounded-md border-b-2 border-transparent px-1 py-2 text-center text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 sm:min-h-0 sm:rounded-none sm:border-transparent sm:px-4 sm:pb-2.5 sm:text-left sm:text-sm sm:text-[15px]"
-                :class="
-                  orderTab === 'active'
-                    ? 'border-b-2 border-lime-400 text-white max-sm:border-transparent max-sm:bg-white/[0.12] max-sm:text-lime-200 sm:bg-transparent'
-                    : 'border-b-2 border-transparent text-white/45 hover:text-white/75 sm:text-white/45'
-                "
+                :class="[fx.recordTab, orderTab === 'active' ? fx.recordTabOn : fx.recordTabOff]"
                 @click="orderTab = 'active'"
               >
                 进行中
@@ -585,12 +529,7 @@ const mineMinVipLabel = computed(() => {
                 type="button"
                 role="tab"
                 :aria-selected="orderTab === 'redeemed'"
-                class="min-h-[2.5rem] rounded-md border-b-2 border-transparent px-1 py-2 text-center text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40 sm:min-h-0 sm:rounded-none sm:border-transparent sm:px-4 sm:pb-2.5 sm:text-left sm:text-sm sm:text-[15px]"
-                :class="
-                  orderTab === 'redeemed'
-                    ? 'border-b-2 border-lime-400 text-white max-sm:border-transparent max-sm:bg-white/[0.12] max-sm:text-lime-200 sm:bg-transparent'
-                    : 'border-b-2 border-transparent text-white/45 hover:text-white/75 sm:text-white/45'
-                "
+                :class="[fx.recordTab, orderTab === 'redeemed' ? fx.recordTabOn : fx.recordTabOff]"
                 @click="orderTab = 'redeemed'"
               >
                 已赎回
@@ -600,12 +539,10 @@ const mineMinVipLabel = computed(() => {
           <div class="overflow-x-auto">
             <table
               v-if="ordersForTab.length"
-              class="w-full min-w-0 border-collapse text-left text-xs text-white/85 sm:text-sm max-md:table-fixed md:min-w-[720px] md:table-auto"
+              :class="['w-full min-w-0 border-collapse text-left max-md:table-fixed md:min-w-[720px] md:table-auto', fx.tableBodyText]"
             >
               <thead class="hidden md:table-header-group">
-                <tr
-                  class="border-b border-white/[0.08] text-[10px] font-semibold uppercase tracking-wide text-white/40 sm:text-[11px]"
-                >
+                <tr :class="fx.tableHeadRow">
                   <th class="px-3 py-2.5 font-semibold md:px-5 md:py-3">产品</th>
                   <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">期限</th>
                   <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">下单时间</th>
@@ -645,7 +582,7 @@ const mineMinVipLabel = computed(() => {
                       <button
                         v-if="isOrderMatured(o)"
                         type="button"
-                        class="touch-manipulation rounded-lg bg-lime-400 px-3 py-2 text-xs font-semibold text-black"
+                        :class="fx.btnPrimarySm"
                         @click="openSettleOrder(o)"
                       >
                         领取本息
@@ -654,15 +591,12 @@ const mineMinVipLabel = computed(() => {
                         <button
                           v-if="productForOrder(o)?.earlyRedeemEnabled"
                           type="button"
-                          class="touch-manipulation rounded-lg border border-white/25 px-3 py-2 text-xs font-semibold text-white/85"
+                          :class="fx.btnTableAction"
                           @click="openEarlyRedeem(o)"
                         >
                           提前赎回
                         </button>
-                        <span
-                          v-else
-                          class="inline-flex items-center rounded-lg border border-white/10 px-3 py-2 text-xs text-white/40"
-                        >
+                        <span v-else :class="fx.btnDisabledHint">
                           不可提前赎回
                         </span>
                       </template>
@@ -682,7 +616,7 @@ const mineMinVipLabel = computed(() => {
                       <button
                         v-if="isOrderMatured(o)"
                         type="button"
-                        class="hidden touch-manipulation rounded-lg bg-lime-400 px-3 py-2 text-xs font-semibold text-black md:inline-flex"
+                        :class="['hidden md:inline-flex', fx.btnPrimarySm]"
                         @click="openSettleOrder(o)"
                       >
                         领取本息
@@ -691,7 +625,7 @@ const mineMinVipLabel = computed(() => {
                         <button
                           v-if="productForOrder(o)?.earlyRedeemEnabled"
                           type="button"
-                          class="hidden touch-manipulation rounded-lg border border-white/25 px-3 py-2 text-xs font-semibold text-white/85 md:inline-flex"
+                          :class="['hidden md:inline-flex', fx.btnTableAction]"
                           @click="openEarlyRedeem(o)"
                         >
                           提前赎回
@@ -779,18 +713,10 @@ const mineMinVipLabel = computed(() => {
           </dl>
         </template>
         <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <button
-            type="button"
-            class="rounded-lg border border-white/20 px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/10"
-            @click="closeOrderAction"
-          >
+          <button type="button" :class="fx.btnGhost" @click="closeOrderAction">
             取消
           </button>
-          <button
-            type="button"
-            class="rounded-lg bg-lime-400 px-4 py-2.5 text-sm font-semibold text-black hover:bg-lime-300"
-            @click="confirmOrderAction"
-          >
+          <button type="button" :class="fx.btnPrimary" @click="confirmOrderAction">
             确认{{ orderActionKind === 'settle' ? '领取' : '赎回' }}
           </button>
         </div>
@@ -897,13 +823,9 @@ const mineMinVipLabel = computed(() => {
                   type="text"
                   inputmode="decimal"
                   :placeholder="`最小 ${minePeriod.minAmount}`"
-                  class="min-w-0 flex-1 rounded-lg border border-white/[0.12] bg-black/40 px-3 py-2.5 text-[15px] text-white placeholder:text-white/30 focus:border-lime-400/45 focus:outline-none focus:ring-2 focus:ring-lime-400/25 sm:px-4 sm:py-3"
+                  :class="fx.inputFlex"
                 />
-                <button
-                  type="button"
-                  class="shrink-0 rounded-lg border border-white/20 px-3 py-2.5 text-xs font-medium text-white/85 transition hover:bg-white/10 sm:px-4 sm:text-sm"
-                  @click="fillAllPurchase"
-                >
+                <button type="button" :class="fx.inputSideBtn" @click="fillAllPurchase">
                   全部
                 </button>
               </div>
@@ -917,17 +839,13 @@ const mineMinVipLabel = computed(() => {
           </div>
 
           <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <button
-              type="button"
-              class="rounded-lg border border-white/20 px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/10"
-              @click="closeMineDialog"
-            >
+            <button type="button" :class="fx.btnGhost" @click="closeMineDialog">
               关闭
             </button>
             <RouterLink
               v-if="mineCanSubmit"
               :to="{ path: `${prefix}/login`, query: { redirect: route.path } }"
-              class="inline-flex items-center justify-center rounded-lg bg-lime-400 px-4 py-2.5 text-sm font-semibold text-black hover:bg-lime-300"
+              :class="['inline-flex items-center justify-center', fx.btnPrimary]"
               @click="closeMineDialog"
             >
               立即挖矿
