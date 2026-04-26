@@ -2,7 +2,7 @@
 	<section class="space-y-4">
 		<header>
 			<h1 class="text-3xl font-semibold text-slate-900">订单管理</h1>
-			<p class="mt-1 text-sm text-slate-500">查看用户订单、收益状态及订单详情</p>
+			<p class="mt-1 text-sm text-slate-500">查看用户订单、收益状态及订单详情；收益调整在订单行或详情中发起</p>
 		</header>
 
 		<article class="rounded-xl border border-slate-200 bg-white">
@@ -47,13 +47,17 @@
 							<td class="px-4 py-3 font-medium text-blue-600">{{ fmtCurrency(order.accumulatedYield, order.currency) }}</td>
 							<td class="px-4 py-3"><span class="rounded-md px-2 py-0.5 text-xs font-medium" :class="orderStatusMeta[order.status].class">{{ orderStatusMeta[order.status].label }}</span></td>
 							<td class="px-4 py-3">
-								<button @click="viewOrderDetail(order)" class="text-blue-600 hover:text-blue-800 text-sm font-medium">详情</button>
+								<button type="button" @click="viewOrderDetail(order)" class="text-blue-600 hover:text-blue-800 text-sm font-medium">详情</button>
+								<span class="text-slate-300 mx-1.5">|</span>
+								<button type="button" @click="openYieldAdjustForOrder(order)" class="text-emerald-600 hover:text-emerald-800 text-sm font-medium">收益调整</button>
 							</td>
 						</tr>
 					</tbody>
 				</table>
 			</div>
 		</article>
+
+		<AiQuantYieldAdjustmentModal ref="yieldModalRef" />
 
 		<!-- 订单详情弹窗 -->
 		<div v-if="showDetailModal && selectedOrder" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -331,7 +335,8 @@
 
 				<!-- 底部操作栏 -->
 				<div class="px-6 py-4 border-t border-slate-200 flex justify-end gap-3 flex-shrink-0 bg-slate-50">
-					<button @click="showDetailModal = false" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100">关闭</button>
+					<button type="button" @click="openYieldAdjustForOrder(selectedOrder); showDetailModal = false" class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-800 transition hover:bg-emerald-100">收益调整</button>
+					<button type="button" @click="showDetailModal = false" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100">关闭</button>
 				</div>
 			</div>
 		</div>
@@ -339,7 +344,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import {
 	ORDER_STATUS,
 	orderStatusMeta,
@@ -347,10 +352,12 @@ import {
 	vipLevelMeta
 } from '../../../admin/constants/aiQuant'
 import { createAiQuantOrdersMock } from '../../../admin/mock/aiQuant'
+import AiQuantYieldAdjustmentModal from './AiQuantYieldAdjustmentModal.vue'
 
 const orders = ref(createAiQuantOrdersMock())
 const search = ref('')
 const statusFilter = ref(COMMON_FILTER_ALL)
+const yieldModalRef = ref(null)
 
 const showDetailModal = ref(false)
 const selectedOrder = ref(null)
@@ -358,6 +365,10 @@ const selectedOrder = ref(null)
 const viewOrderDetail = (order) => {
 	selectedOrder.value = order
 	showDetailModal.value = true
+}
+
+const openYieldAdjustForOrder = (order) => {
+	nextTick(() => yieldModalRef.value?.openForOrder(order))
 }
 
 const filteredOrders = computed(() => {

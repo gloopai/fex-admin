@@ -294,9 +294,13 @@ export const consoleRoutes = [
     component: () => import('../../pages/admin/aiQuant/AiQuantOrderPage.vue')
   },
   {
+    path: 'ai-quant/yield-records',
+    name: 'ai-quant-yield-records',
+    component: () => import('../../pages/admin/aiQuant/AiQuantYieldAdjustmentRecordsPage.vue')
+  },
+  {
     path: 'ai-quant/yield-adjustment',
-    name: 'ai-quant-yield-adjustment',
-    component: () => import('../../pages/admin/aiQuant/AiQuantYieldAdjustmentPage.vue')
+    redirect: '/admin/ai-quant/yield-records'
   },
   {
     path: 'ai-quant/control',

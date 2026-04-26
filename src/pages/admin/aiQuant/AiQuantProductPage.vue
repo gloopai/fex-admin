@@ -104,7 +104,6 @@
 							</span>
 						</td>
 						<td class="px-6 py-4 text-right">
-							<button @click="openYieldAdjustment(product)" class="text-sm font-medium text-green-600 hover:text-green-800 transition mr-3">调整收益</button>
 							<button @click="openEditProduct(product)" class="text-sm font-medium text-blue-600 hover:text-blue-800 transition mr-3">编辑</button>
 							<button @click="toggleProductStatus(product)" class="text-sm font-medium text-slate-600 transition hover:text-slate-800">
 								{{ product.status === PRODUCT_STATUS.ENABLED ? '禁用' : '启用' }}
@@ -400,7 +399,6 @@
 
 <script setup>
 import { ref, reactive, computed } from 'vue'
-import { useRouter } from 'vue-router'
 import {
 	PRODUCT_STATUS,
 	productStatusMeta,
@@ -414,8 +412,6 @@ import {
 	VIP_LEVEL
 } from '../../../admin/constants/aiQuant'
 import { aiQuantProductsCatalog } from '../../../admin/state/financeCatalogs'
-
-const router = useRouter()
 
 const products = aiQuantProductsCatalog
 const search = ref('')
@@ -511,17 +507,6 @@ const saveProduct = () => {
 const toggleProductStatus = (product) => {
 	const newStatus = product.status === PRODUCT_STATUS.ENABLED ? PRODUCT_STATUS.DISABLED : PRODUCT_STATUS.ENABLED
 	products.value = products.value.map(p => p.id === product.id ? { ...p, status: newStatus } : p)
-}
-
-const openYieldAdjustment = (product) => {
-	router.push({
-		path: '/ai-quant/yield-adjustment',
-		query: {
-			productId: product.id,
-			productName: product.name,
-			currency: product.currency
-		}
-	})
 }
 
 const copyProductId = async (productId) => {
