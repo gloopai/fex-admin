@@ -1,8 +1,8 @@
-import { ADJUSTMENT_STATUS, ADJUSTMENT_TYPE, ALERT_LEVEL, ORDER_STATUS, PRODUCT_STATUS, PURCHASE_LIMIT_TYPE } from '../constants/liquidityLocked'
+import { ADJUSTMENT_STATUS, ADJUSTMENT_TYPE, ORDER_STATUS, PRODUCT_STATUS, PURCHASE_LIMIT_TYPE } from '../constants/liquidityLocked'
 
 const clone = (v) => JSON.parse(JSON.stringify(v))
 
-/** 时间锚：假定「当前」为 2026-04-10，与到期日 / 剩余天数 / 预警小时数一致 */
+/** 时间锚：假定「当前」为 2026-04-10，与到期日、剩余天数等演示数据一致 */
 
 // 锁仓产品
 const products = [
@@ -290,46 +290,6 @@ const adjustments = [
   }
 ]
 
-// 到期预警
-const alerts = [
-  {
-    id: 'alert-301',
-    orderId: 'ord-1001',
-    userId: 'user-8821',
-    userName: 'alice@example.com',
-    currency: 'USDT',
-    amount: 5000,
-    interest: 244.4,
-    unlockAt: '2026-03-11 14:22:10',
-    hoursRemaining: 0,
-    level: ALERT_LEVEL.INFO
-  },
-  {
-    id: 'alert-302',
-    orderId: 'ord-1006',
-    userId: 'user-4421',
-    userName: 'frank_investor',
-    currency: 'USDT',
-    amount: 8000,
-    interest: 320,
-    unlockAt: '2026-04-13 10:15:30',
-    hoursRemaining: 72,
-    level: ALERT_LEVEL.URGENT
-  },
-  {
-    id: 'alert-303',
-    orderId: 'ord-1002',
-    userId: 'user-6623',
-    userName: 'bob_trader',
-    currency: 'BTC',
-    amount: 0.5,
-    interest: 0.00525,
-    unlockAt: '2026-04-11 09:15:33',
-    hoursRemaining: 24,
-    level: ALERT_LEVEL.INFO
-  }
-]
-
 // 规则配置
 const rules = {
   positioning: {
@@ -374,5 +334,4 @@ const rules = {
 export const createLockedProductsMock = () => clone(products)
 export const createLockedOrdersMock = () => clone(orders)
 export const createLockedAdjustmentsMock = () => clone(adjustments)
-export const createLockedAlertsMock = () => clone(alerts)
 export const createLockedRulesMock = () => clone(rules)

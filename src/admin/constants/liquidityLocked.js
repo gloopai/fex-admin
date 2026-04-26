@@ -3,7 +3,6 @@ export const LOCKED_SECTION = {
   PRODUCTS: 'products',
   ORDERS: 'orders',
   ADJUSTMENTS: 'adjustments',
-  ALERTS: 'alerts',
   RULES: 'rules'
 }
 
@@ -35,13 +34,6 @@ export const ADJUSTMENT_STATUS = {
   APPROVED: 'approved',
   REJECTED: 'rejected',
   EXECUTED: 'executed'
-}
-
-// 预警级别
-export const ALERT_LEVEL = {
-  INFO: 'info',
-  WARNING: 'warning',
-  URGENT: 'urgent'
 }
 
 // 限购类型
@@ -88,12 +80,6 @@ export const adjustmentStatusMeta = {
   [ADJUSTMENT_STATUS.APPROVED]: { label: '已批准', class: 'bg-blue-100 text-blue-700' },
   [ADJUSTMENT_STATUS.REJECTED]: { label: '已拒绝', class: 'bg-slate-200 text-slate-600' },
   [ADJUSTMENT_STATUS.EXECUTED]: { label: '已执行', class: 'bg-emerald-100 text-emerald-700' }
-}
-
-export const alertLevelMeta = {
-  [ALERT_LEVEL.INFO]: { label: '信息', class: 'bg-blue-100 text-blue-700' },
-  [ALERT_LEVEL.WARNING]: { label: '警告', class: 'bg-amber-100 text-amber-700' },
-  [ALERT_LEVEL.URGENT]: { label: '紧急', class: 'bg-rose-100 text-rose-700' }
 }
 
 // 申购门槛：最低 VIP（0 为无要求）

@@ -101,7 +101,6 @@ export const navTree = [
       { title: '流动性挖矿产品', path: '/admin/liquidity/locked/products' },
       { title: '收益倍数调控', path: '/admin/liquidity/locked/yield-control' },
       { title: '订单管理', path: '/admin/liquidity/locked/orders' },
-      { title: '到期预警', path: '/admin/liquidity/locked/expiry-alerts' },
       { title: '规则说明', path: '/admin/liquidity/locked/rules' }
     ]
   },

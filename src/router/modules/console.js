@@ -224,8 +224,7 @@ export const consoleRoutes = [
   },
   {
     path: 'liquidity/locked/expiry-alerts',
-    name: 'liquidity-locked-expiry-alerts',
-    component: () => import('../../pages/admin/liquidity/LiquidityLockedAlertsPage.vue')
+    redirect: '/admin/liquidity/locked/orders'
   },
   {
     path: 'liquidity/locked/rules',

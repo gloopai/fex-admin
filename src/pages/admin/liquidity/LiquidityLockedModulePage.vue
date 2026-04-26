@@ -7,8 +7,6 @@ import {
   ADJUSTMENT_TYPE,
   adjustmentStatusMeta,
   adjustmentTypeMeta,
-  ALERT_LEVEL,
-  alertLevelMeta,
   COMMON_FILTER_ALL,
   LOCKED_SECTION,
   ORDER_STATUS,
@@ -25,7 +23,6 @@ import {
 } from '../../../admin/constants/liquidityLocked'
 import {
   createLockedAdjustmentsMock,
-  createLockedAlertsMock,
   createLockedOrdersMock,
   createLockedRulesMock
 } from '../../../admin/mock/liquidityLocked'
@@ -36,7 +33,6 @@ const route = useRoute()
 const products = lockedProductsCatalog
 const orders = ref(createLockedOrdersMock())
 const adjustments = ref(createLockedAdjustmentsMock())
-const alerts = ref(createLockedAlertsMock())
 const rules = ref(createLockedRulesMock())
 
 const section = computed(() => String(route.meta.section || LOCKED_SECTION.PRODUCTS))
@@ -268,17 +264,6 @@ const filteredAdjustments = computed(() => {
   })
 })
 
-// ========== 到期预警 ==========
-const filteredAlerts = computed(() => {
-  const levelFilter = statusFilter.value
-  const kw = search.value.trim().toLowerCase()
-  return alerts.value.filter(a => {
-    const matchLevel = levelFilter === COMMON_FILTER_ALL || a.level === levelFilter
-    const matchKeyword = !kw || `${a.orderId} ${a.userName} ${a.currency}`.toLowerCase().includes(kw)
-    return matchLevel && matchKeyword
-  })
-})
-
 // ========== 工具函数 ==========
 const fmtNumber = (val, decimals = 2) => Number(val).toFixed(decimals)
 const fmtCurrency = (val, currency, decimals = 2) => {
@@ -461,44 +446,6 @@ const fmtCurrency = (val, currency, decimals = 2) => {
               </div>
               <div v-else-if="adj.status === ADJUSTMENT_STATUS.APPROVED" class="flex gap-2">
                 <button type="button" class="rounded-lg bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700" @click="executeAdjustment(adj.id)">执行</button>
-              </div>
-            </div>
-          </article>
-        </div>
-      </article>
-    </template>
-
-    <!-- 到期预警 -->
-    <template v-else-if="section === LOCKED_SECTION.ALERTS">
-      <header>
-        <h1 class="text-3xl font-semibold text-slate-900">到期预警</h1>
-        <p class="mt-1 text-sm text-slate-500">预警即将到期的锁仓订单与资金回流压力</p>
-      </header>
-
-      <article class="rounded-xl border border-slate-200 bg-white">
-        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4">
-          <div class="inline-flex items-center gap-3 text-sm">
-            <button type="button" class="font-medium" :class="statusFilter === COMMON_FILTER_ALL ? 'text-blue-600' : 'text-slate-500'" @click="statusFilter = COMMON_FILTER_ALL">全部</button>
-            <button type="button" class="font-medium" :class="statusFilter === ALERT_LEVEL.URGENT ? 'text-blue-600' : 'text-slate-500'" @click="statusFilter = ALERT_LEVEL.URGENT">紧急</button>
-            <button type="button" class="font-medium" :class="statusFilter === ALERT_LEVEL.WARNING ? 'text-blue-600' : 'text-slate-500'" @click="statusFilter = ALERT_LEVEL.WARNING">警告</button>
-            <button type="button" class="font-medium" :class="statusFilter === ALERT_LEVEL.INFO ? 'text-blue-600' : 'text-slate-500'" @click="statusFilter = ALERT_LEVEL.INFO">信息</button>
-          </div>
-          <input v-model="search" type="text" placeholder="搜索订单ID、用户名..." class="w-full max-w-sm rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500" />
-        </div>
-
-        <div class="space-y-3 p-4">
-          <article v-for="alert in filteredAlerts" :key="alert.id" class="rounded-xl border p-4" :class="alert.level === ALERT_LEVEL.URGENT ? 'border-rose-200 bg-rose-50' : alert.level === ALERT_LEVEL.WARNING ? 'border-amber-200 bg-amber-50' : 'border-blue-200 bg-blue-50'">
-            <div class="flex flex-wrap items-start justify-between gap-3">
-              <div class="flex-1">
-                <div class="flex items-center gap-2">
-                  <span class="rounded-md px-2 py-0.5 text-xs font-medium" :class="alertLevelMeta[alert.level].class">{{ alertLevelMeta[alert.level].label }}</span>
-                  <span class="text-sm text-slate-600">剩余 {{ alert.hoursRemaining }} 小时</span>
-                </div>
-                <div class="mt-2 text-sm">
-                  <p><span class="font-medium">订单:</span> {{ alert.orderId }} · <span class="font-medium">用户:</span> {{ alert.userName }}</p>
-                  <p class="mt-1"><span class="font-medium">本金:</span> {{ fmtCurrency(alert.amount, alert.currency) }} · <span class="font-medium">利息:</span> {{ fmtCurrency(alert.interest, alert.currency) }}</p>
-                  <p class="mt-1 text-slate-600">到期时间: {{ alert.unlockAt }}</p>
-                </div>
               </div>
             </div>
           </article>
