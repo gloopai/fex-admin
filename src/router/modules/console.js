@@ -223,6 +223,24 @@ export const consoleRoutes = [
     component: () => import('../../pages/admin/liquidity/LiquidityLockedYieldControlPage.vue')
   },
   {
+    path: 'liquidity/locked/yield-adjustment-log',
+    name: 'liquidity-locked-yield-adjustment-log',
+    component: () => import('../../pages/admin/liquidity/LiquidityLockedYieldAdjustmentLogPage.vue'),
+    meta: {
+      title: '流动性挖矿 / 收益调整日志',
+      desc: '锁仓产品收益倍数调整审计记录。'
+    }
+  },
+  {
+    path: 'liquidity/locked/operation-log',
+    name: 'liquidity-locked-operation-log',
+    component: () => import('../../pages/admin/liquidity/LiquidityLockedOperationLogPage.vue'),
+    meta: {
+      title: '流动性挖矿 / 操作日志',
+      desc: '锁仓产品与收益调控等管理操作的审计记录。'
+    }
+  },
+  {
     path: 'liquidity/locked/expiry-alerts',
     redirect: '/admin/liquidity/locked/orders'
   },
@@ -259,6 +277,15 @@ export const consoleRoutes = [
     component: () => import('../../pages/admin/lending/LendingRepaymentPage.vue')
   },
   {
+    path: 'lending/operation-log',
+    name: 'lending-operation-log',
+    component: () => import('../../pages/admin/lending/LendingOperationLogPage.vue'),
+    meta: {
+      title: '信用借贷 / 操作日志',
+      desc: '授信、产品与订单等管理操作的审计记录。'
+    }
+  },
+  {
     path: 'lending/guide',
     name: 'lending-guide',
     component: () => import('../../pages/admin/lending/LendingGuidePage.vue')
@@ -286,6 +313,15 @@ export const consoleRoutes = [
     path: 'ai-quant/yield-records',
     name: 'ai-quant-yield-records',
     component: () => import('../../pages/admin/aiQuant/AiQuantYieldAdjustmentRecordsPage.vue')
+  },
+  {
+    path: 'ai-quant/operation-log',
+    name: 'ai-quant-operation-log',
+    component: () => import('../../pages/admin/aiQuant/AiQuantOperationLogPage.vue'),
+    meta: {
+      title: 'AI量化交易 / 操作日志',
+      desc: '产品与订单收益调整等管理操作的审计记录。'
+    }
   },
   {
     path: 'ai-quant/yield-adjustment',

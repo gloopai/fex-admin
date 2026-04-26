@@ -1,5 +1,14 @@
 <script setup>
 import { ref, computed } from 'vue'
+import {
+	LIQUIDITY_LOCKED_OP_ACTION,
+	LIQUIDITY_LOCKED_OP_MODULE
+} from '../../../admin/constants/liquidityLockedOperationLog'
+import {
+	appendLockedYieldAdjustmentLog,
+	lockedYieldAdjustmentLogs
+} from '../../../admin/state/lockedYieldAdjustmentLogs'
+import { appendLiquidityLockedOperationLog } from '../../../admin/state/liquidityLockedOperationLogs'
 
 /** 锁仓业务不宜用「1 小时」等撮合式粒度，改为自然日 / 日切语义 */
 const DURATION_OPTIONS = [
@@ -96,63 +105,115 @@ const openControl = (productId) => {
   showControlModal.value = true
 }
 
+function formatYieldLogTime() {
+	const d = new Date()
+	const parts = new Intl.DateTimeFormat('zh-CN', {
+		timeZone: 'Asia/Shanghai',
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit',
+		hour: '2-digit',
+		minute: '2-digit',
+		second: '2-digit',
+		hour12: false
+	}).formatToParts(d)
+	const get = (t) => parts.find((x) => x.type === t)?.value ?? ''
+	return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')}:${get('second')}`
+}
+
 const saveControl = () => {
-  products.value = products.value.map((product) => {
-    if (product.id === activeProductId.value) {
-      const newMultiplier = 1 + (controlForm.value.adjustmentRate / 100)
-      return {
-        ...product,
-        adjustmentRate: controlForm.value.adjustmentRate,
-        currentMultiplier: newMultiplier
-      }
-    }
-    return product
-  })
-  showControlModal.value = false
+	const product = products.value.find((p) => p.id === activeProductId.value)
+	if (!product) return
+	const afterRate = controlForm.value.adjustmentRate
+	const afterMultiplier = 1 + afterRate / 100
+	const durationLabel = DURATION_OPTIONS.find((o) => o.value === controlForm.value.duration)?.label ?? '—'
+
+	appendLockedYieldAdjustmentLog({
+		productId: product.id,
+		productName: product.name,
+		currency: product.currency,
+		beforeRate: product.adjustmentRate,
+		afterRate,
+		beforeMultiplier: product.currentMultiplier,
+		afterMultiplier,
+		durationLabel,
+		actionType: 'adjust',
+		operator: 'admin',
+		reason: controlForm.value.reason.trim() || '—',
+		createdAt: formatYieldLogTime()
+	})
+
+	const reasonShort = (controlForm.value.reason.trim() || '—').length > 60
+		? `${(controlForm.value.reason.trim() || '—').slice(0, 60)}…`
+		: controlForm.value.reason.trim() || '—'
+	appendLiquidityLockedOperationLog({
+		module: LIQUIDITY_LOCKED_OP_MODULE.YIELD_CONTROL,
+		action: LIQUIDITY_LOCKED_OP_ACTION.YIELD_ADJUST,
+		refId: product.id,
+		targetLabel: product.name,
+		summary: `调整收益：加成 ${product.adjustmentRate}% → ${afterRate}%；倍数 ${Number(product.currentMultiplier).toFixed(2)} → ${afterMultiplier.toFixed(2)}；${durationLabel}；${reasonShort}`
+	})
+
+	products.value = products.value.map((p) => {
+		if (p.id === activeProductId.value) {
+			return {
+				...p,
+				adjustmentRate: afterRate,
+				currentMultiplier: afterMultiplier
+			}
+		}
+		return p
+	})
+	showControlModal.value = false
 }
 
 const resetControl = (productId) => {
-  products.value = products.value.map((product) => {
-    if (product.id === productId) {
-      return {
-        ...product,
-        adjustmentRate: 0,
-        currentMultiplier: 1.0
-      }
-    }
-    return product
-  })
+	const product = products.value.find((p) => p.id === productId)
+	if (!product || product.adjustmentRate === 0) return
+
+	appendLockedYieldAdjustmentLog({
+		productId: product.id,
+		productName: product.name,
+		currency: product.currency,
+		beforeRate: product.adjustmentRate,
+		afterRate: 0,
+		beforeMultiplier: product.currentMultiplier,
+		afterMultiplier: 1,
+		durationLabel: '—',
+		actionType: 'reset',
+		operator: 'admin',
+		reason: '管理员重置为基准倍数',
+		createdAt: formatYieldLogTime()
+	})
+
+	appendLiquidityLockedOperationLog({
+		module: LIQUIDITY_LOCKED_OP_MODULE.YIELD_CONTROL,
+		action: LIQUIDITY_LOCKED_OP_ACTION.YIELD_RESET,
+		refId: product.id,
+		targetLabel: product.name,
+		summary: `重置为基准：加成 ${product.adjustmentRate}% → 0%；倍数 ${Number(product.currentMultiplier).toFixed(2)} → 1.00`
+	})
+
+	products.value = products.value.map((p) => {
+		if (p.id === productId) {
+			return {
+				...p,
+				adjustmentRate: 0,
+				currentMultiplier: 1.0
+			}
+		}
+		return p
+	})
 }
 
-// 调整历史记录
+// 调整历史记录（与「收益调整日志」菜单共用数据）
 const showHistoryModal = ref(false)
 const historyProductId = ref('')
-const historyRecords = ref([
-  {
-    id: 'log-001',
-    productId: 'prod-002',
-    productName: 'BTC定期宝',
-    beforeRate: 0,
-    afterRate: 20,
-    operator: 'admin',
-    reason: '市场利率上升，调高收益吸引用户',
-    createdAt: '2026-03-07 14:30:25'
-  },
-  {
-    id: 'log-002',
-    productId: 'prod-003',
-    productName: 'ETH增益计划',
-    beforeRate: 0,
-    afterRate: -10,
-    operator: 'admin',
-    reason: '成本控制，降低收益',
-    createdAt: '2026-03-06 10:15:10'
-  }
-])
 
 const filteredHistory = computed(() => {
-  if (!historyProductId.value) return historyRecords.value
-  return historyRecords.value.filter((item) => item.productId === historyProductId.value)
+	const list = lockedYieldAdjustmentLogs.value
+	if (!historyProductId.value) return list
+	return list.filter((item) => item.productId === historyProductId.value)
 })
 
 const openHistory = (productId = '') => {
@@ -282,13 +343,21 @@ const selectedDurationMeta = computed(
 					placeholder="搜索产品名称或币种…"
 					class="h-10 w-full max-w-sm rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none ring-blue-500/20 transition-shadow focus:border-blue-500 focus:ring-2"
 				/>
-				<button
-					type="button"
-					class="h-10 shrink-0 rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50"
-					@click="openHistory('')"
-				>
-					调整历史
-				</button>
+				<div class="flex shrink-0 flex-wrap items-center gap-2">
+					<RouterLink
+						:to="{ name: 'liquidity-locked-yield-adjustment-log' }"
+						class="inline-flex h-10 items-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:border-blue-300 hover:bg-blue-50/80 hover:text-blue-800"
+					>
+						收益调整日志
+					</RouterLink>
+					<button
+						type="button"
+						class="h-10 rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50"
+						@click="openHistory('')"
+					>
+						弹窗历史
+					</button>
+				</div>
 			</div>
 
 			<div class="overflow-x-auto">
@@ -841,6 +910,9 @@ const selectedDurationMeta = computed(
 										}}</span>
 									</div>
 								</div>
+								<p v-if="record.durationLabel && record.durationLabel !== '—'" class="mt-2 text-xs text-slate-500">
+									生效策略：{{ record.durationLabel }}
+								</p>
 								<p class="mt-3 rounded-lg bg-white px-3 py-2 text-sm text-slate-700 ring-1 ring-slate-100">
 									<span class="font-medium text-slate-600">原因</span> {{ record.reason }}
 								</p>

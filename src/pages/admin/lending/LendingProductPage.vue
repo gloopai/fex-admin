@@ -429,7 +429,15 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { lendingProductsCatalog } from '../../../admin/state/financeCatalogs'
-import { PRODUCT_STATUS_LABELS, INTEREST_RATE_TYPE } from '../../../admin/constants/cryptoLending'
+import {
+  PRODUCT_STATUS_LABELS,
+  INTEREST_RATE_TYPE
+} from '../../../admin/constants/cryptoLending'
+import {
+  LENDING_OP_ACTION,
+  LENDING_OP_MODULE
+} from '../../../admin/constants/lendingOperationLog'
+import { appendLendingOperationLog } from '../../../admin/state/lendingOperationLogs'
 
 const products = lendingProductsCatalog
 const showModal = ref(false)
@@ -578,6 +586,13 @@ const saveProduct = () => {
       delete next.ltvRatio
       delete next.liquidationThreshold
       products.value[index] = next
+      appendLendingOperationLog({
+        module: LENDING_OP_MODULE.PRODUCT,
+        action: LENDING_OP_ACTION.PRODUCT_UPDATE,
+        refId: next.productId,
+        targetLabel: next.productName,
+        summary: `编辑产品：${next.productName}（${next.loanCurrency}），年化 ${next.interestRate}%`
+      })
       alert('产品修改成功')
     }
   } else {
@@ -589,6 +604,13 @@ const saveProduct = () => {
       activeOrders: 0
     }
     products.value.unshift(newProduct)
+    appendLendingOperationLog({
+      module: LENDING_OP_MODULE.PRODUCT,
+      action: LENDING_OP_ACTION.PRODUCT_CREATE,
+      refId: newProduct.productId,
+      targetLabel: newProduct.productName,
+      summary: `新建产品：${newProduct.productName}（${newProduct.loanCurrency}）`
+    })
     alert('产品创建成功')
   }
 
@@ -598,8 +620,18 @@ const saveProduct = () => {
 const toggleProductStatus = (product) => {
   const index = products.value.findIndex(p => p.productId === product.productId)
   if (index !== -1) {
-    const newStatus = products.value[index].status === 'active' ? 'suspended' : 'active'
+    const prev = products.value[index].status
+    const newStatus = prev === 'active' ? 'suspended' : 'active'
     products.value[index].status = newStatus
+    const prevLabel = PRODUCT_STATUS_LABELS[prev] || prev
+    const nextLabel = PRODUCT_STATUS_LABELS[newStatus] || newStatus
+    appendLendingOperationLog({
+      module: LENDING_OP_MODULE.PRODUCT,
+      action: LENDING_OP_ACTION.PRODUCT_STATUS,
+      refId: product.productId,
+      targetLabel: product.productName,
+      summary: `产品状态：${prevLabel} → ${nextLabel}`
+    })
   }
 }
 </script>

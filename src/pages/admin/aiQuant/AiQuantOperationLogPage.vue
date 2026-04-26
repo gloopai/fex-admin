@@ -1,0 +1,121 @@
+<template>
+  <section class="space-y-4">
+    <header>
+      <h1 class="text-3xl font-semibold text-slate-900">操作日志</h1>
+      <p class="mt-1 text-sm text-slate-500">
+        记录量化产品与订单收益调整等关键操作，便于审计与追溯（演示数据可随页面操作追加）。
+      </p>
+    </header>
+
+    <article class="rounded-xl border border-slate-200 bg-white">
+      <div class="flex flex-wrap items-center gap-3 border-b border-slate-200 p-4">
+        <select
+          v-model="moduleFilter"
+          class="min-w-[10rem] rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500"
+        >
+          <option value="">全部模块</option>
+          <option v-for="(label, key) in AI_QUANT_OP_MODULE_LABEL" :key="key" :value="key">{{ label }}</option>
+        </select>
+        <input
+          v-model="search"
+          type="search"
+          class="min-w-[12rem] flex-1 max-w-md rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          placeholder="摘要、关联编号、对象、操作人…"
+          autocomplete="off"
+        />
+      </div>
+
+      <div v-if="filteredRows.length" class="overflow-x-auto">
+        <table class="w-full min-w-[52rem] text-sm">
+          <thead class="bg-slate-50 text-slate-500">
+            <tr>
+              <th class="px-4 py-3 text-left font-medium">时间</th>
+              <th class="px-4 py-3 text-left font-medium">模块</th>
+              <th class="px-4 py-3 text-left font-medium">操作</th>
+              <th class="px-4 py-3 text-left font-medium">对象</th>
+              <th class="px-4 py-3 text-left font-medium">关联编号</th>
+              <th class="px-4 py-3 text-left font-medium">摘要</th>
+              <th class="px-4 py-3 text-left font-medium">操作人</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in pagedRows" :key="row.id" class="border-t border-slate-100">
+              <td class="whitespace-nowrap px-4 py-3 text-slate-600">{{ row.createdAt }}</td>
+              <td class="px-4 py-3">
+                <span class="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                  {{ AI_QUANT_OP_MODULE_LABEL[row.module] || row.module }}
+                </span>
+              </td>
+              <td class="px-4 py-3 text-slate-800">{{ AI_QUANT_OP_ACTION_LABEL[row.action] || row.action }}</td>
+              <td class="px-4 py-3 text-slate-700">{{ row.targetLabel }}</td>
+              <td class="px-4 py-3 font-mono text-xs text-slate-600">{{ row.refId || '—' }}</td>
+              <td class="px-4 py-3">
+                <div class="max-w-md text-slate-700" :title="row.summary">{{ row.summary }}</div>
+              </td>
+              <td class="px-4 py-3 text-slate-600">{{ row.operator }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div v-else class="px-4 py-12 text-center text-sm text-slate-500">暂无日志</div>
+
+      <AdminListPaginationBar
+        :current-page="listPage"
+        :total-pages="totalPages"
+        :total-count="filteredRows.length"
+        :page-size="pageSize"
+        @update:current-page="listPage = $event"
+        @update:page-size="onPageSizeChange"
+      />
+    </article>
+  </section>
+</template>
+
+<script setup>
+import { ref, computed, watch } from 'vue'
+import {
+  AI_QUANT_OP_MODULE_LABEL,
+  AI_QUANT_OP_ACTION_LABEL
+} from '../../../admin/constants/aiQuantOperationLog'
+import { aiQuantOperationLogs } from '../../../admin/state/aiQuantOperationLogs'
+import AdminListPaginationBar from '../../../admin/components/AdminListPaginationBar.vue'
+
+const search = ref('')
+const moduleFilter = ref('')
+const listPage = ref(1)
+const pageSize = ref(10)
+
+const filteredRows = computed(() => {
+  const kw = search.value.trim().toLowerCase()
+  return aiQuantOperationLogs.value.filter((row) => {
+    const modOk = !moduleFilter.value || row.module === moduleFilter.value
+    const blob =
+      `${row.summary} ${row.refId ?? ''} ${row.targetLabel} ${row.operator} ${row.action} ${row.id}`.toLowerCase()
+    const kwOk = !kw || blob.includes(kw)
+    return modOk && kwOk
+  })
+})
+
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredRows.value.length / pageSize.value)))
+
+const pagedRows = computed(() => {
+  const list = filteredRows.value
+  const page = Math.min(listPage.value, totalPages.value)
+  const start = (page - 1) * pageSize.value
+  return list.slice(start, start + pageSize.value)
+})
+
+watch([search, moduleFilter], () => {
+  listPage.value = 1
+})
+
+watch([() => filteredRows.value.length, pageSize], () => {
+  const tp = Math.max(1, Math.ceil(filteredRows.value.length / pageSize.value))
+  if (listPage.value > tp) listPage.value = tp
+})
+
+function onPageSizeChange(n) {
+  pageSize.value = n
+  listPage.value = 1
+}
+</script>

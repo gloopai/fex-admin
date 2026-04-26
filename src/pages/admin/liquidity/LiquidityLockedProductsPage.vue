@@ -14,6 +14,11 @@ import {
 	lockYieldAnnualPct,
 	lockedMinKycLabel
 } from '../../../admin/constants/liquidityLocked'
+import {
+	LIQUIDITY_LOCKED_OP_ACTION,
+	LIQUIDITY_LOCKED_OP_MODULE
+} from '../../../admin/constants/liquidityLockedOperationLog'
+import { appendLiquidityLockedOperationLog } from '../../../admin/state/liquidityLockedOperationLogs'
 import { lockedProductsCatalog } from '../../../admin/state/financeCatalogs'
 
 const products = lockedProductsCatalog
@@ -121,8 +126,23 @@ const saveProduct = () => {
 
 	if (editingProductId.value) {
 		products.value = products.value.map(p => p.id === editingProductId.value ? { ...p, ...payload } : p)
+		appendLiquidityLockedOperationLog({
+			module: LIQUIDITY_LOCKED_OP_MODULE.PRODUCT,
+			action: LIQUIDITY_LOCKED_OP_ACTION.PRODUCT_UPDATE,
+			refId: editingProductId.value,
+			targetLabel: payload.name,
+			summary: `编辑产品：${payload.currency} · ${payload.periods.length} 个周期档位`
+		})
 	} else {
-		products.value.unshift({ id: `prod-${Date.now()}`, ...payload, totalLocked: 0, totalOrders: 0, createdAt: new Date().toISOString().split('T')[0] })
+		const newId = `prod-${Date.now()}`
+		products.value.unshift({ id: newId, ...payload, totalLocked: 0, totalOrders: 0, createdAt: new Date().toISOString().split('T')[0] })
+		appendLiquidityLockedOperationLog({
+			module: LIQUIDITY_LOCKED_OP_MODULE.PRODUCT,
+			action: LIQUIDITY_LOCKED_OP_ACTION.PRODUCT_CREATE,
+			refId: newId,
+			targetLabel: payload.name,
+			summary: `新建产品：${payload.currency} · ${payload.periods.length} 个周期档位`
+		})
 	}
 
 	showProductModal.value = false
@@ -139,9 +159,17 @@ const filteredProducts = computed(() => {
 })
 
 const toggleProductStatus = (product) => {
+	const prevStatus = product.status
 	const newStatus =
 		product.status === PRODUCT_STATUS.ENABLED ? PRODUCT_STATUS.DISABLED : PRODUCT_STATUS.ENABLED
 	products.value = products.value.map((p) => (p.id === product.id ? { ...p, status: newStatus } : p))
+	appendLiquidityLockedOperationLog({
+		module: LIQUIDITY_LOCKED_OP_MODULE.PRODUCT,
+		action: LIQUIDITY_LOCKED_OP_ACTION.PRODUCT_STATUS,
+		refId: product.id,
+		targetLabel: product.name,
+		summary: `产品状态：${productStatusMeta[prevStatus].label} → ${productStatusMeta[newStatus].label}`
+	})
 }
 
 const copyProductId = async (productId) => {

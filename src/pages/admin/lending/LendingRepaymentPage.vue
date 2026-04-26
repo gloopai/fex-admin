@@ -429,6 +429,66 @@
         </footer>
       </article>
     </div>
+
+    <!-- 重试还款：确认（单条 / 批量） -->
+    <div
+      v-if="retryConfirmOpen"
+      class="fixed inset-0 z-50 flex min-h-[100dvh] items-center justify-center overflow-y-auto bg-black/50 p-4"
+      @click.self="closeRetryConfirm"
+    >
+      <article class="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-2xl" @click.stop>
+        <h2 class="text-xl font-semibold text-slate-900">
+          {{ retryConfirmScope === 'batch' ? '批量重新发起还款' : '重新发起还款' }}
+        </h2>
+        <p v-if="retryConfirmScope === 'batch'" class="mt-2 text-sm leading-relaxed text-slate-600">
+          确定对
+          <span class="font-semibold tabular-nums text-amber-900">{{ pendingBatchRetryCount }}</span>
+          条<span class="text-rose-700">失败</span>记录重新发起还款？提交后状态将变为「处理中」并清空失败原因（演示环境）。
+        </p>
+        <p v-else class="mt-2 text-sm leading-relaxed text-slate-600">
+          确定重新发起还款单
+          <span class="font-mono text-sm font-semibold text-slate-900">{{ pendingSingleRetryId }}</span>
+          ？提交后状态将变为「处理中」并清空失败原因（演示环境）。
+        </p>
+        <footer class="mt-6 flex justify-end gap-2">
+          <button
+            type="button"
+            class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            @click="closeRetryConfirm"
+          >
+            取消
+          </button>
+          <button
+            type="button"
+            class="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700"
+            @click="confirmRetry"
+          >
+            确定重新发起
+          </button>
+        </footer>
+      </article>
+    </div>
+
+    <!-- 重试：提示 / 成功 -->
+    <div
+      v-if="retryFeedback.open"
+      class="fixed inset-0 z-[60] flex min-h-[100dvh] items-center justify-center overflow-y-auto bg-black/50 p-4"
+      @click.self="closeRetryFeedback"
+    >
+      <article class="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-2xl" @click.stop>
+        <h2 class="text-xl font-semibold text-slate-900">{{ retryFeedback.title }}</h2>
+        <p class="mt-2 text-sm text-slate-600">{{ retryFeedback.message }}</p>
+        <footer class="mt-6 flex justify-end">
+          <button
+            type="button"
+            class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            @click="closeRetryFeedback"
+          >
+            知道了
+          </button>
+        </footer>
+      </article>
+    </div>
   </section>
 </template>
 
@@ -455,6 +515,19 @@ const headerCheckboxRef = ref(null)
 const remindModalOpen = ref(false)
 const remindTargets = ref([])
 const remindChannel = ref(REPAYMENT_REMINDER_CHANNEL.IN_APP)
+
+const retryConfirmOpen = ref(false)
+/** 单条重试 vs 批量重试 */
+const retryConfirmScope = ref('batch')
+const pendingBatchRetryIds = ref([])
+const pendingSingleRetryId = ref('')
+const pendingBatchRetryCount = computed(() => pendingBatchRetryIds.value.length)
+
+const retryFeedback = ref({
+  open: false,
+  title: '',
+  message: ''
+})
 
 const remindChannelOptions = [
   { value: REPAYMENT_REMINDER_CHANNEL.IN_APP, label: REPAYMENT_REMINDER_CHANNEL_LABELS[REPAYMENT_REMINDER_CHANNEL.IN_APP] },
@@ -679,15 +752,9 @@ const closeDetailModal = () => {
 }
 
 const retryRepayment = (repayment) => {
-  if (!confirm(`确定重新发起还款 ${repayment.repaymentId} 吗？`)) return
-  const index = repayments.value.findIndex((r) => r.repaymentId === repayment.repaymentId)
-  if (index === -1) return
-  repayments.value[index] = {
-    ...repayments.value[index],
-    status: REPAYMENT_STATUS.PROCESSING,
-    failureReason: null
-  }
-  alert('已重新发起还款')
+  pendingSingleRetryId.value = repayment.repaymentId
+  retryConfirmScope.value = 'single'
+  retryConfirmOpen.value = true
 }
 
 function applyRetryToRepayments(ids) {
@@ -699,15 +766,51 @@ function applyRetryToRepayments(ids) {
   )
 }
 
+function openRetryFeedback(title, message) {
+  retryFeedback.value = { open: true, title, message }
+}
+
+function closeRetryFeedback() {
+  retryFeedback.value = { open: false, title: '', message: '' }
+}
+
+function closeRetryConfirm() {
+  retryConfirmOpen.value = false
+  pendingBatchRetryIds.value = []
+  pendingSingleRetryId.value = ''
+}
+
 function batchRetrySelected() {
   const rows = selectedFailedRows.value
   if (!rows.length) {
-    alert('所选记录中没有可重试的失败还款')
+    openRetryFeedback('无法重试', '所选记录中没有可重试的失败还款')
     return
   }
-  if (!confirm(`确定对 ${rows.length} 条失败记录重新发起还款吗？`)) return
-  applyRetryToRepayments(rows.map((r) => r.repaymentId))
-  alert(`已重新发起 ${rows.length} 条还款`)
+  retryConfirmScope.value = 'batch'
+  pendingBatchRetryIds.value = rows.map((r) => r.repaymentId)
+  retryConfirmOpen.value = true
+}
+
+function confirmRetry() {
+  if (retryConfirmScope.value === 'batch') {
+    const ids = [...pendingBatchRetryIds.value]
+    closeRetryConfirm()
+    if (!ids.length) return
+    applyRetryToRepayments(ids)
+    openRetryFeedback('操作成功', `已重新发起 ${ids.length} 条还款`)
+    return
+  }
+  const id = pendingSingleRetryId.value
+  closeRetryConfirm()
+  if (!id) return
+  const index = repayments.value.findIndex((r) => r.repaymentId === id)
+  if (index === -1) return
+  repayments.value[index] = {
+    ...repayments.value[index],
+    status: REPAYMENT_STATUS.PROCESSING,
+    failureReason: null
+  }
+  openRetryFeedback('操作成功', `已对还款单 ${id} 重新发起`)
 }
 
 function openRemindModal(rows) {

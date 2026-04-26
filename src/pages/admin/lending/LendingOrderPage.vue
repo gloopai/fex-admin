@@ -137,9 +137,16 @@
       </div>
     </article>
 
-    <!-- 审核/详情模态框 -->
-    <div v-if="showReviewModal" class="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4">
-      <article class="relative flex h-[min(88vh,56rem)] w-full max-w-5xl max-h-[95vh] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl">
+    <!-- 审核/详情模态框：Teleport 到 body，避免落在 main overflow 内导致 fixed 遮罩无法全屏 -->
+    <Teleport to="body">
+      <div
+        v-if="showReviewModal"
+        class="fixed inset-0 z-[100] flex min-h-[100dvh] w-full items-center justify-center overflow-y-auto overscroll-contain bg-black/50 p-4"
+      >
+        <article
+          class="relative flex h-[min(88vh,56rem)] w-full max-w-5xl max-h-[95vh] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl"
+          @click.stop
+        >
         <!-- 头部 - 简洁设计 -->
         <header class="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
           <div class="flex items-center gap-4">
@@ -571,7 +578,8 @@
           </div>
         </footer>
       </article>
-    </div>
+      </div>
+    </Teleport>
 
     <UserDetailDrawer
       :visible="showUserDrawer"
@@ -588,6 +596,11 @@ import { LOAN_ORDER_STATUS_LABELS } from '../../../admin/constants/cryptoLending
 import { usersList } from '../../../admin/mock/user'
 import { USER_STATUS, USER_ROLE, USER_KYC_STATUS } from '../../../admin/constants/user'
 import { lendingCreditPolicy } from '../../../admin/mock/lendingCreditConfig'
+import {
+  LENDING_OP_ACTION,
+  LENDING_OP_MODULE
+} from '../../../admin/constants/lendingOperationLog'
+import { appendLendingOperationLog } from '../../../admin/state/lendingOperationLogs'
 import UserDetailDrawer from '../../../admin/components/user/UserDetailDrawer.vue'
 import AdminListPaginationBar from '../../../admin/components/AdminListPaginationBar.vue'
 
@@ -946,33 +959,54 @@ const closeReviewModal = () => {
 
 const approveOrder = () => {
   if (!currentReviewOrder.value) return
-  
+  const oid = currentReviewOrder.value.orderId
+  const cmt = reviewComment.value.trim()
+
   // 更新订单状态为活跃
-  const order = orders.value.find(o => o.orderId === currentReviewOrder.value.orderId)
+  const order = orders.value.find(o => o.orderId === oid)
   if (order) {
     order.status = 'active'
     order.updateTime = new Date().toISOString().replace('T', ' ').substring(0, 19)
   }
-  
-  alert(`订单 ${currentReviewOrder.value.orderId} 已批准放款\n${reviewComment.value ? '审核意见: ' + reviewComment.value : ''}`)
+
+  appendLendingOperationLog({
+    module: LENDING_OP_MODULE.ORDER,
+    action: LENDING_OP_ACTION.ORDER_APPROVE,
+    refId: oid,
+    targetLabel: '借款单审核',
+    summary: cmt ? `批准放款；审核意见：${cmt}` : '批准放款（无备注）'
+  })
+
+  alert(`订单 ${oid} 已批准放款\n${cmt ? '审核意见: ' + cmt : ''}`)
   closeReviewModal()
 }
 
 const rejectOrder = () => {
   if (!currentReviewOrder.value) return
-  
+
   if (!reviewComment.value.trim()) {
     alert('拒绝申请时必须填写审核意见')
     return
   }
-  
+
+  const oid = currentReviewOrder.value.orderId
+  const reason = reviewComment.value.trim()
+
+  appendLendingOperationLog({
+    module: LENDING_OP_MODULE.ORDER,
+    action: LENDING_OP_ACTION.ORDER_REJECT,
+    refId: oid,
+    targetLabel: '借款单审核',
+    summary: `拒绝申请；原因：${reason}`
+  })
+
   // 从订单列表中移除
-  const index = orders.value.findIndex(o => o.orderId === currentReviewOrder.value.orderId)
+  const index = orders.value.findIndex(o => o.orderId === oid)
   if (index > -1) {
     orders.value.splice(index, 1)
   }
-  
-  alert(`订单 ${currentReviewOrder.value.orderId} 已拒绝\n拒绝理由: ${reviewComment.value}`)
+
+  alert(`订单 ${oid} 已拒绝\n拒绝理由: ${reason}`)
   closeReviewModal()
 }
 

@@ -1,0 +1,27 @@
+/** 流动性挖矿（锁仓）· 管理端操作日志 */
+
+export const LIQUIDITY_LOCKED_OP_MODULE = {
+  PRODUCT: 'product',
+  YIELD_CONTROL: 'yield_control'
+}
+
+export const LIQUIDITY_LOCKED_OP_MODULE_LABEL = {
+  [LIQUIDITY_LOCKED_OP_MODULE.PRODUCT]: '锁仓产品',
+  [LIQUIDITY_LOCKED_OP_MODULE.YIELD_CONTROL]: '收益调控'
+}
+
+export const LIQUIDITY_LOCKED_OP_ACTION = {
+  PRODUCT_CREATE: 'product_create',
+  PRODUCT_UPDATE: 'product_update',
+  PRODUCT_STATUS: 'product_status',
+  YIELD_ADJUST: 'yield_adjust',
+  YIELD_RESET: 'yield_reset'
+}
+
+export const LIQUIDITY_LOCKED_OP_ACTION_LABEL = {
+  [LIQUIDITY_LOCKED_OP_ACTION.PRODUCT_CREATE]: '新建产品',
+  [LIQUIDITY_LOCKED_OP_ACTION.PRODUCT_UPDATE]: '编辑产品',
+  [LIQUIDITY_LOCKED_OP_ACTION.PRODUCT_STATUS]: '变更产品状态',
+  [LIQUIDITY_LOCKED_OP_ACTION.YIELD_ADJUST]: '收益调控 · 调整',
+  [LIQUIDITY_LOCKED_OP_ACTION.YIELD_RESET]: '收益调控 · 重置基准'
+}

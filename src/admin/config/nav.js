@@ -97,9 +97,12 @@ export const navTree = [
   {
     title: '流动性挖矿',
     icon: 'droplet',
+    defaultOpen: true,
     children: [
       { title: '产品管理', path: '/admin/liquidity/locked/products' },
       { title: '收益调控', path: '/admin/liquidity/locked/yield-control' },
+      { title: '收益调整日志', path: '/admin/liquidity/locked/yield-adjustment-log' },
+      { title: '操作日志', path: '/admin/liquidity/locked/operation-log' },
       { title: '订单管理', path: '/admin/liquidity/locked/orders' },
       { title: '规则说明', path: '/admin/liquidity/locked/rules' }
     ]
@@ -111,6 +114,7 @@ export const navTree = [
       { title: '产品管理', path: '/admin/lending/products' },
       { title: '订单管理', path: '/admin/lending/orders' },
       { title: '还款记录', path: '/admin/lending/repayment' },
+      { title: '操作日志', path: '/admin/lending/operation-log' },
       {
         title: '授信中心',
         path: '/admin/lending/credit-policy',
@@ -127,6 +131,7 @@ export const navTree = [
       { title: '产品管理', path: '/admin/ai-quant/products' },
       { title: '订单管理', path: '/admin/ai-quant/orders' },
       { title: '收益调整记录', path: '/admin/ai-quant/yield-records' },
+      { title: '操作日志', path: '/admin/ai-quant/operation-log' },
       { title: '规则说明', path: '/admin/ai-quant/rules' }
     ]
   },

@@ -137,7 +137,12 @@ import {
 	ADJUSTMENT_TYPE,
 	adjustmentTypeMeta
 } from '../../../admin/constants/aiQuant'
+import {
+	AI_QUANT_OP_ACTION,
+	AI_QUANT_OP_MODULE
+} from '../../../admin/constants/aiQuantOperationLog'
 import { aiQuantYieldAdjustments } from '../../../admin/state/aiQuantYieldAdjustments'
+import { appendAiQuantOperationLog } from '../../../admin/state/aiQuantOperationLogs'
 
 const amountPresetsUsdt = [100, 500, 1000, 5000]
 const reasonTemplates = ['活动奖励补发', '系统差错修正', '违规扣减', 'VIP 激励']
@@ -178,12 +183,24 @@ const saveAdjustment = () => {
 		targetName: `订单 ${orderId}`
 	}
 
+	const adjId = `adj-${Date.now()}`
 	aiQuantYieldAdjustments.value.unshift({
-		id: `adj-${Date.now()}`,
+		id: adjId,
 		...payload,
 		operator: 'admin-001',
 		operatorName: 'Current Admin',
 		createdAt: new Date().toISOString().replace('T', ' ').substring(0, 19)
+	})
+
+	const typeLabel = adjustmentTypeMeta[payload.type]?.label ?? payload.type
+	const reasonShort = payload.reason.trim().length > 80 ? `${payload.reason.trim().slice(0, 80)}…` : payload.reason.trim()
+	appendAiQuantOperationLog({
+		module: AI_QUANT_OP_MODULE.YIELD_ADJUSTMENT,
+		action: AI_QUANT_OP_ACTION.YIELD_ADJUSTMENT_SUBMIT,
+		refId: orderId,
+		targetLabel: '订单收益调整',
+		summary: `类型：${typeLabel}；金额 ${payload.amount} ${payload.currency}；原因：${reasonShort}`,
+		operator: 'admin-001'
 	})
 
 	showAdjustmentModal.value = false

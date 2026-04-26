@@ -67,7 +67,7 @@ const toggle = () => {
     <RouterLink
       v-if="item.path && !hasChildren"
       :to="item.path"
-      class="flex items-center gap-2 rounded-md py-2 pr-2 text-sm transition"
+      class="flex min-w-0 w-full items-center gap-2 rounded-md py-2 pr-2 text-sm transition"
       :class="rowClass"
       :style="{ paddingLeft }"
     >

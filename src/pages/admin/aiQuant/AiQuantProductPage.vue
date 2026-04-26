@@ -125,9 +125,16 @@
 			</div>
 		</article>
 
-		<!-- 产品编辑弹窗 -->
-		<div v-if="showProductModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-			<div class="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col">
+		<!-- 产品编辑弹窗：Teleport 到 body，避免落在 main overflow 内导致 fixed 遮罩无法全屏 -->
+		<Teleport to="body">
+			<div
+				v-if="showProductModal"
+				class="fixed inset-0 z-[100] flex min-h-[100dvh] w-full items-center justify-center overflow-y-auto overscroll-contain bg-black/50 p-4"
+			>
+				<div
+					class="my-auto flex min-h-0 w-full max-w-6xl max-h-[90vh] flex-col overflow-hidden rounded-xl bg-white shadow-2xl"
+					@click.stop
+				>
 				<!-- 弹窗头部 -->
 				<div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between flex-shrink-0">
 					<div>
@@ -399,8 +406,9 @@
 					<button @click="showProductModal = false" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100">取消</button>
 					<button @click="saveProduct" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition">保存产品</button>
 				</div>
+				</div>
 			</div>
-		</div>
+		</Teleport>
 	</section>
 </template>
 
@@ -420,6 +428,11 @@ import {
 	OPERATION_MODE,
 	VIP_LEVEL
 } from '../../../admin/constants/aiQuant'
+import {
+	AI_QUANT_OP_ACTION,
+	AI_QUANT_OP_MODULE
+} from '../../../admin/constants/aiQuantOperationLog'
+import { appendAiQuantOperationLog } from '../../../admin/state/aiQuantOperationLogs'
 import { aiQuantProductsCatalog } from '../../../admin/state/financeCatalogs'
 
 const products = aiQuantProductsCatalog
@@ -499,14 +512,29 @@ const saveProduct = () => {
 
 	if (editingProductId.value) {
 		products.value = products.value.map(p => p.id === editingProductId.value ? { ...p, ...payload } : p)
+		appendAiQuantOperationLog({
+			module: AI_QUANT_OP_MODULE.PRODUCT,
+			action: AI_QUANT_OP_ACTION.PRODUCT_UPDATE,
+			refId: editingProductId.value,
+			targetLabel: payload.name,
+			summary: `编辑产品：${payload.currency} · ${operationModeMeta[payload.operationMode].label} · 阶梯 ${payload.tiers.length} 档`
+		})
 	} else {
+		const newId = `aiq-prod-${Date.now()}`
 		products.value.unshift({
-			id: `aiq-prod-${Date.now()}`,
+			id: newId,
 			...payload,
 			totalLocked: 0,
 			totalOrders: 0,
 			totalYield: 0,
 			createdAt: new Date().toISOString().split('T')[0]
+		})
+		appendAiQuantOperationLog({
+			module: AI_QUANT_OP_MODULE.PRODUCT,
+			action: AI_QUANT_OP_ACTION.PRODUCT_CREATE,
+			refId: newId,
+			targetLabel: payload.name,
+			summary: `新建产品：${payload.currency} · ${operationModeMeta[payload.operationMode].label}`
 		})
 	}
 
@@ -514,8 +542,16 @@ const saveProduct = () => {
 }
 
 const toggleProductStatus = (product) => {
+	const prevStatus = product.status
 	const newStatus = product.status === PRODUCT_STATUS.ENABLED ? PRODUCT_STATUS.DISABLED : PRODUCT_STATUS.ENABLED
 	products.value = products.value.map(p => p.id === product.id ? { ...p, status: newStatus } : p)
+	appendAiQuantOperationLog({
+		module: AI_QUANT_OP_MODULE.PRODUCT,
+		action: AI_QUANT_OP_ACTION.PRODUCT_STATUS,
+		refId: product.id,
+		targetLabel: product.name,
+		summary: `产品状态：${productStatusMeta[prevStatus].label} → ${productStatusMeta[newStatus].label}`
+	})
 }
 
 const copyProductId = async (productId) => {

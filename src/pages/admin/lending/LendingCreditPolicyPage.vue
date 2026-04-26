@@ -483,7 +483,12 @@ import {
 } from '../../../admin/mock/lendingCreditConfig'
 import { computeScorecardRatio } from '../../../admin/constants/lendingCredit'
 import { LENDING_CREDIT_PERM } from '../../../admin/constants/lendingCreditPermissions'
+import {
+  LENDING_OP_ACTION,
+  LENDING_OP_MODULE
+} from '../../../admin/constants/lendingOperationLog'
 import { SCORE_RULE_EVALUATOR } from '../../../admin/constants/lendingCreditScoreRule'
+import { appendLendingOperationLog } from '../../../admin/state/lendingOperationLogs'
 import { useAdminPermissionsStore } from '../../../admin/stores/adminPermissions'
 
 const route = useRoute()
@@ -514,6 +519,13 @@ function saveLimitsTemplate() {
   const cap = Number(sc.baseAccountCapMax)
   if (Number.isFinite(cap) && cap >= 0) sc.baseAccountCapMax = Math.round(cap)
   applyScorecardToPolicy()
+  appendLendingOperationLog({
+    module: LENDING_OP_MODULE.CREDIT_LIMITS,
+    action: LENDING_OP_ACTION.SAVE_LIMITS,
+    targetLabel: LIMITS_TAB_LABEL,
+    summary: `保存额度模板：minScale=${sc.minScale}，账户总授信（满分时）=${Number(sc.baseAccountCapMax || 0).toLocaleString('zh-CN')}`,
+    operator: 'admin'
+  })
   limitsSaveHint.value = '已保存'
   if (limitsSaveHintTimer) clearTimeout(limitsSaveHintTimer)
   limitsSaveHintTimer = setTimeout(() => {
@@ -652,6 +664,14 @@ function saveScorecardEdit(dim) {
   delete scorecardEditSnapshotByKey[dim.key]
   delete scorecardEditingByKey[dim.key]
   applyScorecardToPolicy()
+  appendLendingOperationLog({
+    module: LENDING_OP_MODULE.CREDIT_SCORECARD,
+    action: LENDING_OP_ACTION.SAVE_SCORECARD,
+    refId: dim.key,
+    targetLabel: dim.label || dim.key,
+    summary: `保存评分维度「${dim.label || dim.key}」规则与权重（卡内权重 ${Math.max(0, Number(dim.maxPoints) || 0)}）`,
+    operator: 'admin'
+  })
 }
 
 function ruleFieldsLocked(dim) {
