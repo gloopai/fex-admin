@@ -6,14 +6,108 @@
 		</header>
 
 		<article class="rounded-xl border border-slate-200 bg-white">
-			<div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4">
-				<div class="inline-flex items-center gap-3 text-sm">
-					<button type="button" class="font-medium" :class="statusFilter === COMMON_FILTER_ALL ? 'text-blue-600' : 'text-slate-500'" @click="statusFilter = COMMON_FILTER_ALL">全部</button>
-					<button type="button" class="font-medium" :class="statusFilter === ORDER_STATUS.RUNNING ? 'text-blue-600' : 'text-slate-500'" @click="statusFilter = ORDER_STATUS.RUNNING">运行中</button>
-					<button type="button" class="font-medium" :class="statusFilter === ORDER_STATUS.COMPLETED ? 'text-blue-600' : 'text-slate-500'" @click="statusFilter = ORDER_STATUS.COMPLETED">已完成</button>
-					<button type="button" class="font-medium" :class="statusFilter === ORDER_STATUS.SETTLED ? 'text-blue-600' : 'text-slate-500'" @click="statusFilter = ORDER_STATUS.SETTLED">已结算</button>
+			<div class="space-y-4 border-b border-slate-200 p-4">
+				<div class="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
+					<div class="md:col-span-2 xl:col-span-2">
+						<label class="mb-1 block text-[11px] font-medium uppercase tracking-wide text-slate-400">关键词</label>
+						<input
+							v-model="filterDraft.search"
+							type="text"
+							autocomplete="off"
+							placeholder="订单号、用户ID、用户名、邮箱、产品名…"
+							class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15"
+							@keydown.enter.prevent="applySearch"
+						/>
+					</div>
+					<div>
+						<label class="mb-1 block text-[11px] font-medium uppercase tracking-wide text-slate-400">币种</label>
+						<select v-model="filterDraft.currency" class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500">
+							<option value="">全部币种</option>
+							<option v-for="c in uniqueCurrencies" :key="c" :value="c">{{ c }}</option>
+						</select>
+					</div>
+					<div>
+						<label class="mb-1 block text-[11px] font-medium uppercase tracking-wide text-slate-400">VIP</label>
+						<select v-model="filterDraft.vip" class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500">
+							<option value="">全部等级</option>
+							<option v-for="lv in vipSelectLevels" :key="lv" :value="String(lv)">{{ vipLevelMeta[lv].label }}</option>
+						</select>
+					</div>
+					<div>
+						<label class="mb-1 block text-[11px] font-medium uppercase tracking-wide text-slate-400">状态</label>
+						<select v-model="filterDraft.status" class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500">
+							<option value="">全部状态</option>
+							<option v-for="st in orderStatusSelectValues" :key="st" :value="st">{{ orderStatusMeta[st].label }}</option>
+						</select>
+					</div>
+					<div class="md:col-span-2 xl:col-span-2">
+						<label class="mb-1 block text-[11px] font-medium uppercase tracking-wide text-slate-400">产品</label>
+						<select v-model="filterDraft.product" class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500">
+							<option value="">全部产品</option>
+							<option v-for="p in uniqueProducts" :key="p" :value="p">{{ p }}</option>
+						</select>
+					</div>
 				</div>
-				<input v-model="search" type="text" placeholder="搜索订单ID、用户名..." class="w-full max-w-sm rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500" />
+
+				<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
+					<div>
+						<label class="mb-1 block text-[11px] font-medium uppercase tracking-wide text-slate-400">本金 ≥</label>
+						<input
+							v-model="filterDraft.principalMin"
+							type="text"
+							autocomplete="off"
+							inputmode="decimal"
+							placeholder="最小本金"
+							class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
+						/>
+					</div>
+					<div>
+						<label class="mb-1 block text-[11px] font-medium uppercase tracking-wide text-slate-400">本金 ≤</label>
+						<input
+							v-model="filterDraft.principalMax"
+							type="text"
+							autocomplete="off"
+							inputmode="decimal"
+							placeholder="最大本金"
+							class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
+						/>
+					</div>
+					<div>
+						<label class="mb-1 block text-[11px] font-medium uppercase tracking-wide text-slate-400">下单日起</label>
+						<input v-model="filterDraft.startDateFrom" type="date" autocomplete="off" class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500" />
+					</div>
+					<div>
+						<label class="mb-1 block text-[11px] font-medium uppercase tracking-wide text-slate-400">下单日止</label>
+						<input v-model="filterDraft.startDateTo" type="date" autocomplete="off" class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500" />
+					</div>
+					<div class="flex flex-col justify-end gap-2 sm:col-span-2 lg:col-span-2 xl:col-span-2">
+						<div class="flex flex-wrap gap-2">
+							<button
+								type="button"
+								class="min-w-[7rem] flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 sm:flex-none"
+								@click="applySearch"
+							>
+								搜索
+							</button>
+							<button
+								type="button"
+								class="min-w-[7rem] flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 sm:flex-none"
+								@click="resetFilters"
+							>
+								重置条件
+							</button>
+						</div>
+					</div>
+				</div>
+
+				<p class="text-xs text-slate-400">
+					默认条件为「全部」（不限状态/币种/VIP/产品/日期/本金）；修改后请点击「搜索」更新列表，关键词框支持回车。
+				</p>
+
+				<div class="text-xs text-slate-500">
+					命中 <span class="font-semibold text-slate-700">{{ filteredOrders.length }}</span> 条（当前第 {{ listCurrentPage }} 页，每页 {{ listPageSize }} 条）
+					<span v-if="filteredOrders.length !== orders.length" class="text-slate-400">（数据源 {{ orders.length }} 条）</span>
+				</div>
 			</div>
 
 			<div class="overflow-x-auto">
@@ -32,7 +126,13 @@
 						</tr>
 					</thead>
 					<tbody>
-						<tr v-for="order in filteredOrders" :key="order.id" class="border-t border-slate-100">
+						<tr v-if="!filteredOrders.length">
+							<td colspan="9" class="px-4 py-12 text-center text-sm text-slate-500">
+								<template v-if="!orders.length">暂无订单数据源（mock 未加载）。请检查控制台报错。</template>
+								<template v-else>无符合条件的订单。请调整筛选后点击「搜索」，或「重置条件」。</template>
+							</td>
+						</tr>
+						<tr v-for="order in pagedOrders" :key="order.id" class="border-t border-slate-100">
 							<td class="px-4 py-3 font-mono text-xs text-slate-600">{{ order.id }}</td>
 							<td class="px-4 py-3">
 								<div class="text-slate-700">{{ order.userName }}</div>
@@ -48,13 +148,27 @@
 							<td class="px-4 py-3"><span class="rounded-md px-2 py-0.5 text-xs font-medium" :class="orderStatusMeta[order.status].class">{{ orderStatusMeta[order.status].label }}</span></td>
 							<td class="px-4 py-3">
 								<button type="button" @click="viewOrderDetail(order)" class="text-blue-600 hover:text-blue-800 text-sm font-medium">详情</button>
-								<span class="text-slate-300 mx-1.5">|</span>
-								<button type="button" @click="openYieldAdjustForOrder(order)" class="text-emerald-600 hover:text-emerald-800 text-sm font-medium">收益调整</button>
+								<template v-if="canYieldAdjust(order)">
+									<span class="text-slate-300 mx-1.5">|</span>
+									<button
+										type="button"
+										@click="openYieldAdjustForOrder(order)"
+										class="text-emerald-600 hover:text-emerald-800 text-sm font-medium"
+									>
+										收益调整
+									</button>
+								</template>
 							</td>
 						</tr>
 					</tbody>
 				</table>
 			</div>
+			<AdminListPaginationBar
+				v-model:current-page="listCurrentPage"
+				v-model:page-size="listPageSize"
+				:total-pages="listTotalPages"
+				:total-count="listTotalCount"
+			/>
 		</article>
 
 		<AiQuantYieldAdjustmentModal ref="yieldModalRef" />
@@ -335,7 +449,14 @@
 
 				<!-- 底部操作栏 -->
 				<div class="px-6 py-4 border-t border-slate-200 flex justify-end gap-3 flex-shrink-0 bg-slate-50">
-					<button type="button" @click="openYieldAdjustForOrder(selectedOrder); showDetailModal = false" class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-800 transition hover:bg-emerald-100">收益调整</button>
+					<button
+						v-if="selectedOrder && canYieldAdjust(selectedOrder)"
+						type="button"
+						@click="openYieldAdjustForOrder(selectedOrder); showDetailModal = false"
+						class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-800 transition hover:bg-emerald-100"
+					>
+						收益调整
+					</button>
 					<button type="button" @click="showDetailModal = false" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100">关闭</button>
 				</div>
 			</div>
@@ -344,20 +465,80 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue'
-import {
-	ORDER_STATUS,
-	orderStatusMeta,
-	COMMON_FILTER_ALL,
-	vipLevelMeta
-} from '../../../admin/constants/aiQuant'
-import { createAiQuantOrdersMock } from '../../../admin/mock/aiQuant'
+import { ref, shallowRef, reactive, computed, nextTick, onMounted } from 'vue'
+import { ORDER_STATUS, orderStatusMeta, vipLevelMeta, VIP_LEVEL } from '../../../admin/constants/aiQuant'
+import { getAiQuantAdminOrdersSnapshot } from '../../../admin/state/aiQuantOrders'
+import AdminListPaginationBar from '../../../admin/components/AdminListPaginationBar.vue'
+import { useAgentPagedList } from '../../../composables/useAgentListPagination'
 import AiQuantYieldAdjustmentModal from './AiQuantYieldAdjustmentModal.vue'
 
-const orders = ref(createAiQuantOrdersMock())
-const search = ref('')
-const statusFilter = ref(COMMON_FILTER_ALL)
+/** 页面内快照，避免全局 ref 在热更新等场景被清空；演示数据仅本页持有 */
+const orders = shallowRef(getAiQuantAdminOrdersSnapshot())
+
+function emptyFilterFields() {
+	return {
+		search: '',
+		status: '',
+		currency: '',
+		vip: '',
+		product: '',
+		principalMin: '',
+		principalMax: '',
+		startDateFrom: '',
+		startDateTo: ''
+	}
+}
+
+/** 表单草稿；点「搜索」后写入 filterApplied（ref 整对象替换，保证列表计算属性稳定更新） */
+const filterDraft = reactive(emptyFilterFields())
+const filterApplied = ref(emptyFilterFields())
+
 const yieldModalRef = ref(null)
+
+function applySearch() {
+	filterApplied.value = {
+		search: filterDraft.search,
+		status: filterDraft.status,
+		currency: filterDraft.currency,
+		vip: filterDraft.vip,
+		product: filterDraft.product,
+		principalMin: filterDraft.principalMin,
+		principalMax: filterDraft.principalMax,
+		startDateFrom: filterDraft.startDateFrom,
+		startDateTo: filterDraft.startDateTo
+	}
+}
+
+const orderStatusSelectValues = [
+	ORDER_STATUS.RUNNING,
+	ORDER_STATUS.COMPLETED,
+	ORDER_STATUS.SETTLED,
+	ORDER_STATUS.EARLY_REDEEMED,
+	ORDER_STATUS.LOCKED,
+	ORDER_STATUS.CANCELLED
+]
+
+/** 仅运行中可发起收益调整；已完成/已结算/提前赎回等为终态，不可调 */
+const YIELD_ADJUST_ALLOWED_STATUSES = new Set([ORDER_STATUS.RUNNING])
+
+const canYieldAdjust = (order) => Boolean(order?.status && YIELD_ADJUST_ALLOWED_STATUSES.has(order.status))
+
+const vipSelectLevels = [VIP_LEVEL.VIP0, VIP_LEVEL.VIP1, VIP_LEVEL.VIP2, VIP_LEVEL.VIP3, VIP_LEVEL.VIP4, VIP_LEVEL.VIP5]
+
+const uniqueCurrencies = computed(() => [...new Set(orders.value.map((o) => o.currency))].sort())
+const uniqueProducts = computed(() => [...new Set(orders.value.map((o) => o.productName))].sort())
+
+const resetFilters = () => {
+	Object.assign(filterDraft, emptyFilterFields())
+	applySearch()
+}
+
+onMounted(() => {
+	if (!orders.value.length) {
+		orders.value = getAiQuantAdminOrdersSnapshot()
+	}
+	applySearch()
+})
 
 const showDetailModal = ref(false)
 const selectedOrder = ref(null)
@@ -368,17 +549,69 @@ const viewOrderDetail = (order) => {
 }
 
 const openYieldAdjustForOrder = (order) => {
+	if (!canYieldAdjust(order)) return
 	nextTick(() => yieldModalRef.value?.openForOrder(order))
 }
 
+/** 空字符串不得当成 0，否则「本金≤」会变成 principal<=0 滤掉全部订单 */
+const parseNum = (s) => {
+	const t = String(s ?? '')
+		.trim()
+		.replace(/,/g, '')
+	if (t === '') return null
+	const n = Number(t)
+	return Number.isFinite(n) ? n : null
+}
+
+const isYmd = (s) => /^\d{4}-\d{2}-\d{2}$/.test(String(s ?? '').trim())
+
 const filteredOrders = computed(() => {
-	const kw = search.value.trim().toLowerCase()
-	return orders.value.filter(o => {
-		const matchStatus = statusFilter.value === COMMON_FILTER_ALL || o.status === statusFilter.value
-		const matchKeyword = !kw || `${o.id} ${o.userName} ${o.userEmail} ${o.productName}`.toLowerCase().includes(kw)
-		return matchStatus && matchKeyword
+	const list = Array.isArray(orders.value) ? orders.value : []
+	const q = filterApplied.value
+	const kw = String(q.search ?? '').trim().toLowerCase()
+	const st = String(q.status ?? '').trim()
+	const cur = String(q.currency ?? '').trim()
+	const vip = String(q.vip ?? '').trim()
+	const prod = String(q.product ?? '').trim()
+	const dFrom = String(q.startDateFrom ?? '').trim()
+	const dTo = String(q.startDateTo ?? '').trim()
+	const pMin = parseNum(q.principalMin)
+	const pMax = parseNum(q.principalMax)
+	return list.filter((o) => {
+		if (!o || typeof o !== 'object') return false
+		const matchStatus = !st || o.status === st
+		const hay = `${o.id ?? ''} ${o.userId ?? ''} ${o.userName ?? ''} ${o.userEmail ?? ''} ${o.productName ?? ''} ${o.productId ?? ''}`.toLowerCase()
+		const matchKeyword = !kw || hay.includes(kw)
+		const matchCurrency = !cur || o.currency === cur
+		const matchVip = !vip || String(o.vipLevel) === vip
+		const matchProduct = !prod || o.productName === prod
+		const matchPrincipalMin = pMin == null || Number(o.principal) >= pMin
+		const matchPrincipalMax = pMax == null || Number(o.principal) <= pMax
+		const matchDateFrom = !dFrom || !isYmd(dFrom) || String(o.startDate || '') >= dFrom
+		const matchDateTo = !dTo || !isYmd(dTo) || String(o.startDate || '') <= dTo
+		return (
+			matchStatus &&
+			matchKeyword &&
+			matchCurrency &&
+			matchVip &&
+			matchProduct &&
+			matchPrincipalMin &&
+			matchPrincipalMax &&
+			matchDateFrom &&
+			matchDateTo
+		)
 	})
 })
+
+const {
+	pageSize: listPageSize,
+	currentPage: listCurrentPage,
+	totalCount: listTotalCount,
+	totalPages: listTotalPages,
+	pagedList: pagedOrders
+} = useAgentPagedList(filteredOrders, { pageSize: 10 })
+
+applySearch()
 
 const fmtNumber = (val, decimals = 2) => Number(val).toFixed(decimals)
 const fmtCurrency = (val, currency, decimals = 2) => {

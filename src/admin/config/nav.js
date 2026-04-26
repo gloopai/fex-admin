@@ -130,7 +130,6 @@ export const navTree = [
       { title: '产品管理', path: '/admin/ai-quant/products' },
       { title: '订单管理', path: '/admin/ai-quant/orders' },
       { title: '收益调整记录', path: '/admin/ai-quant/yield-records' },
-      { title: '调控管理', path: '/admin/ai-quant/control' },
       { title: '规则说明', path: '/admin/ai-quant/rules' }
     ]
   },

@@ -52,7 +52,7 @@
 					</tr>
 				</thead>
 				<tbody class="divide-y divide-slate-200">
-					<tr v-for="product in filteredProducts" :key="product.id" class="transition hover:bg-slate-50">
+					<tr v-for="product in pagedProducts" :key="product.id" class="transition hover:bg-slate-50">
 						<td class="px-6 py-4">
 							<div>
 								<div class="font-medium text-slate-900">{{ product.name }}</div>
@@ -112,6 +112,13 @@
 					</tr>
 				</tbody>
 			</table>
+
+			<AdminListPaginationBar
+				v-model:current-page="productCurrentPage"
+				v-model:page-size="productPageSize"
+				:total-pages="productTotalPages"
+				:total-count="productTotalCount"
+			/>
 
 			<div v-if="filteredProducts.length === 0" class="text-center py-12 text-slate-500">
 				暂无产品数据
@@ -399,6 +406,8 @@
 
 <script setup>
 import { ref, reactive, computed } from 'vue'
+import AdminListPaginationBar from '../../../admin/components/AdminListPaginationBar.vue'
+import { useAgentPagedList } from '../../../composables/useAgentListPagination'
 import {
 	PRODUCT_STATUS,
 	productStatusMeta,
@@ -542,4 +551,12 @@ const filteredProducts = computed(() => {
 		return matchStatus && matchCurrency && matchMode && matchKeyword
 	})
 })
+
+const {
+	pageSize: productPageSize,
+	currentPage: productCurrentPage,
+	totalCount: productTotalCount,
+	totalPages: productTotalPages,
+	pagedList: pagedProducts
+} = useAgentPagedList(filteredProducts, { pageSize: 8 })
 </script>

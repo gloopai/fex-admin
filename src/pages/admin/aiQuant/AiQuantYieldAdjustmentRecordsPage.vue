@@ -9,7 +9,7 @@
 			<div class="space-y-2 border-b border-slate-200 p-4">
 				<div class="flex flex-wrap items-center justify-between gap-3">
 					<div class="text-sm text-slate-600">
-						共 {{ filteredAdjustments.length }} 条调整记录
+						命中 {{ filteredAdjustments.length }} 条（第 {{ adjCurrentPage }} / {{ adjTotalPages }} 页，每页 {{ adjPageSize }} 条）
 					</div>
 					<input v-model="search" type="text" placeholder="搜索用户、订单或产品..." class="w-full max-w-sm rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500" />
 				</div>
@@ -30,7 +30,7 @@
 						</tr>
 					</thead>
 					<tbody>
-						<tr v-for="adj in filteredAdjustments" :key="adj.id" class="border-t border-slate-100">
+						<tr v-for="adj in pagedAdjustments" :key="adj.id" class="border-t border-slate-100">
 							<td class="px-4 py-3 font-mono text-xs text-slate-600">{{ adj.id }}</td>
 							<td class="px-4 py-3">
 								<div class="flex items-center gap-1.5">
@@ -63,6 +63,12 @@
 					</tbody>
 				</table>
 			</div>
+			<AdminListPaginationBar
+				v-model:current-page="adjCurrentPage"
+				v-model:page-size="adjPageSize"
+				:total-pages="adjTotalPages"
+				:total-count="adjTotalCount"
+			/>
 		</article>
 	</section>
 </template>
@@ -71,6 +77,8 @@
 import { ref, computed, h } from 'vue'
 import { ADJUSTMENT_TYPE, adjustmentTypeMeta } from '../../../admin/constants/aiQuant'
 import { aiQuantYieldAdjustments } from '../../../admin/state/aiQuantYieldAdjustments'
+import AdminListPaginationBar from '../../../admin/components/AdminListPaginationBar.vue'
+import { useAgentPagedList } from '../../../composables/useAgentListPagination'
 
 const search = ref('')
 
@@ -113,6 +121,14 @@ const filteredAdjustments = computed(() => {
 		return !kw || `${adj.targetName} ${adj.productName} ${adj.orderId || ''}`.toLowerCase().includes(kw)
 	})
 })
+
+const {
+	pageSize: adjPageSize,
+	currentPage: adjCurrentPage,
+	totalCount: adjTotalCount,
+	totalPages: adjTotalPages,
+	pagedList: pagedAdjustments
+} = useAgentPagedList(filteredAdjustments, { pageSize: 10 })
 
 const fmtNumber = (val, decimals = 2) => Number(val).toFixed(decimals)
 const fmtCurrency = (val, currency, decimals = 2) => {

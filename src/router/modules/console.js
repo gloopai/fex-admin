@@ -304,8 +304,7 @@ export const consoleRoutes = [
   },
   {
     path: 'ai-quant/control',
-    name: 'ai-quant-control',
-    component: () => import('../../pages/admin/aiQuant/AiQuantControlPage.vue')
+    redirect: '/admin/ai-quant/products'
   },
   {
     path: 'ai-quant/rules',
