@@ -260,16 +260,6 @@ export const consoleRoutes = [
     component: () => import('../../pages/admin/lending/LendingRepaymentPage.vue')
   },
   {
-    path: 'lending/liquidation',
-    name: 'lending-liquidation',
-    component: () => import('../../pages/admin/lending/LendingLiquidationPage.vue')
-  },
-  {
-    path: 'lending/user-monitoring',
-    name: 'lending-user-monitoring',
-    component: () => import('../../pages/admin/lending/LendingUserMonitoringPage.vue')
-  },
-  {
     path: 'lending/guide',
     name: 'lending-guide',
     component: () => import('../../pages/admin/lending/LendingGuidePage.vue')

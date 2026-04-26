@@ -112,8 +112,6 @@ export const navTree = [
       { title: '产品管理', path: '/admin/lending/products' },
       { title: '订单管理', path: '/admin/lending/orders' },
       { title: '还款管理', path: '/admin/lending/repayment' },
-      { title: '清算管理', path: '/admin/lending/liquidation' },
-      { title: '用户监控', path: '/admin/lending/user-monitoring' },
       {
         title: '授信中心',
         path: '/admin/lending/credit-policy',

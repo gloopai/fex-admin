@@ -97,9 +97,7 @@ const headlineRateValue = computed(() => {
               </span>
             </div>
             <p class="mt-3 max-w-2xl text-base leading-relaxed text-white/55 md:text-lg">
-              {{ INTEREST_RATE_TYPE_LABELS[product.interestRateType] }} · 抵押
-              <span class="font-medium text-white/80">{{ product.collateralType }}</span>
-              借出
+              {{ INTEREST_RATE_TYPE_LABELS[product.interestRateType] }} · 借出
               <span class="font-medium text-white/80">{{ product.loanCurrency }}</span>
             </p>
           </div>
@@ -135,16 +133,8 @@ const headlineRateValue = computed(() => {
           <h2 class="text-base font-semibold text-white lg:text-lg">借贷参数</h2>
           <dl class="mt-5 divide-y divide-white/[0.06] text-[15px]">
             <div class="flex items-center justify-between gap-4 py-3 first:pt-0">
-              <dt class="text-white/45">初始 LTV 上限</dt>
-              <dd class="font-medium tabular-nums text-white/85">{{ product.ltvRatio }}%</dd>
-            </div>
-            <div class="flex items-center justify-between gap-4 py-3">
-              <dt class="text-white/45">清算阈值（质押率）</dt>
-              <dd class="font-medium tabular-nums text-white/85">{{ product.liquidationThreshold }}%</dd>
-            </div>
-            <div class="flex items-center justify-between gap-4 py-3">
               <dt class="text-white/45">强平 / 逾期罚金比例</dt>
-              <dd class="font-medium tabular-nums text-white/85">{{ product.liquidationPenalty }}%</dd>
+              <dd class="font-medium tabular-nums text-white/85">{{ product.liquidationPenalty ?? '—' }}%</dd>
             </div>
             <div class="flex items-center justify-between gap-4 py-3">
               <dt class="text-white/45">借款期限</dt>
@@ -195,7 +185,7 @@ const headlineRateValue = computed(() => {
             与同币种锁仓理财上架规模及平台可借贷比例综合测算，具体以页面与风控规则为准。
           </p>
           <p class="mt-5 rounded-lg border border-amber-400/15 bg-amber-400/[0.06] px-3 py-2.5 text-xs leading-relaxed text-amber-100/85">
-            质押率触及清算线时可能触发强平；参与前请充分理解借贷费率、期限与清算机制。
+            参与前请充分理解借贷费率、期限与平台规则；逾期或违约可能产生罚金或限制。
           </p>
         </section>
       </div>

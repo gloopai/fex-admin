@@ -87,46 +87,6 @@ export const REPAYMENT_TYPE_LABELS = {
   [REPAYMENT_TYPE.AUTO]: '自动还款'
 }
 
-// 清算状态
-export const LIQUIDATION_STATUS = {
-  PENDING: 'pending',
-  IN_PROGRESS: 'in_progress',
-  COMPLETED: 'completed',
-  FAILED: 'failed',
-  PARTIAL: 'partial'
-}
-
-export const LIQUIDATION_STATUS_LABELS = {
-  [LIQUIDATION_STATUS.PENDING]: '待清算',
-  [LIQUIDATION_STATUS.IN_PROGRESS]: '清算中',
-  [LIQUIDATION_STATUS.COMPLETED]: '已完成',
-  [LIQUIDATION_STATUS.FAILED]: '失败',
-  [LIQUIDATION_STATUS.PARTIAL]: '部分清算'
-}
-
-export const LIQUIDATION_STATUS_COLORS = {
-  [LIQUIDATION_STATUS.PENDING]: 'orange',
-  [LIQUIDATION_STATUS.IN_PROGRESS]: 'blue',
-  [LIQUIDATION_STATUS.COMPLETED]: 'green',
-  [LIQUIDATION_STATUS.FAILED]: 'red',
-  [LIQUIDATION_STATUS.PARTIAL]: 'yellow'
-}
-
-// 清算触发类型
-export const LIQUIDATION_TRIGGER = {
-  LTV_THRESHOLD: 'ltv_threshold',
-  MANUAL: 'manual',
-  OVERDUE: 'overdue',
-  PRICE_DROP: 'price_drop'
-}
-
-export const LIQUIDATION_TRIGGER_LABELS = {
-  [LIQUIDATION_TRIGGER.LTV_THRESHOLD]: 'LTV阈值触发',
-  [LIQUIDATION_TRIGGER.MANUAL]: '手动清算',
-  [LIQUIDATION_TRIGGER.OVERDUE]: '逾期清算',
-  [LIQUIDATION_TRIGGER.PRICE_DROP]: '价格暴跌'
-}
-
 // 风险等级
 export const RISK_LEVEL = {
   LOW: 'low',
@@ -183,13 +143,10 @@ export const LOAN_CURRENCY = {
 export const PRODUCT_COLUMNS = [
   { key: 'productId', label: '产品ID', sortable: true },
   { key: 'productName', label: '产品名称', sortable: true },
-  { key: 'collateralType', label: '抵押币种', sortable: true },
   { key: 'loanCurrency', label: '借出币种', sortable: true },
   { key: 'minLoanAmount', label: '最小借贷额', sortable: true },
   { key: 'maxLoanAmount', label: '最大借贷额', sortable: true },
   { key: 'interestRate', label: '年化利率', sortable: true },
-  { key: 'ltvRatio', label: 'LTV比率', sortable: true },
-  { key: 'liquidationThreshold', label: '清算阈值', sortable: true },
   { key: 'status', label: '状态', sortable: true },
   { key: 'actions', label: '操作', sortable: false }
 ]
@@ -219,34 +176,5 @@ export const REPAYMENT_COLUMNS = [
   { key: 'principalPaid', label: '本金', sortable: true },
   { key: 'status', label: '状态', sortable: true },
   { key: 'repaymentTime', label: '还款时间', sortable: true },
-  { key: 'actions', label: '操作', sortable: false }
-]
-
-// 清算列配置
-export const LIQUIDATION_COLUMNS = [
-  { key: 'liquidationId', label: '清算ID', sortable: true },
-  { key: 'orderId', label: '订单ID', sortable: true },
-  { key: 'userId', label: '用户ID', sortable: true },
-  { key: 'triggerType', label: '触发类型', sortable: true },
-  { key: 'collateralSold', label: '清算数量', sortable: true },
-  { key: 'liquidationValue', label: '清算价值', sortable: true },
-  { key: 'debtRecovered', label: '收回债务', sortable: true },
-  { key: 'penalty', label: '清算罚金', sortable: true },
-  { key: 'status', label: '状态', sortable: true },
-  { key: 'liquidationTime', label: '清算时间', sortable: true },
-  { key: 'actions', label: '操作', sortable: false }
-]
-
-// 用户监控列配置
-export const USER_MONITORING_COLUMNS = [
-  { key: 'userId', label: '用户ID', sortable: true },
-  { key: 'totalCollateral', label: '总抵押', sortable: true },
-  { key: 'totalDebt', label: '总债务', sortable: true },
-  { key: 'averageLtv', label: '平均LTV', sortable: true },
-  { key: 'riskLevel', label: '风险等级', sortable: true },
-  { key: 'activeOrders', label: '活跃订单', sortable: true },
-  { key: 'overdueAmount', label: '逾期金额', sortable: true },
-  { key: 'creditScore', label: '信用评分', sortable: true },
-  { key: 'lastActivity', label: '最后活动', sortable: true },
   { key: 'actions', label: '操作', sortable: false }
 ]

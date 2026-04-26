@@ -3,7 +3,7 @@
     <header class="flex flex-wrap items-start justify-between gap-4">
       <div>
         <h1 class="text-3xl font-semibold text-slate-900">订单管理</h1>
-        <p class="mt-1 text-sm text-slate-500">监控借贷订单状态、LTV与风险等级</p>
+        <p class="mt-1 text-sm text-slate-500">监控借贷订单状态与授信占用</p>
       </div>
       <button type="button" class="rounded-md border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2" @click="exportOrders">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -23,13 +23,6 @@
           <option value="completed">已完成</option>
           <option value="liquidated">已清算</option>
         </select>
-        <select v-model="filters.collateralType" class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500">
-          <option value="">全部抵押币种</option>
-          <option value="BTC">BTC</option>
-          <option value="ETH">ETH</option>
-          <option value="USDT">USDT</option>
-          <option value="BNB">BNB</option>
-        </select>
         <input v-model="filters.userId" type="text" placeholder="搜索用户ID..." class="w-full max-w-xs rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500" />
         <button type="button" class="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50" @click="resetFilters">重置</button>
       </div>
@@ -41,9 +34,7 @@
               <th class="px-4 py-3 text-left font-medium">订单ID</th>
               <th class="px-4 py-3 text-left font-medium">用户信息</th>
               <th class="px-4 py-3 text-left font-medium">产品名称</th>
-              <th class="px-4 py-3 text-left font-medium">抵押资产</th>
               <th class="px-4 py-3 text-left font-medium">借贷金额</th>
-              <th class="px-4 py-3 text-left font-medium">LTV</th>
               <th class="px-4 py-3 text-left font-medium">利息/总债务</th>
               <th class="px-4 py-3 text-left font-medium">期限</th>
               <th class="px-4 py-3 text-left font-medium">状态</th>
@@ -51,39 +42,45 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="order in filteredOrders" :key="order.orderId" class="border-t border-slate-100" :class="{'bg-rose-50': order.currentLtv > 75}">
+            <tr v-for="order in filteredOrders" :key="order.orderId" class="border-t border-slate-100">
               <td class="px-4 py-3">
                 <div class="font-mono text-xs text-slate-600">{{ order.orderId }}</div>
                 <div class="text-xs text-slate-500">{{ formatDate(order.createTime) }}</div>
               </td>
               <td class="px-4 py-3">
-                <div class="text-slate-700">{{ order.userId }}</div>
-                <div class="text-xs text-slate-500">{{ order.userName }}</div>
+                <button
+                  type="button"
+                  class="group block w-full text-left rounded-lg -mx-1 px-1 py-0.5 hover:bg-slate-100 transition-colors"
+                  @click.stop="openUserDrawerFromOrder(order)"
+                >
+                  <div class="text-slate-900 font-medium group-hover:text-blue-700">{{ order.userName }}</div>
+                  <div class="text-xs text-slate-500 font-mono group-hover:text-blue-600">{{ order.userId }}</div>
+                  <div class="text-[11px] text-blue-600 mt-0.5 opacity-0 group-hover:opacity-100">查看用户档案</div>
+                  <template v-for="p in [resolveLendingUserProfile(order)]" :key="`${order.orderId}-prof`">
+                    <div v-if="p" class="mt-1.5 flex flex-wrap items-center gap-1">
+                      <span
+                        class="inline-flex rounded px-1.5 py-0 text-[10px] font-medium tabular-nums bg-slate-100 text-slate-700"
+                        title="信用分（与用户中心或订单一致）"
+                      >
+                        分 {{ p.creditScore }}
+                      </span>
+                      <span
+                        class="inline-flex rounded px-1.5 py-0 text-[10px] font-medium"
+                        :class="kycChipMeta(p.kycStatus).class"
+                      >
+                        {{ kycChipMeta(p.kycStatus).text }}
+                      </span>
+                      <span class="inline-flex rounded px-1.5 py-0 text-[10px] font-medium bg-violet-50 text-violet-800">
+                        {{ vipChipLabel(p) }}
+                      </span>
+                    </div>
+                  </template>
+                </button>
               </td>
               <td class="px-4 py-3 font-medium text-slate-900">{{ order.productName }}</td>
               <td class="px-4 py-3">
-                <div class="font-medium text-slate-900">{{ order.collateralAmount }} {{ order.collateralType }}</div>
-                <div class="text-xs text-slate-500">≈ {{ formatCurrency(order.collateralValue) }}</div>
-              </td>
-              <td class="px-4 py-3">
                 <div class="font-medium text-slate-900">{{ formatCurrency(order.loanAmount) }}</div>
                 <div class="text-xs text-slate-500">{{ order.loanCurrency }}</div>
-              </td>
-              <td class="px-4 py-3">
-                <div class="mb-1 font-medium" :class="{
-                  'text-emerald-600': order.currentLtv <= 60,
-                  'text-amber-600': order.currentLtv > 60 && order.currentLtv <= 75,
-                  'text-rose-600': order.currentLtv > 75
-                }">
-                  {{ order.currentLtv }}%
-                </div>
-                <div class="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
-                  <div class="h-full transition-all" :class="{
-                    'bg-emerald-500': order.currentLtv <= 60,
-                    'bg-amber-500': order.currentLtv > 60 && order.currentLtv <= 75,
-                    'bg-rose-500': order.currentLtv > 75
-                  }" :style="{width: `${order.currentLtv}%`}"></div>
-                </div>
               </td>
               <td class="px-4 py-3">
                 <div class="text-xs text-slate-600">利息: {{ formatCurrency(order.interestAccrued) }}</div>
@@ -141,10 +138,10 @@
     </article>
 
     <!-- 审核/详情模态框 -->
-    <div v-if="showReviewModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <article class="relative w-full max-w-5xl max-h-[95vh] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl flex flex-col">
+    <div v-if="showReviewModal" class="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4">
+      <article class="relative flex h-[min(88vh,56rem)] w-full max-w-5xl max-h-[95vh] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl">
         <!-- 头部 - 简洁设计 -->
-        <header class="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
+        <header class="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
           <div class="flex items-center gap-4">
             <div class="flex h-12 w-12 items-center justify-center rounded-full" :class="{
               'bg-blue-100': isReviewMode,
@@ -170,7 +167,7 @@
         </header>
 
         <!-- Tab 导航 -->
-        <div class="border-b border-slate-200 bg-slate-50 px-6">
+        <div class="shrink-0 border-b border-slate-200 bg-slate-50 px-6">
           <div class="flex gap-1">
             <button
               type="button"
@@ -200,29 +197,16 @@
             </button>
             <button
               type="button"
-              @click="detailTab = 'risk'"
+              @click="detailTab = 'history'"
               class="px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2"
-              :class="detailTab === 'risk' 
+              :class="detailTab === 'history' 
                 ? 'border-blue-600 text-blue-600 bg-white' 
                 : 'border-transparent text-slate-600 hover:text-slate-900'"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
               </svg>
-              <span>风险分析</span>
-            </button>
-            <button
-              type="button"
-              @click="detailTab = 'notes'"
-              class="px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2"
-              :class="detailTab === 'notes' 
-                ? 'border-blue-600 text-blue-600 bg-white' 
-                : 'border-transparent text-slate-600 hover:text-slate-900'"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-              </svg>
-              <span>申请说明</span>
+              <span>历史借贷</span>
             </button>
             <button
               v-if="isReviewMode"
@@ -241,101 +225,124 @@
           </div>
         </div>
 
-        <!-- 内容区域 - 可滚动 -->
-        <div class="flex-1 overflow-y-auto bg-slate-50">
+        <!-- 内容区域：固定占用剩余高度，避免切换 Tab 时整窗伸缩 -->
+        <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-slate-50">
           <!-- Tab: 概览 -->
           <div v-if="detailTab === 'overview'" class="p-6 space-y-5">
-            <!-- 关键指标卡片 -->
-            <div class="grid gap-4 md:grid-cols-4">
+            <div class="grid gap-4 md:grid-cols-2">
               <div class="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100/50 p-4">
                 <div class="flex items-center gap-2 text-sm text-blue-700">
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                   </svg>
-                  <span>借款金额</span>
+                  <span>本单申请金额</span>
                 </div>
-                <p class="mt-2 text-2xl font-bold text-blue-900">{{ formatCurrency(currentReviewOrder?.requestedAmount) }}</p>
+                <p class="mt-2 text-2xl font-bold text-blue-900">{{ formatCurrency(currentReviewOrder?.requestedAmount ?? currentReviewOrder?.loanAmount) }}</p>
                 <p class="mt-1 text-xs text-blue-600">{{ currentReviewOrder?.loanCurrency }}</p>
               </div>
 
-              <div class="rounded-xl border border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100/50 p-4">
-                <div class="flex items-center gap-2 text-sm text-purple-700">
+              <div class="rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-indigo-100/50 p-4">
+                <div class="flex items-center gap-2 text-sm text-indigo-700">
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
                   </svg>
-                  <span>抵押价值</span>
+                  <span>授信剩余可借（本币种）</span>
                 </div>
-                <p class="mt-2 text-2xl font-bold text-purple-900">{{ formatCurrency(currentReviewOrder?.collateralValue) }}</p>
-                <p class="mt-1 text-xs text-purple-600">{{ currentReviewOrder?.collateralAmount }} {{ currentReviewOrder?.collateralType }}</p>
-              </div>
-
-              <div class="rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-amber-100/50 p-4">
-                <div class="flex items-center gap-2 text-sm text-amber-700">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                  </svg>
-                  <span>LTV 比率</span>
-                </div>
-                <p class="mt-2 text-2xl font-bold" :class="{
-                  'text-emerald-600': currentReviewOrder?.initialLtv <= 60,
-                  'text-amber-600': currentReviewOrder?.initialLtv > 60 && currentReviewOrder?.initialLtv <= 75,
-                  'text-rose-600': currentReviewOrder?.initialLtv > 75
-                }">{{ currentReviewOrder?.initialLtv }}%</p>
-                <div class="mt-2 h-2 w-full overflow-hidden rounded-full bg-white">
-                  <div class="h-full transition-all" :class="{
-                    'bg-emerald-500': currentReviewOrder?.initialLtv <= 60,
-                    'bg-amber-500': currentReviewOrder?.initialLtv > 60 && currentReviewOrder?.initialLtv <= 75,
-                    'bg-rose-500': currentReviewOrder?.initialLtv > 75
-                  }" :style="{width: `${currentReviewOrder?.initialLtv}%`}"></div>
-                </div>
-              </div>
-
-              <div class="rounded-xl border p-4" :class="{
-                'border-emerald-200 bg-gradient-to-br from-emerald-50 to-emerald-100/50': currentReviewOrder?.riskLevel === 'low',
-                'border-amber-200 bg-gradient-to-br from-amber-50 to-amber-100/50': currentReviewOrder?.riskLevel === 'medium',
-                'border-rose-200 bg-gradient-to-br from-rose-50 to-rose-100/50': currentReviewOrder?.riskLevel === 'high'
-              }">
-                <div class="flex items-center gap-2 text-sm" :class="{
-                  'text-emerald-700': currentReviewOrder?.riskLevel === 'low',
-                  'text-amber-700': currentReviewOrder?.riskLevel === 'medium',
-                  'text-rose-700': currentReviewOrder?.riskLevel === 'high'
-                }">
-                  <svg v-if="currentReviewOrder?.riskLevel === 'low'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                  </svg>
-                  <svg v-else-if="currentReviewOrder?.riskLevel === 'medium'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                  </svg>
-                  <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                  </svg>
-                  <span>风险评级</span>
-                </div>
-                <p class="mt-2 text-2xl font-bold" :class="{
-                  'text-emerald-900': currentReviewOrder?.riskLevel === 'low',
-                  'text-amber-900': currentReviewOrder?.riskLevel === 'medium',
-                  'text-rose-900': currentReviewOrder?.riskLevel === 'high'
-                }">
-                  {{ currentReviewOrder?.riskLevel === 'low' ? '低风险' : currentReviewOrder?.riskLevel === 'medium' ? '中风险' : '高风险' }}
-                </p>
-                <p class="mt-1 text-xs" :class="{
-                  'text-emerald-600': currentReviewOrder?.riskLevel === 'low',
-                  'text-amber-600': currentReviewOrder?.riskLevel === 'medium',
-                  'text-rose-600': currentReviewOrder?.riskLevel === 'high'
-                }">信用评分: {{ currentReviewOrder?.creditScore || '-' }}</p>
+                <p class="mt-2 text-2xl font-bold text-indigo-900">{{ formatCurrency(creditSummary.available) }}</p>
+                <p class="mt-1 text-xs text-indigo-600">已占用 {{ formatCurrency(creditSummary.used) }} / 上限 {{ formatCurrency(creditSummary.currencyCap) }}</p>
               </div>
             </div>
 
-            <!-- 用户信息 -->
             <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
               <h3 class="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
-                <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100">
-                  <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100">
+                  <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
                   </svg>
                 </span>
-                <span>用户信息</span>
+                <span>授信信息</span>
               </h3>
+              <p class="mb-4 text-xs text-slate-500">与运营端「授信中心」策略一致：单币种上限 + 账户总限额；以下为该用户在当前借出币种下的占用与剩余。信用分、VIP、认证与用户管理对齐。</p>
+              <div
+                v-if="creditSummary.profile"
+                class="mb-4 rounded-lg border px-3 py-2.5 text-sm"
+                :class="{
+                  'border-emerald-200 bg-emerald-50/80 text-emerald-900': creditSummary.eligibilityLevel === 'ok',
+                  'border-amber-200 bg-amber-50/80 text-amber-900': creditSummary.eligibilityLevel === 'warn',
+                  'border-rose-200 bg-rose-50/80 text-rose-900': creditSummary.eligibilityLevel === 'risk'
+                }"
+              >
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="font-semibold">准入参考</span>
+                  <span
+                    class="inline-flex rounded px-2 py-0.5 text-[11px] font-medium"
+                    :class="kycChipMeta(creditSummary.profile.kycStatus).class"
+                  >{{ kycChipMeta(creditSummary.profile.kycStatus).text }}</span>
+                  <span class="inline-flex rounded px-2 py-0.5 text-[11px] font-medium bg-violet-100 text-violet-800">{{ vipChipLabel(creditSummary.profile) }}</span>
+                  <span class="inline-flex rounded px-2 py-0.5 text-[11px] font-medium tabular-nums bg-white/70 text-slate-800 ring-1 ring-slate-200/80">
+                    信用分 {{ creditSummary.profile.creditScore }} / 800 · {{ creditSummary.scoreTier }}
+                  </span>
+                </div>
+                <p class="mt-1.5 text-xs leading-relaxed opacity-90">{{ creditSummary.eligibilityDetail }}</p>
+              </div>
+              <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div class="rounded-lg border border-slate-100 bg-slate-50 p-3">
+                  <p class="text-xs font-medium text-slate-500">内部信用分</p>
+                  <p class="mt-1 text-lg font-semibold tabular-nums text-slate-900">
+                    {{ creditSummary.profile?.creditScore ?? '—' }}
+                    <span class="text-sm font-normal text-slate-500">/ 800</span>
+                  </p>
+                  <p class="mt-0.5 text-xs" :class="creditSummary.profile?.scoreTierClass || 'text-slate-500'">{{ creditSummary.scoreTier }}</p>
+                </div>
+                <div class="rounded-lg border border-slate-100 bg-slate-50 p-3">
+                  <p class="text-xs font-medium text-slate-500">借出币种授信上限</p>
+                  <p class="mt-1 text-lg font-semibold text-slate-900">{{ formatCurrency(creditSummary.currencyCap) }}</p>
+                  <p class="mt-0.5 text-xs text-slate-500">{{ currentReviewOrder?.loanCurrency }}</p>
+                </div>
+                <div class="rounded-lg border border-slate-100 bg-slate-50 p-3">
+                  <p class="text-xs font-medium text-slate-500">账户级授信总上限（参考）</p>
+                  <p class="mt-1 text-lg font-semibold text-slate-900">{{ formatCurrency(creditSummary.accountCap) }}</p>
+                  <p class="mt-0.5 text-xs text-slate-500">多产品共用额度池</p>
+                </div>
+                <div class="rounded-lg border border-slate-100 bg-slate-50 p-3">
+                  <p class="text-xs font-medium text-slate-500">该用户本币种已占用</p>
+                  <p class="mt-1 text-lg font-semibold text-slate-900">{{ formatCurrency(creditSummary.used) }}</p>
+                  <p class="mt-0.5 text-xs text-slate-500">含在途审核单</p>
+                </div>
+                <div class="rounded-lg border border-slate-100 bg-slate-50 p-3">
+                  <p class="text-xs font-medium text-slate-500">本单通过后预计占用</p>
+                  <p class="mt-1 text-lg font-semibold text-slate-900">{{ formatCurrency(creditSummary.thisOrderExposure) }}</p>
+                  <p class="mt-0.5 text-xs text-slate-500">待放款按申请额计</p>
+                </div>
+                <div class="rounded-lg border border-slate-100 bg-slate-50 p-3">
+                  <p class="text-xs font-medium text-slate-500">授信状态</p>
+                  <p class="mt-1">
+                    <span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium" :class="creditSummary.available >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'">
+                      {{ creditSummary.available >= 0 ? '额度充足' : '超出币种上限' }}
+                    </span>
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <h3 class="flex items-center gap-2 text-lg font-semibold text-slate-900">
+                  <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100">
+                    <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                    </svg>
+                  </span>
+                  <span>用户信息</span>
+                </h3>
+                <button
+                  type="button"
+                  class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-100"
+                  @click.stop="openUserDrawerForCurrentModalOrder"
+                >
+                  用户档案（与用户管理一致）
+                </button>
+              </div>
               <div class="grid gap-4 md:grid-cols-3">
                 <div class="space-y-1">
                   <label class="text-xs font-medium text-slate-500">用户ID</label>
@@ -346,33 +353,27 @@
                   <p class="text-sm font-medium text-slate-900">{{ currentReviewOrder?.userName }}</p>
                 </div>
                 <div class="space-y-1">
-                  <label class="text-xs font-medium text-slate-500">信用评分</label>
-                  <div class="flex items-center gap-2">
-                    <p class="text-sm font-bold" :class="{
-                      'text-emerald-600': (currentReviewOrder?.creditScore || 0) >= 750,
-                      'text-amber-600': (currentReviewOrder?.creditScore || 0) >= 650 && (currentReviewOrder?.creditScore || 0) < 750,
-                      'text-rose-600': (currentReviewOrder?.creditScore || 0) < 650
-                    }">{{ currentReviewOrder?.creditScore || '-' }}</p>
-                    <span class="rounded-full px-2 py-0.5 text-xs font-medium" :class="{
-                      'bg-emerald-100 text-emerald-700': (currentReviewOrder?.creditScore || 0) >= 750,
-                      'bg-amber-100 text-amber-700': (currentReviewOrder?.creditScore || 0) >= 650 && (currentReviewOrder?.creditScore || 0) < 750,
-                      'bg-rose-100 text-rose-700': (currentReviewOrder?.creditScore || 0) < 650
-                    }">
-                      {{ (currentReviewOrder?.creditScore || 0) >= 750 ? '优秀' : (currentReviewOrder?.creditScore || 0) >= 650 ? '良好' : '一般' }}
-                    </span>
-                  </div>
+                  <label class="text-xs font-medium text-slate-500">申请时间</label>
+                  <p class="text-sm text-slate-700">{{ currentReviewOrder?.createTime }}</p>
                 </div>
                 <div class="space-y-1">
-                  <label class="text-xs font-medium text-slate-500">邮箱地址</label>
-                  <p class="text-sm text-slate-700">{{ currentReviewOrder?.email || '-' }}</p>
+                  <label class="text-xs font-medium text-slate-500">邮箱</label>
+                  <p class="text-sm text-slate-700">{{ currentReviewOrder?.email || '—' }}</p>
                 </div>
                 <div class="space-y-1">
                   <label class="text-xs font-medium text-slate-500">联系电话</label>
-                  <p class="text-sm text-slate-700">{{ currentReviewOrder?.phone || '-' }}</p>
+                  <p class="text-sm text-slate-700">{{ currentReviewOrder?.phone || '—' }}</p>
                 </div>
-                <div class="space-y-1">
-                  <label class="text-xs font-medium text-slate-500">申请时间</label>
-                  <p class="text-sm text-slate-700">{{ currentReviewOrder?.createTime }}</p>
+                <div v-if="creditSummary.profile" class="space-y-1 md:col-span-3">
+                  <label class="text-xs font-medium text-slate-500">实名认证 · VIP（用户中心）</label>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span
+                      class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium"
+                      :class="kycChipMeta(creditSummary.profile.kycStatus).class"
+                    >{{ kycChipMeta(creditSummary.profile.kycStatus).text }}</span>
+                    <span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium bg-violet-50 text-violet-800 ring-1 ring-violet-100">{{ vipChipLabel(creditSummary.profile) }}</span>
+                    <span class="text-xs text-slate-500">信用分 {{ creditSummary.profile.creditScore }} / 800</span>
+                  </div>
                 </div>
               </div>
             </section>
@@ -441,144 +442,65 @@
                 </div>
               </div>
             </section>
-
-            <!-- 抵押物详情 -->
-            <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h3 class="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
-                <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100">
-                  <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                  </svg>
-                </span>
-                <span>抵押资产</span>
-              </h3>
-              <div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                <div class="grid gap-4 md:grid-cols-4">
-                  <div>
-                    <p class="text-xs text-slate-500">币种</p>
-                    <p class="mt-1 text-xl font-bold text-slate-900">{{ currentReviewOrder?.collateralType }}</p>
-                  </div>
-                  <div>
-                    <p class="text-xs text-slate-500">数量</p>
-                    <p class="mt-1 text-xl font-bold text-slate-900">{{ currentReviewOrder?.collateralAmount }}</p>
-                  </div>
-                  <div>
-                    <p class="text-xs text-slate-500">当前单价</p>
-                    <p class="mt-1 text-sm font-bold text-slate-900">{{ formatCurrency(currentReviewOrder?.currentPrice) }}</p>
-                  </div>
-                  <div>
-                    <p class="text-xs text-slate-500">总价值</p>
-                    <p class="mt-1 text-sm font-bold text-emerald-600">{{ formatCurrency(currentReviewOrder?.collateralValue) }}</p>
-                  </div>
-                </div>
-              </div>
-            </section>
           </div>
 
-          <!-- Tab: 风险分析 -->
-          <div v-if="detailTab === 'risk'" class="p-6 space-y-5">
-            <!-- 风险分析面板 -->
+          <!-- Tab: 历史借贷 -->
+          <div v-if="detailTab === 'history'" class="p-6 space-y-5">
             <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h3 class="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
-                <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-100">
-                  <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+              <h3 class="mb-2 flex items-center gap-2 text-lg font-semibold text-slate-900">
+                <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100">
+                  <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                   </svg>
                 </span>
-                <span>风险指标</span>
+                <span>该用户历史借贷记录</span>
               </h3>
-              <div class="grid gap-4 md:grid-cols-3">
-                <div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                  <p class="text-sm font-medium text-slate-700">安全边际</p>
-                  <p class="mt-2 text-2xl font-bold" :class="{
-                    'text-emerald-600': safetyMargin >= 15,
-                    'text-amber-600': safetyMargin >= 5 && safetyMargin < 15,
-                    'text-rose-600': safetyMargin < 5
-                  }">{{ safetyMargin }}%</p>
-                  <p class="mt-1 text-xs text-slate-500">清算阈值 - 当前LTV</p>
-                </div>
-                <div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                  <p class="text-sm font-medium text-slate-700">清算价格</p>
-                  <p class="mt-2 text-2xl font-bold text-slate-900">{{ formatCurrency(currentReviewOrder?.liquidationPrice) }}</p>
-                  <p class="mt-1 text-xs text-slate-500">跌幅: {{ priceDropToLiquidation }}%</p>
-                </div>
-                <div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                  <p class="text-sm font-medium text-slate-700">清算阈值</p>
-                  <p class="mt-2 text-2xl font-bold text-slate-900">{{ currentReviewOrder?.liquidationThreshold }}%</p>
-                  <p class="mt-1 text-xs text-slate-500">触发清算的LTV值</p>
-                </div>
+              <p class="mb-4 text-xs text-slate-500">同一用户 ID 下的全部订单（含本单），按创建时间倒序。</p>
+              <div class="overflow-x-auto rounded-lg border border-slate-100">
+                <table class="w-full min-w-[640px] text-sm">
+                  <thead class="bg-slate-50 text-slate-500">
+                    <tr>
+                      <th class="px-3 py-2 text-left font-medium">订单号</th>
+                      <th class="px-3 py-2 text-left font-medium">产品</th>
+                      <th class="px-3 py-2 text-right font-medium">金额</th>
+                      <th class="px-3 py-2 text-left font-medium">状态</th>
+                      <th class="px-3 py-2 text-left font-medium">创建时间</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="row in userLendingHistoryPaged" :key="row.orderId" class="border-t border-slate-100" :class="{ 'bg-blue-50/60': row.orderId === currentReviewOrder?.orderId }">
+                      <td class="px-3 py-2 font-mono text-xs text-slate-700">{{ row.orderId }}</td>
+                      <td class="px-3 py-2 text-slate-800">{{ row.productName }}</td>
+                      <td class="px-3 py-2 text-right font-medium text-slate-900">
+                        {{ formatCurrency(row.requestedAmount ?? row.loanAmount) }}
+                        <span class="text-xs font-normal text-slate-500">{{ row.loanCurrency }}</span>
+                      </td>
+                      <td class="px-3 py-2">
+                        <span class="rounded-md px-2 py-0.5 text-xs font-medium" :class="{
+                          'bg-blue-50 text-blue-700': row.status === 'pending',
+                          'bg-emerald-50 text-emerald-700': row.status === 'active',
+                          'bg-cyan-50 text-cyan-700': row.status === 'repaying',
+                          'bg-slate-100 text-slate-600': row.status === 'completed',
+                          'bg-rose-50 text-rose-700': row.status === 'liquidated',
+                          'bg-slate-100 text-slate-500': row.status === 'cancelled'
+                        }">{{ statusLabel(row.status) }}</span>
+                      </td>
+                      <td class="px-3 py-2 text-xs text-slate-600">{{ row.createTime }}</td>
+                    </tr>
+                    <tr v-if="!userLendingHistory.length">
+                      <td colspan="5" class="px-3 py-8 text-center text-slate-500">暂无记录</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
-            </section>
-
-            <!-- LTV 可视化 -->
-            <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h3 class="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
-                <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100">
-                  <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
-                  </svg>
-                </span>
-                <span>LTV 可视化</span>
-              </h3>
-              <div class="space-y-4">
-                <div>
-                  <div class="flex items-center justify-between mb-2">
-                    <span class="text-sm text-slate-600">当前 LTV</span>
-                    <span class="text-lg font-bold" :class="{
-                      'text-emerald-600': currentReviewOrder?.initialLtv <= 60,
-                      'text-amber-600': currentReviewOrder?.initialLtv > 60 && currentReviewOrder?.initialLtv <= 75,
-                      'text-rose-600': currentReviewOrder?.initialLtv > 75
-                    }">{{ currentReviewOrder?.initialLtv }}%</span>
-                  </div>
-                  <div class="relative h-8 w-full overflow-hidden rounded-full bg-slate-200">
-                    <div class="h-full transition-all" :class="{
-                      'bg-emerald-500': currentReviewOrder?.initialLtv <= 60,
-                      'bg-amber-500': currentReviewOrder?.initialLtv > 60 && currentReviewOrder?.initialLtv <= 75,
-                      'bg-rose-500': currentReviewOrder?.initialLtv > 75
-                    }" :style="{width: `${currentReviewOrder?.initialLtv}%`}"></div>
-                    <div class="absolute left-0 top-0 h-full w-px bg-rose-600" :style="{left: `${currentReviewOrder?.liquidationThreshold}%`}">
-                      <div class="absolute -top-6 -left-8 text-xs text-rose-600 font-medium whitespace-nowrap">
-                        清算线 {{ currentReviewOrder?.liquidationThreshold }}%
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div class="grid gap-3 md:grid-cols-2">
-                  <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
-                    <p class="text-xs text-emerald-700">安全区间</p>
-                    <p class="mt-1 text-sm font-medium text-emerald-900">0% - 60%</p>
-                  </div>
-                  <div class="rounded-lg border border-amber-200 bg-amber-50 p-3">
-                    <p class="text-xs text-amber-700">警告区间</p>
-                    <p class="mt-1 text-sm font-medium text-amber-900">60% - {{ currentReviewOrder?.liquidationThreshold }}%</p>
-                  </div>
-                </div>
-              </div>
-            </section>
-          </div>
-
-          <!-- Tab: 申请说明 -->
-          <div v-if="detailTab === 'notes'" class="p-6 space-y-5">
-            <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h3 class="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
-                <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-100">
-                  <svg class="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                  </svg>
-                </span>
-                <span>申请说明</span>
-              </h3>
-              <div class="space-y-4">
-                <div>
-                  <label class="text-sm font-semibold text-slate-700">借款用途</label>
-                  <p class="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-relaxed text-slate-900">{{ currentReviewOrder?.purpose || '未填写' }}</p>
-                </div>
-                <div>
-                  <label class="text-sm font-semibold text-slate-700">风控备注</label>
-                  <p class="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-relaxed text-slate-600">{{ currentReviewOrder?.remarks || '无备注' }}</p>
-                </div>
-              </div>
+              <AdminListPaginationBar
+                :current-page="historyPage"
+                :total-pages="historyTotalPages"
+                :total-count="userLendingHistory.length"
+                :page-size="historyPageSize"
+                @update:current-page="historyPage = $event"
+                @update:page-size="onHistoryPageSizeChange"
+              />
             </section>
           </div>
 
@@ -610,7 +532,7 @@
         </div>
 
         <!-- 操作按钮 -->
-        <footer class="border-t border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4">
+        <footer class="shrink-0 border-t border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4">
           <div class="flex items-center justify-between">
             <div class="text-sm text-slate-500">
               {{ isReviewMode ? '请仔细审核后做出决策' : '如需操作请联系管理员' }}
@@ -650,13 +572,24 @@
         </footer>
       </article>
     </div>
+
+    <UserDetailDrawer
+      :visible="showUserDrawer"
+      :user="drawerUser"
+      @close="closeUserDrawer"
+    />
   </section>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { mockOrders } from '../../../admin/mock/cryptoLending'
 import { LOAN_ORDER_STATUS_LABELS } from '../../../admin/constants/cryptoLending'
+import { usersList } from '../../../admin/mock/user'
+import { USER_STATUS, USER_ROLE, USER_KYC_STATUS } from '../../../admin/constants/user'
+import { lendingCreditPolicy } from '../../../admin/mock/lendingCreditConfig'
+import UserDetailDrawer from '../../../admin/components/user/UserDetailDrawer.vue'
+import AdminListPaginationBar from '../../../admin/components/AdminListPaginationBar.vue'
 
 const orders = ref([])
 const currentPage = ref(1)
@@ -664,29 +597,11 @@ const pageSize = ref(10)
 
 const filters = ref({
   status: '',
-  collateralType: '',
   userId: ''
 })
 
 onMounted(() => {
   orders.value = mockOrders
-})
-
-// 计算属性：安全边际
-const safetyMargin = computed(() => {
-  if (!currentReviewOrder.value) return 0
-  const threshold = currentReviewOrder.value.liquidationThreshold || 0
-  const ltv = currentReviewOrder.value.initialLtv || 0
-  return Number((threshold - ltv).toFixed(2))
-})
-
-// 计算属性：清算价格跌幅
-const priceDropToLiquidation = computed(() => {
-  if (!currentReviewOrder.value) return 0
-  const currentPrice = currentReviewOrder.value.currentPrice || 0
-  const liquidationPrice = currentReviewOrder.value.liquidationPrice || 0
-  if (currentPrice === 0) return 0
-  return Number((((currentPrice - liquidationPrice) / currentPrice) * 100).toFixed(2))
 })
 
 // 计算属性：预计总利息
@@ -703,9 +618,6 @@ const filteredOrders = computed(() => {
 
   if (filters.value.status) {
     result = result.filter(o => o.status === filters.value.status)
-  }
-  if (filters.value.collateralType) {
-    result = result.filter(o => o.collateralType === filters.value.collateralType)
   }
   if (filters.value.userId) {
     result = result.filter(o => o.userId.includes(filters.value.userId))
@@ -741,7 +653,6 @@ const statusLabel = (status) => {
 const resetFilters = () => {
   filters.value = {
     status: '',
-    collateralType: '',
     userId: ''
   }
 }
@@ -764,6 +675,258 @@ const currentReviewOrder = ref(null)
 const reviewComment = ref('')
 const isReviewMode = ref(false)
 const detailTab = ref('overview')
+
+const showUserDrawer = ref(false)
+const drawerUser = ref(null)
+
+const loanExposureAmount = (o) => {
+  if (!o) return 0
+  const st = o.status
+  if (st === 'pending') return Number(o.requestedAmount ?? o.loanAmount ?? 0) || 0
+  if (st === 'active' || st === 'repaying') return Number(o.totalDebt ?? o.loanAmount ?? 0) || 0
+  return 0
+}
+
+const usedCreditSameCurrency = (userId, loanCurrency) => {
+  let sum = 0
+  for (const o of orders.value) {
+    if (o.userId !== userId) continue
+    if (o.loanCurrency !== loanCurrency) continue
+    sum += loanExposureAmount(o)
+  }
+  return sum
+}
+
+function findPlatformUser(lendingOrder) {
+  if (!lendingOrder) return null
+  const byEmail = usersList.find((u) => u.email === lendingOrder.email)
+  if (byEmail) return byEmail
+  const suffix = String(lendingOrder.userId || '').replace(/\D/g, '')
+  if (suffix) {
+    const id = `user_${suffix}`
+    const byId = usersList.find((u) => u.id === id)
+    if (byId) return byId
+  }
+  return null
+}
+
+function scoreTierFromScore(sc) {
+  const n = Number(sc) || 0
+  if (n >= 750) return '优秀'
+  if (n >= 650) return '良好'
+  return '一般'
+}
+
+function scoreTierClassFromScore(sc) {
+  const n = Number(sc) || 0
+  if (n >= 750) return 'text-emerald-600'
+  if (n >= 650) return 'text-amber-600'
+  return 'text-rose-600'
+}
+
+function inferKycFromCreditScore(score) {
+  const n = Number(score) || 0
+  if (n >= 720) return USER_KYC_STATUS.VERIFIED
+  if (n >= 620) return USER_KYC_STATUS.PENDING
+  return USER_KYC_STATUS.NOT_VERIFIED
+}
+
+function inferVipFromCreditScore(score) {
+  const n = Number(score) || 0
+  const vipLevel = Math.min(5, Math.max(0, Math.floor(n / 150)))
+  return { vipLevel, isVip: vipLevel >= 1 || n >= 700 }
+}
+
+/** 与用户管理一致：优先平台用户，否则按订单信用分推断 KYC/VIP */
+function resolveLendingUserProfile(order) {
+  if (!order) return null
+  const pu = findPlatformUser(order)
+  const orderScore = Number(order.creditScore) || 0
+  if (pu) {
+    const sc = Number(pu.creditScore) || orderScore
+    return {
+      source: 'platform',
+      creditScore: sc,
+      kycStatus: pu.kycStatus,
+      vipLevel: Number(pu.vipLevel) || 0,
+      isVip: Boolean(pu.isVip),
+      scoreTier: scoreTierFromScore(sc),
+      scoreTierClass: scoreTierClassFromScore(sc)
+    }
+  }
+  const sc = orderScore
+  const { vipLevel, isVip } = inferVipFromCreditScore(sc)
+  return {
+    source: 'inferred',
+    creditScore: sc,
+    kycStatus: inferKycFromCreditScore(sc),
+    vipLevel,
+    isVip,
+    scoreTier: scoreTierFromScore(sc),
+    scoreTierClass: scoreTierClassFromScore(sc)
+  }
+}
+
+const kycChipMeta = (kycStatus) => {
+  const map = {
+    [USER_KYC_STATUS.NOT_VERIFIED]: { text: '未认证', class: 'bg-slate-100 text-slate-700' },
+    [USER_KYC_STATUS.PENDING]: { text: '初级认证', class: 'bg-blue-50 text-blue-700' },
+    [USER_KYC_STATUS.VERIFIED]: { text: '高级认证', class: 'bg-emerald-50 text-emerald-700' },
+    [USER_KYC_STATUS.REJECTED]: { text: '未认证', class: 'bg-slate-100 text-slate-700' }
+  }
+  return map[kycStatus] || map[USER_KYC_STATUS.NOT_VERIFIED]
+}
+
+const vipChipLabel = (profile) => {
+  if (!profile) return '—'
+  if (!profile.isVip && profile.vipLevel <= 0) return '普通用户'
+  return `VIP${profile.vipLevel}`
+}
+
+const creditSummary = computed(() => {
+  const o = currentReviewOrder.value
+  if (!o) {
+    return {
+      accountCap: 0,
+      currencyCap: 0,
+      used: 0,
+      available: 0,
+      thisOrderExposure: 0,
+      scoreTier: '—',
+      profile: null,
+      eligibilityLevel: 'ok',
+      eligibilityDetail: ''
+    }
+  }
+  const cur = o.loanCurrency || 'USDT'
+  const accountCap = Number(lendingCreditPolicy.accountTotalCapNotional) || 0
+  const capMap = lendingCreditPolicy.capByLoanCurrency || {}
+  const currencyCap = Number(capMap[cur] ?? accountCap) || accountCap
+  const used = usedCreditSameCurrency(o.userId, cur)
+  const thisOrderExposure = loanExposureAmount(o)
+  const available = Math.max(0, currencyCap - used)
+  const profile = resolveLendingUserProfile(o)
+  const sc = profile?.creditScore ?? 0
+  const scoreTier = profile?.scoreTier ?? scoreTierFromScore(sc)
+
+  let eligibilityLevel = 'ok'
+  let eligibilityDetail = '实名与信用分满足常规借贷准入（演示规则）。'
+  if (profile) {
+    if (
+      profile.kycStatus === USER_KYC_STATUS.NOT_VERIFIED ||
+      profile.kycStatus === USER_KYC_STATUS.REJECTED
+    ) {
+      eligibilityLevel = 'risk'
+      eligibilityDetail = '用户未实名或认证未通过，建议拒绝或要求完成认证后再审。'
+    } else if (profile.kycStatus === USER_KYC_STATUS.PENDING) {
+      eligibilityLevel = 'warn'
+      eligibilityDetail = '仅为初级认证，可酌情放款或要求升级为高级认证。'
+    }
+    if (sc < 600) {
+      if (eligibilityLevel === 'ok') eligibilityLevel = 'warn'
+      if (eligibilityLevel === 'warn' && sc < 550) eligibilityLevel = 'risk'
+      eligibilityDetail +=
+        sc < 550
+          ? ' 信用分过低，风险较高。'
+          : ' 信用分偏低，请结合授信额度综合判断。'
+    }
+  }
+
+  return {
+    accountCap,
+    currencyCap,
+    used,
+    available,
+    thisOrderExposure,
+    scoreTier,
+    profile,
+    eligibilityLevel,
+    eligibilityDetail
+  }
+})
+
+const userLendingHistory = computed(() => {
+  const o = currentReviewOrder.value
+  if (!o?.userId) return []
+  const list = orders.value.filter((x) => x.userId === o.userId)
+  return [...list].sort((a, b) => String(b.createTime).localeCompare(String(a.createTime)))
+})
+
+const historyPage = ref(1)
+const historyPageSize = ref(10)
+
+const historyTotalPages = computed(() =>
+  Math.max(1, Math.ceil(userLendingHistory.value.length / historyPageSize.value))
+)
+
+const userLendingHistoryPaged = computed(() => {
+  const list = userLendingHistory.value
+  const page = Math.min(historyPage.value, historyTotalPages.value)
+  const start = (page - 1) * historyPageSize.value
+  return list.slice(start, start + historyPageSize.value)
+})
+
+watch(
+  () => currentReviewOrder.value?.orderId,
+  () => {
+    historyPage.value = 1
+  }
+)
+
+watch([() => userLendingHistory.value.length, historyPageSize], () => {
+  const tp = Math.max(1, Math.ceil(userLendingHistory.value.length / historyPageSize.value))
+  if (historyPage.value > tp) historyPage.value = tp
+})
+
+const onHistoryPageSizeChange = (n) => {
+  historyPageSize.value = n
+  historyPage.value = 1
+}
+
+function buildUserDetailFromLendingOrder(order) {
+  const m = findPlatformUser(order)
+  if (m) return m
+  const p = resolveLendingUserProfile(order)
+  const uid = order.userId || 'unknown'
+  const sc = Math.min(800, p?.creditScore || 650)
+  return {
+    id: uid,
+    username: order.userName || '—',
+    email: order.email || '—',
+    phone: order.phone,
+    role: USER_ROLE.USER,
+    status: USER_STATUS.ACTIVE,
+    kycStatus: p?.kycStatus ?? USER_KYC_STATUS.NOT_VERIFIED,
+    isVip: Boolean(p?.isVip),
+    vipLevel: p?.vipLevel ?? 0,
+    creditScore: sc,
+    balance: Math.max(1000, Math.floor(sc * 120)),
+    frozenBalance: 0,
+    totalProfit: Math.floor(sc * 10),
+    tradingVolume: sc * 500,
+    parentId: null,
+    parentUsername: null,
+    registerTime: order.createTime || new Date().toISOString(),
+    lastLoginTime: order.updateTime || order.createTime || new Date().toISOString(),
+    lastLoginIp: '10.0.0.1',
+    remark: ''
+  }
+}
+
+const openUserDrawerFromOrder = (order) => {
+  drawerUser.value = buildUserDetailFromLendingOrder(order)
+  showUserDrawer.value = true
+}
+
+const openUserDrawerForCurrentModalOrder = () => {
+  if (!currentReviewOrder.value) return
+  openUserDrawerFromOrder(currentReviewOrder.value)
+}
+
+const closeUserDrawer = () => {
+  showUserDrawer.value = false
+  drawerUser.value = null
+}
 
 const reviewOrder = (order) => {
   currentReviewOrder.value = order
