@@ -126,7 +126,7 @@ const channelVisual = {
         role="note"
       >
         <span class="font-semibold text-amber-200">风险提示：</span>
-        数字资产与策略收益波动较大，锁仓、借贷及量化产品均可能造成本金损失。参与前请确认理解费率、赎回与清算机制。
+        数字资产与策略收益波动较大，锁仓、借贷及量化产品均可能造成本金损失。参与前请确认理解费率、赎回规则与借贷合同中的违约及费用约定。
       </div>
     </section>
   </div>

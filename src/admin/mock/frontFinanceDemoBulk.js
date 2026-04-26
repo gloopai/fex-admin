@@ -1,7 +1,13 @@
 /**
  * 前台金融列表：在基础 mock 上追加列表行（分页与压力展示用，字段与主数据同源结构）。
  */
-import { LOAN_ORDER_STATUS, REPAYMENT_STATUS, REPAYMENT_TYPE, RISK_LEVEL } from '../constants/cryptoLending'
+import {
+  LOAN_ORDER_STATUS,
+  REPAYMENT_STATUS,
+  REPAYMENT_TYPE,
+  REPAYMENT_PAYMENT_METHOD_USER,
+  RISK_LEVEL
+} from '../constants/cryptoLending'
 import { ORDER_STATUS as LOCKED_ORDER_STATUS } from '../constants/liquidityLocked'
 import { ADJUSTMENT_TYPE, ORDER_STATUS as AIQ_ORDER_STATUS, VIP_LEVEL } from '../constants/aiQuant'
 
@@ -55,24 +61,33 @@ export function buildLendingDemoExtraOrders(count = 28) {
 }
 
 export function buildLendingDemoExtraRepayments(count = 22) {
-  const types = [REPAYMENT_TYPE.INTEREST_ONLY, REPAYMENT_TYPE.PARTIAL, REPAYMENT_TYPE.FULL]
+  const orderIdx = (i) => i % 28
+  const loanCur = (i) => ['USDT', 'USDC', 'USDT'][orderIdx(i) % 3]
+  const types = [REPAYMENT_TYPE.PARTIAL, REPAYMENT_TYPE.PARTIAL, REPAYMENT_TYPE.FULL]
   const stats = [REPAYMENT_STATUS.COMPLETED, REPAYMENT_STATUS.COMPLETED, REPAYMENT_STATUS.PENDING, REPAYMENT_STATUS.PROCESSING]
   const out = []
   for (let i = 0; i < count; i++) {
     const d = String((i % 9) + 1).padStart(2, '0')
+    const ip = Math.min(200, 15 + i * 3)
+    const pp = 200 + i * 20
+    const rt = types[i % types.length]
+    const interestOnlyRow = i % 3 === 0 && rt === REPAYMENT_TYPE.PARTIAL
+    const interestPaid = interestOnlyRow ? 320 + i * 65 : ip
+    const principalPaid = interestOnlyRow ? 0 : pp
     out.push({
       repaymentId: `REP-DEMO-${String(400 + i).padStart(4, '0')}`,
-      orderId: `ORD-DEMO-${String(800 + (i % 28)).padStart(4, '0')}`,
+      orderId: `ORD-DEMO-${String(800 + orderIdx(i)).padStart(4, '0')}`,
       userId: `USR-R-${i}`,
       userName: `用户_${i}`,
       productName: i % 2 === 0 ? 'BTC标准借贷' : 'ETH灵活借贷',
-      repaymentType: types[i % types.length],
-      amount: 320 + i * 65,
-      interestPaid: Math.min(200, 15 + i * 3),
-      principalPaid: 200 + i * 20,
+      loanCurrency: loanCur(i),
+      repaymentType: rt,
+      amount: interestPaid + principalPaid,
+      interestPaid,
+      principalPaid,
       remainingDebt: Math.max(0, 7000 - i * 180),
       status: stats[i % stats.length],
-      paymentMethod: '钱包余额',
+      paymentMethod: REPAYMENT_PAYMENT_METHOD_USER,
       transactionId: i % 5 === 0 ? null : `TXN-DEMO-${i}`,
       repaymentTime: i % 3 === 0 ? null : `2024-03-${d} 14:00:00`,
       createTime: `2024-03-${d} 13:50:00`

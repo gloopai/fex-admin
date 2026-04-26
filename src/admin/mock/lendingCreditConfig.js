@@ -3,7 +3,7 @@ import { applyScorecardCaps } from '../constants/lendingCredit'
 import { SCORE_RULE_EVALUATOR } from '../constants/lendingCreditScoreRule'
 
 /**
- * 抵押借贷 — 授信策略（内存配置；与运营端「授信中心」同源结构，可后续落库）。
+ * 信用借贷 — 授信策略（内存配置；与运营端「授信中心」同源结构，可后续落库）。
  * 前台列表与授信管理页共用同一 reactive 对象。
  *
  * 每项 dimensions[].scoreRule：启用开关、数值分档或枚举映射；
@@ -55,7 +55,7 @@ export const lendingCreditScorecard = reactive({
   scorecardMeta: {
     id: 'LEND_SCORECARD_DEFAULT',
     version: '2026.04',
-    title: '抵押借贷 · 默认评分卡',
+    title: '信用借贷 · 默认评分卡',
     note: '评分卡与用户/客群绑定；版本发布需审批。以下为全站默认配置。'
   },
   minScale: 0.35,

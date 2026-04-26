@@ -1,4 +1,4 @@
-// 加密货币抵押借贷常量配置
+// 平台信用借贷（场内对手盘、无链上抵押）常量配置
 
 // 产品状态
 export const PRODUCT_STATUS = {
@@ -34,7 +34,7 @@ export const LOAN_ORDER_STATUS_LABELS = {
   [LOAN_ORDER_STATUS.ACTIVE]: '借贷中',
   [LOAN_ORDER_STATUS.REPAYING]: '还款中',
   [LOAN_ORDER_STATUS.COMPLETED]: '已完成',
-  [LOAN_ORDER_STATUS.LIQUIDATED]: '已清算',
+  [LOAN_ORDER_STATUS.LIQUIDATED]: '违约结清',
   [LOAN_ORDER_STATUS.CANCELLED]: '已取消'
 }
 
@@ -76,15 +76,40 @@ export const REPAYMENT_STATUS_COLORS = {
 export const REPAYMENT_TYPE = {
   PARTIAL: 'partial',
   FULL: 'full',
-  INTEREST_ONLY: 'interest_only',
   AUTO: 'auto'
 }
 
 export const REPAYMENT_TYPE_LABELS = {
   [REPAYMENT_TYPE.PARTIAL]: '部分还款',
   [REPAYMENT_TYPE.FULL]: '全额还款',
-  [REPAYMENT_TYPE.INTEREST_ONLY]: '仅还利息',
   [REPAYMENT_TYPE.AUTO]: '自动还款'
+}
+
+/** 管理端还款提醒触达方式（演示） */
+export const REPAYMENT_REMINDER_CHANNEL = {
+  IN_APP: 'in_app',
+  SMS: 'sms',
+  EMAIL: 'email',
+  ALL: 'all'
+}
+
+export const REPAYMENT_REMINDER_CHANNEL_LABELS = {
+  [REPAYMENT_REMINDER_CHANNEL.IN_APP]: '站内消息',
+  [REPAYMENT_REMINDER_CHANNEL.SMS]: '短信',
+  [REPAYMENT_REMINDER_CHANNEL.EMAIL]: '邮件',
+  [REPAYMENT_REMINDER_CHANNEL.ALL]: '全部渠道'
+}
+
+/** 用户在前台主动还款并确认时写入的支付方式（场内记账） */
+export const REPAYMENT_PAYMENT_METHOD_USER = '站内账户'
+
+/**
+ * 与前台还款提交逻辑一致：结清为全额，否则均为部分还款（含只冲减已计利息的情形）。
+ */
+export function deriveRepaymentType({ newDebt }) {
+  const nd = Number(newDebt)
+  if (Number.isFinite(nd) && nd <= 0) return REPAYMENT_TYPE.FULL
+  return REPAYMENT_TYPE.PARTIAL
 }
 
 // 风险等级
@@ -122,15 +147,6 @@ export const INTEREST_RATE_TYPE_LABELS = {
   [INTEREST_RATE_TYPE.TIERED]: '阶梯利率'
 }
 
-// 抵押品类型
-export const COLLATERAL_TYPE = {
-  BTC: 'BTC',
-  ETH: 'ETH',
-  USDT: 'USDT',
-  USDC: 'USDC',
-  BNB: 'BNB'
-}
-
 // 借出币种
 export const LOAN_CURRENCY = {
   USDT: 'USDT',
@@ -156,9 +172,8 @@ export const ORDER_COLUMNS = [
   { key: 'orderId', label: '订单ID', sortable: true },
   { key: 'userId', label: '用户ID', sortable: true },
   { key: 'productName', label: '产品名称', sortable: true },
-  { key: 'collateralAmount', label: '抵押数量', sortable: true },
-  { key: 'loanAmount', label: '借贷数量', sortable: true },
-  { key: 'currentLtv', label: '当前LTV', sortable: true },
+  { key: 'loanAmount', label: '借贷金额', sortable: true },
+  { key: 'totalDebt', label: '总债务', sortable: true },
   { key: 'interestAccrued', label: '累计利息', sortable: true },
   { key: 'status', label: '状态', sortable: true },
   { key: 'createTime', label: '创建时间', sortable: true },
@@ -170,6 +185,7 @@ export const REPAYMENT_COLUMNS = [
   { key: 'repaymentId', label: '还款ID', sortable: true },
   { key: 'orderId', label: '订单ID', sortable: true },
   { key: 'userId', label: '用户ID', sortable: true },
+  { key: 'loanCurrency', label: '借出币种', sortable: true },
   { key: 'repaymentType', label: '还款类型', sortable: true },
   { key: 'amount', label: '还款金额', sortable: true },
   { key: 'interestPaid', label: '利息', sortable: true },

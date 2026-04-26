@@ -96,7 +96,7 @@ const PRODUCT_LINES = [
     rateKey: 'agentBorrowingCommissionRate',
     title: '借贷产品',
     baseDesc:
-      '计佣基数 A = 代理名下客户该笔抵押借贷订单在计佣结算时点，账务系统为该笔订单写入的 USDT 计佣基数（单笔订单一个数值）。',
+      '计佣基数 A = 代理名下客户该笔信用借贷订单在计佣结算时点，账务系统为该笔订单写入的 USDT 计佣基数（单笔订单一个数值）。',
     formula: '佣金 = A × r',
     theme: 'rose'
   }

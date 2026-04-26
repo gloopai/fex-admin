@@ -2,201 +2,220 @@
   <section class="space-y-4">
     <header class="flex flex-wrap items-start justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-bold text-slate-900">还款管理</h1>
-        <p class="mt-1 text-sm text-slate-500">管理和追踪所有还款记录</p>
+        <h1 class="text-3xl font-semibold text-slate-900">还款记录</h1>
+        <p class="mt-1 max-w-3xl text-sm text-slate-500">
+          与前台还款记录字段一致；用户主动还款为<strong>站内账户</strong>，类型由冲减规则推导。更多说明见详情弹窗。
+        </p>
       </div>
     </header>
 
-    <article class="rounded-xl border border-slate-200 bg-white p-6">
-      <div class="flex flex-wrap items-end gap-4 mb-6">
-        <div class="flex flex-col gap-1.5">
-          <label class="text-sm font-medium text-slate-600">还款状态</label>
-          <select v-model="filters.status" class="px-3 py-2 rounded-lg border border-slate-200 text-sm min-w-[150px]">
-            <option value="">全部</option>
+    <article class="rounded-xl border border-slate-200 bg-white">
+      <div class="flex flex-wrap items-center gap-3 border-b border-slate-200 bg-slate-50/80 px-4 py-3">
+        <div class="flex min-w-0 flex-1 flex-wrap items-center gap-3">
+          <select
+            v-model="filters.status"
+            class="min-w-[8.5rem] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
+          >
+            <option value="">全部状态</option>
             <option value="pending">待还款</option>
             <option value="processing">处理中</option>
             <option value="completed">已完成</option>
             <option value="failed">失败</option>
             <option value="overdue">逾期</option>
           </select>
-        </div>
-        <div class="flex flex-col gap-1.5">
-          <label class="text-sm font-medium text-slate-600">还款类型</label>
-          <select v-model="filters.repaymentType" class="px-3 py-2 rounded-lg border border-slate-200 text-sm min-w-[150px]">
-            <option value="">全部</option>
+          <select
+            v-model="filters.repaymentType"
+            class="min-w-[8.5rem] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
+          >
+            <option value="">全部类型</option>
             <option value="partial">部分还款</option>
             <option value="full">全额还款</option>
-            <option value="interest_only">仅还利息</option>
             <option value="auto">自动还款</option>
           </select>
-        </div>
-        <div class="flex flex-col gap-1.5">
-          <label class="text-sm font-medium text-slate-600">时间范围</label>
-          <select v-model="filters.timeRange" class="px-3 py-2 rounded-lg border border-slate-200 text-sm min-w-[150px]">
+          <select
+            v-model="filters.timeRange"
+            class="min-w-[7.5rem] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
+          >
             <option value="today">今天</option>
             <option value="week">本周</option>
             <option value="month">本月</option>
-            <option value="all">全部</option>
+            <option value="all">全部时间</option>
           </select>
-        </div>
-        <div class="flex flex-col gap-1.5">
-          <label class="text-sm font-medium text-slate-600">用户/订单ID</label>
-          <input 
-            v-model="filters.searchText" 
-            class="px-3 py-2 rounded-lg border border-slate-200 text-sm min-w-[150px]"
-            placeholder="搜索..."
+          <input
+            v-model="filters.searchText"
+            type="search"
+            class="min-w-[10rem] max-w-md flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
+            placeholder="还款单号、订单号、用户…"
+            autocomplete="off"
           />
+          <button
+            type="button"
+            class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
+            @click="resetFilters"
+          >
+            重置
+          </button>
         </div>
-        <button 
-          @click="resetFilters"
-          class="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors text-sm font-medium"
+        <div
+          v-if="selectedRepaymentIds.length"
+          class="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2 border-l border-slate-200 pl-3 text-sm"
         >
-          重置
-        </button>
+          <span class="font-medium text-slate-800">已选 {{ selectedRepaymentIds.length }} 条</span>
+          <span class="text-slate-400">|</span>
+          <button
+            type="button"
+            class="rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-900 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-45"
+            :disabled="selectedFailedRows.length === 0"
+            @click="batchRetrySelected"
+          >
+            批量重试
+            <span v-if="selectedFailedRows.length" class="tabular-nums">（{{ selectedFailedRows.length }}）</span>
+          </button>
+          <button
+            type="button"
+            class="rounded-md border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-900 hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-45"
+            :disabled="selectedRemindRows.length === 0"
+            @click="openRemindModalForBatch"
+          >
+            批量提醒
+            <span v-if="selectedRemindRows.length" class="tabular-nums">（{{ selectedRemindRows.length }}）</span>
+          </button>
+          <button type="button" class="text-xs text-slate-600 underline-offset-2 hover:underline" @click="clearSelection">
+            清除选择
+          </button>
+        </div>
       </div>
 
       <div class="overflow-x-auto">
-        <table class="w-full">
-          <thead class="bg-slate-50 text-slate-500">
-            <tr class="border-b-2 border-slate-200">
-              <th class="px-4 py-3 text-left font-medium">还款ID</th>
-              <th class="px-4 py-3 text-left font-medium">订单/用户信息</th>
-              <th class="px-4 py-3 text-left font-medium">产品名称</th>
-              <th class="px-4 py-3 text-left font-medium">还款类型</th>
-              <th class="px-4 py-3 text-left font-medium">还款金额</th>
-              <th class="px-4 py-3 text-left font-medium">利息/本金</th>
-              <th class="px-4 py-3 text-left font-medium">剩余债务</th>
-              <th class="px-4 py-3 text-left font-medium">支付方式</th>
-              <th class="px-4 py-3 text-left font-medium">状态</th>
-              <th class="px-4 py-3 text-left font-medium">还款时间</th>
-              <th class="px-4 py-3 text-left font-medium">操作</th>
+        <table class="w-full min-w-[58rem] text-sm">
+          <thead class="bg-slate-50 text-xs font-medium uppercase tracking-wide text-slate-500">
+            <tr class="border-b border-slate-200">
+              <th class="w-10 px-2 py-2.5 text-left">
+                <input
+                  ref="headerCheckboxRef"
+                  type="checkbox"
+                  class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  title="全选本页"
+                  :checked="allPageSelected"
+                  @change="onToggleSelectAllPage"
+                />
+              </th>
+              <th class="px-4 py-2.5 text-left">还款单</th>
+              <th class="px-4 py-2.5 text-left">订单 / 用户</th>
+              <th class="px-4 py-2.5 text-left">产品</th>
+              <th class="px-4 py-2.5 text-left">还款明细</th>
+              <th class="px-4 py-2.5 text-left">状态</th>
+              <th class="px-4 py-2.5 text-right min-w-[9rem]">操作</th>
             </tr>
           </thead>
           <tbody>
-            <tr 
-              v-for="repayment in filteredRepayments" 
+            <tr v-if="!repaymentsPaged.length">
+              <td colspan="7" class="px-4 py-12 text-center text-slate-500">暂无符合条件的还款记录</td>
+            </tr>
+            <tr
+              v-for="repayment in repaymentsPaged"
               :key="repayment.repaymentId"
-              class="border-b border-slate-100 hover:bg-slate-50 transition-colors"
+              class="border-b border-slate-100 transition-colors hover:bg-slate-50/80"
             >
-              <td class="px-4 py-4">
-                <div class="text-sm font-medium text-slate-900">{{ repayment.repaymentId }}</div>
+              <td class="px-2 py-3 align-top">
+                <input
+                  type="checkbox"
+                  class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  :checked="isRepaymentSelected(repayment.repaymentId)"
+                  @change="toggleRepaymentSelect(repayment.repaymentId)"
+                />
               </td>
-              <td class="px-4 py-4">
-                <div class="space-y-0.5">
-                  <div class="text-sm font-medium text-blue-600">{{ repayment.orderId }}</div>
-                  <div class="text-xs text-slate-500">{{ repayment.userId }} - {{ repayment.userName }}</div>
+              <td class="px-4 py-3 align-top">
+                <div class="font-mono text-xs font-medium text-slate-800">{{ repayment.repaymentId }}</div>
+                <div class="mt-0.5 text-xs text-slate-500 tabular-nums">
+                  {{ repayment.repaymentTime ? formatDateTime(repayment.repaymentTime) : `创建 ${formatDateTime(repayment.createTime)}` }}
                 </div>
               </td>
-              <td class="px-4 py-4">
-                <span class="text-sm font-medium text-slate-900">{{ repayment.productName }}</span>
+              <td class="px-4 py-3 align-top">
+                <div class="font-mono text-xs text-blue-600">{{ repayment.orderId }}</div>
+                <div class="mt-0.5 text-xs text-slate-600">
+                  <span class="text-slate-500">{{ repayment.userId }}</span>
+                  <span class="text-slate-400"> · </span>
+                  {{ repayment.userName }}
+                </div>
               </td>
-              <td class="px-4 py-4">
-                <span 
-                  class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
-                  :class="{
-                    'bg-blue-100 text-blue-700': repayment.repaymentType === 'partial',
-                    'bg-emerald-100 text-emerald-700': repayment.repaymentType === 'full',
-                    'bg-amber-100 text-amber-700': repayment.repaymentType === 'interest_only',
-                    'bg-purple-100 text-purple-700': repayment.repaymentType === 'auto'
-                  }"
+              <td class="px-4 py-3 align-top max-w-[11rem]">
+                <div class="truncate font-medium text-slate-900" :title="repayment.productName">{{ repayment.productName }}</div>
+                <span
+                  class="mt-1 inline-flex rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] font-medium text-slate-700"
                 >
-                  {{ repaymentTypeLabel(repayment.repaymentType) }}
+                  {{ repayment.loanCurrency || '—' }}
                 </span>
               </td>
-              <td class="px-4 py-4">
-                <div class="text-sm font-semibold text-slate-900">{{ formatCurrency(repayment.amount) }}</div>
-              </td>
-              <td class="px-4 py-4">
-                <div class="space-y-0.5 text-xs">
-                  <div class="text-slate-500">利息: {{ formatCurrency(repayment.interestPaid) }}</div>
-                  <div class="text-slate-500">本金: {{ formatCurrency(repayment.principalPaid) }}</div>
-                </div>
-              </td>
-              <td class="px-4 py-4">
-                <div class="text-sm font-medium text-slate-700">{{ formatCurrency(repayment.remainingDebt) }}</div>
-              </td>
-              <td class="px-4 py-4">
-                <div class="space-y-0.5">
-                  <div class="text-sm text-slate-900">{{ repayment.paymentMethod }}</div>
-                  <div v-if="repayment.transactionId" class="text-xs text-slate-400 font-mono">
-                    {{ repayment.transactionId }}
-                  </div>
-                </div>
-              </td>
-              <td class="px-4 py-4">
-                <div class="space-y-1">
-                  <span 
-                    class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
+              <td class="px-4 py-3 align-top min-w-[14rem]">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span
+                    class="inline-flex shrink-0 items-center rounded-md px-2 py-0.5 text-[11px] font-medium"
                     :class="{
-                      'bg-amber-100 text-amber-700': repayment.status === 'pending',
-                      'bg-blue-100 text-blue-700': repayment.status === 'processing',
-                      'bg-emerald-100 text-emerald-700': repayment.status === 'completed',
-                      'bg-rose-100 text-rose-700': repayment.status === 'failed',
-                      'bg-red-100 text-red-700': repayment.status === 'overdue'
+                      'bg-blue-100 text-blue-800': repayment.repaymentType === 'partial',
+                      'bg-emerald-100 text-emerald-800': repayment.repaymentType === 'full',
+                      'bg-violet-100 text-violet-800': repayment.repaymentType === 'auto'
                     }"
                   >
-                    {{ statusLabel(repayment.status) }}
+                    {{ repaymentTypeLabel(repayment.repaymentType) }}
                   </span>
-                  <div v-if="repayment.failureReason" class="text-xs text-rose-600">
-                    {{ repayment.failureReason }}
-                  </div>
+                  <span class="font-semibold tabular-nums text-slate-900">
+                    {{ formatLedgerAmount(repayment.amount, repayment.loanCurrency) }}
+                  </span>
+                </div>
+                <div class="mt-1 text-[11px] tabular-nums text-slate-500">
+                  息 {{ formatLedgerNumber(repayment.interestPaid) }} · 本 {{ formatLedgerNumber(repayment.principalPaid) }} · 余
+                  {{ formatLedgerNumber(repayment.remainingDebt) }}
+                  <span class="text-slate-400">{{ repayment.loanCurrency || 'USDT' }}</span>
+                </div>
+                <div class="mt-1 text-[11px] text-slate-500">
+                  {{ repayment.paymentMethod }}
+                  <span v-if="repayment.transactionId" class="ml-1 font-mono text-slate-400" :title="repayment.transactionId">
+                    {{ truncateMiddle(repayment.transactionId, 10) }}
+                  </span>
                 </div>
               </td>
-              <td class="px-4 py-4">
-                <div v-if="repayment.repaymentTime" class="text-sm text-slate-700">
-                  {{ formatDateTime(repayment.repaymentTime) }}
-                </div>
-                <div v-else class="text-xs text-slate-400">
-                  创建: {{ formatDateTime(repayment.createTime) }}
-                </div>
+              <td class="px-4 py-3 align-top">
+                <span
+                  class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium"
+                  :class="{
+                    'bg-amber-50 text-amber-800': repayment.status === 'pending',
+                    'bg-sky-50 text-sky-800': repayment.status === 'processing',
+                    'bg-emerald-50 text-emerald-800': repayment.status === 'completed',
+                    'bg-rose-50 text-rose-800': repayment.status === 'failed',
+                    'bg-red-50 text-red-800': repayment.status === 'overdue'
+                  }"
+                >
+                  {{ statusLabel(repayment.status) }}
+                </span>
+                <p v-if="repayment.failureReason" class="mt-1 line-clamp-2 text-[11px] text-rose-600" :title="repayment.failureReason">
+                  {{ repayment.failureReason }}
+                </p>
               </td>
-              <td class="px-4 py-4">
-                <div class="flex items-center gap-1">
-                  <button 
-                    @click="viewDetails(repayment)" 
-                    class="px-2 py-1 text-xs font-medium text-slate-700 border border-slate-300 rounded hover:bg-slate-50 transition-colors whitespace-nowrap"
+              <td class="px-4 py-3 align-top text-right">
+                <div class="flex flex-wrap justify-end gap-1">
+                  <button
+                    type="button"
+                    class="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-800 hover:bg-slate-50"
+                    @click="viewDetails(repayment)"
                   >
                     详情
                   </button>
-                  
-                  <button 
-                    v-if="repayment.status === 'pending'" 
-                    @click="confirmRepayment(repayment)"
-                    class="px-2 py-1 text-xs font-medium text-emerald-700 border border-emerald-300 rounded hover:bg-emerald-50 transition-colors whitespace-nowrap"
-                  >
-                    确认
-                  </button>
-                  
-                  <button 
-                    v-if="repayment.status === 'failed'" 
+                  <button
+                    v-if="repayment.status === 'failed'"
+                    type="button"
+                    class="rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800 hover:bg-amber-100"
                     @click="retryRepayment(repayment)"
-                    class="px-2 py-1 text-xs font-medium text-amber-700 border border-amber-300 rounded hover:bg-amber-50 transition-colors whitespace-nowrap"
                   >
                     重试
                   </button>
-                  
-                  <button 
-                    v-if="['pending', 'overdue'].includes(repayment.status)" 
+                  <button
+                    v-if="repayment.status === 'pending' || repayment.status === 'overdue'"
+                    type="button"
+                    class="rounded-md border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-800 hover:bg-violet-100"
                     @click="sendReminder(repayment)"
-                    class="px-2 py-1 text-xs font-medium text-purple-700 border border-purple-300 rounded hover:bg-purple-50 transition-colors whitespace-nowrap"
                   >
-                    提醒
-                  </button>
-                  
-                  <button 
-                    v-if="['pending', 'processing'].includes(repayment.status)"
-                    @click="cancelRepayment(repayment)"
-                    class="px-2 py-1 text-xs font-medium text-rose-700 border border-rose-300 rounded hover:bg-rose-50 transition-colors whitespace-nowrap"
-                  >
-                    取消
-                  </button>
-                  
-                  <button 
-                    v-if="repayment.status === 'completed'"
-                    @click="exportReceipt(repayment)"
-                    class="px-2 py-1 text-xs font-medium text-cyan-700 border border-cyan-300 rounded hover:bg-cyan-50 transition-colors whitespace-nowrap"
-                  >
-                    导出
+                    提醒用户
                   </button>
                 </div>
               </td>
@@ -205,37 +224,35 @@
         </table>
       </div>
 
-      <div class="flex items-center justify-center gap-4 mt-6 pt-6 border-t border-slate-200">
-        <button 
-          @click="prevPage"
-          :disabled="currentPage === 1"
-          class="px-4 py-2 rounded-lg border border-slate-300 bg-white text-sm hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          上一页
-        </button>
-        <span class="text-sm text-slate-600">第 {{ currentPage }} 页 / 共 {{ totalPages }} 页</span>
-        <button 
-          @click="nextPage"
-          :disabled="currentPage === totalPages"
-          class="px-4 py-2 rounded-lg border border-slate-300 bg-white text-sm hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          下一页
-        </button>
-      </div>
+      <AdminListPaginationBar
+        :current-page="listPage"
+        :total-pages="totalPages"
+        :total-count="filteredRepayments.length"
+        :page-size="pageSize"
+        @update:current-page="listPage = $event"
+        @update:page-size="onPageSizeChange"
+      />
     </article>
 
-    <!-- 还款详情模态框 -->
-    <div 
+    <!-- 还款详情 -->
+    <div
       v-if="showDetailModal"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      @click.self="closeDetailModal"
     >
-      <article class="relative w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col">
-        <!-- 标题栏 -->
-        <header class="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
+      <article
+        class="relative flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl min-h-0"
+      >
+        <header class="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
           <div class="flex items-center gap-3">
             <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100">
               <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                />
               </svg>
             </div>
             <div>
@@ -243,20 +260,14 @@
               <p class="text-sm text-slate-500">{{ currentDetailRepayment?.repaymentId }}</p>
             </div>
           </div>
-          <button 
-            type="button" 
-            class="text-slate-400 hover:text-slate-600 transition-colors" 
-            @click="closeDetailModal"
-          >
+          <button type="button" class="text-slate-400 hover:text-slate-600 transition-colors" @click="closeDetailModal">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </header>
 
-        <!-- 内容区域 -->
-        <div class="flex-1 overflow-y-auto bg-slate-50 p-6 space-y-5">
-          <!-- 还款状态卡片 -->
+        <div class="min-h-0 flex-1 overflow-y-auto bg-slate-50 p-6 space-y-5">
           <div class="rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 p-5">
             <div class="flex items-center justify-between">
               <div>
@@ -265,7 +276,9 @@
               </div>
               <div class="text-right">
                 <p class="text-sm text-blue-700">还款金额</p>
-                <p class="mt-1 text-2xl font-bold text-blue-900">{{ formatCurrency(currentDetailRepayment?.amount) }}</p>
+                <p class="mt-1 text-2xl font-bold text-blue-900 tabular-nums">
+                  {{ formatLedgerAmount(currentDetailRepayment?.amount, currentDetailRepayment?.loanCurrency) }}
+                </p>
               </div>
             </div>
             <div v-if="currentDetailRepayment?.failureReason" class="mt-3 rounded-lg bg-white/60 px-3 py-2">
@@ -273,12 +286,16 @@
             </div>
           </div>
 
-          <!-- 还款信息 -->
           <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-slate-900">
               <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-100">
                 <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
               </span>
               <span>还款信息</span>
@@ -286,7 +303,9 @@
             <div class="grid gap-4 md:grid-cols-3">
               <div>
                 <label class="text-xs font-medium text-slate-500">还款类型</label>
-                <p class="mt-1 text-sm font-medium text-slate-900">{{ repaymentTypeLabel(currentDetailRepayment?.repaymentType) }}</p>
+                <p class="mt-1 text-sm font-medium text-slate-900">
+                  {{ repaymentTypeLabel(currentDetailRepayment?.repaymentType) }}
+                </p>
               </div>
               <div>
                 <label class="text-xs font-medium text-slate-500">支付方式</label>
@@ -294,29 +313,39 @@
               </div>
               <div>
                 <label class="text-xs font-medium text-slate-500">交易单号</label>
-                <p class="mt-1 text-sm font-mono text-slate-900">{{ currentDetailRepayment?.transactionId || '-' }}</p>
+                <p class="mt-1 text-sm font-mono text-slate-900">{{ currentDetailRepayment?.transactionId || '—' }}</p>
               </div>
               <div>
                 <label class="text-xs font-medium text-slate-500">已还利息</label>
-                <p class="mt-1 text-sm font-semibold text-amber-600">{{ formatCurrency(currentDetailRepayment?.interestPaid) }}</p>
+                <p class="mt-1 text-sm font-semibold text-amber-600 tabular-nums">
+                  {{ formatLedgerAmount(currentDetailRepayment?.interestPaid, currentDetailRepayment?.loanCurrency) }}
+                </p>
               </div>
               <div>
                 <label class="text-xs font-medium text-slate-500">已还本金</label>
-                <p class="mt-1 text-sm font-semibold text-emerald-600">{{ formatCurrency(currentDetailRepayment?.principalPaid) }}</p>
+                <p class="mt-1 text-sm font-semibold text-emerald-600 tabular-nums">
+                  {{ formatLedgerAmount(currentDetailRepayment?.principalPaid, currentDetailRepayment?.loanCurrency) }}
+                </p>
               </div>
               <div>
                 <label class="text-xs font-medium text-slate-500">剩余债务</label>
-                <p class="mt-1 text-sm font-semibold text-slate-900">{{ formatCurrency(currentDetailRepayment?.remainingDebt) }}</p>
+                <p class="mt-1 text-sm font-semibold text-slate-900 tabular-nums">
+                  {{ formatLedgerAmount(currentDetailRepayment?.remainingDebt, currentDetailRepayment?.loanCurrency) }}
+                </p>
               </div>
             </div>
           </section>
 
-          <!-- 订单信息 -->
           <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-slate-900">
               <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-100">
                 <svg class="w-4 h-4 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
                 </svg>
               </span>
               <span>关联订单</span>
@@ -331,6 +360,10 @@
                 <p class="mt-1 text-sm font-medium text-slate-900">{{ currentDetailRepayment?.productName }}</p>
               </div>
               <div>
+                <label class="text-xs font-medium text-slate-500">借出币种</label>
+                <p class="mt-1 text-sm font-mono font-medium text-slate-900">{{ currentDetailRepayment?.loanCurrency || '—' }}</p>
+              </div>
+              <div>
                 <label class="text-xs font-medium text-slate-500">用户ID</label>
                 <p class="mt-1 text-sm font-mono text-slate-900">{{ currentDetailRepayment?.userId }}</p>
               </div>
@@ -341,12 +374,11 @@
             </div>
           </section>
 
-          <!-- 时间信息 -->
           <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-slate-900">
               <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-100">
                 <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </span>
               <span>时间记录</span>
@@ -358,457 +390,65 @@
               </div>
               <div>
                 <label class="text-xs font-medium text-slate-500">完成时间</label>
-                <p class="mt-1 text-sm text-slate-900">{{ currentDetailRepayment?.repaymentTime ? formatDateTime(currentDetailRepayment.repaymentTime) : '-' }}</p>
+                <p class="mt-1 text-sm text-slate-900">
+                  {{ currentDetailRepayment?.repaymentTime ? formatDateTime(currentDetailRepayment.repaymentTime) : '—' }}
+                </p>
               </div>
             </div>
           </section>
         </div>
 
-        <!-- 底部操作 -->
-        <footer class="border-t border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4">
+        <footer class="shrink-0 border-t border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4">
           <div class="flex items-center justify-end gap-3">
-            <button 
-              type="button" 
+            <button
+              type="button"
               class="rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
               @click="closeDetailModal"
             >
               关闭
             </button>
-            <button 
-              v-if="currentDetailRepayment?.status === 'pending'"
-              type="button" 
-              class="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 transition-colors flex items-center gap-2"
-              @click="confirmRepayment(currentDetailRepayment)"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-              </svg>
-              <span>确认还款</span>
-            </button>
           </div>
         </footer>
       </article>
     </div>
 
-    <!-- 调整还款计划模态框 -->
-    <div 
-      v-if="showAdjustModal"
+    <!-- 提醒方式（单条 / 批量） -->
+    <div
+      v-if="remindModalOpen"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      @click.self="closeRemindModal"
     >
-      <article class="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl">
-        <header class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-          <div class="flex items-center gap-3">
-            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100">
-              <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-              </svg>
-            </div>
-            <div>
-              <h2 class="text-lg font-semibold text-slate-900">调整还款计划</h2>
-              <p class="text-sm text-slate-500">{{ currentAdjustRepayment?.repaymentId }}</p>
-            </div>
-          </div>
-          <button 
-            type="button" 
-            class="text-slate-400 hover:text-slate-600" 
-            @click="showAdjustModal = false"
+      <article class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+        <h2 class="text-lg font-semibold text-slate-900">发送还款提醒</h2>
+        <p class="mt-1 text-sm text-slate-500">
+          将对 <span class="font-medium text-slate-800 tabular-nums">{{ remindTargets.length }}</span> 笔还款记录关联用户发送提醒
+        </p>
+        <fieldset class="mt-5 space-y-2">
+          <legend class="text-xs font-medium uppercase tracking-wide text-slate-500">提醒方式</legend>
+          <label
+            v-for="opt in remindChannelOptions"
+            :key="opt.value"
+            class="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-50 has-[:checked]:border-violet-300 has-[:checked]:bg-violet-50/50"
           >
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-          </button>
-        </header>
-
-        <div class="p-6 space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-2">还款金额 (USD)</label>
-            <input 
-              v-model.number="adjustForm.amount"
-              type="number"
-              class="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-              placeholder="输入还款金额"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-2">预计还款日期</label>
-            <input 
-              v-model="adjustForm.scheduledDate"
-              type="date"
-              class="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-2">调整原因 <span class="text-rose-500">*</span></label>
-            <textarea 
-              v-model="adjustForm.reason"
-              rows="4"
-              class="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-              placeholder="请说明调整还款计划的原因..."
-            ></textarea>
-          </div>
-        </div>
-
-        <footer class="flex items-center justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
-          <button 
-            type="button" 
-            class="rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            @click="showAdjustModal = false"
+            <input v-model="remindChannel" type="radio" name="remindChannel" class="text-violet-600 focus:ring-violet-500" :value="opt.value" />
+            <span class="text-slate-800">{{ opt.label }}</span>
+          </label>
+        </fieldset>
+        <footer class="mt-6 flex justify-end gap-2">
+          <button
+            type="button"
+            class="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            @click="closeRemindModal"
           >
             取消
           </button>
-          <button 
-            type="button" 
-            class="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700 flex items-center gap-2"
-            @click="submitAdjustment"
+          <button
+            type="button"
+            class="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700"
+            @click="confirmRemindSend"
           >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-            </svg>
-            <span>确认调整</span>
+            发送
           </button>
-        </footer>
-      </article>
-    </div>
-
-    <!-- 取消还款模态框 -->
-    <div 
-      v-if="showCancelModal"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-    >
-      <article class="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl">
-        <header class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-          <div class="flex items-center gap-3">
-            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-100">
-              <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-              </svg>
-            </div>
-            <div>
-              <h2 class="text-lg font-semibold text-slate-900">取消还款</h2>
-              <p class="text-sm text-slate-500">{{ currentCancelRepayment?.repaymentId }}</p>
-            </div>
-          </div>
-          <button 
-            type="button" 
-            class="text-slate-400 hover:text-slate-600" 
-            @click="showCancelModal = false"
-          >
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-          </button>
-        </header>
-
-        <div class="p-6 space-y-4">
-          <!-- 警告提示 -->
-          <div class="rounded-lg bg-rose-50 border border-rose-200 p-4 flex gap-3">
-            <svg class="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-            </svg>
-            <div class="text-sm text-rose-900">
-              <p class="font-medium mb-1">确认取消该还款？</p>
-              <p class="text-rose-700">此操作将删除本条还款记录，该操作不可恢复。请确认您的操作并说明取消原因。</p>
-            </div>
-          </div>
-
-          <!-- 还款信息 -->
-          <div class="rounded-lg bg-slate-50 border border-slate-200 p-4 space-y-2 text-sm">
-            <div class="flex justify-between">
-              <span class="text-slate-600">订单ID:</span>
-              <span class="font-medium text-slate-900">{{ currentCancelRepayment?.orderId }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-slate-600">还款金额:</span>
-              <span class="font-medium text-slate-900">${{ currentCancelRepayment?.repaymentAmount?.toLocaleString() }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-slate-600">还款类型:</span>
-              <span class="font-medium text-slate-900">{{ currentCancelRepayment?.repaymentType }}</span>
-            </div>
-          </div>
-
-          <!-- 取消原因 -->
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-2">取消原因 <span class="text-rose-500">*</span></label>
-            <textarea 
-              v-model="cancelForm.reason"
-              rows="4"
-              class="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-200"
-              placeholder="请详细说明取消还款的原因，例如：用户已提前全额还款、系统错误记录、用户申请取消等..."
-            ></textarea>
-          </div>
-        </div>
-
-        <footer class="flex items-center justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
-          <button 
-            type="button" 
-            class="rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            @click="showCancelModal = false"
-          >
-            放弃取消
-          </button>
-          <button 
-            type="button" 
-            class="rounded-lg bg-rose-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-rose-700 flex items-center gap-2"
-            @click="submitCancellation"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-            </svg>
-            <span>确认取消</span>
-          </button>
-        </footer>
-      </article>
-    </div>
-
-    <!-- 交易详情模态框 -->
-    <div 
-      v-if="showTransactionModal"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-    >
-      <article class="relative w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col">
-        <!-- 标题栏 -->
-        <header class="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
-          <div class="flex items-center gap-3">
-            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-100">
-              <svg class="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-              </svg>
-            </div>
-            <div>
-              <h2 class="text-lg font-semibold text-slate-900">区块链交易详情</h2>
-              <p class="text-sm text-slate-500">{{ currentTransaction?.transactionId }}</p>
-            </div>
-          </div>
-          <button 
-            type="button" 
-            class="text-slate-400 hover:text-slate-600 transition-colors" 
-            @click="closeTransactionModal"
-          >
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-          </button>
-        </header>
-
-        <!-- 内容区域 -->
-        <div class="flex-1 overflow-y-auto bg-slate-50 p-6 space-y-5">
-          <!-- 交易状态卡片 -->
-          <div class="rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 p-5">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm text-emerald-700">交易状态</p>
-                <div class="mt-1 flex items-center gap-2">
-                  <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                  </svg>
-                  <p class="text-2xl font-bold text-emerald-900">已确认</p>
-                </div>
-              </div>
-              <div class="text-right">
-                <p class="text-sm text-emerald-700">确认数</p>
-                <p class="mt-1 text-2xl font-bold text-emerald-900">{{ currentTransaction?.confirmations }}</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- 基本信息 -->
-          <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-slate-900">
-              <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100">
-                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-              </span>
-              <span>基本信息</span>
-            </h3>
-            <div class="grid gap-4 md:grid-cols-2">
-              <div>
-                <label class="text-xs font-medium text-slate-500">交易哈希</label>
-                <div class="mt-1 flex items-center gap-2">
-                  <p class="text-sm font-mono text-slate-900 break-all">{{ currentTransaction?.txHash }}</p>
-                  <button 
-                    @click="copyToClipboard(currentTransaction?.txHash)"
-                    class="flex-shrink-0 p-1 rounded hover:bg-slate-100"
-                    title="复制"
-                  >
-                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-              <div>
-                <label class="text-xs font-medium text-slate-500">区块链网络</label>
-                <p class="mt-1 text-sm font-medium text-slate-900">{{ currentTransaction?.blockchainType }}</p>
-              </div>
-              <div>
-                <label class="text-xs font-medium text-slate-500">区块高度</label>
-                <p class="mt-1 text-sm font-medium text-slate-900">#{{ currentTransaction?.blockNumber?.toLocaleString() }}</p>
-              </div>
-              <div>
-                <label class="text-xs font-medium text-slate-500">区块时间</label>
-                <p class="mt-1 text-sm text-slate-900">{{ currentTransaction?.blockTime }}</p>
-              </div>
-              <div>
-                <label class="text-xs font-medium text-slate-500">交易金额</label>
-                <p class="mt-1 text-base font-semibold text-emerald-600">{{ formatCurrency(currentTransaction?.amount) }} {{ currentTransaction?.currency }}</p>
-              </div>
-              <div>
-                <label class="text-xs font-medium text-slate-500">支付方式</label>
-                <p class="mt-1 text-sm font-medium text-slate-900">{{ currentTransaction?.paymentMethod }}</p>
-              </div>
-            </div>
-          </section>
-
-          <!-- 地址信息 -->
-          <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-slate-900">
-              <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-100">
-                <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                </svg>
-              </span>
-              <span>地址信息</span>
-            </h3>
-            <div class="space-y-4">
-              <div>
-                <label class="text-xs font-medium text-slate-500">发送地址 (From)</label>
-                <div class="mt-1 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                  <p class="flex-1 text-sm font-mono text-slate-900 break-all">{{ currentTransaction?.fromAddress }}</p>
-                  <button 
-                    @click="copyToClipboard(currentTransaction?.fromAddress)"
-                    class="flex-shrink-0 p-1 rounded hover:bg-slate-200"
-                    title="复制"
-                  >
-                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-              <div class="flex justify-center">
-                <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
-                </svg>
-              </div>
-              <div>
-                <label class="text-xs font-medium text-slate-500">接收地址 (To)</label>
-                <div class="mt-1 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                  <p class="flex-1 text-sm font-mono text-slate-900 break-all">{{ currentTransaction?.toAddress }}</p>
-                  <button 
-                    @click="copyToClipboard(currentTransaction?.toAddress)"
-                    class="flex-shrink-0 p-1 rounded hover:bg-slate-200"
-                    title="复制"
-                  >
-                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <!-- Gas 费用 -->
-          <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-slate-900">
-              <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-100">
-                <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-              </span>
-              <span>费用详情</span>
-            </h3>
-            <div class="grid gap-4 md:grid-cols-3">
-              <div class="rounded-lg border border-amber-100 bg-amber-50 p-3">
-                <label class="text-xs font-medium text-amber-700">Gas 费用</label>
-                <p class="mt-1 text-lg font-bold text-amber-900">{{ currentTransaction?.gasFee }} ETH</p>
-              </div>
-              <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                <label class="text-xs font-medium text-slate-600">Gas 价格</label>
-                <p class="mt-1 text-base font-semibold text-slate-900">{{ currentTransaction?.gasPrice }} Gwei</p>
-              </div>
-              <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                <label class="text-xs font-medium text-slate-600">Gas 使用量</label>
-                <p class="mt-1 text-base font-semibold text-slate-900">{{ currentTransaction?.gasUsed?.toLocaleString() }}</p>
-              </div>
-            </div>
-          </section>
-
-          <!-- 技术参数 -->
-          <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-slate-900">
-              <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100">
-                <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
-                </svg>
-              </span>
-              <span>技术参数</span>
-            </h3>
-            <div class="grid gap-4 md:grid-cols-2">
-              <div>
-                <label class="text-xs font-medium text-slate-500">Nonce</label>
-                <p class="mt-1 text-sm text-slate-900">{{ currentTransaction?.nonce }}</p>
-              </div>
-              <div>
-                <label class="text-xs font-medium text-slate-500">网络费用</label>
-                <p class="mt-1 text-sm text-slate-900">{{ currentTransaction?.networkFee }} USD</p>
-              </div>
-              <div class="md:col-span-2">
-                <label class="text-xs font-medium text-slate-500">Input Data</label>
-                <p class="mt-1 text-xs font-mono text-slate-600 break-all bg-slate-50 p-2 rounded">{{ currentTransaction?.inputData }}</p>
-              </div>
-            </div>
-          </section>
-
-          <!-- 关联信息 -->
-          <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h3 class="mb-4 flex items-center gap-2 text-base font-semibold text-slate-900">
-              <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-100">
-                <svg class="w-4 h-4 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
-                </svg>
-              </span>
-              <span>关联订单</span>
-            </h3>
-            <div class="grid gap-4 md:grid-cols-2">
-              <div>
-                <label class="text-xs font-medium text-slate-500">还款ID</label>
-                <p class="mt-1 text-sm font-medium text-blue-600">{{ currentTransaction?.repaymentId }}</p>
-              </div>
-              <div>
-                <label class="text-xs font-medium text-slate-500">订单ID</label>
-                <p class="mt-1 text-sm font-medium text-blue-600">{{ currentTransaction?.orderId }}</p>
-              </div>
-            </div>
-          </section>
-        </div>
-
-        <!-- 底部操作 -->
-        <footer class="border-t border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4">
-          <div class="flex items-center justify-between">
-            <button 
-              type="button" 
-              class="rounded-lg border border-cyan-300 bg-cyan-50 px-5 py-2.5 text-sm font-medium text-cyan-700 shadow-sm hover:bg-cyan-100 transition-colors flex items-center gap-2"
-              @click="openBlockExplorer(currentTransaction?.txHash)"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-              </svg>
-              <span>在区块浏览器中查看</span>
-            </button>
-            <button 
-              type="button" 
-              class="rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
-              @click="closeTransactionModal"
-            >
-              关闭
-            </button>
-          </div>
         </footer>
       </article>
     </div>
@@ -816,33 +456,35 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, watchEffect, onMounted } from 'vue'
 import { mockRepayments } from '../../../admin/mock/cryptoLending'
 import {
   REPAYMENT_STATUS_LABELS,
-  REPAYMENT_TYPE_LABELS
+  REPAYMENT_TYPE_LABELS,
+  REPAYMENT_STATUS,
+  REPAYMENT_REMINDER_CHANNEL,
+  REPAYMENT_REMINDER_CHANNEL_LABELS
 } from '../../../admin/constants/cryptoLending'
+import AdminListPaginationBar from '../../../admin/components/AdminListPaginationBar.vue'
 
 const repayments = ref([])
-const currentPage = ref(1)
+const listPage = ref(1)
 const pageSize = ref(10)
-const showMoreMenuId = ref(null)
 const showDetailModal = ref(false)
 const currentDetailRepayment = ref(null)
-const showAdjustModal = ref(false)
-const currentAdjustRepayment = ref(null)
-const showTransactionModal = ref(false)
-const currentTransaction = ref(null)
-const showCancelModal = ref(false)
-const currentCancelRepayment = ref(null)
-const cancelForm = ref({
-  reason: ''
-})
-const adjustForm = ref({
-  amount: 0,
-  scheduledDate: '',
-  reason: ''
-})
+
+const selectedRepaymentIds = ref([])
+const headerCheckboxRef = ref(null)
+const remindModalOpen = ref(false)
+const remindTargets = ref([])
+const remindChannel = ref(REPAYMENT_REMINDER_CHANNEL.IN_APP)
+
+const remindChannelOptions = [
+  { value: REPAYMENT_REMINDER_CHANNEL.IN_APP, label: REPAYMENT_REMINDER_CHANNEL_LABELS[REPAYMENT_REMINDER_CHANNEL.IN_APP] },
+  { value: REPAYMENT_REMINDER_CHANNEL.SMS, label: REPAYMENT_REMINDER_CHANNEL_LABELS[REPAYMENT_REMINDER_CHANNEL.SMS] },
+  { value: REPAYMENT_REMINDER_CHANNEL.EMAIL, label: REPAYMENT_REMINDER_CHANNEL_LABELS[REPAYMENT_REMINDER_CHANNEL.EMAIL] },
+  { value: REPAYMENT_REMINDER_CHANNEL.ALL, label: REPAYMENT_REMINDER_CHANNEL_LABELS[REPAYMENT_REMINDER_CHANNEL.ALL] }
+]
 
 const filters = ref({
   status: '',
@@ -852,59 +494,188 @@ const filters = ref({
 })
 
 onMounted(() => {
-  repayments.value = mockRepayments
-  // 点击外部关闭菜单
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('.relative')) {
-      showMoreMenuId.value = null
-    }
-  })
+  repayments.value = [...mockRepayments]
 })
+
+function parseRowTimeMs(r) {
+  const s = r.repaymentTime || r.createTime
+  if (!s) return null
+  const t = Date.parse(String(s).replace(' ', 'T'))
+  return Number.isNaN(t) ? null : t
+}
+
+function startOfTodayMs() {
+  const d = new Date()
+  d.setHours(0, 0, 0, 0)
+  return d.getTime()
+}
+
+function startOfWeekMondayMs() {
+  const d = new Date()
+  const day = d.getDay()
+  const diff = day === 0 ? -6 : 1 - day
+  const s = new Date(d)
+  s.setDate(d.getDate() + diff)
+  s.setHours(0, 0, 0, 0)
+  return s.getTime()
+}
+
+function startOfMonthMs() {
+  const d = new Date()
+  return new Date(d.getFullYear(), d.getMonth(), 1, 0, 0, 0, 0).getTime()
+}
 
 const filteredRepayments = computed(() => {
   let result = repayments.value
 
   if (filters.value.status) {
-    result = result.filter(r => r.status === filters.value.status)
+    result = result.filter((r) => r.status === filters.value.status)
   }
   if (filters.value.repaymentType) {
-    result = result.filter(r => r.repaymentType === filters.value.repaymentType)
+    result = result.filter((r) => r.repaymentType === filters.value.repaymentType)
   }
   if (filters.value.searchText) {
-    const search = filters.value.searchText.toLowerCase()
-    result = result.filter(r => 
-      r.orderId.toLowerCase().includes(search) ||
-      r.userId.toLowerCase().includes(search) ||
-      r.userName.toLowerCase().includes(search)
-    )
+    const search = filters.value.searchText.toLowerCase().trim()
+    result = result.filter((r) => {
+      const cur = (r.loanCurrency || '').toLowerCase()
+      return (
+        r.repaymentId.toLowerCase().includes(search) ||
+        r.orderId.toLowerCase().includes(search) ||
+        r.userId.toLowerCase().includes(search) ||
+        (r.userName && r.userName.toLowerCase().includes(search)) ||
+        (cur && cur.includes(search))
+      )
+    })
+  }
+
+  const tr = filters.value.timeRange
+  if (tr && tr !== 'all') {
+    const now = Date.now()
+    let from = 0
+    if (tr === 'today') from = startOfTodayMs()
+    else if (tr === 'week') from = startOfWeekMondayMs()
+    else if (tr === 'month') from = startOfMonthMs()
+    result = result.filter((r) => {
+      const t = parseRowTimeMs(r)
+      return t != null && t >= from && t <= now
+    })
   }
 
   return result
 })
 
-const totalPages = computed(() => {
-  return Math.ceil(filteredRepayments.value.length / pageSize.value)
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredRepayments.value.length / pageSize.value)))
+
+const repaymentsPaged = computed(() => {
+  const list = filteredRepayments.value
+  const page = Math.min(listPage.value, totalPages.value)
+  const start = (page - 1) * pageSize.value
+  return list.slice(start, start + pageSize.value)
 })
 
-const formatCurrency = (value) => {
-  return new Intl.NumberFormat('zh-CN', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0
-  }).format(value)
+const selectedRepaymentRows = computed(() =>
+  repayments.value.filter((r) => selectedRepaymentIds.value.includes(r.repaymentId))
+)
+
+const selectedFailedRows = computed(() =>
+  selectedRepaymentRows.value.filter((r) => r.status === REPAYMENT_STATUS.FAILED)
+)
+
+const selectedRemindRows = computed(() =>
+  selectedRepaymentRows.value.filter(
+    (r) => r.status === REPAYMENT_STATUS.PENDING || r.status === REPAYMENT_STATUS.OVERDUE
+  )
+)
+
+const pageRepaymentIds = computed(() => repaymentsPaged.value.map((r) => r.repaymentId))
+
+const allPageSelected = computed(() => {
+  const ids = pageRepaymentIds.value
+  if (!ids.length) return false
+  return ids.every((id) => selectedRepaymentIds.value.includes(id))
+})
+
+function isRepaymentSelected(id) {
+  return selectedRepaymentIds.value.includes(id)
 }
 
-const formatDateTime = (dateStr) => {
-  return dateStr
+function toggleRepaymentSelect(id) {
+  const cur = selectedRepaymentIds.value
+  const i = cur.indexOf(id)
+  if (i === -1) selectedRepaymentIds.value = [...cur, id]
+  else selectedRepaymentIds.value = cur.filter((x) => x !== id)
 }
 
-const statusLabel = (status) => {
-  return REPAYMENT_STATUS_LABELS[status] || status
+function onToggleSelectAllPage(e) {
+  const checked = e.target.checked
+  const ids = pageRepaymentIds.value
+  if (checked) {
+    const set = new Set([...selectedRepaymentIds.value, ...ids])
+    selectedRepaymentIds.value = [...set]
+  } else {
+    const idSet = new Set(ids)
+    selectedRepaymentIds.value = selectedRepaymentIds.value.filter((x) => !idSet.has(x))
+  }
 }
 
-const repaymentTypeLabel = (type) => {
-  return REPAYMENT_TYPE_LABELS[type] || type
+function clearSelection() {
+  selectedRepaymentIds.value = []
 }
+
+watchEffect(() => {
+  const el = headerCheckboxRef.value
+  if (!el) return
+  const ids = pageRepaymentIds.value
+  const sel = selectedRepaymentIds.value
+  const onPage = ids.filter((id) => sel.includes(id)).length
+  el.indeterminate = ids.length > 0 && onPage > 0 && onPage < ids.length
+})
+
+watch(
+  () => repayments.value.map((r) => r.repaymentId).join('\0'),
+  () => {
+    const valid = new Set(repayments.value.map((r) => r.repaymentId))
+    selectedRepaymentIds.value = selectedRepaymentIds.value.filter((id) => valid.has(id))
+  }
+)
+
+watch(
+  () => [filters.value.status, filters.value.repaymentType, filters.value.timeRange, filters.value.searchText],
+  () => {
+    listPage.value = 1
+  }
+)
+
+watch([() => filteredRepayments.value.length, pageSize], () => {
+  const tp = Math.max(1, Math.ceil(filteredRepayments.value.length / pageSize.value))
+  if (listPage.value > tp) listPage.value = tp
+})
+
+const formatLedgerAmount = (value, loanCurrency) => {
+  if (value == null || !Number.isFinite(Number(value))) return '—'
+  const cur = loanCurrency || 'USDT'
+  return `${Number(value).toLocaleString('zh-CN', { maximumFractionDigits: 6 })} ${cur}`
+}
+
+const formatLedgerNumber = (value) => {
+  if (value == null || !Number.isFinite(Number(value))) return '—'
+  return Number(value).toLocaleString('zh-CN', { maximumFractionDigits: 6 })
+}
+
+function truncateMiddle(s, max = 14) {
+  if (s == null || s === '') return ''
+  if (s.length <= max) return s
+  const keep = max - 1
+  const head = Math.ceil(keep / 2)
+  const tail = Math.floor(keep / 2)
+  return `${s.slice(0, head)}…${s.slice(-tail)}`
+}
+
+const formatDateTime = (dateStr) => dateStr || '—'
+
+const statusLabel = (status) => REPAYMENT_STATUS_LABELS[status] || status
+
+const repaymentTypeLabel = (type) => REPAYMENT_TYPE_LABELS[type] || type
 
 const resetFilters = () => {
   filters.value = {
@@ -915,8 +686,9 @@ const resetFilters = () => {
   }
 }
 
-const toggleMoreMenu = (repaymentId) => {
-  showMoreMenuId.value = showMoreMenuId.value === repaymentId ? null : repaymentId
+const onPageSizeChange = (n) => {
+  pageSize.value = n
+  listPage.value = 1
 }
 
 const viewDetails = (repayment) => {
@@ -929,145 +701,73 @@ const closeDetailModal = () => {
   currentDetailRepayment.value = null
 }
 
-const confirmRepayment = (repayment) => {
-  if (confirm(`确认收到还款 ${repayment.repaymentId} 的款项吗？`)) {
-    // 更新状态为已完成
-    const index = repayments.value.findIndex(r => r.repaymentId === repayment.repaymentId)
-    if (index !== -1) {
-      repayments.value[index].status = 'completed'
-      repayments.value[index].repaymentTime = new Date().toISOString().slice(0, 19).replace('T', ' ')
-    }
-    alert('还款已确认')
+const retryRepayment = (repayment) => {
+  if (!confirm(`确定重新发起还款 ${repayment.repaymentId} 吗？`)) return
+  const index = repayments.value.findIndex((r) => r.repaymentId === repayment.repaymentId)
+  if (index === -1) return
+  repayments.value[index] = {
+    ...repayments.value[index],
+    status: REPAYMENT_STATUS.PROCESSING,
+    failureReason: null
   }
-  showMoreMenuId.value = null
+  alert('已重新发起还款')
 }
 
-const retryRepayment = (repayment) => {
-  if (confirm(`确定重新发起还款 ${repayment.repaymentId} 吗？`)) {
-    const index = repayments.value.findIndex(r => r.repaymentId === repayment.repaymentId)
-    if (index !== -1) {
-      repayments.value[index].status = 'processing'
-      repayments.value[index].failureReason = null
-    }
-    alert('已重新发起还款')
+function applyRetryToRepayments(ids) {
+  const idSet = new Set(ids)
+  repayments.value = repayments.value.map((r) =>
+    idSet.has(r.repaymentId)
+      ? { ...r, status: REPAYMENT_STATUS.PROCESSING, failureReason: null }
+      : r
+  )
+}
+
+function batchRetrySelected() {
+  const rows = selectedFailedRows.value
+  if (!rows.length) {
+    alert('所选记录中没有可重试的失败还款')
+    return
   }
-  showMoreMenuId.value = null
+  if (!confirm(`确定对 ${rows.length} 条失败记录重新发起还款吗？`)) return
+  applyRetryToRepayments(rows.map((r) => r.repaymentId))
+  alert(`已重新发起 ${rows.length} 条还款`)
+}
+
+function openRemindModal(rows) {
+  if (!rows.length) return
+  remindTargets.value = rows
+  remindChannel.value = REPAYMENT_REMINDER_CHANNEL.IN_APP
+  remindModalOpen.value = true
+}
+
+function closeRemindModal() {
+  remindModalOpen.value = false
+  remindTargets.value = []
+}
+
+function openRemindModalForBatch() {
+  const rows = selectedRemindRows.value
+  if (!rows.length) {
+    alert('所选记录中没有待还款或逾期记录')
+    return
+  }
+  openRemindModal(rows)
+}
+
+function confirmRemindSend() {
+  const rows = remindTargets.value
+  if (!rows.length) return
+  const ch = remindChannel.value
+  const label = REPAYMENT_REMINDER_CHANNEL_LABELS[ch] || ch
+  const users = [...new Set(rows.map((r) => r.userName || r.userId))]
+  const userPart =
+    users.length <= 5 ? users.join('、') : `${users.slice(0, 5).join('、')} 等 ${users.length} 人`
+  alert(`已通过「${label}」向 ${rows.length} 笔还款关联用户发送提醒（${userPart}）`)
+  closeRemindModal()
 }
 
 const sendReminder = (repayment) => {
-  alert(`已向用户 ${repayment.userName} 发送还款提醒`)
-  showMoreMenuId.value = null
+  openRemindModal([repayment])
 }
 
-const viewTransaction = (repayment) => {
-  // 模拟获取完整的交易详情
-  currentTransaction.value = {
-    transactionId: repayment.transactionId,
-    repaymentId: repayment.repaymentId,
-    orderId: repayment.orderId,
-    amount: repayment.amount,
-    currency: 'USDT',
-    paymentMethod: repayment.paymentMethod,
-    status: 'confirmed',
-    // 区块链信息
-    blockchainType: 'Ethereum',
-    txHash: '0x' + Math.random().toString(16).substr(2, 64),
-    blockNumber: Math.floor(Math.random() * 1000000) + 15000000,
-    blockTime: repayment.repaymentTime || repayment.createTime,
-    confirmations: Math.floor(Math.random() * 50) + 12,
-    // 费用信息
-    gasFee: (Math.random() * 10 + 5).toFixed(4),
-    gasPrice: (Math.random() * 50 + 20).toFixed(2),
-    gasUsed: Math.floor(Math.random() * 50000) + 21000,
-    networkFee: (Math.random() * 2 + 1).toFixed(2),
-    // 地址信息
-    fromAddress: '0x' + Math.random().toString(16).substr(2, 40),
-    toAddress: '0x' + Math.random().toString(16).substr(2, 40),
-    // 时间信息
-    createTime: repayment.createTime,
-    confirmTime: repayment.repaymentTime,
-    // 其他信息
-    nonce: Math.floor(Math.random() * 1000),
-    inputData: '0xa9059cbb' + Math.random().toString(16).substr(2, 120)
-  }
-  showTransactionModal.value = true
-  showMoreMenuId.value = null
-}
-
-const closeTransactionModal = () => {
-  showTransactionModal.value = false
-  currentTransaction.value = null
-}
-
-const copyToClipboard = (text) => {
-  navigator.clipboard.writeText(text).then(() => {
-    alert('已复制到剪贴板')
-  }).catch(() => {
-    alert('复制失败')
-  })
-}
-
-const openBlockExplorer = (txHash) => {
-  window.open(`https://etherscan.io/tx/${txHash}`, '_blank')
-}
-
-const adjustRepaymentPlan = (repayment) => {
-  currentAdjustRepayment.value = repayment
-  adjustForm.value = {
-    amount: repayment.amount,
-    scheduledDate: '',
-    reason: ''
-  }
-  showAdjustModal.value = true
-  showMoreMenuId.value = null
-}
-
-const submitAdjustment = () => {
-  if (!adjustForm.value.reason) {
-    alert('请填写调整原因')
-    return
-  }
-  
-  const index = repayments.value.findIndex(r => r.repaymentId === currentAdjustRepayment.value.repaymentId)
-  if (index !== -1) {
-    repayments.value[index].amount = adjustForm.value.amount
-  }
-  
-  alert('还款计划已调整')
-  showAdjustModal.value = false
-}
-
-const cancelRepayment = (repayment) => {
-  currentCancelRepayment.value = repayment
-  cancelForm.value.reason = ''
-  showCancelModal.value = true
-  showMoreMenuId.value = null
-}
-
-const submitCancellation = () => {
-  if (!cancelForm.value.reason.trim()) {
-    alert('请输入取消原因')
-    return
-  }
-  
-  const index = repayments.value.findIndex(r => r.repaymentId === currentCancelRepayment.value.repaymentId)
-  if (index !== -1) {
-    repayments.value.splice(index, 1)
-  }
-  alert(`还款已取消\n原因: ${cancelForm.value.reason}`)
-  showCancelModal.value = false
-}
-
-const exportReceipt = (repayment) => {
-  alert(`导出还款凭证: ${repayment.repaymentId}`)
-  showMoreMenuId.value = null
-}
-
-const prevPage = () => {
-  if (currentPage.value > 1) currentPage.value--
-}
-
-const nextPage = () => {
-  if (currentPage.value < totalPages.value) currentPage.value++
-}
 </script>

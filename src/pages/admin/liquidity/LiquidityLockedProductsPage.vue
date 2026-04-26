@@ -584,7 +584,7 @@ const applyPresetDays = (days) => {
 										<div class="col-span-2">
 											<label class="mb-1 block text-sm font-medium text-slate-700">可借贷比例（0–100%）</label>
 											<p class="mb-1 text-xs text-slate-500">
-												锁仓额中可按该比例计入与借出币种相同的借贷池；前台抵押借贷详情「可借余额」按同币种上架产品合计推算。
+												锁仓额中可按该比例计入与借出币种相同的借贷池；前台信用借贷详情「可借余额」按同币种上架产品合计推算。
 											</p>
 											<input
 												v-model.number="productForm.lendableRatio"

@@ -106,12 +106,12 @@ export const navTree = [
     ]
   },
   {
-    title: '抵押借贷',
+    title: '信用借贷',
     icon: 'loan',
     children: [
       { title: '产品管理', path: '/admin/lending/products' },
       { title: '订单管理', path: '/admin/lending/orders' },
-      { title: '还款管理', path: '/admin/lending/repayment' },
+      { title: '还款记录', path: '/admin/lending/repayment' },
       {
         title: '授信中心',
         path: '/admin/lending/credit-policy',

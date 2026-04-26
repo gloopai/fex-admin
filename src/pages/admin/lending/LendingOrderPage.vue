@@ -21,7 +21,7 @@
           <option value="active">借贷中</option>
           <option value="repaying">还款中</option>
           <option value="completed">已完成</option>
-          <option value="liquidated">已清算</option>
+          <option value="liquidated">违约结清</option>
         </select>
         <input v-model="filters.userId" type="text" placeholder="搜索用户ID..." class="w-full max-w-xs rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500" />
         <button type="button" class="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50" @click="resetFilters">重置</button>

@@ -1,12 +1,13 @@
-// 加密货币抵押借贷：与锁仓 USDC 产品等交叉引用时保持币种与订单 id 自洽。
-// 一致性约定：主订单 totalDebt/currentLtv/interestAccrued 自洽；currentLtv≈totalDebt/collateralValue。
-// PENDING（链上待确认）：可与预期 remainingDebt 同步回写主订单。
+// 平台信用借贷 Mock：与锁仓等产品交叉引用时保持币种与订单 id 自洽。
+// 一致性约定：主订单 totalDebt / interestAccrued 等与演示逻辑自洽（保留部分历史字段仅作占位，不代表链上抵押）。
+// PENDING（还款处理中）：可与预期 remainingDebt 同步回写主订单。
 // PROCESSING：入账前主订单不变，还款行的 remainingDebt 仍为当前总债务。
 import {
   PRODUCT_STATUS,
   LOAN_ORDER_STATUS,
   REPAYMENT_STATUS,
   REPAYMENT_TYPE,
+  REPAYMENT_PAYMENT_METHOD_USER,
   RISK_LEVEL,
   INTEREST_RATE_TYPE
 } from '../constants/cryptoLending'
@@ -231,7 +232,7 @@ export const mockOrders = [
     maturityDate: '2025-03-08 11:45:00',
     riskLevel: RISK_LEVEL.HIGH,
     purpose: '商业投资',
-    remarks: '大额借贷，需重点审核抵押资产来源'
+    remarks: '大额借贷，需重点审核资金来源与用途'
   },
   {
     orderId: 'ORD-20240308-001',
@@ -265,7 +266,7 @@ export const mockOrders = [
     maturityDate: '2024-05-25 10:30:00',
     riskLevel: RISK_LEVEL.LOW,
     purpose: '个人理财资金周转',
-    remarks: '老客户；链上部分还款待确认，账面已与 REP-20240309-006 对齐（本金+息扣减 5000）'
+    remarks: '老客户；部分还款处理中，账面已与 REP-20240309-006 对齐（本金+息扣减 5000）'
   },
   {
     orderId: 'ORD-20240308-002',
@@ -333,7 +334,7 @@ export const mockOrders = [
     maturityDate: '2024-03-25 11:00:00',
     riskLevel: RISK_LEVEL.LOW,
     purpose: '稳定币短期借贷',
-    remarks: '稳定币抵押，风险极低'
+    remarks: '稳定币借款，风险偏低'
   },
   {
     orderId: 'ORD-20240305-004',
@@ -402,7 +403,7 @@ export const mockOrders = [
     liquidationTime: '2024-03-08 06:30:00',
     riskLevel: RISK_LEVEL.HIGH,
     purpose: '投资扩张资金',
-    remarks: '抵押资产价格大幅下跌，触发清算'
+    remarks: '严重逾期，已按规则违约结清'
   },
   {
     orderId: 'ORD-20240308-008',
@@ -438,7 +439,7 @@ export const mockOrders = [
     purpose: '审核未通过，已取消',
     remarks: '风控复核未通过，订单关闭'
   },
-  /** 历史已清算等终态订单演示 */
+  /** 历史违约结清等终态订单演示 */
   {
     orderId: 'ORD-20240220-015',
     userId: 'USR-10015',
@@ -541,7 +542,7 @@ export const mockOrders = [
     maturityDate: '2025-07-01 10:00:00',
     riskLevel: RISK_LEVEL.HIGH,
     purpose: '杠杆仓位',
-    remarks: '清算未成交，债务仍在（见 LIQ-20240228-004）'
+    remarks: '违约处置未完全收回，债务仍在（见 LIQ-20240228-004）'
   }
 ]
 
@@ -553,13 +554,14 @@ export const mockRepayments = [
     userId: 'USR-10001',
     userName: '张三',
     productName: 'BTC标准借贷',
-    repaymentType: REPAYMENT_TYPE.INTEREST_ONLY,
+    loanCurrency: 'USDT',
+    repaymentType: REPAYMENT_TYPE.PARTIAL,
     amount: 245.5,
     interestPaid: 245.5,
     principalPaid: 0,
     remainingDebt: 87500,
     status: REPAYMENT_STATUS.COMPLETED,
-    paymentMethod: '钱包余额',
+    paymentMethod: REPAYMENT_PAYMENT_METHOD_USER,
     transactionId: 'TXN-20240308-100001',
     repaymentTime: '2024-03-08 10:30:00',
     createTime: '2024-03-08 10:25:00'
@@ -570,13 +572,14 @@ export const mockRepayments = [
     userId: 'USR-10003',
     userName: '王五',
     productName: 'USDT稳定币借贷',
+    loanCurrency: 'USDC',
     repaymentType: REPAYMENT_TYPE.PARTIAL,
     amount: 15000,
     interestPaid: 102.3,
     principalPaid: 14897.7,
     remainingDebt: 30102.3,
     status: REPAYMENT_STATUS.COMPLETED,
-    paymentMethod: '加密钱包',
+    paymentMethod: REPAYMENT_PAYMENT_METHOD_USER,
     transactionId: 'TXN-20240307-100002',
     repaymentTime: '2024-03-07 15:45:00',
     createTime: '2024-03-07 15:40:00'
@@ -587,13 +590,14 @@ export const mockRepayments = [
     userId: 'USR-10002',
     userName: '李四',
     productName: 'ETH灵活借贷',
-    repaymentType: REPAYMENT_TYPE.INTEREST_ONLY,
+    loanCurrency: 'USDT',
+    repaymentType: REPAYMENT_TYPE.PARTIAL,
     amount: 567.8,
     interestPaid: 567.8,
     principalPaid: 0,
     remainingDebt: 98067.8,
     status: REPAYMENT_STATUS.PROCESSING,
-    paymentMethod: '钱包余额',
+    paymentMethod: REPAYMENT_PAYMENT_METHOD_USER,
     transactionId: 'TXN-20240306-100003',
     repaymentTime: null,
     createTime: '2024-03-06 11:20:00'
@@ -604,13 +608,14 @@ export const mockRepayments = [
     userId: 'USR-10004',
     userName: '赵六',
     productName: 'BTC标准借贷',
+    loanCurrency: 'USDT',
     repaymentType: REPAYMENT_TYPE.FULL,
     amount: 42468.5,
     interestPaid: 468.5,
     principalPaid: 42000,
     remainingDebt: 0,
     status: REPAYMENT_STATUS.COMPLETED,
-    paymentMethod: '钱包余额',
+    paymentMethod: REPAYMENT_PAYMENT_METHOD_USER,
     transactionId: 'TXN-20240305-100004',
     repaymentTime: '2024-03-05 16:45:00',
     createTime: '2024-03-05 16:40:00'
@@ -621,6 +626,7 @@ export const mockRepayments = [
     userId: 'USR-10001',
     userName: '张三',
     productName: 'BTC标准借贷',
+    loanCurrency: 'USDT',
     repaymentType: REPAYMENT_TYPE.AUTO,
     amount: 197.5,
     interestPaid: 197.5,
@@ -639,13 +645,14 @@ export const mockRepayments = [
     userId: 'USR-10001',
     userName: '张三',
     productName: 'BTC标准借贷',
+    loanCurrency: 'USDT',
     repaymentType: REPAYMENT_TYPE.PARTIAL,
     amount: 5000,
     interestPaid: 245.5,
     principalPaid: 4754.5,
     remainingDebt: 82745.5,
     status: REPAYMENT_STATUS.PENDING,
-    paymentMethod: '链上转账（待确认）',
+    paymentMethod: REPAYMENT_PAYMENT_METHOD_USER,
     transactionId: null,
     repaymentTime: null,
     createTime: '2024-03-09 09:00:00'
@@ -656,9 +663,10 @@ export const mockRepayments = [
     userId: 'USR-10002',
     userName: '李四',
     productName: 'ETH灵活借贷',
-    repaymentType: REPAYMENT_TYPE.INTEREST_ONLY,
+    loanCurrency: 'USDT',
+    repaymentType: REPAYMENT_TYPE.AUTO,
     amount: 1200,
-    interestPaid: 0,
+    interestPaid: 1200,
     principalPaid: 0,
     remainingDebt: 98067.8,
     status: REPAYMENT_STATUS.OVERDUE,
@@ -670,256 +678,145 @@ export const mockRepayments = [
   }
 ]
 
-// 规则说明数据
+// 规则说明数据（与前台/运营「平台对手盘」口径一致；无链上抵押叙事）
 export const guideData = {
   introduction: {
-    title: '加密货币抵押借贷产品介绍',
+    title: '平台信用借贷产品介绍',
     content: `
-      <h2>什么是加密货币抵押借贷？</h2>
-      <p>加密货币抵押借贷是一种去中心化金融（DeFi）服务，用户可以通过抵押自己的加密货币资产来借入稳定币或其他数字货币，无需出售原有资产即可获得流动性。</p>
-      
-      <h3>核心优势</h3>
+      <h2>什么是平台信用借贷？</h2>
+      <p>资金由<strong>平台作为对手方</strong>提供，用户在授信与产品规则内借出数字资产（如 USDT），计息与还款均在<strong>站内账户体系</strong>完成，<strong>不依赖链上抵押合约</strong>。</p>
+      <h3>核心特点</h3>
       <ul>
-        <li><strong>无需出售资产：</strong>保留加密货币的升值潜力</li>
-        <li><strong>快速审批：</strong>自动化流程，即时放款</li>
-        <li><strong>灵活还款：</strong>支持部分还款、利息先还等多种方式</li>
-        <li><strong>透明度高：</strong>所有费率和条款公开透明</li>
-        <li><strong>市场化定价：</strong>利率根据市场供需实时调整</li>
-      </ul>
-      
-      <h3>产品类型</h3>
-      <ul>
-        <li><strong>标准借贷：</strong>适合长期持有者，固定利率，期限灵活</li>
-        <li><strong>灵活借贷：</strong>浮动利率，可随时提前还款，无违约金</li>
-        <li><strong>高额借贷：</strong>针对大额用户，更高的贷款额度</li>
-        <li><strong>稳定币借贷：</strong>稳定币对稳定币，低风险低利率</li>
-        <li><strong>超短期借贷：</strong>适合短期资金需求，日息计算</li>
+        <li><strong>场内授信：</strong>额度与利率结合信用与风控规则</li>
+        <li><strong>到账快：</strong>审核通过后记入借贷账户，无需链上确认</li>
+        <li><strong>还款灵活：</strong>支持部分还款、先息后本、自动扣款等</li>
+        <li><strong>费率透明：</strong>利率与费用以产品页与合同为准</li>
       </ul>
     `
   },
-  
   terminology: {
     title: '名词解释',
     terms: [
       {
-        term: 'LTV (Loan-to-Value Ratio)',
-        definition: '贷款价值比，表示借款金额与抵押品价值的比率。例如：抵押10万美元的BTC，借出7万USDT，LTV为70%。',
-        example: '如果您抵押价值100,000 USDT的BTC，在LTV为70%的产品中，最多可借出70,000 USDT。'
-      },
-      {
-        term: '清算阈值 (Liquidation Threshold)',
-        definition: '触发强制清算的LTV临界值。当抵押品价值下降导致LTV超过此阈值时，系统将自动清算部分或全部抵押品。',
-        example: '清算阈值为85%时，如果BTC价格下跌导致LTV达到85%，系统将启动清算程序。'
+        term: '授信额度',
+        definition: '平台根据用户资质、信用分与风控策略核定的可借上限（按账户与币种维度管理）。',
+        example: '若 USDT 授信 10 万、已占用 3 万，则剩余可借约 7 万（以系统实时计算为准）。'
       },
       {
         term: '年化利率 (APR)',
-        definition: '按年计算的借款利息率，不包括复利效果。实际利息按日计算。',
-        example: '年化利率8.5%，借款10,000 USDT 30天，利息约为 10,000 × 8.5% × 30/365 = 69.86 USDT。'
+        definition: '按年报价的借款利率；演示环境以固定年化为主，实际利息通常按日摊销。',
+        example: '年化 8.5%，借 10,000 USDT 共 30 天，利息约 10,000 × 8.5% × 30/365 ≈ 69.86 USDT。'
       },
       {
-        term: '清算罚金',
-        definition: '清算时收取的额外费用，作为风险补偿。通常为清算金额的5-10%。',
-        example: '清算罚金5%时，清算10,000 USDT的债务，需额外支付500 USDT罚金。'
+        term: '总债务',
+        definition: '未偿本金与应计利息等合计，用于展示当前欠款规模。',
+        example: '本金 70,000 + 已计利息 465 = 总债务 70,465 USDT。'
       },
       {
-        term: '健康度 (Health Factor)',
-        definition: '衡量借贷头寸安全性的指标，计算公式：(抵押品价值 × 清算阈值) / 总债务。健康度低于1时将被清算。',
-        example: '抵押10万USDT，借5万，清算阈值85%，健康度 = (100,000 × 85%) / 50,000 = 1.7'
+        term: '违约结清',
+        definition: '严重逾期或触发协议约定的违约条款时，平台按规则对债权进行结清与追偿（演示中为状态标签，非链上清算）。',
+        example: '长期逾期可能记入征信/信用分并限制后续借款。'
       },
       {
         term: '信用评分',
-        definition: '基于历史借还记录、逾期情况、清算次数等因素计算的用户信用评级，影响可借额度和利率。',
-        example: '信用评分850分的用户可享受更低利率和更高贷款额度。'
+        definition: '基于历史借还、逾期、账户行为等综合评估，影响额度与定价。',
+        example: '评分较高用户可能获得更优利率或更高上限。'
       }
     ]
   },
-  
   operationGuide: {
     title: '操作指引',
     steps: [
       {
-        title: '1. 申请借贷',
+        title: '1. 申请借款',
         content: `
           <ol>
-            <li>选择合适的借贷产品</li>
-            <li>输入抵押币种和数量</li>
-            <li>系统自动计算可借金额</li>
-            <li>选择借款金额和期限</li>
-            <li>确认利率、LTV和清算阈值</li>
-            <li>提交申请，转入抵押资产</li>
-            <li>自动审核通过后即时放款</li>
-          </ol>
-          <p class="tip">💡 提示：建议LTV保持在60%以下，预留足够的安全空间。</p>
-        `
-      },
-      {
-        title: '2. 监控头寸',
-        content: `
-          <ol>
-            <li>定期查看"我的订单"页面</li>
-            <li>关注当前LTV和健康度</li>
-            <li>设置价格预警通知</li>
-            <li>市场波动时及时追加抵押品</li>
-          </ol>
-          <p class="warning">⚠️ 警告：当LTV接近清算阈值时，系统会发送预警通知。</p>
-        `
-      },
-      {
-        title: '3. 还款操作',
-        content: `
-          <h4>还款方式：</h4>
-          <ul>
-            <li><strong>仅还利息：</strong>保持本金不变，延长借款期限</li>
-            <li><strong>部分还款：</strong>降低债务和LTV，减少清算风险</li>
-            <li><strong>全额还款：</strong>清偿所有债务，取回全部抵押品</li>
-            <li><strong>自动还款：</strong>设置自动扣款，避免逾期</li>
-          </ul>
-          <p class="tip">💡 提示：提前还款无违约金，建议根据市场情况灵活调整。</p>
-        `
-      },
-      {
-        title: '4. 追加抵押',
-        content: `
-          <p>当抵押品价格下跌时，可通过追加抵押降低LTV：</p>
-          <ol>
-            <li>进入订单详情页</li>
-            <li>点击"追加抵押"</li>
-            <li>输入追加数量</li>
-            <li>确认后转入资产</li>
-            <li>LTV实时更新</li>
+            <li>选择产品与借出币种</li>
+            <li>填写金额与期限，确认利率</li>
+            <li>提交申请，等待审核（若需）</li>
+            <li>通过后资金记入借贷账户</li>
           </ol>
         `
       },
       {
-        title: '5. 清算处理',
+        title: '2. 查看与还款',
         content: `
-          <p>当LTV达到清算阈值时：</p>
-          <ul>
-            <li>系统自动启动清算程序</li>
-            <li>按市价出售部分抵押品</li>
-            <li>偿还债务和清算罚金</li>
-            <li>剩余抵押品退回用户</li>
-          </ul>
-          <p class="warning">⚠️ 清算后会影响信用评分，建议提前追加抵押或还款避免清算。</p>
+          <ol>
+            <li>在订单中查看总债务与利息</li>
+            <li>按需输入还款金额（先冲已计利息再冲本金）、一次结清或自动扣款</li>
+            <li>避免逾期以减少罚息与信用影响</li>
+          </ol>
         `
       }
     ]
   },
-  
   examples: {
     title: '操作示例',
     cases: [
       {
-        title: '示例1：BTC标准借贷',
-        scenario: '用户持有2个BTC（当前价格50,000 USDT/BTC），需要70,000 USDT的流动性',
+        title: '示例：固定利率借款',
+        scenario: '需 50,000 USDT 周转 90 天，产品年化 8.5%',
         steps: [
-          '选择"BTC标准借贷"产品（LTV 70%，清算阈值85%，年化利率8.5%）',
-          '抵押2个BTC，价值100,000 USDT',
-          '可借金额：100,000 × 70% = 70,000 USDT',
-          '选择借款期限90天',
-          '预计利息：70,000 × 8.5% × 90/365 = 1,465 USDT',
-          '清算价格：70,000 / (2 × 0.85) = 41,176 USDT/BTC'
+          '确认授信与可借余额充足',
+          '提交 50,000 USDT、90 天申请',
+          '通过后到账至借贷账户',
+          '预计利息约 50,000 × 8.5% × 90/365'
         ],
-        result: '立即获得70,000 USDT，保留BTC升值潜力，BTC价格跌破41,176时触发清算。'
+        result: '期间按日计息，可提前还款，无链上抵押环节。'
       },
       {
-        title: '示例2：市场下跌应对策略',
-        scenario: 'BTC价格从50,000跌至45,000，LTV从70%升至77.8%',
+        title: '示例：部分还款',
+        scenario: '当前总债务 70,465 USDT，希望降低本金压力',
         steps: [
-          '原始状态：抵押2 BTC (100,000 USDT)，借款70,000 USDT，LTV 70%',
-          'BTC跌至45,000：抵押品价值90,000 USDT，LTV = 70,000/90,000 = 77.8%',
-          '距离清算阈值85%还有7.2%的空间',
-          '策略1：追加0.35 BTC抵押，LTV降至70%',
-          '策略2：部分还款10,000 USDT，LTV降至66.7%',
-          '策略3：不操作，继续监控市场'
+          '可输入金额只覆盖已计利息（如 465 USDT），或归还部分/全部本金及利息',
+          '或一次结清总债务',
+          '金额在总债务范围内均可'
         ],
-        result: '选择策略后，安全空间增大，避免清算风险。'
-      },
-      {
-        title: '示例3：还款策略优化',
-        scenario: '已借款30天，累计利息465 USDT，考虑还款方案',
-        steps: [
-          '当前债务：70,000 + 465 = 70,465 USDT',
-          '方案1：仅还利息465 USDT，保持借款本金',
-          '方案2：还款20,465 USDT（利息+部分本金），降低LTV至55.6%',
-          '方案3：全额还款70,465 USDT，取回全部BTC',
-          '方案4：设置自动还款，每月支付利息'
-        ],
-        result: '根据市场预期和资金状况选择最优方案。'
+        result: '剩余债务与后续利息按新本金重新计算（以系统规则为准）。'
       }
     ]
   },
-  
   faq: {
     title: '常见问题',
     questions: [
       {
-        question: '借款需要多长时间到账？',
-        answer: '审核和放款过程完全自动化，通常在您转入抵押资产后1-5分钟内到账，具体时间取决于区块链网络确认速度。'
+        question: '是否需要链上抵押或智能合约？',
+        answer: '当前产品为平台对手盘模式，不涉及链上抵押与合约托管；资金与债务在站内账务中体现。'
       },
       {
-        question: '可以提前还款吗？有违约金吗？',
-        answer: '支持随时提前还款，没有任何违约金或提前还款费用。还款后多余的抵押品会立即解锁。'
+        question: '借款多久到账？',
+        answer: '审核通过后通常实时到账至借贷账户，无需等待区块确认。'
       },
       {
-        question: '清算是如何进行的？',
-        answer: '当LTV达到清算阈值时，智能合约会自动触发清算。系统会在市场上出售部分抵押品，用于偿还债务、利息和清算罚金。剩余抵押品会退回到您的账户。'
+        question: '可以提前还款吗？',
+        answer: '一般支持提前结清，是否收取费用以产品约定为准；演示环境默认无违约金。'
       },
       {
-        question: '如何避免被清算？',
-        answer: '1) 保持较低的LTV（建议60%以下）；2) 设置价格预警；3) 市场波动时及时追加抵押；4) 部分还款降低债务；5) 选择清算阈值更高的产品。'
+        question: '逾期会怎样？',
+        answer: '可能产生逾期罚息、信用分下调、限制借款，严重时可进入违约结清与追偿流程。'
       },
       {
-        question: '利息是如何计算的？',
-        answer: '利息按日计算：每日利息 = 借款金额 × 年化利率 / 365。利息每日累计，可以随时还款。'
-      },
-      {
-        question: '抵押的资产安全吗？',
-        answer: '所有抵押资产存储在经过审计的智能合约中，采用多重签名和冷热钱包分离策略。平台有完善的风险准备金机制。'
-      },
-      {
-        question: '信用评分如何影响借贷？',
-        answer: '信用评分高的用户可以享受：1) 更低的借款利率；2) 更高的贷款额度；3) 更高的LTV比率；4) 优先审核和服务。'
-      },
-      {
-        question: '可以同时有多个借贷订单吗？',
-        answer: '可以。您可以针对不同的抵押资产创建多个借贷订单，但需要确保每个订单的LTV在安全范围内。'
-      },
-      {
-        question: '如果逾期未还款会怎样？',
-        answer: '逾期后会产生额外的逾期费用（通常为日利率的1.5倍），持续逾期可能导致系统强制清算，并影响信用评分。'
-      },
-      {
-        question: '浮动利率是如何调整的？',
-        answer: '浮动利率根据市场供需关系自动调整，通常每24小时更新一次。当借款需求增加时利率上升，反之下降。'
+        question: '利息怎么算？',
+        answer: '常用方式：每日利息 = 本金 × 年化利率 / 365（或系统采用的计息日历），具体以产品说明为准。'
       }
     ]
   },
-  
   riskWarning: {
     title: '风险提示',
     warnings: [
       {
-        level: '市场风险',
-        description: '加密货币价格波动剧烈，可能在短时间内大幅下跌，导致LTV快速上升触发清算。'
+        level: '信用与违约风险',
+        description: '借款构成合同债务，需按时还款；违约可能影响信用与后续服务。'
       },
       {
-        level: '清算风险',
-        description: '当抵押品价值不足以覆盖债务时，系统会自动清算，您可能损失部分或全部抵押品。'
-      },
-      {
-        level: '利率风险',
-        description: '浮动利率产品的借款成本可能随市场变化而增加。'
-      },
-      {
-        level: '智能合约风险',
-        description: '虽然合约经过审计，但仍存在技术漏洞的可能性。'
+        level: '利率与费用风险',
+        description: '若产品为浮动或含附加费用，实际成本可能随规则变化。'
       },
       {
         level: '流动性风险',
-        description: '极端市场条件下，清算可能无法以理想价格执行。'
+        description: '极端情况下平台可能调整授信或放款节奏，以管控整体流动性。'
       }
     ],
-    disclaimer: '请充分了解产品风险后谨慎投资，不要借入超过您承受能力的金额。'
+    disclaimer: '请根据自身偿债能力谨慎借款，不要超出可承受范围。演示数据不代表真实授信结果。'
   }
 }

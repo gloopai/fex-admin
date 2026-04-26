@@ -24,8 +24,9 @@ import {
   LOAN_ORDER_STATUS_LABELS,
   REPAYMENT_STATUS,
   REPAYMENT_STATUS_LABELS,
-  REPAYMENT_TYPE,
-  REPAYMENT_TYPE_LABELS
+  REPAYMENT_TYPE_LABELS,
+  REPAYMENT_PAYMENT_METHOD_USER,
+  deriveRepaymentType
 } from '../../../../admin/constants/cryptoLending'
 import { FINANCE_FX as fx } from '../../../../constants/frontFinanceUi'
 
@@ -210,13 +211,14 @@ function confirmRepay() {
       userId: o.userId,
       userName: o.userName,
       productName: o.productName,
-      repaymentType: newDebt <= 0 ? REPAYMENT_TYPE.FULL : REPAYMENT_TYPE.PARTIAL,
+      loanCurrency: o.loanCurrency || 'USDT',
+      repaymentType: deriveRepaymentType({ newDebt }),
       amount: pay,
       interestPaid,
       principalPaid,
       remainingDebt: newDebt,
       status: REPAYMENT_STATUS.COMPLETED,
-      paymentMethod: '钱包余额',
+      paymentMethod: REPAYMENT_PAYMENT_METHOD_USER,
       transactionId: `TXN-${rid}`,
       repaymentTime: now,
       createTime: now
@@ -668,7 +670,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
           >
             <dl class="space-y-2.5 text-xs sm:space-y-3 sm:text-sm">
               <div class="flex items-start justify-between gap-2 border-b border-white/[0.06] pb-2.5 sm:items-center sm:gap-3 sm:pb-3">
-                <dt class="shrink-0 text-white/45">钱包余额</dt>
+                <dt class="shrink-0 text-white/45">站内可用（演示）</dt>
                 <dd class="max-w-[min(100%,11rem)] text-right text-[11px] font-semibold tabular-nums text-white sm:max-w-none sm:text-sm">
                   {{ walletBalanceDisplay.toLocaleString(undefined, { maximumFractionDigits: 2 }) }} USDT
                 </dd>
@@ -870,7 +872,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                       {{ r.productName }}
                     </p>
                     <p class="mt-0.5 tabular-nums text-[11px] text-white/55 sm:text-xs">
-                      {{ r.amount?.toLocaleString() }}
+                      {{ r.amount?.toLocaleString() }} {{ r.loanCurrency || 'USDT' }}
                     </p>
                     <div
                       class="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-white/[0.06] pt-3 text-[11px] text-white/50 md:hidden"
@@ -882,7 +884,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                     </div>
                   </td>
                   <td class="hidden px-3 py-2.5 tabular-nums md:table-cell md:px-5 md:py-3">
-                    {{ r.amount?.toLocaleString() }}
+                    {{ r.amount?.toLocaleString() }} {{ r.loanCurrency || 'USDT' }}
                   </td>
                   <td class="hidden md:table-cell md:px-5 md:py-3">
                     {{ REPAYMENT_TYPE_LABELS[r.repaymentType] ?? r.repaymentType }}
