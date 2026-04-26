@@ -257,7 +257,7 @@ const selectedDurationMeta = computed(
 <template>
 	<section class="space-y-6">
 		<header>
-			<h1 class="text-3xl font-semibold tracking-tight text-slate-900">收益倍数调控</h1>
+			<h1 class="text-3xl font-semibold tracking-tight text-slate-900">收益调控</h1>
 			<p class="mt-1 max-w-2xl text-sm leading-relaxed text-slate-500">
 				平台作为对手方时，通过倍数调整报价侧收益；作用范围以「产品 / 同币种池」为准，与外部撮合市场无关。
 			</p>

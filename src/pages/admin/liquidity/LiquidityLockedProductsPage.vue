@@ -193,7 +193,7 @@ const applyPresetDays = (days) => {
 	<section class="space-y-5">
 		<header class="flex items-center justify-between">
 			<div>
-				<h1 class="text-3xl font-semibold text-slate-900">流动性挖矿产品</h1>
+				<h1 class="text-3xl font-semibold text-slate-900">产品管理</h1>
 				<p class="mt-1 text-sm text-slate-500">配置锁仓产品、多档年化收益、赎回与限购及申购门槛</p>
 			</div>
 			<button

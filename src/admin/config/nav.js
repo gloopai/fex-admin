@@ -98,8 +98,8 @@ export const navTree = [
     title: '流动性挖矿',
     icon: 'droplet',
     children: [
-      { title: '流动性挖矿产品', path: '/admin/liquidity/locked/products' },
-      { title: '收益倍数调控', path: '/admin/liquidity/locked/yield-control' },
+      { title: '产品管理', path: '/admin/liquidity/locked/products' },
+      { title: '收益调控', path: '/admin/liquidity/locked/yield-control' },
       { title: '订单管理', path: '/admin/liquidity/locked/orders' },
       { title: '规则说明', path: '/admin/liquidity/locked/rules' }
     ]
