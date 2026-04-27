@@ -151,6 +151,11 @@ export const settlementPeriodMeta = {
   [SETTLEMENT_PERIOD.CUSTOM]: { label: '自定义周期', days: null }
 }
 
+/** 产品编辑表单可选周期（列表/详情仍用 settlementPeriodMeta 全量展示与兼容） */
+export const productFormSettlementPeriodMeta = {
+  [SETTLEMENT_PERIOD.DAILY]: settlementPeriodMeta[SETTLEMENT_PERIOD.DAILY]
+}
+
 /**
  * 参考年化（%）：与日收益率配置（日化 %）一致，按简单计息日化×365，与后台订单页年化列口径相同。
  * @param {number|string|null|undefined} dailyYieldPct

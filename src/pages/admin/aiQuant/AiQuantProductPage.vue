@@ -189,7 +189,7 @@
 									<div>
 										<label class="block text-sm font-medium text-slate-700 mb-1">周期类型</label>
 										<select v-model="productForm.settlementPeriod" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
-											<option v-for="(meta, key) in settlementPeriodMeta" :key="key" :value="key">{{ meta.label }}</option>
+											<option v-for="(meta, key) in productFormSettlementPeriodMeta" :key="key" :value="key">{{ meta.label }}</option>
 										</select>
 									</div>
 									<div v-if="productForm.settlementPeriod === SETTLEMENT_PERIOD.CUSTOM">
@@ -424,6 +424,7 @@ import {
 	vipLevelMeta,
 	operationModeMeta,
 	settlementPeriodMeta,
+	productFormSettlementPeriodMeta,
 	SETTLEMENT_PERIOD,
 	OPERATION_MODE,
 	VIP_LEVEL
@@ -483,7 +484,9 @@ const openEditProduct = (product) => {
 	productForm.name = product.name
 	productForm.currency = product.currency
 	productForm.operationMode = product.operationMode
-	productForm.settlementPeriod = product.settlementPeriod
+	productForm.settlementPeriod = productFormSettlementPeriodMeta[product.settlementPeriod]
+		? product.settlementPeriod
+		: SETTLEMENT_PERIOD.DAILY
 	productForm.customDays = product.customDays
 	productForm.minVipLevel = product.minVipLevel
 	productForm.tiers = product.tiers.map(t => ({ ...t }))
