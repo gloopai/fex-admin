@@ -10,15 +10,6 @@ import {
 } from '../../../admin/state/lockedYieldAdjustmentLogs'
 import { appendLiquidityLockedOperationLog } from '../../../admin/state/liquidityLockedOperationLogs'
 
-/** 锁仓业务不宜用「1 小时」等撮合式粒度，改为自然日 / 日切语义 */
-const DURATION_OPTIONS = [
-	{ value: 0, label: '持续生效', hint: '需手动恢复为基准倍数' },
-	{ value: 86400, label: '次自然日恢复', hint: '下一日 00:00（按服务器日切）恢复基准' },
-	{ value: 259200, label: '3 个自然日后恢复', hint: '' },
-	{ value: 604800, label: '7 个自然日后恢复', hint: '' },
-	{ value: 2592000, label: '30 个自然日后恢复', hint: '适合阶段性活动' }
-]
-
 // 产品数据（baseRate 为年化 %，与锁仓产品配置一致）
 const products = ref([
 	{
@@ -91,7 +82,8 @@ const activeProduct = computed(() =>
 const controlForm = ref({
 	adjustmentRate: 0,
 	reason: '',
-	duration: 0
+	/** YYYY-MM-DD，空字符串表示持续生效（需手动恢复基准） */
+	validUntil: ''
 })
 
 const openControl = (productId) => {
@@ -100,7 +92,7 @@ const openControl = (productId) => {
 	controlForm.value = {
 		adjustmentRate: product.adjustmentRate,
 		reason: '',
-		duration: 0
+		validUntil: ''
 	}
   showControlModal.value = true
 }
@@ -126,7 +118,8 @@ const saveControl = () => {
 	if (!product) return
 	const afterRate = controlForm.value.adjustmentRate
 	const afterMultiplier = 1 + afterRate / 100
-	const durationLabel = DURATION_OPTIONS.find((o) => o.value === controlForm.value.duration)?.label ?? '—'
+	const until = controlForm.value.validUntil?.trim()
+	const durationLabel = until ? `有效期至 ${until}` : '持续生效'
 
 	appendLockedYieldAdjustmentLog({
 		productId: product.id,
@@ -256,9 +249,14 @@ function simpleInterestForDays(principal, annualPct, mult, days) {
 
 const fmtApr = (v) => (v == null || Number.isNaN(Number(v)) ? '—' : `${Number(v).toFixed(2)}%`)
 
-const selectedDurationMeta = computed(
-	() => DURATION_OPTIONS.find((o) => o.value === controlForm.value.duration) ?? DURATION_OPTIONS[0]
-)
+/** 日期选择器最小可选日（本地自然日） */
+const validUntilMin = computed(() => {
+	const d = new Date()
+	const y = d.getFullYear()
+	const m = String(d.getMonth() + 1).padStart(2, '0')
+	const day = String(d.getDate()).padStart(2, '0')
+	return `${y}-${m}-${day}`
+})
 </script>
 
 <style scoped>
@@ -576,17 +574,26 @@ const selectedDurationMeta = computed(
 									</p>
 
 									<div class="mt-5 space-y-1.5">
-										<label class="text-sm font-medium text-slate-700">恢复基准时机</label>
-										<select
-											v-model.number="controlForm.duration"
-											class="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none ring-blue-500/20 focus:border-blue-500 focus:ring-2"
-										>
-											<option v-for="opt in DURATION_OPTIONS" :key="opt.value" :value="opt.value">
-												{{ opt.label }}
-											</option>
-										</select>
-										<p v-if="selectedDurationMeta.hint" class="text-xs leading-relaxed text-slate-500">
-											{{ selectedDurationMeta.hint }}
+										<label class="text-sm font-medium text-slate-700">有效期至</label>
+										<div class="flex gap-2">
+											<input
+												v-model="controlForm.validUntil"
+												type="date"
+												:min="validUntilMin"
+												autocomplete="off"
+												class="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none ring-blue-500/20 focus:border-blue-500 focus:ring-2"
+											/>
+											<button
+												v-if="controlForm.validUntil"
+												type="button"
+												class="h-10 shrink-0 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 hover:bg-slate-50"
+												@click="controlForm.validUntil = ''"
+											>
+												清空
+											</button>
+										</div>
+										<p class="text-xs leading-relaxed text-slate-500">
+											留空表示持续生效（需手动恢复基准）；选择日期表示该自然日结束后（按服务器日切）恢复基准。
 										</p>
 									</div>
 								</div>
@@ -826,7 +833,7 @@ const selectedDurationMeta = computed(
 					<div
 						class="flex shrink-0 flex-col gap-3 border-t border-slate-100 bg-white px-5 py-3 sm:flex-row sm:items-center sm:justify-between"
 					>
-						<p class="text-xs text-slate-500">提交前请确认「恢复基准时机」符合运营与风控预期。</p>
+						<p class="text-xs text-slate-500">提交前请确认「有效期至」符合运营与风控预期。</p>
 						<div class="flex justify-end gap-2">
 							<button
 								type="button"
