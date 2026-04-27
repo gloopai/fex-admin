@@ -41,7 +41,6 @@ const productForm = reactive({
 	periodDays: 30,
 	minVipLevel: 0,
 	minKycLevel: 'none',
-	lendableRatio: DEFAULT_LOCKED_LENDABLE_RATIO,
 	status: PRODUCT_STATUS.ENABLED
 })
 
@@ -58,7 +57,6 @@ const openCreateProduct = () => {
 	productForm.periodDays = 30
 	productForm.minVipLevel = 0
 	productForm.minKycLevel = 'none'
-	productForm.lendableRatio = DEFAULT_LOCKED_LENDABLE_RATIO
 	productForm.status = PRODUCT_STATUS.ENABLED
 	showProductModal.value = true
 }
@@ -81,10 +79,6 @@ const openEditProduct = (product) => {
 	productForm.periodDays = product.periodDays
 	productForm.minVipLevel = product.minVipLevel ?? 0
 	productForm.minKycLevel = product.minKycLevel ?? 'none'
-	productForm.lendableRatio =
-		product.lendableRatio != null && product.lendableRatio !== ''
-			? Number(product.lendableRatio)
-			: DEFAULT_LOCKED_LENDABLE_RATIO
 	productForm.status = product.status
 	showProductModal.value = true
 }
@@ -116,11 +110,6 @@ const saveProduct = () => {
 		periodDays: Number(productForm.periodDays),
 		minVipLevel: Number(productForm.minVipLevel) || 0,
 		minKycLevel: productForm.minKycLevel || 'none',
-		lendableRatio: (() => {
-			const n = Number(productForm.lendableRatio)
-			if (!Number.isFinite(n)) return DEFAULT_LOCKED_LENDABLE_RATIO
-			return Math.min(100, Math.max(0, n))
-		})(),
 		status: productForm.status
 	}
 
@@ -135,7 +124,14 @@ const saveProduct = () => {
 		})
 	} else {
 		const newId = `prod-${Date.now()}`
-		products.value.unshift({ id: newId, ...payload, totalLocked: 0, totalOrders: 0, createdAt: new Date().toISOString().split('T')[0] })
+		products.value.unshift({
+			id: newId,
+			...payload,
+			lendableRatio: DEFAULT_LOCKED_LENDABLE_RATIO,
+			totalLocked: 0,
+			totalOrders: 0,
+			createdAt: new Date().toISOString().split('T')[0]
+		})
 		appendLiquidityLockedOperationLog({
 			module: LIQUIDITY_LOCKED_OP_MODULE.PRODUCT,
 			action: LIQUIDITY_LOCKED_OP_ACTION.PRODUCT_CREATE,
@@ -329,14 +325,6 @@ const applyPresetDays = (days) => {
 						</td>
 						<td class="px-6 py-4 text-sm text-slate-600">
 							<div>锁仓 {{ fmtCurrency(product.totalLocked, product.currency) }}</div>
-							<div class="mt-1">
-								可借贷比例
-								{{
-									product.lendableRatio != null && product.lendableRatio !== ''
-										? Number(product.lendableRatio)
-										: DEFAULT_LOCKED_LENDABLE_RATIO
-								}}%
-							</div>
 							<div>订单 {{ product.totalOrders }} 笔</div>
 						</td>
 						<td class="px-6 py-4">
@@ -608,20 +596,6 @@ const applyPresetDays = (days) => {
 											>
 												<option v-for="opt in LOCKED_MIN_KYC_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
 											</select>
-										</div>
-										<div class="col-span-2">
-											<label class="mb-1 block text-sm font-medium text-slate-700">可借贷比例（0–100%）</label>
-											<p class="mb-1 text-xs text-slate-500">
-												锁仓额中可按该比例计入与借出币种相同的借贷池；前台信用借贷详情「可借余额」按同币种上架产品合计推算。
-											</p>
-											<input
-												v-model.number="productForm.lendableRatio"
-												type="number"
-												min="0"
-												max="100"
-												step="0.1"
-												class="w-full max-w-xs rounded-lg border border-slate-300 px-3 py-2 text-sm tabular-nums transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-											/>
 										</div>
 									</div>
 								</div>
