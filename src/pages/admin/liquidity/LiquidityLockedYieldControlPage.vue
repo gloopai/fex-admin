@@ -361,13 +361,11 @@ const selectedDurationMeta = computed(
 			</div>
 
 			<div class="overflow-x-auto">
-				<table class="w-full min-w-[880px] text-left text-sm">
+				<table class="w-full min-w-[640px] text-left text-sm">
 					<thead class="border-b border-slate-100 bg-slate-50/90">
 						<tr>
 							<th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">产品</th>
-							<th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">基础利率（年化）</th>
 							<th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">调整比例</th>
-							<th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">实际倍数</th>
 							<th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">订单数</th>
 							<th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">资金规模</th>
 							<th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">状态</th>
@@ -384,14 +382,10 @@ const selectedDurationMeta = computed(
 								<div class="font-medium text-slate-900">{{ product.name }}</div>
 								<div class="text-xs text-slate-500">{{ product.currency }}</div>
 							</td>
-							<td class="whitespace-nowrap px-4 py-3.5 tabular-nums text-slate-800">{{ fmtApr(product.baseRate) }}</td>
 							<td class="whitespace-nowrap px-4 py-3.5">
 								<span :class="['font-medium tabular-nums', getRateColor(product.adjustmentRate)]">
 									{{ formatRate(product.adjustmentRate) }}
 								</span>
-							</td>
-							<td class="whitespace-nowrap px-4 py-3.5">
-								<span class="font-semibold tabular-nums text-slate-900">{{ product.currentMultiplier.toFixed(2) }}×</span>
 							</td>
 							<td class="whitespace-nowrap px-4 py-3.5 tabular-nums text-slate-700">{{ product.totalOrders }}</td>
 							<td class="whitespace-nowrap px-4 py-3.5 tabular-nums text-slate-700">${{ product.totalAmount.toLocaleString() }}</td>
@@ -671,10 +665,6 @@ const selectedDurationMeta = computed(
 											<span class="font-semibold tabular-nums" :class="getRateColor(activeProduct?.adjustmentRate)">
 												{{ formatRate(activeProduct?.adjustmentRate) }}
 											</span>
-										</div>
-										<div class="flex items-center justify-between border-b border-slate-100 py-2 text-sm">
-											<span class="text-slate-500">实际倍数</span>
-											<span class="font-semibold tabular-nums text-blue-600">{{ activeProduct?.currentMultiplier.toFixed(2) }}×</span>
 										</div>
 										<div class="flex items-center justify-between py-2 text-sm">
 											<span class="text-slate-500">展示年化</span>
