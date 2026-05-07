@@ -247,23 +247,12 @@ const currentOrders = computed(() =>
   orders.value.filter((o) => activeStatuses.includes(o.status))
 )
 
-const historyOrders = computed(() =>
-  orders.value.filter(
-    (o) =>
-      o.status === LOAN_ORDER_STATUS.COMPLETED ||
-      o.status === LOAN_ORDER_STATUS.LIQUIDATED ||
-      o.status === LOAN_ORDER_STATUS.CANCELLED
-  )
-)
-
 const pgCurrent = useClientListPagination(currentOrders, { pageSize: LIST_PAGE_SIZE })
 const pgRepay = useClientListPagination(repayments, { pageSize: LIST_PAGE_SIZE })
-const pgHistory = useClientListPagination(historyOrders, { pageSize: LIST_PAGE_SIZE })
 
 watch(recordTab, () => {
   pgCurrent.resetPage()
   pgRepay.resetPage()
-  pgHistory.resetPage()
 })
 
 function statusClass(s) {
@@ -721,12 +710,8 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                 v-else-if="recordTab === 'repayment' && repayments.length"
                 class="text-[11px] tabular-nums text-white/40 sm:text-xs"
               >共 {{ repayments.length }} 条</span>
-              <span
-                v-else-if="recordTab === 'history' && historyOrders.length"
-                class="text-[11px] tabular-nums text-white/40 sm:text-xs"
-              >共 {{ historyOrders.length }} 条</span>
             </div>
-            <div :class="fx.recordTablist3" role="tablist" aria-label="记录类型">
+            <div :class="fx.recordTablist2" role="tablist" aria-label="记录类型">
               <button
                 type="button"
                 role="tab"
@@ -744,15 +729,6 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                 @click="recordTab = 'repayment'"
               >
                 还款
-              </button>
-              <button
-                type="button"
-                role="tab"
-                :aria-selected="recordTab === 'history'"
-                :class="[fx.recordTab, recordTab === 'history' ? fx.recordTabOn : fx.recordTabOff]"
-                @click="recordTab = 'history'"
-              >
-                历史
               </button>
             </div>
           </div>
@@ -903,53 +879,6 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
               </tbody>
             </table>
 
-            <!-- 历史记录 -->
-            <table
-              v-else
-              :class="['w-full min-w-0 border-collapse text-left max-md:table-fixed md:min-w-[560px] md:table-auto', fx.tableBodyText]"
-            >
-              <thead class="hidden md:table-header-group">
-                <tr :class="fx.tableHeadRow">
-                  <th class="px-3 py-2.5 font-semibold md:px-5 md:py-3">订单</th>
-                  <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">借款金额</th>
-                  <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">更新时间</th>
-                  <th class="px-3 py-2.5 text-right font-semibold md:px-5 md:py-3 md:text-left">状态</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="o in pgHistory.pagedItems"
-                  :key="o.orderId"
-                  class="border-b border-white/[0.06] transition hover:bg-white/[0.02] max-md:block max-md:last:border-b-0 md:table-row"
-                >
-                  <td class="min-w-0 max-md:block max-md:w-full max-md:px-3 max-md:pb-0 max-md:pt-4 md:table-cell md:px-5 md:py-3">
-                    <p class="text-[14px] font-semibold leading-snug text-white sm:text-sm">{{ o.loanCurrency }}</p>
-                    <p class="mt-0.5 tabular-nums text-[11px] text-white/55 sm:text-xs">
-                      {{ o.loanAmount?.toLocaleString() }}
-                    </p>
-                    <div
-                      class="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-white/[0.06] pt-3 text-[11px] text-white/50 md:hidden"
-                    >
-                      <span class="text-white/35">更新</span>
-                      <span class="text-right tabular-nums text-white/60">{{ o.updateTime }}</span>
-                    </div>
-                  </td>
-                  <td class="hidden px-3 py-2.5 tabular-nums md:table-cell md:px-5 md:py-3">
-                    {{ o.loanAmount?.toLocaleString() }}
-                  </td>
-                  <td class="hidden tabular-nums text-white/50 md:table-cell md:px-5 md:py-3">
-                    {{ o.updateTime }}
-                  </td>
-                  <td
-                    class="max-md:block max-md:w-full max-md:px-3 max-md:pb-4 max-md:pt-3 md:table-cell md:px-5 md:py-3 md:text-left"
-                  >
-                    <span class="text-[11px] leading-snug sm:text-xs md:text-sm">
-                      {{ LOAN_ORDER_STATUS_LABELS[o.status] ?? o.status }}
-                    </span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
           </div>
           <FrontClientPager
             v-if="recordTab === 'current'"
@@ -969,20 +898,10 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
             @prev="pgRepay.goPrev"
             @next="pgRepay.goNext"
           />
-          <FrontClientPager
-            v-else-if="recordTab === 'history'"
-            :page="pgHistory.page"
-            :total-pages="pgHistory.totalPages"
-            :total="pgHistory.total"
-            :page-size="pgHistory.pageSize"
-            @prev="pgHistory.goPrev"
-            @next="pgHistory.goNext"
-          />
           <p
             v-if="
               (recordTab === 'current' && !currentOrders.length) ||
-              (recordTab === 'repayment' && !repayments.length) ||
-              (recordTab === 'history' && !historyOrders.length)
+              (recordTab === 'repayment' && !repayments.length)
             "
             class="px-3 py-12 text-center text-sm text-white/40 sm:py-14"
           >

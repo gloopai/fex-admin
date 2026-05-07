@@ -952,7 +952,7 @@ const rentSubmitValid = computed(() => {
                 <th class="hidden px-3 py-2.5 md:table-cell md:px-5">类型</th>
                 <th class="hidden px-3 py-2.5 md:table-cell md:px-5">金额</th>
                 <th class="hidden px-3 py-2.5 lg:table-cell lg:px-5">时间</th>
-                <th class="px-3 py-2.5 text-right md:px-5">关联</th>
+                <th class="px-3 py-2.5 text-right md:px-5">类型</th>
               </tr>
             </thead>
             <tbody>
@@ -986,7 +986,7 @@ const rentSubmitValid = computed(() => {
                 <td
                   class="max-md:block max-md:w-full max-md:px-3 max-md:pb-4 max-md:pt-2 text-left text-[12px] text-white/70 md:px-5 md:py-3 md:text-right lg:text-sm"
                 >
-                  <p class="text-[11px] text-white/35 md:hidden">关联</p>
+                  <p class="text-[11px] text-white/35 md:hidden">类型</p>
                   <p class="mt-0.5 break-words md:mt-0">{{ a.productName || a.orderId || '—' }}</p>
                 </td>
               </tr>
