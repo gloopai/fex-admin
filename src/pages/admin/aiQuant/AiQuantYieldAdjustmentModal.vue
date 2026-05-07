@@ -30,7 +30,7 @@
 						</div>
 					</div>
 
-					<div>
+					<div class="space-y-3">
 						<label class="block text-sm font-medium text-slate-700 mb-1.5">调整类型</label>
 						<select
 							v-model="adjustmentForm.type"
@@ -40,11 +40,16 @@
 								{{ meta.label }}
 							</option>
 						</select>
-						<p class="mt-1.5 text-xs text-slate-500">{{ adjustmentTypeMeta[adjustmentForm.type].desc }}</p>
+						<div class="rounded-lg border px-3 py-2.5 text-xs" :class="activeTypeConfig.tipClass">
+							<div class="font-medium">{{ activeTypeConfig.title }}</div>
+							<p class="mt-1 leading-5">{{ activeTypeConfig.desc }}</p>
+						</div>
 					</div>
 
-					<div>
-						<label class="block text-sm font-medium text-slate-700 mb-1.5">调整金额</label>
+					<div v-if="activeTypeConfig.showAmount">
+						<label class="block text-sm font-medium text-slate-700 mb-1.5">
+							{{ activeTypeConfig.amountLabel }} <span class="text-red-500">*</span>
+						</label>
 						<div class="flex gap-2">
 							<input
 								v-model.number="adjustmentForm.amount"
@@ -52,12 +57,13 @@
 								step="0.01"
 								min="0"
 								class="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-								placeholder="0.00"
+								:placeholder="activeTypeConfig.amountPlaceholder"
 							/>
 							<span class="flex w-20 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-sm font-medium text-slate-700">
 								{{ adjustmentForm.currency }}
 							</span>
 						</div>
+						<p class="mt-1.5 text-xs leading-5 text-slate-500">{{ activeTypeConfig.amountHelp }}</p>
 						<div v-if="adjustmentForm.currency === 'USDT'" class="mt-2 flex flex-wrap gap-1.5">
 							<button
 								v-for="preset in amountPresetsUsdt"
@@ -71,17 +77,24 @@
 						</div>
 					</div>
 
-					<div v-if="adjustmentForm.type === ADJUSTMENT_TYPE.INCREASE || adjustmentForm.type === ADJUSTMENT_TYPE.DECREASE">
+					<div v-if="activeTypeConfig.showPercentage">
 						<label class="block text-sm font-medium text-slate-700 mb-1.5">
-							收益率变动 <span class="font-normal text-slate-400">（可选，%）</span>
+							{{ activeTypeConfig.percentageLabel }} <span class="text-red-500">*</span>
 						</label>
-						<input
-							v-model.number="adjustmentForm.percentage"
-							type="number"
-							step="0.01"
-							class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-							placeholder="如 10 表示 10%"
-						/>
+						<div class="flex gap-2">
+							<input
+								v-model.number="adjustmentForm.percentage"
+								type="number"
+								step="0.01"
+								min="0"
+								class="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+								:placeholder="activeTypeConfig.percentagePlaceholder"
+							/>
+							<span class="flex w-20 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-sm font-medium text-slate-700">
+								%
+							</span>
+						</div>
+						<p class="mt-1.5 text-xs leading-5 text-slate-500">{{ activeTypeConfig.percentageHelp }}</p>
 					</div>
 
 					<div>
@@ -103,12 +116,12 @@
 							maxlength="200"
 							class="w-full resize-none rounded-lg border px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
 							:class="adjustmentForm.reason.trim() ? 'border-slate-300' : 'border-red-200 bg-red-50/50'"
-							placeholder="简要说明调整依据，便于审计"
+							:placeholder="activeTypeConfig.reasonPlaceholder"
 						/>
 					</div>
 
 					<p class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-						提交后立即生效，且不可撤销；请核对金额与类型后再提交。
+						{{ activeTypeConfig.warning }}
 					</p>
 				</div>
 
@@ -132,7 +145,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import {
 	ADJUSTMENT_TYPE,
 	adjustmentTypeMeta
@@ -145,7 +158,80 @@ import { aiQuantYieldAdjustments } from '../../../admin/state/aiQuantYieldAdjust
 import { appendAiQuantOperationLog } from '../../../admin/state/aiQuantOperationLogs'
 
 const amountPresetsUsdt = [100, 500, 1000, 5000]
-const reasonTemplates = ['活动奖励补发', '系统差错修正', '违规扣减', 'VIP 激励']
+
+const adjustmentFormConfig = {
+	[ADJUSTMENT_TYPE.BONUS]: {
+		showAmount: true,
+		showPercentage: false,
+		title: '直接补发收益',
+		desc: '用于活动奖励、VIP 激励、人工补偿等场景。只需要填写补发金额，提交后这笔金额会作为额外收益增加到当前订单。',
+		tipClass: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+		amountLabel: '补发金额',
+		amountPlaceholder: '输入要补发的收益金额',
+		amountHelp: '只填写实际要补给用户的收益额，不需要填写收益率。',
+		reasonPlaceholder: '例如：VIP3 升级奖励，补发 500 USDT',
+		warning: '提交后将增加当前订单收益；请确认补发金额和币种无误。',
+		reasons: ['活动奖励补发', 'VIP 激励', '客服补偿', '运营活动奖励']
+	},
+	[ADJUSTMENT_TYPE.PENALTY]: {
+		showAmount: true,
+		showPercentage: false,
+		title: '直接扣减收益',
+		desc: '用于违规套利、风控处罚、重复领取奖励等场景。只需要填写扣减金额，提交后这笔金额会从当前订单收益中扣除。',
+		tipClass: 'border-rose-200 bg-rose-50 text-rose-800',
+		amountLabel: '扣减金额',
+		amountPlaceholder: '输入要扣减的收益金额',
+		amountHelp: '只填写需要扣减的绝对金额，系统会按违规惩罚类型处理为扣减。',
+		reasonPlaceholder: '例如：违规领取活动奖励，扣减 0.05 BTC',
+		warning: '提交后将扣减当前订单收益；请确认扣减依据已完成审核。',
+		reasons: ['违规扣减', '重复奖励扣回', '风控处罚', '套利行为处理']
+	},
+	[ADJUSTMENT_TYPE.CORRECTION]: {
+		showAmount: true,
+		showPercentage: false,
+		title: '修正收益差额',
+		desc: '用于系统少计、数据同步延迟、人工核账差异等场景。只需要填写需要补正的差额；如果是负向扣减，请改选「违规惩罚」。',
+		tipClass: 'border-sky-200 bg-sky-50 text-sky-800',
+		amountLabel: '修正差额',
+		amountPlaceholder: '输入需要修正的差额',
+		amountHelp: '当前修正按正向差额记录；如果需要扣减，请选择「违规惩罚」。',
+		reasonPlaceholder: '例如：系统少计 2 天收益，补正 0.1 ETH',
+		warning: '提交后将按数据修正记录入账；请在原因中写明核算依据。',
+		reasons: ['系统差错修正', '收益少计补正', '数据同步延迟', '人工核账修正']
+	},
+	[ADJUSTMENT_TYPE.INCREASE]: {
+		showAmount: true,
+		showPercentage: true,
+		title: '部分本金提高收益率',
+		desc: '用于临时加息、定向提息等场景。填写“影响本金金额”和“提升收益率”：影响本金按提升后的收益率计算，未覆盖的剩余本金仍按默认收益率计算。',
+		tipClass: 'border-violet-200 bg-violet-50 text-violet-800',
+		amountLabel: '影响本金金额',
+		amountPlaceholder: '输入本次调整覆盖的本金金额',
+		amountHelp: '例如订单本金 100 USDT，本次只对 70 USDT 提升收益率，就填 70；剩余 30 USDT 仍按默认收益。',
+		percentageLabel: '提升收益率',
+		percentagePlaceholder: '例如 0.05 表示提升 0.05%',
+		percentageHelp: '这里填写“增加多少个百分点”，不是填写调整后的最终收益率。',
+		reasonPlaceholder: '例如：定向活动加息，对 70 USDT 本金提升收益率 0.05%',
+		warning: '提交后将按收益提升记录生效；请同时确认收益率幅度和影响本金金额。',
+		reasons: ['活动加息', 'VIP 激励', '定向提息', '运营补贴']
+	},
+	[ADJUSTMENT_TYPE.DECREASE]: {
+		showAmount: true,
+		showPercentage: true,
+		title: '部分本金降低收益率',
+		desc: '用于风险调降、异常策略降息等场景。填写“影响本金金额”和“降低收益率”：影响本金按降低后的收益率计算，未覆盖的剩余本金仍按默认收益率计算。',
+		tipClass: 'border-orange-200 bg-orange-50 text-orange-800',
+		amountLabel: '影响本金金额',
+		amountPlaceholder: '输入本次调整覆盖的本金金额',
+		amountHelp: '例如订单本金 100 USDT，本次只对 70 USDT 降低收益率，就填 70；剩余 30 USDT 仍按默认收益。',
+		percentageLabel: '降低收益率',
+		percentagePlaceholder: '例如 0.03 表示降低 0.03%',
+		percentageHelp: '这里填写“降低多少个百分点”，不是填写调整后的最终收益率。',
+		reasonPlaceholder: '例如：策略风险调降，对 70 USDT 本金降低收益率 0.03%',
+		warning: '提交后将按收益降低记录生效；请同时确认收益率幅度和影响本金金额。',
+		reasons: ['风险调降', '策略异常降息', '收益配置修正', '风控处理']
+	}
+}
 
 const showAdjustmentModal = ref(false)
 const adjustmentForm = reactive({
@@ -160,6 +246,18 @@ const adjustmentForm = reactive({
 	percentage: null,
 	reason: ''
 })
+
+const activeTypeConfig = computed(() => adjustmentFormConfig[adjustmentForm.type] || adjustmentFormConfig[ADJUSTMENT_TYPE.BONUS])
+const reasonTemplates = computed(() => activeTypeConfig.value.reasons)
+
+watch(
+	() => adjustmentForm.type,
+	() => {
+		adjustmentForm.amount = 0
+		adjustmentForm.percentage = null
+		adjustmentForm.reason = ''
+	}
+)
 
 const openForOrder = (order) => {
 	adjustmentForm.type = ADJUSTMENT_TYPE.BONUS
@@ -177,8 +275,11 @@ const openForOrder = (order) => {
 
 const saveAdjustment = () => {
 	const orderId = adjustmentForm.orderId.trim()
+	const hasPercentage = activeTypeConfig.value.showPercentage
 	const payload = {
 		...adjustmentForm,
+		amount: Number(adjustmentForm.amount || 0),
+		percentage: hasPercentage ? Number(adjustmentForm.percentage || 0) : null,
 		targetId: orderId,
 		targetName: `订单 ${orderId}`
 	}
@@ -199,7 +300,9 @@ const saveAdjustment = () => {
 		action: AI_QUANT_OP_ACTION.YIELD_ADJUSTMENT_SUBMIT,
 		refId: orderId,
 		targetLabel: '订单收益调整',
-		summary: `类型：${typeLabel}；金额 ${payload.amount} ${payload.currency}；原因：${reasonShort}`,
+		summary: hasPercentage
+			? `类型：${typeLabel}；收益率变动 ${payload.percentage}%；影响本金 ${payload.amount} ${payload.currency}；原因：${reasonShort}`
+			: `类型：${typeLabel}；金额 ${payload.amount} ${payload.currency}；原因：${reasonShort}`,
 		operator: 'admin-001'
 	})
 
@@ -207,7 +310,11 @@ const saveAdjustment = () => {
 }
 
 const isFormValid = computed(() => {
-	return !!(adjustmentForm.reason.trim() && adjustmentForm.orderId.trim())
+	const hasReason = Boolean(adjustmentForm.reason.trim() && adjustmentForm.orderId.trim())
+	if (!hasReason) return false
+	const hasAmount = !activeTypeConfig.value.showAmount || Number(adjustmentForm.amount) > 0
+	const hasPercentage = !activeTypeConfig.value.showPercentage || Number(adjustmentForm.percentage) > 0
+	return hasAmount && hasPercentage
 })
 
 defineExpose({ openForOrder })
