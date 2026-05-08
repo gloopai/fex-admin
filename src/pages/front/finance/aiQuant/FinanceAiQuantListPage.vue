@@ -150,7 +150,7 @@ function formatAmountForTab(n, currency) {
   return v.toLocaleString(undefined, { maximumFractionDigits: dec })
 }
 
-const recordTab = ref('buy')
+const recordTab = ref('running')
 
 const buyOrders = computed(() =>
   ordersForTabCurrency.value.filter(
@@ -184,6 +184,7 @@ watch(currencyTab, () => {
 })
 
 watch(recordTab, () => {
+  pgRunning.resetPage()
   pgBuy.resetPage()
   pgRedeem.resetPage()
   pgInterest.resetPage()
@@ -674,79 +675,6 @@ const rentSubmitValid = computed(() => {
           </div>
         </div>
 
-        <!-- 运行中订单操作入口（仅「我的托管」：与机器人市场区分，便于验收赎回流程） -->
-        <div :class="fx.panelRecords">
-          <div :class="fx.panelRecordsHeader">
-            <p :class="fx.sectionKicker">
-              运行中 · 快捷操作
-            </p>
-            <p class="mt-0.5 text-[11px] leading-snug text-white/35 sm:mt-0 sm:text-xs">
-              与下方「购买」记录一致；若产品支持提前赎回，可在此发起申请。
-            </p>
-          </div>
-          <div class="overflow-x-auto">
-            <table
-              v-if="runningOrdersTab.length"
-              :class="['w-full min-w-0 border-collapse text-left md:min-w-[560px] md:table-auto max-md:table-fixed', fx.tableBodyText]"
-            >
-              <thead class="hidden md:table-header-group">
-                <tr :class="fx.tableHeadRow">
-                  <th class="px-3 py-2.5 md:px-5">产品</th>
-                  <th class="hidden px-3 py-2.5 md:table-cell md:px-5">本金</th>
-                  <th class="px-3 py-2.5 text-right md:px-5 md:text-left">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="o in pgRunning.pagedItems"
-                  :key="`mine-run-${o.id}`"
-                  class="border-b border-white/[0.06] transition hover:bg-white/[0.02] max-md:block max-md:last:border-0 md:table-row"
-                >
-                  <td class="min-w-0 max-md:block max-md:w-full max-md:px-3 max-md:pb-0 max-md:pt-4 md:table-cell md:px-5 md:py-3">
-                    <p class="text-[14px] font-medium leading-snug text-white sm:text-sm">{{ o.productName }}</p>
-                    <p class="mt-0.5 tabular-nums text-[11px] text-white/55 sm:text-xs">
-                      {{ o.principal }} {{ o.currency }}
-                    </p>
-                    <div v-if="canApplyEarlyRedeemAiOrder(o)" class="mt-3 md:hidden">
-                      <button type="button" :class="fx.btnTableActionBlock" @click="openAiRedeemDialog(o)">
-                        申请赎回
-                      </button>
-                    </div>
-                    <div v-else class="mt-3 md:hidden">
-                      <p :class="[fx.hintBlock, 'text-[11px]']">
-                        不可提前赎回
-                      </p>
-                    </div>
-                  </td>
-                  <td class="hidden tabular-nums text-white/80 md:table-cell md:px-5 md:py-3">
-                    {{ o.principal }} {{ o.currency }}
-                  </td>
-                  <td class="max-md:hidden md:table-cell md:px-5 md:py-3 md:text-left">
-                    <button
-                      v-if="canApplyEarlyRedeemAiOrder(o)"
-                      type="button"
-                      :class="fx.btnTableAction"
-                      @click="openAiRedeemDialog(o)"
-                    >
-                      申请赎回
-                    </button>
-                    <span v-else class="text-xs text-white/35">不可提前赎回</span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            <p v-else class="px-3 py-10 text-center text-sm text-white/40 sm:py-12">当前币种暂无运行中托管</p>
-          </div>
-          <FrontClientPager
-            v-if="runningOrdersTab.length"
-            :page="pgRunning.page"
-            :total-pages="pgRunning.totalPages"
-            :total="pgRunning.total"
-            :page-size="pgRunning.pageSize"
-            @prev="pgRunning.goPrev"
-            @next="pgRunning.goNext"
-          />
-        </div>
       </div>
 
       <!-- 记录：二级用底边线 Tab，与 Hero 胶囊主入口区分 -->
@@ -754,7 +682,16 @@ const rentSubmitValid = computed(() => {
         <div :class="fx.panelRecords">
           <div :class="fx.panelRecordsHeader">
             <p :class="fx.sectionKicker">记录明细</p>
-            <div :class="fx.recordTablist3" role="tablist" aria-label="记录类型">
+            <div :class="fx.recordTablist4" role="tablist" aria-label="记录类型">
+              <button
+                type="button"
+                role="tab"
+                :aria-selected="recordTab === 'running'"
+                :class="[fx.recordTab, recordTab === 'running' ? fx.recordTabOn : fx.recordTabOff]"
+                @click="recordTab = 'running'"
+              >
+                运行中
+              </button>
               <button
                 type="button"
                 role="tab"
@@ -785,9 +722,67 @@ const rentSubmitValid = computed(() => {
             </div>
           </div>
           <div class="overflow-x-auto">
+          <!-- 运行中 -->
+          <table
+            v-if="recordTab === 'running' && runningOrdersTab.length"
+            :class="['w-full min-w-0 border-collapse text-left md:min-w-[560px] md:table-auto max-md:table-fixed', fx.tableBodyText]"
+          >
+            <thead class="hidden md:table-header-group">
+              <tr :class="fx.tableHeadRow">
+                <th class="px-3 py-2.5 md:px-5">产品</th>
+                <th class="hidden px-3 py-2.5 md:table-cell md:px-5">本金</th>
+                <th class="px-3 py-2.5 text-right md:px-5 md:text-left">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="o in pgRunning.pagedItems"
+                :key="`mine-run-${o.id}`"
+                class="border-b border-white/[0.06] transition hover:bg-white/[0.02] max-md:block max-md:last:border-0 md:table-row"
+              >
+                <td class="min-w-0 max-md:block max-md:w-full max-md:px-3 max-md:pb-0 max-md:pt-4 md:table-cell md:px-5 md:py-3">
+                  <p class="text-[14px] font-medium leading-snug text-white sm:text-sm">{{ o.productName }}</p>
+                  <p class="mt-0.5 tabular-nums text-[11px] text-white/55 sm:text-xs">
+                    {{ o.principal }} {{ o.currency }}
+                  </p>
+                  <div v-if="canApplyEarlyRedeemAiOrder(o)" class="mt-3 md:hidden">
+                    <button type="button" :class="fx.btnTableActionBlock" @click="openAiRedeemDialog(o)">
+                      申请赎回
+                    </button>
+                  </div>
+                  <div v-else class="mt-3 md:hidden">
+                    <p :class="[fx.hintBlock, 'text-[11px]']">
+                      不可提前赎回
+                    </p>
+                  </div>
+                </td>
+                <td class="hidden tabular-nums text-white/80 md:table-cell md:px-5 md:py-3">
+                  {{ o.principal }} {{ o.currency }}
+                </td>
+                <td class="max-md:hidden md:table-cell md:px-5 md:py-3 md:text-left">
+                  <button
+                    v-if="canApplyEarlyRedeemAiOrder(o)"
+                    type="button"
+                    :class="fx.btnTableAction"
+                    @click="openAiRedeemDialog(o)"
+                  >
+                    申请赎回
+                  </button>
+                  <span v-else class="text-xs text-white/35">不可提前赎回</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <p
+            v-else-if="recordTab === 'running'"
+            class="px-3 py-12 text-center text-sm text-white/40 sm:py-14"
+          >
+            当前币种暂无运行中托管
+          </p>
+
           <!-- 购买 -->
           <table
-            v-if="recordTab === 'buy' && buyOrders.length"
+            v-else-if="recordTab === 'buy' && buyOrders.length"
             :class="['w-full min-w-0 border-collapse text-left md:min-w-[960px] md:table-auto max-md:table-fixed', fx.tableBodyText]"
           >
             <thead class="hidden md:table-header-group">
@@ -1000,7 +995,16 @@ const rentSubmitValid = computed(() => {
           </p>
           </div>
           <FrontClientPager
-            v-if="recordTab === 'buy' && buyOrders.length"
+            v-if="recordTab === 'running' && runningOrdersTab.length"
+            :page="pgRunning.page"
+            :total-pages="pgRunning.totalPages"
+            :total="pgRunning.total"
+            :page-size="pgRunning.pageSize"
+            @prev="pgRunning.goPrev"
+            @next="pgRunning.goNext"
+          />
+          <FrontClientPager
+            v-else-if="recordTab === 'buy' && buyOrders.length"
             :page="pgBuy.page"
             :total-pages="pgBuy.totalPages"
             :total="pgBuy.total"
