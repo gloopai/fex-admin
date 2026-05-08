@@ -58,6 +58,8 @@
                 借出币种: <span class="font-medium">{{ product.loanCurrency }}</span>
                 <span class="mx-3 text-slate-300">|</span>
                 年化利率: <span class="font-medium text-emerald-600">{{ product.interestRate ?? 0 }}%</span>
+                <span class="mx-3 text-slate-300">|</span>
+                质押倍数: <span class="font-medium text-blue-600">{{ collateralLabel(product) }}</span>
               </p>
             </div>
             <div class="flex items-center gap-2">
@@ -95,10 +97,10 @@
               </ul>
             </div>
             <div class="p-4">
-              <p class="text-sm text-slate-500">使用情况</p>
+              <p class="text-sm text-slate-500">质押规则</p>
               <ul class="mt-2 space-y-1 text-sm text-slate-700">
-                <li><span class="font-medium">活跃用户:</span> {{ product.activeUsers }} 人</li>
-                <li><span class="font-medium">活跃订单:</span> {{ product.activeOrders || 0 }} 单</li>
+                <li><span class="font-medium">允许币种:</span> {{ collateralCurrenciesLabel(product) }}</li>
+                <li><span class="font-medium">逾期抵扣:</span> {{ product.overdueDeductEnabled === false ? '关闭' : '开启' }}</li>
               </ul>
             </div>
           </div>
@@ -142,6 +144,16 @@
                     : 'border-transparent text-slate-600 hover:text-slate-900'"
                 >
                   基本配置
+                </button>
+                <button
+                  type="button"
+                  @click="activeTab = 'collateral'"
+                  class="px-4 py-3 text-sm font-medium border-b-2 transition-colors"
+                  :class="activeTab === 'collateral'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-slate-600 hover:text-slate-900'"
+                >
+                  质押配置
                 </button>
                 <button
                   type="button"
@@ -273,6 +285,99 @@
                       <option value="inactive">停用</option>
                       <option value="suspended">暂停</option>
                     </select>
+                  </div>
+                </div>
+              </div>
+
+              <div v-show="activeTab === 'collateral'" class="space-y-6">
+                <div>
+                  <h3 class="mb-3 text-sm font-semibold text-slate-900">申请质押规则</h3>
+                  <label class="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
+                    <input v-model="formData.collateralEnabled" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-blue-600" />
+                    开启申请时锁定账户资产
+                  </label>
+                  <p class="mt-2 text-xs text-slate-500">开启后，用户申请借款时需选择其他币种资产并按倍数锁定。</p>
+                </div>
+
+                <div class="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label class="mb-1.5 block text-sm font-medium text-slate-700">质押倍数</label>
+                    <input
+                      v-model.number="formData.collateralMultiplier"
+                      type="number"
+                      step="0.1"
+                      min="1"
+                      class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="例如 1.5"
+                    />
+                    <p class="mt-1 text-xs text-slate-500">需锁定资产价值 = 借款金额 × 质押倍数。</p>
+                  </div>
+                  <div>
+                    <label class="mb-1.5 block text-sm font-medium text-slate-700">逾期抵扣</label>
+                    <label class="flex min-h-[2.625rem] items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700">
+                      <input v-model="formData.overdueDeductEnabled" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-blue-600" />
+                      到期未还时允许后台扣除质押资产抵扣
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <div class="mb-2 flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <label class="block text-sm font-medium text-slate-700">允许质押币种</label>
+                      <p class="mt-1 text-xs text-slate-500">
+                        来源：现货交易产品「交易中」与交易对管理「已开放」的 base / quote 币种。
+                      </p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <button type="button" class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50" @click="selectAllCollateralCurrencies">
+                        全选开放币种
+                      </button>
+                      <button type="button" class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50" @click="clearCollateralCurrencies">
+                        清空
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="rounded-xl border border-slate-200 bg-white">
+                    <div class="border-b border-slate-200 p-3">
+                      <input
+                        v-model="collateralCurrencyKeyword"
+                        type="text"
+                        class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                        placeholder="搜索币种，例如 BTC / USDT"
+                      />
+                      <div v-if="formData.collateralCurrencies.length" class="mt-3 flex flex-wrap gap-1.5">
+                        <span
+                          v-for="coin in formData.collateralCurrencies"
+                          :key="`selected-${coin}`"
+                          class="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700"
+                        >
+                          {{ coin }}
+                          <button type="button" class="text-blue-400 hover:text-blue-700" :aria-label="`移除 ${coin}`" @click="removeCollateralCurrency(coin)">×</button>
+                        </span>
+                      </div>
+                      <p v-else class="mt-3 text-xs text-slate-400">尚未选择质押币种</p>
+                    </div>
+
+                    <div class="max-h-64 overflow-y-auto overscroll-contain p-2">
+                      <label
+                        v-for="coin in filteredCollateralCurrencyOptions"
+                        :key="coin"
+                        class="flex min-h-10 items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                      >
+                        <span class="font-medium">{{ coin }}</span>
+                        <input v-model="formData.collateralCurrencies" :value="coin" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-blue-600" />
+                      </label>
+                      <p v-if="filteredCollateralCurrencyOptions.length === 0" class="px-3 py-8 text-center text-sm text-slate-500">
+                        没有匹配的开放币种
+                      </p>
+                    </div>
+
+                    <div class="flex items-center justify-between border-t border-slate-200 px-3 py-2 text-xs text-slate-500">
+                      <span>已选 {{ formData.collateralCurrencies.length }} 个</span>
+                      <span>开放币种 {{ openSpotCollateralCurrencies.length }} 个</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -409,6 +514,12 @@
                         {{ formatCurrency(formData.availableLiquidity) }}
                       </span>
                     </div>
+                    <div class="flex justify-between items-center border-t border-slate-200 pt-2">
+                      <span class="text-xs text-slate-600">质押要求</span>
+                      <span class="text-sm font-semibold text-blue-600">
+                        {{ formData.collateralEnabled ? `${formData.collateralMultiplier || 0}x` : '关闭' }}
+                      </span>
+                    </div>
                   </div>
                 </article>
 
@@ -427,11 +538,16 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { lendingProductsCatalog } from '../../../admin/state/financeCatalogs'
+import { mockSpotProducts, symbolApi } from '../../../admin/mock/spot'
 import {
+  INTEREST_RATE_TYPE,
   PRODUCT_STATUS_LABELS,
-  INTEREST_RATE_TYPE
+  collateralCurrenciesFromOpenSpotSymbols,
+  collateralCurrenciesFromSpotProducts,
+  uniqueCollateralCurrencies,
+  normalizeCollateralConfig
 } from '../../../admin/constants/cryptoLending'
 import {
   LENDING_OP_ACTION,
@@ -445,6 +561,8 @@ const isEditing = ref(false)
 const editingProductId = ref(null)
 const searchKeyword = ref('')
 const activeTab = ref('basic')
+const openSpotCollateralCurrencies = ref(collateralCurrenciesFromSpotProducts(mockSpotProducts))
+const collateralCurrencyKeyword = ref('')
 
 const filters = ref({
   status: ''
@@ -459,6 +577,10 @@ const formData = ref({
   minLoanDuration: 7,
   maxLoanDuration: 90,
   availableLiquidity: 0,
+  collateralEnabled: true,
+  collateralMultiplier: 1.5,
+  collateralCurrencies: ['BTC', 'ETH', 'USDT'],
+  overdueDeductEnabled: true,
   status: 'active',
   description: ''
 })
@@ -494,6 +616,65 @@ const statusLabel = (status) => {
   return PRODUCT_STATUS_LABELS[status] || status
 }
 
+onMounted(() => {
+  loadOpenSpotCollateralCurrencies()
+})
+
+const loadOpenSpotCollateralCurrencies = async () => {
+  try {
+    const result = await symbolApi.getSymbolList({
+      page: 1,
+      pageSize: 1000,
+      is_open: 1,
+      includeDeleted: false
+    })
+    const fromSymbols = result?.success
+      ? collateralCurrenciesFromOpenSpotSymbols(result.data?.list)
+      : []
+    openSpotCollateralCurrencies.value = uniqueCollateralCurrencies([
+      ...collateralCurrenciesFromSpotProducts(mockSpotProducts),
+      ...fromSymbols
+    ])
+  } catch {
+    openSpotCollateralCurrencies.value = collateralCurrenciesFromSpotProducts(mockSpotProducts)
+  }
+}
+
+const collateralCurrencyOptions = computed(() =>
+  uniqueCollateralCurrencies([
+    ...openSpotCollateralCurrencies.value,
+    ...formData.value.collateralCurrencies
+  ])
+)
+
+const filteredCollateralCurrencyOptions = computed(() => {
+  const keyword = collateralCurrencyKeyword.value.trim().toLowerCase()
+  if (!keyword) return collateralCurrencyOptions.value
+  return collateralCurrencyOptions.value.filter((coin) => coin.toLowerCase().includes(keyword))
+})
+
+const selectAllCollateralCurrencies = () => {
+  formData.value.collateralCurrencies = [...openSpotCollateralCurrencies.value]
+}
+
+const clearCollateralCurrencies = () => {
+  formData.value.collateralCurrencies = []
+}
+
+const removeCollateralCurrency = (coin) => {
+  formData.value.collateralCurrencies = formData.value.collateralCurrencies.filter((c) => c !== coin)
+}
+
+const collateralLabel = (product) => {
+  const cfg = normalizeCollateralConfig(product)
+  return cfg.enabled ? `${cfg.multiplier}x` : '关闭'
+}
+
+const collateralCurrenciesLabel = (product) => {
+  const cfg = normalizeCollateralConfig(product)
+  return cfg.enabled ? cfg.currencies.join(' / ') : '—'
+}
+
 const resetFilters = () => {
   filters.value = {
     status: ''
@@ -510,6 +691,10 @@ const resetFormData = () => {
     minLoanDuration: 7,
     maxLoanDuration: 90,
     availableLiquidity: 0,
+    collateralEnabled: true,
+    collateralMultiplier: 1.5,
+    collateralCurrencies: ['BTC', 'ETH', 'USDT'],
+    overdueDeductEnabled: true,
     status: 'active',
     description: ''
   }
@@ -535,6 +720,10 @@ const editProduct = (product) => {
     minLoanDuration: product.minLoanDuration,
     maxLoanDuration: product.maxLoanDuration,
     availableLiquidity: product.availableLiquidity,
+    collateralEnabled: product.collateralEnabled !== false,
+    collateralMultiplier: normalizeCollateralConfig(product).multiplier,
+    collateralCurrencies: [...normalizeCollateralConfig(product).currencies],
+    overdueDeductEnabled: product.overdueDeductEnabled !== false,
     status: product.status,
     description: product.description || ''
   }
@@ -568,9 +757,21 @@ const saveProduct = () => {
     alert('请填写有效的年化利率')
     return
   }
+  if (formData.value.collateralEnabled) {
+    const multiplier = Number(formData.value.collateralMultiplier)
+    if (!Number.isFinite(multiplier) || multiplier <= 0) {
+      alert('请填写有效的质押倍数')
+      return
+    }
+    if (!formData.value.collateralCurrencies.length) {
+      alert('请至少选择一个允许质押币种')
+      return
+    }
+  }
 
   const payload = {
     ...formData.value,
+    collateralCurrencies: [...formData.value.collateralCurrencies],
     interestRate: rate,
     interestRateType: INTEREST_RATE_TYPE.FIXED
   }

@@ -14,7 +14,7 @@ import { ADJUSTMENT_TYPE, ORDER_STATUS as AIQ_ORDER_STATUS, VIP_LEVEL } from '..
 const bulkUserNames = ['陈明', '林悦', '王磊', '张楠', '刘洋']
 
 export function buildLendingDemoExtraOrders(count = 28) {
-  const currentStatuses = [LOAN_ORDER_STATUS.ACTIVE, LOAN_ORDER_STATUS.REPAYING, LOAN_ORDER_STATUS.PENDING]
+  const currentStatuses = [LOAN_ORDER_STATUS.ACTIVE, LOAN_ORDER_STATUS.REPAYING, LOAN_ORDER_STATUS.PENDING, LOAN_ORDER_STATUS.OVERDUE]
   const histStatuses = [LOAN_ORDER_STATUS.COMPLETED, LOAN_ORDER_STATUS.CANCELLED, LOAN_ORDER_STATUS.LIQUIDATED]
   const rows = []
   for (let i = 0; i < count; i++) {

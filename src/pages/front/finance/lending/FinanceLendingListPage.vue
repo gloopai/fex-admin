@@ -26,7 +26,11 @@ import {
   REPAYMENT_STATUS_LABELS,
   REPAYMENT_TYPE_LABELS,
   REPAYMENT_PAYMENT_METHOD_USER,
-  deriveRepaymentType
+  deriveRepaymentType,
+  LENDING_COLLATERAL_PRICE_USD,
+  normalizeCollateralConfig,
+  collateralRequiredAmount,
+  collateralRequiredValue
 } from '../../../../admin/constants/cryptoLending'
 import { FINANCE_FX as fx } from '../../../../constants/frontFinanceUi'
 
@@ -134,7 +138,8 @@ function formatLendingNow() {
 function openRepayDialog(order) {
   if (
     order.status !== LOAN_ORDER_STATUS.ACTIVE &&
-    order.status !== LOAN_ORDER_STATUS.REPAYING
+    order.status !== LOAN_ORDER_STATUS.REPAYING &&
+    order.status !== LOAN_ORDER_STATUS.OVERDUE
   ) {
     return
   }
@@ -266,6 +271,7 @@ function statusClass(s) {
 const borrowOpen = ref(false)
 const borrowProduct = ref(null)
 const borrowAmount = ref('')
+const borrowCollateralCurrency = ref('')
 let clearBorrowTimer = null
 
 function openBorrowDialog(p) {
@@ -277,6 +283,7 @@ function openBorrowDialog(p) {
   repayOpen.value = false
   borrowProduct.value = p
   borrowAmount.value = ''
+  borrowCollateralCurrency.value = normalizeCollateralConfig(p).currencies[0] || 'USDT'
   borrowOpen.value = true
 }
 
@@ -315,6 +322,7 @@ watch(borrowOpen, (open) => {
     clearBorrowTimer = window.setTimeout(() => {
       borrowProduct.value = null
       borrowAmount.value = ''
+      borrowCollateralCurrency.value = ''
       clearBorrowTimer = null
     }, 360)
   }
@@ -367,6 +375,33 @@ const borrowInterestPreview = computed(() => {
   return (amt * (Number(p.interestRate) / 100) * days) / 365
 })
 
+const borrowCollateralConfig = computed(() => normalizeCollateralConfig(borrowProduct.value || {}))
+
+const borrowCollateralValue = computed(() =>
+  collateralRequiredValue(parsedBorrow.value, borrowProduct.value || {})
+)
+
+const borrowCollateralAmount = computed(() =>
+  collateralRequiredAmount(parsedBorrow.value, borrowProduct.value || {}, borrowCollateralCurrency.value)
+)
+
+const borrowCollateralBalance = computed(() => {
+  const balances = {
+    BTC: 4.28,
+    ETH: 96.5,
+    BNB: 1200,
+    SOL: 3200,
+    USDT: walletBalanceDisplay,
+    USDC: 76000
+  }
+  return Number(balances[borrowCollateralCurrency.value]) || 0
+})
+
+const borrowCollateralSufficient = computed(() => {
+  if (!borrowCollateralConfig.value.enabled) return true
+  return borrowCollateralAmount.value > 0 && borrowCollateralAmount.value <= borrowCollateralBalance.value
+})
+
 const borrowSubmitValid = computed(() => {
   const p = borrowProduct.value
   if (!p || p.status !== PRODUCT_STATUS.ACTIVE) return false
@@ -377,6 +412,7 @@ const borrowSubmitValid = computed(() => {
   if (!Number.isFinite(min) || n < min) return false
   if (Number.isFinite(max) && max > 0 && n > max) return false
   if (n > borrowCreditRemaining.value) return false
+  if (!borrowCollateralSufficient.value) return false
   return true
 })
 
@@ -395,6 +431,59 @@ const borrowCanSubmit = computed(
 )
 
 const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 4)
+
+function submitBorrowApplication() {
+  const p = borrowProduct.value
+  if (!p || !borrowSubmitValid.value) return
+  const now = formatLendingNow()
+  const days = borrowInterestPreviewDays.value
+  const amount = parsedBorrow.value
+  const collateralCurrency = borrowCollateralCurrency.value
+  const collateralAmount = borrowCollateralConfig.value.enabled
+    ? Number(borrowCollateralAmount.value.toFixed(8))
+    : 0
+  const collateralValue = borrowCollateralConfig.value.enabled
+    ? Number(borrowCollateralValue.value.toFixed(2))
+    : 0
+  orders.value = [
+    {
+      orderId: `ORD-DEMO-${Date.now()}`,
+      userId: 'USR-DEMO',
+      userName: '演示用户',
+      email: 'demo@example.com',
+      creditScore: 760,
+      productId: p.productId,
+      productName: p.productName,
+      loanCurrency: p.loanCurrency,
+      loanAmount: amount,
+      requestedAmount: amount,
+      interestRate: Number(p.interestRate) || 0,
+      interestAccrued: 0,
+      totalDebt: amount,
+      status: LOAN_ORDER_STATUS.PENDING,
+      loanDuration: days,
+      daysElapsed: 0,
+      daysRemaining: days,
+      createTime: now,
+      updateTime: now,
+      maturityDate: now,
+      collateralType: collateralCurrency,
+      collateralAmount,
+      collateralValue,
+      collateralMultiplier: borrowCollateralConfig.value.multiplier,
+      collateralStatus: borrowCollateralConfig.value.enabled ? 'locked' : 'none',
+      overdueDeductEnabled: borrowCollateralConfig.value.overdueDeductEnabled,
+      purpose: '前台申请',
+      remarks: borrowCollateralConfig.value.enabled
+        ? `已锁定 ${collateralAmount} ${collateralCurrency} 作为质押资产`
+        : '无需质押'
+    },
+    ...orders.value
+  ]
+  recordTab.value = 'current'
+  heroPanel.value = 'records'
+  closeBorrowDialog()
+}
 </script>
 
 <template>
@@ -567,6 +656,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                   <th class="px-4 py-2 font-semibold md:px-5 md:py-2.5">币种</th>
                   <th class="hidden px-3 py-2 font-semibold md:table-cell md:px-5 md:py-2.5">利率</th>
                   <th class="hidden px-3 py-2 font-semibold md:table-cell md:px-5 md:py-2.5">还款周期</th>
+                  <th class="hidden px-3 py-2 font-semibold md:table-cell md:px-5 md:py-2.5">质押倍数</th>
                   <th class="hidden px-3 py-2 font-semibold md:table-cell md:px-5 md:py-2.5">可借额度</th>
                   <th class="px-3 py-2 text-right font-semibold md:px-5 md:py-2.5">操作</th>
                 </tr>
@@ -605,6 +695,10 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                           <span class="text-right tabular-nums text-white/70">
                             {{ p.minLoanDuration }} – {{ p.maxLoanDuration }} 天
                           </span>
+                          <span class="text-white/35">质押</span>
+                          <span class="text-right tabular-nums text-white/70">
+                            {{ normalizeCollateralConfig(p).enabled ? `${normalizeCollateralConfig(p).multiplier}x` : '关闭' }}
+                          </span>
                           <span class="text-white/35">额度</span>
                           <span class="truncate text-right tabular-nums text-white/70">
                             {{ p.minLoanAmount?.toLocaleString() }} – {{ p.maxLoanAmount?.toLocaleString() }}
@@ -618,6 +712,9 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                   </td>
                   <td class="hidden px-3 py-2.5 tabular-nums text-white/75 md:table-cell md:px-5">
                     {{ p.minLoanDuration }} – {{ p.maxLoanDuration }} 天
+                  </td>
+                  <td class="hidden px-3 py-2.5 tabular-nums text-white/70 md:table-cell md:px-5">
+                    {{ normalizeCollateralConfig(p).enabled ? `${normalizeCollateralConfig(p).multiplier}x` : '关闭' }}
                   </td>
                   <td class="hidden px-3 py-2.5 tabular-nums text-white/70 md:table-cell md:px-5">
                     {{ p.minLoanAmount?.toLocaleString() }} – {{ p.maxLoanAmount?.toLocaleString() }}
@@ -742,6 +839,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                 <tr :class="fx.tableHeadRow">
                   <th class="px-3 py-2.5 font-semibold md:px-5 md:py-3">借币</th>
                   <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">借款金额</th>
+                  <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">锁定质押</th>
                   <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">利率</th>
                   <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">到期</th>
                   <th class="hidden px-3 py-2.5 font-semibold md:table-cell md:px-5 md:py-3">待还</th>
@@ -769,10 +867,15 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                       <span class="text-right tabular-nums text-white/70">{{ o.maturityDate }}</span>
                       <span class="text-white/35">待还</span>
                       <span class="text-right font-medium tabular-nums text-white/85">{{ o.totalDebt?.toLocaleString() }}</span>
+                      <span class="text-white/35">质押</span>
+                      <span class="text-right tabular-nums text-white/70">
+                        {{ o.collateralAmount ? `${o.collateralAmount?.toLocaleString()} ${o.collateralType}` : '—' }}
+                      </span>
                     </div>
                     <div
                       v-if="
                         o.status === LOAN_ORDER_STATUS.ACTIVE || o.status === LOAN_ORDER_STATUS.REPAYING
+                        || o.status === LOAN_ORDER_STATUS.OVERDUE
                       "
                       class="mt-3 md:hidden"
                     >
@@ -787,6 +890,9 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                   </td>
                   <td class="hidden px-3 py-2.5 tabular-nums md:table-cell md:px-5 md:py-3">
                     {{ o.loanAmount?.toLocaleString() }}
+                  </td>
+                  <td class="hidden px-3 py-2.5 tabular-nums text-white/70 md:table-cell md:px-5 md:py-3">
+                    {{ o.collateralAmount ? `${o.collateralAmount?.toLocaleString()} ${o.collateralType}` : '—' }}
                   </td>
                   <td class="hidden tabular-nums text-lime-300/90 md:table-cell md:px-5 md:py-3">
                     {{ o.interestRate }}%
@@ -803,6 +909,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
                     <button
                       v-if="
                         o.status === LOAN_ORDER_STATUS.ACTIVE || o.status === LOAN_ORDER_STATUS.REPAYING
+                        || o.status === LOAN_ORDER_STATUS.OVERDUE
                       "
                       type="button"
                       :class="fx.btnTableAction"
@@ -1058,7 +1165,7 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
       close-on-backdrop
       @backdrop-click="closeBorrowDialog"
     >
-      <FrontPopupCard v-if="borrowProduct" variant="flow" flow-max="680" wide @click.stop>
+      <FrontPopupCard v-if="borrowProduct" variant="flow" flow-max="760" wide class="lg:!max-w-3xl" @click.stop>
         <FrontPopupCloseButton @click="closeBorrowDialog" />
 
         <div
@@ -1078,87 +1185,124 @@ const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 
             </div>
           </div>
 
-          <div class="min-h-0 flex-1 overflow-y-auto px-4 pb-6 pt-2 sm:px-5">
-            <dl class="space-y-2.5 text-sm">
-              <div class="flex items-center justify-between gap-3 border-b border-white/[0.06] py-2.5">
-                <dt class="text-white/45">利率</dt>
-                <dd class="font-bold tabular-nums text-lime-300">{{ borrowProduct.interestRate }}%</dd>
-              </div>
-              <div class="flex items-center justify-between gap-3 border-b border-white/[0.06] py-2.5">
-                <dt class="text-white/45">还款周期</dt>
-                <dd class="tabular-nums text-white">
-                  {{ borrowProduct.minLoanDuration }} – {{ borrowProduct.maxLoanDuration }} 天
-                </dd>
-              </div>
-              <div class="flex items-center justify-between gap-3 border-b border-white/[0.06] py-2.5">
-                <dt class="text-white/45">借款币种</dt>
-                <dd class="font-medium text-white">{{ borrowProduct.loanCurrency }}</dd>
-              </div>
-              <div class="flex items-center justify-between gap-3 py-2.5">
-                <dt class="text-white/45">借款金额（最小 / 最大）</dt>
-                <dd class="text-right tabular-nums text-white">
-                  {{ borrowProduct.minLoanAmount?.toLocaleString() }} –
-                  {{ borrowProduct.maxLoanAmount?.toLocaleString() }}
-                </dd>
-              </div>
-            </dl>
+          <div class="min-h-0 flex-1 overflow-y-auto px-4 pb-5 pt-1 [scrollbar-width:none] sm:px-5 lg:overflow-visible [&::-webkit-scrollbar]:hidden">
+            <div class="grid gap-4 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
+              <div class="space-y-4">
+                <dl class="space-y-2 text-sm">
+                  <div class="flex items-center justify-between gap-3 border-b border-white/[0.06] py-2">
+                    <dt class="text-white/45">利率</dt>
+                    <dd class="font-bold tabular-nums text-lime-300">{{ borrowProduct.interestRate }}%</dd>
+                  </div>
+                  <div class="flex items-center justify-between gap-3 border-b border-white/[0.06] py-2">
+                    <dt class="text-white/45">还款周期</dt>
+                    <dd class="tabular-nums text-white">
+                      {{ borrowProduct.minLoanDuration }} – {{ borrowProduct.maxLoanDuration }} 天
+                    </dd>
+                  </div>
+                  <div class="flex items-center justify-between gap-3 border-b border-white/[0.06] py-2">
+                    <dt class="text-white/45">借款币种</dt>
+                    <dd class="font-medium text-white">{{ borrowProduct.loanCurrency }}</dd>
+                  </div>
+                  <div class="flex items-center justify-between gap-3 border-b border-white/[0.06] py-2">
+                    <dt class="text-white/45">借款金额（最小 / 最大）</dt>
+                    <dd class="text-right tabular-nums text-white">
+                      {{ borrowProduct.minLoanAmount?.toLocaleString() }} –
+                      {{ borrowProduct.maxLoanAmount?.toLocaleString() }}
+                    </dd>
+                  </div>
+                  <div class="flex items-center justify-between gap-3 py-2">
+                    <dt class="text-white/45">质押规则</dt>
+                    <dd class="text-right tabular-nums text-white">
+                      {{ borrowCollateralConfig.enabled ? `${borrowCollateralConfig.multiplier}x · ${borrowCollateralConfig.currencies.join(' / ')}` : '关闭' }}
+                    </dd>
+                  </div>
+                </dl>
 
-            <div
-              class="mt-4 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-xs leading-relaxed text-orange-200/95 sm:text-sm"
-            >
-              请及时还款；若逾期，每日额外收取（本金+利息）约
-              <span class="font-semibold">{{ overdueFeePct }}%</span>
-              作为逾期费，具体以借款合同及平台规则为准。
+                <div
+                  class="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-xs leading-relaxed text-orange-200/95"
+                >
+                  请及时还款；若逾期，每日额外收取（本金+利息）约
+                  <span class="font-semibold">{{ overdueFeePct }}%</span>
+                  作为逾期费，具体以借款合同及平台规则为准。
+                </div>
+              </div>
+
+              <div v-if="borrowCanSubmit" class="space-y-3 rounded-xl border border-white/[0.08] bg-black/20 p-3">
+                <div class="flex flex-wrap items-baseline justify-between gap-2">
+                  <span class="text-sm font-medium text-white/75">借币数量</span>
+                  <span class="text-xs text-white/45">
+                    本单可借上限：{{ borrowCreditRemaining.toLocaleString() }} {{ borrowProduct.loanCurrency }}
+                  </span>
+                </div>
+                <div class="flex gap-2">
+                  <input
+                    v-model="borrowAmount"
+                    type="text"
+                    inputmode="decimal"
+                    :placeholder="`最少 ${borrowProduct.minLoanAmount} 起`"
+                    :class="fx.inputFlex"
+                  />
+                  <button type="button" :class="fx.inputSideBtn" @click="fillBorrowAll">
+                    全部
+                  </button>
+                </div>
+                <p class="text-xs tabular-nums text-white/50">
+                  利息预估（约 {{ borrowInterestPreviewDays }} 天）：
+                  <span class="font-semibold text-lime-300/90">
+                    {{ borrowInterestPreview.toFixed(4) }} {{ borrowProduct.loanCurrency }}
+                  </span>
+                </p>
+                <div
+                  v-if="borrowCollateralConfig.enabled"
+                  class="rounded-xl border border-white/[0.08] bg-black/30 p-3"
+                >
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <span class="text-sm font-medium text-white/75">质押币种</span>
+                    <select
+                      v-model="borrowCollateralCurrency"
+                      class="rounded-lg border border-white/[0.12] bg-[#111] px-3 py-2 text-sm text-white outline-none focus:border-lime-400/50"
+                    >
+                      <option v-for="coin in borrowCollateralConfig.currencies" :key="coin" :value="coin">{{ coin }}</option>
+                    </select>
+                  </div>
+                  <dl class="mt-3 grid grid-cols-2 gap-2 text-xs text-white/50">
+                    <dt>需锁定价值</dt>
+                    <dd class="text-right tabular-nums text-white/85">{{ borrowCollateralValue.toLocaleString(undefined, { maximumFractionDigits: 2 }) }} USD</dd>
+                    <dt>需锁定数量</dt>
+                    <dd class="text-right tabular-nums text-lime-200/90">{{ borrowCollateralAmount.toLocaleString(undefined, { maximumFractionDigits: 8 }) }} {{ borrowCollateralCurrency }}</dd>
+                    <dt>账户可用</dt>
+                    <dd class="text-right tabular-nums text-white/75">{{ borrowCollateralBalance.toLocaleString(undefined, { maximumFractionDigits: 8 }) }} {{ borrowCollateralCurrency }}</dd>
+                    <dt>参考价格</dt>
+                    <dd class="text-right tabular-nums text-white/60">{{ (LENDING_COLLATERAL_PRICE_USD[borrowCollateralCurrency] || 1).toLocaleString() }} USD</dd>
+                  </dl>
+                  <p v-if="parsedBorrow > 0 && !borrowCollateralSufficient" class="mt-2 text-xs text-amber-200/90">
+                    当前质押币种余额不足，请切换币种或降低借款金额。
+                  </p>
+                </div>
+                <p
+                  v-if="!borrowSubmitValid && parsedBorrow > 0"
+                  class="text-xs leading-relaxed text-amber-200/90"
+                >
+                  请输入 {{ borrowProduct.minLoanAmount?.toLocaleString() }} –
+                  {{ borrowProduct.maxLoanAmount?.toLocaleString() }} 范围内，且不超过本单可借上限
+                  {{ borrowCreditRemaining.toLocaleString() }} {{ borrowProduct.loanCurrency }}。
+                </p>
+              </div>
             </div>
 
-            <div v-if="borrowCanSubmit" class="mt-5 border-t border-white/[0.08] pt-5">
-              <div class="flex flex-wrap items-baseline justify-between gap-2">
-                <span class="text-sm font-medium text-white/75">借币数量</span>
-                <span class="text-xs text-white/45">
-                  本单可借上限：{{ borrowCreditRemaining.toLocaleString() }} {{ borrowProduct.loanCurrency }}
-                </span>
-              </div>
-              <div class="mt-2 flex gap-2">
-                <input
-                  v-model="borrowAmount"
-                  type="text"
-                  inputmode="decimal"
-                  :placeholder="`最少 ${borrowProduct.minLoanAmount} 起`"
-                  :class="fx.inputFlex"
-                />
-                <button type="button" :class="fx.inputSideBtn" @click="fillBorrowAll">
-                  全部
-                </button>
-              </div>
-              <p class="mt-2 text-xs tabular-nums text-white/50 sm:text-sm">
-                利息预估（{{ borrowProduct.loanCurrency }}，按期限区间中点约
-                {{ borrowInterestPreviewDays }} 天粗算，实际计息以合同约定为准）：
-                <span class="font-semibold text-lime-300/90">
-                  {{ borrowInterestPreview.toFixed(4) }} {{ borrowProduct.loanCurrency }}
-                </span>
-              </p>
-              <p
-                v-if="!borrowSubmitValid && parsedBorrow > 0"
-                class="mt-2 text-xs leading-relaxed text-amber-200/90"
-              >
-                请输入 {{ borrowProduct.minLoanAmount?.toLocaleString() }} –
-                {{ borrowProduct.maxLoanAmount?.toLocaleString() }} 范围内，且不超过本单可借上限
-                {{ borrowCreditRemaining.toLocaleString() }} {{ borrowProduct.loanCurrency }}。
-              </p>
-            </div>
-
-            <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <div class="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <button type="button" :class="fx.btnGhost" @click="closeBorrowDialog">
                 取消
               </button>
-              <RouterLink
-                v-if="borrowCanSubmit && borrowSubmitValid"
-                :to="{ path: `${prefix}/login`, query: { redirect: route.path } }"
-                :class="['inline-flex items-center justify-center', fx.btnPrimary]"
-                @click="closeBorrowDialog"
+              <button
+                v-if="borrowCanSubmit"
+                type="button"
+                :class="fx.btnPrimary"
+                :disabled="!borrowSubmitValid"
+                @click="submitBorrowApplication"
               >
-                去登录申请借款
-              </RouterLink>
+                提交申请并锁定质押
+              </button>
             </div>
           </div>
         </div>

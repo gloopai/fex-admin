@@ -21,7 +21,8 @@ export const LENDING_OP_ACTION = {
   PRODUCT_UPDATE: 'product_update',
   PRODUCT_STATUS: 'product_status',
   ORDER_APPROVE: 'order_approve',
-  ORDER_REJECT: 'order_reject'
+  ORDER_REJECT: 'order_reject',
+  ORDER_COLLATERAL_DEDUCT: 'order_collateral_deduct'
 }
 
 export const LENDING_OP_ACTION_LABEL = {
@@ -31,5 +32,6 @@ export const LENDING_OP_ACTION_LABEL = {
   [LENDING_OP_ACTION.PRODUCT_UPDATE]: '编辑产品',
   [LENDING_OP_ACTION.PRODUCT_STATUS]: '变更产品状态',
   [LENDING_OP_ACTION.ORDER_APPROVE]: '批准放款',
-  [LENDING_OP_ACTION.ORDER_REJECT]: '拒绝申请'
+  [LENDING_OP_ACTION.ORDER_REJECT]: '拒绝申请',
+  [LENDING_OP_ACTION.ORDER_COLLATERAL_DEDUCT]: '逾期质押抵扣'
 }

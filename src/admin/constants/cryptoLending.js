@@ -24,6 +24,7 @@ export const LOAN_ORDER_STATUS = {
   PENDING: 'pending',
   ACTIVE: 'active',
   REPAYING: 'repaying',
+  OVERDUE: 'overdue',
   COMPLETED: 'completed',
   LIQUIDATED: 'liquidated',
   CANCELLED: 'cancelled'
@@ -33,6 +34,7 @@ export const LOAN_ORDER_STATUS_LABELS = {
   [LOAN_ORDER_STATUS.PENDING]: '待审核',
   [LOAN_ORDER_STATUS.ACTIVE]: '借贷中',
   [LOAN_ORDER_STATUS.REPAYING]: '还款中',
+  [LOAN_ORDER_STATUS.OVERDUE]: '逾期',
   [LOAN_ORDER_STATUS.COMPLETED]: '已完成',
   [LOAN_ORDER_STATUS.LIQUIDATED]: '违约结清',
   [LOAN_ORDER_STATUS.CANCELLED]: '已取消'
@@ -42,6 +44,7 @@ export const LOAN_ORDER_STATUS_COLORS = {
   [LOAN_ORDER_STATUS.PENDING]: 'blue',
   [LOAN_ORDER_STATUS.ACTIVE]: 'green',
   [LOAN_ORDER_STATUS.REPAYING]: 'cyan',
+  [LOAN_ORDER_STATUS.OVERDUE]: 'orange',
   [LOAN_ORDER_STATUS.COMPLETED]: 'gray',
   [LOAN_ORDER_STATUS.LIQUIDATED]: 'red',
   [LOAN_ORDER_STATUS.CANCELLED]: 'gray'
@@ -155,11 +158,84 @@ export const LOAN_CURRENCY = {
   DAI: 'DAI'
 }
 
+export const LENDING_COLLATERAL_CURRENCIES = ['BTC', 'ETH', 'BNB', 'SOL', 'USDT', 'USDC']
+
+export const LENDING_COLLATERAL_PRICE_USD = {
+  BTC: 50000,
+  ETH: 3000,
+  BNB: 400,
+  SOL: 150,
+  XRP: 0.62,
+  DOGE: 0.12,
+  USDT: 1,
+  USDC: 1,
+  USD: 1,
+  EUR: 1.08,
+  XAU: 2300
+}
+
+export function uniqueCollateralCurrencies(currencies = []) {
+  return [...new Set(
+    currencies
+      .map((c) => String(c || '').trim().toUpperCase())
+      .filter(Boolean)
+  )].sort((a, b) => a.localeCompare(b))
+}
+
+export function collateralCurrenciesFromSpotProducts(spotProducts = []) {
+  if (!Array.isArray(spotProducts)) return []
+  const currencies = []
+  for (const p of spotProducts) {
+    if (p?.status !== 'trading') continue
+    currencies.push(p.baseCurrency, p.quoteCurrency)
+  }
+  return uniqueCollateralCurrencies(currencies)
+}
+
+export function collateralCurrenciesFromOpenSpotSymbols(spotSymbols = []) {
+  if (!Array.isArray(spotSymbols)) return []
+  const currencies = []
+  for (const s of spotSymbols) {
+    if (Number(s?.deleted_at)) continue
+    if (Number(s?.is_open) !== 1) continue
+    currencies.push(s.base_coin_name, s.quote_coin_name)
+  }
+  return uniqueCollateralCurrencies(currencies)
+}
+
+export function normalizeCollateralConfig(product = {}) {
+  const enabled = product.collateralEnabled !== false
+  const multiplier = Number(product.collateralMultiplier)
+  const currencies = Array.isArray(product.collateralCurrencies)
+    ? product.collateralCurrencies.filter(Boolean)
+    : product.collateralType
+      ? [product.collateralType]
+      : ['BTC', 'ETH', 'USDT']
+  return {
+    enabled,
+    multiplier: Number.isFinite(multiplier) && multiplier > 0 ? multiplier : 1.5,
+    currencies: currencies.length ? currencies : ['USDT'],
+    overdueDeductEnabled: product.overdueDeductEnabled !== false
+  }
+}
+
+export function collateralRequiredValue(loanAmount, product = {}) {
+  const amount = Number(loanAmount) || 0
+  const cfg = normalizeCollateralConfig(product)
+  return amount * cfg.multiplier
+}
+
+export function collateralRequiredAmount(loanAmount, product = {}, currency) {
+  const price = Number(LENDING_COLLATERAL_PRICE_USD[currency]) || 1
+  return collateralRequiredValue(loanAmount, product) / price
+}
+
 // 产品列配置
 export const PRODUCT_COLUMNS = [
   { key: 'productId', label: '产品ID', sortable: true },
   { key: 'productName', label: '产品名称', sortable: true },
   { key: 'loanCurrency', label: '借出币种', sortable: true },
+  { key: 'collateralMultiplier', label: '质押倍数', sortable: true },
   { key: 'minLoanAmount', label: '最小借贷额', sortable: true },
   { key: 'maxLoanAmount', label: '最大借贷额', sortable: true },
   { key: 'interestRate', label: '年化利率', sortable: true },
