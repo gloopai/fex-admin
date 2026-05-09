@@ -169,6 +169,12 @@
                   </span>
                   <h3 class="text-lg font-semibold text-slate-900" :title="dim.key">{{ dim.label }}</h3>
                   <span
+                    v-if="dim.deferredLabel"
+                    class="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700 ring-1 ring-amber-200"
+                  >
+                    {{ dim.deferredLabel }}
+                  </span>
+                  <span
                     v-if="dim.scoreRule"
                     class="rounded-full px-2 py-0.5 text-[10px] font-medium ring-1"
                     :class="
@@ -234,6 +240,13 @@
                   <div class="flex justify-between gap-2 rounded-md bg-slate-50 px-2 py-1.5 sm:block sm:px-3">
                     <dt class="text-slate-500">启用本项</dt>
                     <dd class="font-medium text-slate-800">{{ dim.scoreRule.enabled !== false ? '是' : '否' }}</dd>
+                  </div>
+                  <div
+                    v-if="dim.deferredNote"
+                    class="flex justify-between gap-2 rounded-md bg-amber-50 px-2 py-1.5 sm:block sm:px-3"
+                  >
+                    <dt class="text-amber-700">状态</dt>
+                    <dd class="font-medium text-amber-900">{{ dim.deferredNote }}</dd>
                   </div>
                 </dl>
 

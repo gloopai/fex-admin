@@ -109,6 +109,8 @@ export const lendingCreditScorecard = reactive({
       key: 'trading_activity',
       group: LENDING_SCORECARD_GROUP.TRADING,
       label: '交易活跃',
+      deferredLabel: '后续再做',
+      deferredNote: '交易活跃指标后续接入，当前仅保留占位配置。',
       description:
         '按「近 30 日现货、永续、交割三类成交额之和」统一折算为 USDT 后分档；下表「下限 ≥」「上限 <」均为该合计值的 USDT 数额（左闭右开）。',
       maxPoints: 20,
