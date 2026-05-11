@@ -30,6 +30,7 @@ import {
   LENDING_COLLATERAL_PRICE_USD,
   normalizeCollateralConfig,
   normalizeOverduePenaltyRate,
+  normalizeCollateralDisposalThreshold,
   collateralRequiredAmount,
   collateralRequiredValue
 } from '../../../../admin/constants/cryptoLending'
@@ -462,6 +463,7 @@ function submitBorrowApplication() {
       requestedAmount: amount,
       interestRate: Number(p.interestRate) || 0,
       overduePenaltyRate: normalizeOverduePenaltyRate(p),
+      collateralDisposalThreshold: normalizeCollateralDisposalThreshold(p),
       interestAccrued: 0,
       totalDebt: amount,
       status: LOAN_ORDER_STATUS.PENDING,

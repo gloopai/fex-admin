@@ -27,9 +27,9 @@
         <input v-model="filters.userId" type="text" placeholder="搜索用户ID..." class="w-full max-w-xs rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500" />
         <button type="button" class="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50" @click="resetFilters">重置</button>
         <div v-if="selectedDeductOrders.length" class="ml-auto flex flex-wrap items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2">
-          <span class="text-xs font-medium text-rose-700">已选 {{ selectedDeductOrders.length }} 笔可抵扣订单</span>
+          <span class="text-xs font-medium text-rose-700">已选 {{ selectedDeductOrders.length }} 笔可处理订单</span>
           <button type="button" class="rounded-md bg-rose-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-rose-700" @click="openBatchDeductDialog">
-            批量逾期抵扣
+            批量逾期处理
           </button>
           <button type="button" class="rounded-md border border-rose-200 bg-white px-3 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-50" @click="clearSelectedOrders">
             清空选择
@@ -48,7 +48,7 @@
                   :checked="allSelectableChecked"
                   :indeterminate.prop="someSelectableChecked && !allSelectableChecked"
                   :disabled="selectableFilteredOrders.length === 0"
-                  aria-label="选择当前筛选下可抵扣订单"
+                  aria-label="选择当前筛选下可处理订单"
                   @change="toggleAllSelectableOrders"
                 />
               </th>
@@ -121,6 +121,9 @@
                 <div class="text-xs text-slate-500">
                   {{ order.collateralValue ? `${formatCurrency(order.collateralValue)} · ${order.collateralStatus === 'deducted' ? '已抵扣' : '锁定中'}` : '无质押' }}
                 </div>
+                <div v-if="order.collateralValue" class="mt-1 text-[11px]" :class="collateralDisposalReached(order) ? 'font-medium text-rose-600' : 'text-slate-500'">
+                  债务占比 {{ collateralDebtRatioLabel(order) }} / 阈值 {{ collateralDisposalThresholdLabel(order) }}
+                </div>
               </td>
               <td class="px-4 py-3">
                 <div class="text-xs text-slate-600">利息: {{ formatCurrency(order.interestAccrued) }}</div>
@@ -166,7 +169,7 @@
                     class="rounded border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-medium text-rose-600 transition-colors hover:bg-rose-100 whitespace-nowrap"
                     @click="openDeductDialog(order)"
                   >
-                    逾期抵扣
+                    逾期处理
                   </button>
                 </div>
               </td>
@@ -482,7 +485,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M4.93 19h14.14c1.54 0 2.5-1.67 1.73-3L13.73 3.99c-.77-1.33-2.69-1.33-3.46 0L3.2 16c-.77 1.33.19 3 1.73 3z"/>
                   </svg>
                 </span>
-                <span>质押资产与逾期抵扣</span>
+                <span>质押资产与逾期处理</span>
               </h3>
               <div class="grid gap-4 md:grid-cols-4">
                 <div class="rounded-lg border border-slate-100 bg-slate-50 p-3">
@@ -507,7 +510,7 @@
                 </div>
               </div>
               <div v-if="currentReviewOrder?.collateralAmount" class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                到期未偿还时，可由后台按待还债务扣除对应质押资产进行抵扣，并将订单标记为「违约结清」。
+                当待还债务达到质押估值的 {{ collateralDisposalThresholdLabel(currentReviewOrder) }} 时，订单可进入逾期处理；当前债务占比 {{ collateralDebtRatioLabel(currentReviewOrder) }}。
               </div>
             </section>
 
@@ -687,8 +690,8 @@
         <article class="w-full max-w-2xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl" @click.stop>
           <header class="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-4">
             <div>
-              <p class="text-xs font-semibold uppercase tracking-wide text-rose-600">逾期质押抵扣</p>
-              <h2 class="mt-1 text-xl font-semibold text-slate-900">确认扣除用户质押资产</h2>
+              <p class="text-xs font-semibold uppercase tracking-wide text-rose-600">逾期处理</p>
+              <h2 class="mt-1 text-xl font-semibold text-slate-900">确认处理用户质押资产</h2>
               <p class="mt-1 text-sm text-slate-500">确认后订单将标记为「违约结清」，待还债务清零。</p>
             </div>
             <button type="button" class="text-slate-400 transition hover:text-slate-600" @click="closeDeductDialog">
@@ -725,6 +728,10 @@
                 <dd class="mt-1 text-lg font-bold text-slate-900">{{ formatCurrency(deductOrder.collateralValue) }}</dd>
               </div>
               <div class="rounded-lg border border-slate-100 bg-slate-50 p-3">
+                <dt class="text-xs font-medium text-slate-500">债务占比 / 阈值</dt>
+                <dd class="mt-1 text-lg font-bold text-rose-700">{{ collateralDebtRatioLabel(deductOrder) }} / {{ collateralDisposalThresholdLabel(deductOrder) }}</dd>
+              </div>
+              <div class="rounded-lg border border-slate-100 bg-slate-50 p-3">
                 <dt class="text-xs font-medium text-slate-500">抵扣后状态</dt>
                 <dd class="mt-1"><span class="rounded-md bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-800">违约结清</span></dd>
               </div>
@@ -740,7 +747,7 @@
               取消
             </button>
             <button type="button" class="rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50" :disabled="!canDeductCollateral(deductOrder)" @click="confirmDeductCollateral">
-              确认扣除并结清
+              确认处理并结清
             </button>
           </footer>
         </article>
@@ -755,8 +762,8 @@
         <article class="flex h-[min(86vh,46rem)] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl" @click.stop>
           <header class="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 px-6 py-4">
             <div>
-              <p class="text-xs font-semibold uppercase tracking-wide text-rose-600">批量逾期抵扣</p>
-              <h2 class="mt-1 text-xl font-semibold text-slate-900">确认批量扣除质押资产</h2>
+              <p class="text-xs font-semibold uppercase tracking-wide text-rose-600">批量逾期处理</p>
+              <h2 class="mt-1 text-xl font-semibold text-slate-900">确认批量处理质押资产</h2>
               <p class="mt-1 text-sm text-slate-500">确认后所选订单将统一标记为「违约结清」，待还债务清零。</p>
             </div>
             <button type="button" class="text-slate-400 transition hover:text-slate-600" @click="closeBatchDeductDialog">
@@ -783,7 +790,7 @@
             </div>
 
             <div class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-relaxed text-rose-900">
-              批量操作会逐笔扣除已锁定质押资产并写入操作日志，请确认列表中的订单均已满足逾期抵扣条件。
+              批量操作会逐笔处理已锁定质押资产并写入操作日志，请确认列表中的订单均已达到处理阈值。
             </div>
 
             <div class="overflow-hidden rounded-lg border border-slate-200">
@@ -795,6 +802,7 @@
                     <th class="px-3 py-2 text-right font-medium">待还</th>
                     <th class="px-3 py-2 text-right font-medium">质押资产</th>
                     <th class="px-3 py-2 text-right font-medium">估值</th>
+                    <th class="px-3 py-2 text-right font-medium">占比/阈值</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -804,6 +812,7 @@
                     <td class="px-3 py-2 text-right font-medium text-rose-700">{{ formatCurrency(order.totalDebt) }}</td>
                     <td class="px-3 py-2 text-right tabular-nums text-slate-900">{{ formatPlainNumber(order.collateralAmount) }} {{ order.collateralType }}</td>
                     <td class="px-3 py-2 text-right font-medium text-slate-900">{{ formatCurrency(order.collateralValue) }}</td>
+                    <td class="px-3 py-2 text-right font-medium text-rose-700">{{ collateralDebtRatioLabel(order) }} / {{ collateralDisposalThresholdLabel(order) }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -815,7 +824,7 @@
               取消
             </button>
             <button type="button" class="rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50" :disabled="selectedDeductOrders.length === 0" @click="confirmBatchDeductCollateral">
-              确认批量扣除
+              确认批量处理
             </button>
           </footer>
         </article>
@@ -837,7 +846,8 @@ import { lendingProductsCatalog } from '../../../admin/state/financeCatalogs'
 import {
   LOAN_ORDER_STATUS,
   LOAN_ORDER_STATUS_LABELS,
-  normalizeOverduePenaltyRate
+  normalizeOverduePenaltyRate,
+  normalizeCollateralDisposalThreshold
 } from '../../../admin/constants/cryptoLending'
 import { usersList } from '../../../admin/mock/user'
 import { USER_STATUS, USER_ROLE, USER_KYC_STATUS } from '../../../admin/constants/user'
@@ -942,9 +952,31 @@ const statusLabel = (status) => {
 }
 
 const overduePenaltyRateLabel = (order) => {
-  const product = lendingProductsCatalog.value.find((p) => p.productId === order?.productId)
+  const product = productForOrder(order)
   return `${normalizeOverduePenaltyRate({ ...product, ...order })}% / 日`
 }
+
+const productForOrder = (order) =>
+  lendingProductsCatalog.value.find((p) => p.productId === order?.productId) ?? null
+
+const collateralDisposalThreshold = (order) => {
+  const product = productForOrder(order)
+  return normalizeCollateralDisposalThreshold({ ...product, ...order })
+}
+
+const collateralDisposalThresholdLabel = (order) => `${collateralDisposalThreshold(order)}%`
+
+const collateralDebtRatio = (order) => {
+  const debt = Number(order?.totalDebt)
+  const collateralValue = Number(order?.collateralValue)
+  if (!Number.isFinite(debt) || !Number.isFinite(collateralValue) || collateralValue <= 0) return 0
+  return (debt / collateralValue) * 100
+}
+
+const collateralDebtRatioLabel = (order) => `${collateralDebtRatio(order).toFixed(2)}%`
+
+const collateralDisposalReached = (order) =>
+  collateralDebtRatio(order) >= collateralDisposalThreshold(order)
 
 const resetFilters = () => {
   filters.value = {
@@ -961,11 +993,8 @@ const canDeductCollateral = (order) => {
   if (!order) return false
   if (order.overdueDeductEnabled === false) return false
   if (!order.collateralAmount || order.collateralStatus === 'deducted') return false
-  return (
-    order.status === LOAN_ORDER_STATUS.ACTIVE ||
-    order.status === LOAN_ORDER_STATUS.REPAYING ||
-    order.status === LOAN_ORDER_STATUS.OVERDUE
-  )
+  if (order.status !== LOAN_ORDER_STATUS.OVERDUE) return false
+  return collateralDisposalReached(order)
 }
 
 const openDeductDialog = (order) => {
@@ -1323,6 +1352,8 @@ const approveOrder = () => {
 
 const deductCollateral = (order) => {
   if (!canDeductCollateral(order)) return
+  const debtRatioLabel = collateralDebtRatioLabel(order)
+  const thresholdLabel = collateralDisposalThresholdLabel(order)
   order.collateralStatus = 'deducted'
   order.status = LOAN_ORDER_STATUS.LIQUIDATED
   order.interestAccrued = 0
@@ -1333,8 +1364,8 @@ const deductCollateral = (order) => {
     module: LENDING_OP_MODULE.ORDER,
     action: LENDING_OP_ACTION.ORDER_COLLATERAL_DEDUCT,
     refId: order.orderId,
-    targetLabel: '逾期质押抵扣',
-    summary: `扣除 ${formatPlainNumber(order.collateralAmount)} ${order.collateralType} 抵扣逾期债务，订单违约结清`
+    targetLabel: '质押逾期处理',
+    summary: `债务占比 ${debtRatioLabel} 达到阈值 ${thresholdLabel}，处置 ${formatPlainNumber(order.collateralAmount)} ${order.collateralType} 并违约结清`
   })
   if (currentReviewOrder.value?.orderId === order.orderId) currentReviewOrder.value = order
 }

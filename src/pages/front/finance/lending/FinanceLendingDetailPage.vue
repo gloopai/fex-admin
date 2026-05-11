@@ -11,7 +11,8 @@ import {
   PRODUCT_STATUS_LABELS,
   INTEREST_RATE_TYPE,
   INTEREST_RATE_TYPE_LABELS,
-  normalizeOverduePenaltyRate
+  normalizeOverduePenaltyRate,
+  normalizeCollateralDisposalThreshold
 } from '../../../../admin/constants/cryptoLending'
 
 const route = useRoute()
@@ -71,6 +72,11 @@ const headlineRateValue = computed(() => {
 const overduePenaltyRate = computed(() => {
   const p = product.value
   return p ? normalizeOverduePenaltyRate(p) : null
+})
+
+const collateralDisposalThreshold = computed(() => {
+  const p = product.value
+  return p ? normalizeCollateralDisposalThreshold(p) : null
 })
 </script>
 
@@ -141,6 +147,10 @@ const overduePenaltyRate = computed(() => {
             <div class="flex items-center justify-between gap-4 py-3 first:pt-0">
               <dt class="text-white/45">逾期违约金比例</dt>
               <dd class="font-medium tabular-nums text-white/85">{{ overduePenaltyRate ?? '—' }}% / 日</dd>
+            </div>
+            <div class="flex items-center justify-between gap-4 py-3">
+              <dt class="text-white/45">逾期处理阈值</dt>
+              <dd class="font-medium tabular-nums text-white/85">{{ collateralDisposalThreshold ?? '—' }}%</dd>
             </div>
             <div class="flex items-center justify-between gap-4 py-3">
               <dt class="text-white/45">违约结清处置费</dt>

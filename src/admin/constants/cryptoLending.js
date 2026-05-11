@@ -162,6 +162,8 @@ export const LENDING_COLLATERAL_CURRENCIES = ['BTC', 'ETH', 'BNB', 'SOL', 'USDT'
 
 export const DEFAULT_OVERDUE_PENALTY_RATE = 4
 
+export const DEFAULT_COLLATERAL_DISPOSAL_THRESHOLD = 95
+
 export const LENDING_COLLATERAL_PRICE_USD = {
   BTC: 50000,
   ETH: 3000,
@@ -224,6 +226,13 @@ export function normalizeCollateralConfig(product = {}) {
 export function normalizeOverduePenaltyRate(product = {}) {
   const rate = Number(product.overduePenaltyRate ?? product.liquidationPenalty)
   return Number.isFinite(rate) && rate >= 0 ? rate : DEFAULT_OVERDUE_PENALTY_RATE
+}
+
+export function normalizeCollateralDisposalThreshold(product = {}) {
+  const threshold = Number(product.collateralDisposalThreshold)
+  return Number.isFinite(threshold) && threshold > 0
+    ? threshold
+    : DEFAULT_COLLATERAL_DISPOSAL_THRESHOLD
 }
 
 export function collateralRequiredValue(loanAmount, product = {}) {
