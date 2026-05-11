@@ -457,6 +457,10 @@
                     <span class="text-sm font-medium text-blue-700">年化利率</span>
                     <span class="text-lg font-bold text-blue-900">{{ currentReviewOrder?.interestRate }}%</span>
                   </div>
+                  <div class="mt-3 flex items-center justify-between">
+                    <span class="text-sm font-medium text-blue-700">逾期违约金</span>
+                    <span class="text-lg font-bold text-blue-900">{{ overduePenaltyRateLabel(currentReviewOrder) }}</span>
+                  </div>
                 </div>
                 <div class="rounded-lg border border-purple-100 bg-purple-50 p-4">
                   <div class="flex items-center justify-between">
@@ -829,7 +833,12 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { mockOrders } from '../../../admin/mock/cryptoLending'
-import { LOAN_ORDER_STATUS, LOAN_ORDER_STATUS_LABELS } from '../../../admin/constants/cryptoLending'
+import { lendingProductsCatalog } from '../../../admin/state/financeCatalogs'
+import {
+  LOAN_ORDER_STATUS,
+  LOAN_ORDER_STATUS_LABELS,
+  normalizeOverduePenaltyRate
+} from '../../../admin/constants/cryptoLending'
 import { usersList } from '../../../admin/mock/user'
 import { USER_STATUS, USER_ROLE, USER_KYC_STATUS } from '../../../admin/constants/user'
 import { lendingCreditPolicy } from '../../../admin/mock/lendingCreditConfig'
@@ -930,6 +939,11 @@ const formatDate = (dateStr) => {
 
 const statusLabel = (status) => {
   return LOAN_ORDER_STATUS_LABELS[status] || status
+}
+
+const overduePenaltyRateLabel = (order) => {
+  const product = lendingProductsCatalog.value.find((p) => p.productId === order?.productId)
+  return `${normalizeOverduePenaltyRate({ ...product, ...order })}% / 日`
 }
 
 const resetFilters = () => {

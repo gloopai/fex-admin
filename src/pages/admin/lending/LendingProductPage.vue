@@ -59,6 +59,8 @@
                 <span class="mx-3 text-slate-300">|</span>
                 年化利率: <span class="font-medium text-emerald-600">{{ product.interestRate ?? 0 }}%</span>
                 <span class="mx-3 text-slate-300">|</span>
+                逾期违约金: <span class="font-medium text-rose-600">{{ overduePenaltyLabel(product) }}</span>
+                <span class="mx-3 text-slate-300">|</span>
                 质押倍数: <span class="font-medium text-blue-600">{{ collateralLabel(product) }}</span>
               </p>
             </div>
@@ -406,6 +408,25 @@
                 <div>
                   <h3 class="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-900">
                     <svg class="h-4 w-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.721-1.36 3.486 0l6.518 11.59c.75 1.333-.213 2.986-1.743 2.986H3.482c-1.53 0-2.493-1.653-1.743-2.986l6.518-11.59zM11 14a1 1 0 10-2 0 1 1 0 002 0zm-1-2a1 1 0 01-1-1V8a1 1 0 112 0v3a1 1 0 01-1 1z" clip-rule="evenodd"/>
+                    </svg>
+                    逾期规则
+                  </h3>
+                  <label class="mb-1.5 block text-sm font-medium text-slate-700">逾期违约金比例（每日 %）</label>
+                  <input
+                    v-model.number="formData.overduePenaltyRate"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    class="w-full max-w-xs rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="例如 0.08"
+                  />
+                  <p class="mt-2 text-xs text-slate-500">借款逾期后，按未还本金与已计利息合计每日计收。</p>
+                </div>
+
+                <div>
+                  <h3 class="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-900">
+                    <svg class="h-4 w-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
                     </svg>
                     流动性
@@ -497,6 +518,10 @@
                     </div>
 
                     <div class="flex justify-between items-center pb-2 border-b border-slate-200">
+                      <span class="text-xs text-slate-600">逾期违约金</span>
+                      <span class="text-sm font-semibold text-rose-600">{{ formData.overduePenaltyRate ?? 0 }}% / 日</span>
+                    </div>
+                    <div class="flex justify-between items-center pb-2 border-b border-slate-200">
                       <span class="text-xs text-slate-600">借款范围</span>
                       <span class="text-sm font-semibold text-slate-900">
                         {{ formatCurrency(formData.minLoanAmount) }} - {{ formatCurrency(formData.maxLoanAmount) }}
@@ -547,7 +572,8 @@ import {
   collateralCurrenciesFromOpenSpotSymbols,
   collateralCurrenciesFromSpotProducts,
   uniqueCollateralCurrencies,
-  normalizeCollateralConfig
+  normalizeCollateralConfig,
+  normalizeOverduePenaltyRate
 } from '../../../admin/constants/cryptoLending'
 import {
   LENDING_OP_ACTION,
@@ -574,6 +600,7 @@ const formData = ref({
   minLoanAmount: 0,
   maxLoanAmount: 0,
   interestRate: 0,
+  overduePenaltyRate: 0.08,
   minLoanDuration: 7,
   maxLoanDuration: 90,
   availableLiquidity: 0,
@@ -675,6 +702,8 @@ const collateralCurrenciesLabel = (product) => {
   return cfg.enabled ? cfg.currencies.join(' / ') : '—'
 }
 
+const overduePenaltyLabel = (product) => `${normalizeOverduePenaltyRate(product)}% / 日`
+
 const resetFilters = () => {
   filters.value = {
     status: ''
@@ -688,6 +717,7 @@ const resetFormData = () => {
     minLoanAmount: 0,
     maxLoanAmount: 0,
     interestRate: 0,
+    overduePenaltyRate: 0.08,
     minLoanDuration: 7,
     maxLoanDuration: 90,
     availableLiquidity: 0,
@@ -717,6 +747,7 @@ const editProduct = (product) => {
     minLoanAmount: product.minLoanAmount,
     maxLoanAmount: product.maxLoanAmount,
     interestRate: Number(product.interestRate) || 0,
+    overduePenaltyRate: normalizeOverduePenaltyRate(product),
     minLoanDuration: product.minLoanDuration,
     maxLoanDuration: product.maxLoanDuration,
     availableLiquidity: product.availableLiquidity,
@@ -757,6 +788,11 @@ const saveProduct = () => {
     alert('请填写有效的年化利率')
     return
   }
+  const overduePenaltyRate = Number(formData.value.overduePenaltyRate)
+  if (!Number.isFinite(overduePenaltyRate) || overduePenaltyRate < 0) {
+    alert('请填写有效的逾期违约金比例')
+    return
+  }
   if (formData.value.collateralEnabled) {
     const multiplier = Number(formData.value.collateralMultiplier)
     if (!Number.isFinite(multiplier) || multiplier <= 0) {
@@ -773,6 +809,7 @@ const saveProduct = () => {
     ...formData.value,
     collateralCurrencies: [...formData.value.collateralCurrencies],
     interestRate: rate,
+    overduePenaltyRate,
     interestRateType: INTEREST_RATE_TYPE.FIXED
   }
 
@@ -792,7 +829,7 @@ const saveProduct = () => {
         action: LENDING_OP_ACTION.PRODUCT_UPDATE,
         refId: next.productId,
         targetLabel: next.productName,
-        summary: `编辑产品：${next.productName}（${next.loanCurrency}），年化 ${next.interestRate}%`
+        summary: `编辑产品：${next.productName}（${next.loanCurrency}），年化 ${next.interestRate}%，逾期 ${next.overduePenaltyRate}%/日`
       })
       alert('产品修改成功')
     }
@@ -810,7 +847,7 @@ const saveProduct = () => {
       action: LENDING_OP_ACTION.PRODUCT_CREATE,
       refId: newProduct.productId,
       targetLabel: newProduct.productName,
-      summary: `新建产品：${newProduct.productName}（${newProduct.loanCurrency}）`
+      summary: `新建产品：${newProduct.productName}（${newProduct.loanCurrency}），逾期 ${newProduct.overduePenaltyRate}%/日`
     })
     alert('产品创建成功')
   }

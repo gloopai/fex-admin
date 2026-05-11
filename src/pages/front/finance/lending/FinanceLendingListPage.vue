@@ -29,6 +29,7 @@ import {
   deriveRepaymentType,
   LENDING_COLLATERAL_PRICE_USD,
   normalizeCollateralConfig,
+  normalizeOverduePenaltyRate,
   collateralRequiredAmount,
   collateralRequiredValue
 } from '../../../../admin/constants/cryptoLending'
@@ -430,7 +431,9 @@ const borrowCanSubmit = computed(
   () => borrowProduct.value != null && borrowProduct.value.status === PRODUCT_STATUS.ACTIVE
 )
 
-const overdueFeePct = computed(() => borrowProduct.value?.liquidationPenalty ?? 4)
+const overdueFeePct = computed(() =>
+  borrowProduct.value ? normalizeOverduePenaltyRate(borrowProduct.value) : 4
+)
 
 function submitBorrowApplication() {
   const p = borrowProduct.value
@@ -458,6 +461,7 @@ function submitBorrowApplication() {
       loanAmount: amount,
       requestedAmount: amount,
       interestRate: Number(p.interestRate) || 0,
+      overduePenaltyRate: normalizeOverduePenaltyRate(p),
       interestAccrued: 0,
       totalDebt: amount,
       status: LOAN_ORDER_STATUS.PENDING,

@@ -10,7 +10,8 @@ import {
   PRODUCT_STATUS,
   PRODUCT_STATUS_LABELS,
   INTEREST_RATE_TYPE,
-  INTEREST_RATE_TYPE_LABELS
+  INTEREST_RATE_TYPE_LABELS,
+  normalizeOverduePenaltyRate
 } from '../../../../admin/constants/cryptoLending'
 
 const route = useRoute()
@@ -65,6 +66,11 @@ const headlineRateValue = computed(() => {
   }
   if (p.interestRateType === INTEREST_RATE_TYPE.TIERED) return '阶梯计费'
   return `${p.interestRate ?? '—'}%`
+})
+
+const overduePenaltyRate = computed(() => {
+  const p = product.value
+  return p ? normalizeOverduePenaltyRate(p) : null
 })
 </script>
 
@@ -133,7 +139,11 @@ const headlineRateValue = computed(() => {
           <h2 class="text-base font-semibold text-white lg:text-lg">借贷参数</h2>
           <dl class="mt-5 divide-y divide-white/[0.06] text-[15px]">
             <div class="flex items-center justify-between gap-4 py-3 first:pt-0">
-              <dt class="text-white/45">强平 / 逾期罚金比例</dt>
+              <dt class="text-white/45">逾期违约金比例</dt>
+              <dd class="font-medium tabular-nums text-white/85">{{ overduePenaltyRate ?? '—' }}% / 日</dd>
+            </div>
+            <div class="flex items-center justify-between gap-4 py-3">
+              <dt class="text-white/45">违约结清处置费</dt>
               <dd class="font-medium tabular-nums text-white/85">{{ product.liquidationPenalty ?? '—' }}%</dd>
             </div>
             <div class="flex items-center justify-between gap-4 py-3">
