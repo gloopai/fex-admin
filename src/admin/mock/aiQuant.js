@@ -17,14 +17,15 @@ export const createAiQuantProductsMock = () => [
     currency: 'BTC',
     icon: '₿',
     operationMode: OPERATION_MODE.REAL_HEDGE,
+    durationDays: 0,
     settlementPeriod: SETTLEMENT_PERIOD.DAILY,
     customDays: 1,
     minVipLevel: VIP_LEVEL.VIP0,
     tiers: [
-      { minAmount: 0.01, maxAmount: 0.1, dailyRate: 0.15, label: '入门级' },
-      { minAmount: 0.1, maxAmount: 0.5, dailyRate: 0.18, label: '进阶级' },
-      { minAmount: 0.5, maxAmount: 2, dailyRate: 0.22, label: '专业级' },
-      { minAmount: 2, maxAmount: 999, dailyRate: 0.30, label: '旗舰级' }
+      { minAmount: 0.005, maxAmount: 0.05, dailyRate: 0.012, label: '体验级' },
+      { minAmount: 0.05, maxAmount: 0.2, dailyRate: 0.018, label: '稳健级' },
+      { minAmount: 0.2, maxAmount: 1, dailyRate: 0.026, label: '进阶级' },
+      { minAmount: 1, maxAmount: 5, dailyRate: 0.035, label: '专业级' }
     ],
     earlyRedeemEnabled: true,
     earlyRedeemFeePercent: 3,
@@ -33,7 +34,7 @@ export const createAiQuantProductsMock = () => [
     monthlyLimitCount: 5,
     totalLocked: 45.382,
     totalOrders: 287,
-    totalYield: 2.156,
+    totalYield: 0.486,
     status: PRODUCT_STATUS.ENABLED,
     createdAt: '2025-12-15'
   },
@@ -43,14 +44,15 @@ export const createAiQuantProductsMock = () => [
     currency: 'ETH',
     icon: 'Ξ',
     operationMode: OPERATION_MODE.HYBRID,
+    durationDays: 30,
     settlementPeriod: SETTLEMENT_PERIOD.WEEKLY,
     customDays: 7,
     minVipLevel: VIP_LEVEL.VIP1,
     tiers: [
-      { minAmount: 0.1, maxAmount: 1, dailyRate: 0.16, label: '入门级' },
-      { minAmount: 1, maxAmount: 5, dailyRate: 0.20, label: '进阶级' },
-      { minAmount: 5, maxAmount: 20, dailyRate: 0.25, label: '专业级' },
-      { minAmount: 20, maxAmount: 999, dailyRate: 0.35, label: '旗舰级' }
+      { minAmount: 0.05, maxAmount: 0.5, dailyRate: 0.015, label: '体验级' },
+      { minAmount: 0.5, maxAmount: 2, dailyRate: 0.022, label: '稳健级' },
+      { minAmount: 2, maxAmount: 10, dailyRate: 0.032, label: '进阶级' },
+      { minAmount: 10, maxAmount: 50, dailyRate: 0.045, label: '专业级' }
     ],
     earlyRedeemEnabled: true,
     earlyRedeemFeePercent: 4,
@@ -59,7 +61,7 @@ export const createAiQuantProductsMock = () => [
     monthlyLimitCount: 3,
     totalLocked: 312.65,
     totalOrders: 156,
-    totalYield: 18.92,
+    totalYield: 4.82,
     status: PRODUCT_STATUS.ENABLED,
     createdAt: '2025-12-20'
   },
@@ -69,14 +71,15 @@ export const createAiQuantProductsMock = () => [
     currency: 'USDT',
     icon: '₮',
     operationMode: OPERATION_MODE.INTERNAL,
+    durationDays: 14,
     settlementPeriod: SETTLEMENT_PERIOD.DAILY,
     customDays: 1,
     minVipLevel: VIP_LEVEL.VIP2,
     tiers: [
-      { minAmount: 100, maxAmount: 10000, dailyRate: 0.15, label: '标准级' },
-      { minAmount: 10000, maxAmount: 50000, dailyRate: 0.18, label: '优享级' },
-      { minAmount: 50000, maxAmount: 200000, dailyRate: 0.22, label: '尊享级' },
-      { minAmount: 200000, maxAmount: 9999999, dailyRate: 0.30, label: '至尊级' }
+      { minAmount: 100, maxAmount: 5000, dailyRate: 0.018, label: '标准级' },
+      { minAmount: 5000, maxAmount: 30000, dailyRate: 0.026, label: '优享级' },
+      { minAmount: 30000, maxAmount: 100000, dailyRate: 0.036, label: '尊享级' },
+      { minAmount: 100000, maxAmount: 500000, dailyRate: 0.05, label: '机构级' }
     ],
     earlyRedeemEnabled: false,
     earlyRedeemFeePercent: 0,
@@ -85,7 +88,7 @@ export const createAiQuantProductsMock = () => [
     monthlyLimitCount: 10,
     totalLocked: 1850000,
     totalOrders: 523,
-    totalYield: 82500,
+    totalYield: 18650,
     status: PRODUCT_STATUS.ENABLED,
     createdAt: '2026-01-05'
   },
@@ -95,13 +98,14 @@ export const createAiQuantProductsMock = () => [
     currency: 'BNB',
     icon: 'BNB',
     operationMode: OPERATION_MODE.REAL_HEDGE,
+    durationDays: 30,
     settlementPeriod: SETTLEMENT_PERIOD.MONTHLY,
     customDays: 30,
     minVipLevel: VIP_LEVEL.VIP3,
     tiers: [
-      { minAmount: 10, maxAmount: 100, dailyRate: 0.20, label: '标准级' },
-      { minAmount: 100, maxAmount: 500, dailyRate: 0.25, label: '优享级' },
-      { minAmount: 500, maxAmount: 2000, dailyRate: 0.32, label: '尊享级' }
+      { minAmount: 5, maxAmount: 50, dailyRate: 0.018, label: '标准级' },
+      { minAmount: 50, maxAmount: 200, dailyRate: 0.028, label: '优享级' },
+      { minAmount: 200, maxAmount: 1000, dailyRate: 0.04, label: '尊享级' }
     ],
     earlyRedeemEnabled: true,
     earlyRedeemFeePercent: 5,
@@ -110,7 +114,7 @@ export const createAiQuantProductsMock = () => [
     monthlyLimitCount: 2,
     totalLocked: 1250,
     totalOrders: 42,
-    totalYield: 125,
+    totalYield: 28.5,
     status: PRODUCT_STATUS.MAINTENANCE,
     createdAt: '2026-02-10'
   },
@@ -120,12 +124,13 @@ export const createAiQuantProductsMock = () => [
     currency: 'SOL',
     icon: 'SOL',
     operationMode: OPERATION_MODE.INTERNAL,
+    durationDays: 14,
     settlementPeriod: SETTLEMENT_PERIOD.CUSTOM,
     customDays: 14,
     minVipLevel: VIP_LEVEL.VIP4,
     tiers: [
-      { minAmount: 50, maxAmount: 500, dailyRate: 0.28, label: '专业级' },
-      { minAmount: 500, maxAmount: 2000, dailyRate: 0.35, label: '旗舰级' }
+      { minAmount: 20, maxAmount: 300, dailyRate: 0.025, label: '专业级' },
+      { minAmount: 300, maxAmount: 1500, dailyRate: 0.045, label: '旗舰级' }
     ],
     earlyRedeemEnabled: false,
     earlyRedeemFeePercent: 0,
@@ -134,7 +139,7 @@ export const createAiQuantProductsMock = () => [
     monthlyLimitCount: 1,
     totalLocked: 3280,
     totalOrders: 18,
-    totalYield: 320,
+    totalYield: 68,
     status: PRODUCT_STATUS.SOLD_OUT,
     createdAt: '2026-03-01'
   },
@@ -144,13 +149,14 @@ export const createAiQuantProductsMock = () => [
     currency: 'DOGE',
     icon: 'Ð',
     operationMode: OPERATION_MODE.HYBRID,
+    durationDays: 7,
     settlementPeriod: SETTLEMENT_PERIOD.WEEKLY,
     customDays: 7,
     minVipLevel: VIP_LEVEL.VIP0,
     tiers: [
-      { minAmount: 1000, maxAmount: 50000, dailyRate: 0.12, label: '体验级' },
-      { minAmount: 50000, maxAmount: 500000, dailyRate: 0.16, label: '标准级' },
-      { minAmount: 500000, maxAmount: 999999999, dailyRate: 0.2, label: '进阶级' }
+      { minAmount: 500, maxAmount: 20000, dailyRate: 0.01, label: '体验级' },
+      { minAmount: 20000, maxAmount: 200000, dailyRate: 0.018, label: '标准级' },
+      { minAmount: 200000, maxAmount: 1000000, dailyRate: 0.03, label: '进阶级' }
     ],
     earlyRedeemEnabled: true,
     earlyRedeemFeePercent: 2,
@@ -159,7 +165,7 @@ export const createAiQuantProductsMock = () => [
     monthlyLimitCount: 20,
     totalLocked: 125000,
     totalOrders: 890,
-    totalYield: 4200,
+    totalYield: 950,
     status: PRODUCT_STATUS.ENABLED,
     createdAt: '2026-01-20'
   },
@@ -169,12 +175,13 @@ export const createAiQuantProductsMock = () => [
     currency: 'XRP',
     icon: '✕',
     operationMode: OPERATION_MODE.INTERNAL,
+    durationDays: 30,
     settlementPeriod: SETTLEMENT_PERIOD.DAILY,
     customDays: 1,
     minVipLevel: VIP_LEVEL.VIP1,
     tiers: [
-      { minAmount: 500, maxAmount: 20000, dailyRate: 0.14, label: '标准级' },
-      { minAmount: 20000, maxAmount: 200000, dailyRate: 0.19, label: '优享级' }
+      { minAmount: 300, maxAmount: 15000, dailyRate: 0.014, label: '标准级' },
+      { minAmount: 15000, maxAmount: 100000, dailyRate: 0.026, label: '优享级' }
     ],
     earlyRedeemEnabled: true,
     earlyRedeemFeePercent: 3,
@@ -183,7 +190,7 @@ export const createAiQuantProductsMock = () => [
     monthlyLimitCount: 10,
     totalLocked: 185000,
     totalOrders: 412,
-    totalYield: 9600,
+    totalYield: 1980,
     status: PRODUCT_STATUS.ENABLED,
     createdAt: '2026-02-05'
   },
@@ -193,12 +200,13 @@ export const createAiQuantProductsMock = () => [
     currency: 'TRX',
     icon: 'TRX',
     operationMode: OPERATION_MODE.REAL_HEDGE,
+    durationDays: 60,
     settlementPeriod: SETTLEMENT_PERIOD.MONTHLY,
     customDays: 30,
     minVipLevel: VIP_LEVEL.VIP0,
     tiers: [
-      { minAmount: 2000, maxAmount: 100000, dailyRate: 0.13, label: '标准级' },
-      { minAmount: 100000, maxAmount: 5000000, dailyRate: 0.17, label: '优享级' }
+      { minAmount: 1000, maxAmount: 80000, dailyRate: 0.01, label: '标准级' },
+      { minAmount: 80000, maxAmount: 1000000, dailyRate: 0.018, label: '优享级' }
     ],
     earlyRedeemEnabled: true,
     earlyRedeemFeePercent: 2.5,
@@ -207,7 +215,7 @@ export const createAiQuantProductsMock = () => [
     monthlyLimitCount: 15,
     totalLocked: 420000,
     totalOrders: 1205,
-    totalYield: 18500,
+    totalYield: 3800,
     status: PRODUCT_STATUS.ENABLED,
     createdAt: '2026-02-18'
   },
@@ -218,12 +226,13 @@ export const createAiQuantProductsMock = () => [
     currency: 'USDT',
     icon: '₮',
     operationMode: OPERATION_MODE.HYBRID,
+    durationDays: 30,
     settlementPeriod: SETTLEMENT_PERIOD.WEEKLY,
     customDays: 7,
     minVipLevel: VIP_LEVEL.VIP0,
     tiers: [
-      { minAmount: 500, maxAmount: 20000, dailyRate: 0.14, label: '体验级' },
-      { minAmount: 20000, maxAmount: 200000, dailyRate: 0.18, label: '标准级' }
+      { minAmount: 100, maxAmount: 10000, dailyRate: 0.012, label: '体验级' },
+      { minAmount: 10000, maxAmount: 100000, dailyRate: 0.022, label: '标准级' }
     ],
     earlyRedeemEnabled: true,
     earlyRedeemFeePercent: 2.8,
@@ -232,11 +241,45 @@ export const createAiQuantProductsMock = () => [
     monthlyLimitCount: 10,
     totalLocked: 88000,
     totalOrders: 156,
-    totalYield: 4200,
+    totalYield: 620,
     status: PRODUCT_STATUS.ENABLED,
     createdAt: '2026-03-01'
   }
 ]
+
+const demoDailyRateByProductId = {
+  'aiq-prod-001': 0.026,
+  'aiq-prod-002': 0.032,
+  'aiq-prod-003': 0.036,
+  'aiq-prod-004': 0.04,
+  'aiq-prod-005': 0.045,
+  'aiq-prod-006': 0.018,
+  'aiq-prod-007': 0.026,
+  'aiq-prod-008': 0.018,
+  'aiq-prod-009': 0.022
+}
+
+function roundByCurrency(value, currency) {
+  const n = Number(value) || 0
+  const decimals = currency === 'BTC' ? 8 : currency === 'ETH' ? 6 : 4
+  return Number(n.toFixed(decimals))
+}
+
+function normalizeAiQuantOrderYield(order) {
+  const fallbackDailyRate = Number(order.dailyRate)
+  const dailyRate = demoDailyRateByProductId[order.productId] ?? (Number.isFinite(fallbackDailyRate) ? fallbackDailyRate : 0.02)
+  const principal = Number(order.principal) || 0
+  const daysElapsed = Number(order.daysElapsed) || 0
+  const expectedDailyYield = roundByCurrency(principal * dailyRate / 100, order.currency)
+  const accumulatedYield = roundByCurrency(expectedDailyYield * daysElapsed, order.currency)
+  return {
+    ...order,
+    dailyRate,
+    expectedDailyYield,
+    accumulatedYield,
+    totalReturn: roundByCurrency(principal + accumulatedYield, order.currency)
+  }
+}
 
 // 模拟订单数据
 export const createAiQuantOrdersMock = () => [
@@ -810,7 +853,7 @@ export const createAiQuantOrdersMock = () => [
     status: ORDER_STATUS.RUNNING,
     settledAt: null
   }
-]
+].map(normalizeAiQuantOrderYield)
 
 // 模拟收益调整记录
 export const createYieldAdjustmentsMock = () => [

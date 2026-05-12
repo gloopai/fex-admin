@@ -7,6 +7,7 @@ import {
   PRODUCT_STATUS,
   SETTLEMENT_PERIOD,
   aiQuantAnnualFromDailyPct,
+  formatAiQuantDurationLabel,
   operationModeMeta,
   productStatusMeta,
   settlementPeriodMeta,
@@ -37,6 +38,8 @@ const settlementLabel = computed(() => {
   if (p.settlementPeriod === SETTLEMENT_PERIOD.CUSTOM && p.customDays) s += `（${p.customDays} 天）`
   return s
 })
+
+const durationLabel = computed(() => formatAiQuantDurationLabel(product.value?.durationDays))
 </script>
 
 <template>
@@ -106,7 +109,11 @@ const settlementLabel = computed(() => {
 
         <dl class="mt-6 grid max-w-2xl grid-cols-1 gap-3 border-t border-white/[0.08] pt-6 sm:grid-cols-2 sm:gap-4 lg:mt-8 lg:pt-8">
           <div class="rounded-xl border border-white/[0.06] bg-black/25 px-3 py-3 sm:px-4">
-            <dt class="text-[11px] font-medium uppercase tracking-wide text-white/40">结算</dt>
+            <dt class="text-[11px] font-medium uppercase tracking-wide text-white/40">托管周期</dt>
+            <dd class="mt-1 text-sm font-semibold leading-snug text-white/90">{{ durationLabel }}</dd>
+          </div>
+          <div class="rounded-xl border border-white/[0.06] bg-black/25 px-3 py-3 sm:px-4">
+            <dt class="text-[11px] font-medium uppercase tracking-wide text-white/40">派息周期</dt>
             <dd class="mt-1 text-sm font-semibold leading-snug text-white/90">{{ settlementLabel }}</dd>
           </div>
           <div class="rounded-xl border border-white/[0.06] bg-black/25 px-3 py-3 sm:px-4">

@@ -74,7 +74,8 @@
 						<td class="px-6 py-4">
 							<div class="text-sm">
 								<div class="font-medium text-slate-900">{{ operationModeMeta[product.operationMode].label }}</div>
-								<div class="text-xs text-slate-500">{{ settlementPeriodMeta[product.settlementPeriod].label }}</div>
+								<div class="text-xs text-slate-500">托管 {{ formatAiQuantDurationLabel(product.durationDays) }}</div>
+								<div class="text-xs text-slate-400">{{ settlementPeriodMeta[product.settlementPeriod].label }}</div>
 							</div>
 						</td>
 						<td class="px-6 py-4">
@@ -211,12 +212,18 @@
 								</div>
 							</div>
 
-							<!-- 结算周期 -->
+							<!-- 托管与派息周期 -->
 							<div>
-								<h3 class="font-semibold text-slate-900 mb-3">结算周期</h3>
+								<h3 class="font-semibold text-slate-900 mb-3">托管与派息周期</h3>
 								<div class="grid grid-cols-2 gap-4">
 									<div>
-										<label class="block text-sm font-medium text-slate-700 mb-1">周期类型</label>
+										<label class="block text-sm font-medium text-slate-700 mb-1">托管周期</label>
+										<select v-model.number="productForm.durationDays" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+											<option v-for="opt in aiQuantDurationOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+										</select>
+									</div>
+									<div>
+										<label class="block text-sm font-medium text-slate-700 mb-1">派息周期</label>
 										<select v-model="productForm.settlementPeriod" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
 											<option v-for="(meta, key) in productFormSettlementPeriodMeta" :key="key" :value="key">{{ meta.label }}</option>
 										</select>
@@ -229,27 +236,46 @@
 							</div>
 
 							<!-- 收益阶梯 -->
-							<div>
-								<div class="flex justify-between items-center mb-3">
-									<h3 class="font-semibold text-slate-900">收益阶梯配置</h3>
-									<button @click="addTier" class="text-sm font-medium text-blue-600 hover:text-blue-800 transition">+ 添加阶梯</button>
-								</div>
-								<div class="space-y-3">
-									<div v-for="(tier, idx) in productForm.tiers" :key="idx" class="flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
-										<div class="flex-1 space-y-2">
-											<div class="grid grid-cols-2 gap-2">
-												<input v-model.number="tier.minAmount" placeholder="最小金额" type="number" step="0.01" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
-												<input v-model.number="tier.maxAmount" placeholder="最大金额" type="number" step="0.01" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+								<div>
+									<div class="flex justify-between items-center mb-3">
+										<div>
+											<h3 class="font-semibold text-slate-900">收益阶梯配置</h3>
+											<p class="mt-1 text-xs leading-relaxed text-slate-500">
+												用户申购金额落入对应区间后，按该档日收益率计算预估收益；区间请连续且不要重叠。
+											</p>
+										</div>
+										<button @click="addTier" class="text-sm font-medium text-blue-600 hover:text-blue-800 transition">+ 添加阶梯</button>
+									</div>
+									<div class="space-y-3">
+										<div v-for="(tier, idx) in productForm.tiers" :key="idx" class="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+											<div class="flex items-center justify-between gap-3">
+												<div class="text-sm font-semibold text-slate-900">档位 {{ idx + 1 }}</div>
+												<button @click="removeTier(idx)" class="text-sm text-red-600 transition hover:text-red-800">删除</button>
 											</div>
-											<div class="grid grid-cols-2 gap-2">
-												<input v-model.number="tier.dailyRate" placeholder="日收益率 %" type="number" step="0.01" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
-												<input v-model="tier.label" placeholder="阶梯名称" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+											<div class="grid grid-cols-2 gap-3">
+												<label class="block">
+													<span class="mb-1 block text-xs font-medium text-slate-600">档位名称</span>
+													<input v-model="tier.label" placeholder="例如：标准级" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+												</label>
+												<label class="block">
+													<span class="mb-1 block text-xs font-medium text-slate-600">日收益率（%）</span>
+													<input v-model.number="tier.dailyRate" placeholder="例如：0.15" type="number" step="0.01" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+												</label>
+											</div>
+											<div>
+												<div class="mb-1 flex items-center justify-between gap-2">
+													<span class="text-xs font-medium text-slate-600">适用申购金额区间</span>
+													<span class="text-xs text-slate-400">单位：{{ productForm.currency }}</span>
+												</div>
+												<div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+													<input v-model.number="tier.minAmount" placeholder="最低金额" type="number" step="0.01" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+													<span class="text-xs text-slate-400">至</span>
+													<input v-model.number="tier.maxAmount" placeholder="最高金额" type="number" step="0.01" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+												</div>
 											</div>
 										</div>
-										<button @click="removeTier(idx)" class="text-red-600 hover:text-red-800 text-sm mt-2">删除</button>
 									</div>
 								</div>
-							</div>
 
 							<!-- 赎回规则 -->
 							<div>
@@ -303,9 +329,16 @@
 							</div>
 
 							<div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-								<h3 class="text-sm font-semibold text-emerald-900">结算周期</h3>
+								<h3 class="text-sm font-semibold text-emerald-900">派息周期</h3>
 								<p class="mt-2 text-sm leading-relaxed text-emerald-900">
-									每日、每周、每月或自定义周期用于控制收益结算频率；结算时生成收益记录并累计到用户订单收益中。
+									每日、每周、每月或自定义周期用于控制收益派发频率；派息时生成收益记录并累计到用户订单收益中。
+								</p>
+							</div>
+
+							<div class="rounded-xl border border-cyan-200 bg-cyan-50 p-4">
+								<h3 class="text-sm font-semibold text-cyan-900">托管周期</h3>
+								<p class="mt-2 text-sm leading-relaxed text-cyan-900">
+									托管周期用于控制用户订单运行期限；到期后可进入完成或结算流程。无限期产品不固定结束时间，按赎回与后台订单规则处理。
 								</p>
 							</div>
 
@@ -319,7 +352,7 @@
 							<div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
 								<h3 class="text-sm font-semibold text-amber-900">提前赎回</h3>
 								<p class="mt-2 text-sm leading-relaxed text-amber-900">
-									若产品允许提前赎回，提前退出时按产品配置收取手续费；不支持提前赎回的产品需按周期或订单规则正常结算退出。
+									若产品允许提前赎回，提前退出时按产品配置收取手续费；不支持提前赎回的产品需按托管周期或订单规则正常结算退出。
 								</p>
 							</div>
 
@@ -375,7 +408,11 @@
 										<span class="font-medium text-slate-900">{{ operationModeMeta[productForm.operationMode].label }}</span>
 									</div>
 									<div class="flex items-center justify-between text-sm">
-										<span class="text-slate-600">结算周期</span>
+										<span class="text-slate-600">托管周期</span>
+										<span class="font-medium text-slate-900">{{ formatAiQuantDurationLabel(productForm.durationDays) }}</span>
+									</div>
+									<div class="flex items-center justify-between text-sm">
+										<span class="text-slate-600">派息周期</span>
 										<span class="font-medium text-slate-900">{{ settlementPeriodMeta[productForm.settlementPeriod].label }}</span>
 									</div>
 								</div>
@@ -434,8 +471,8 @@
 													<span class="font-medium text-green-600">{{ (tier.minAmount * tier.dailyRate / 100).toFixed(2) }} {{ productForm.currency }}</span>
 												</div>
 												<div class="flex justify-between">
-													<span class="text-slate-600">30天收益</span>
-													<span class="font-semibold text-green-600">{{ (tier.minAmount * tier.dailyRate / 100 * 30).toFixed(2) }} {{ productForm.currency }}</span>
+													<span class="text-slate-600">{{ previewYieldDays }}天收益</span>
+													<span class="font-semibold text-green-600">{{ (tier.minAmount * tier.dailyRate / 100 * previewYieldDays).toFixed(2) }} {{ productForm.currency }}</span>
 												</div>
 											</div>
 										</div>
@@ -470,7 +507,11 @@
 									</div>
 									<div class="flex items-start gap-2">
 										<span class="text-blue-600 mt-0.5">•</span>
-										<span>结算周期：{{ settlementPeriodMeta[productForm.settlementPeriod].label }}</span>
+										<span>托管周期：{{ formatAiQuantDurationLabel(productForm.durationDays) }}</span>
+									</div>
+									<div class="flex items-start gap-2">
+										<span class="text-blue-600 mt-0.5">•</span>
+										<span>派息周期：{{ settlementPeriodMeta[productForm.settlementPeriod].label }}</span>
 									</div>
 								</div>
 							</div>
@@ -498,6 +539,8 @@ import {
 	productStatusMeta,
 	COMMON_FILTER_ALL,
 	SUPPORTED_CURRENCIES,
+	aiQuantDurationOptions,
+	formatAiQuantDurationLabel,
 	vipLevelMeta,
 	operationModeMeta,
 	settlementPeriodMeta,
@@ -527,6 +570,7 @@ const productForm = reactive({
 	name: '',
 	currency: 'USDT',
 	operationMode: OPERATION_MODE.INTERNAL,
+	durationDays: 30,
 	settlementPeriod: SETTLEMENT_PERIOD.DAILY,
 	customDays: 1,
 	minVipLevel: VIP_LEVEL.VIP0,
@@ -544,10 +588,11 @@ const openCreateProduct = () => {
 	productForm.name = ''
 	productForm.currency = 'USDT'
 	productForm.operationMode = OPERATION_MODE.INTERNAL
+	productForm.durationDays = 30
 	productForm.settlementPeriod = SETTLEMENT_PERIOD.DAILY
 	productForm.customDays = 1
 	productForm.minVipLevel = VIP_LEVEL.VIP0
-	productForm.tiers = [{ minAmount: 100, maxAmount: 10000, dailyRate: 0.15, label: '标准级' }]
+	productForm.tiers = [{ minAmount: 100, maxAmount: 10000, dailyRate: 0.012, label: '标准级' }]
 	productForm.earlyRedeemEnabled = true
 	productForm.earlyRedeemFeePercent = 3
 	productForm.limitAmount = 100000
@@ -563,6 +608,7 @@ const openEditProduct = (product) => {
 	productForm.name = product.name
 	productForm.currency = product.currency
 	productForm.operationMode = product.operationMode
+	productForm.durationDays = Number.isFinite(Number(product.durationDays)) ? Number(product.durationDays) : 0
 	productForm.settlementPeriod = productFormSettlementPeriodMeta[product.settlementPeriod]
 		? product.settlementPeriod
 		: SETTLEMENT_PERIOD.DAILY
@@ -586,6 +632,11 @@ const addTier = () => {
 const removeTier = (index) => {
 	productForm.tiers.splice(index, 1)
 }
+
+const previewYieldDays = computed(() => {
+	const n = Number(productForm.durationDays)
+	return Number.isFinite(n) && n > 0 ? n : 30
+})
 
 const saveProduct = () => {
 	const payload = {

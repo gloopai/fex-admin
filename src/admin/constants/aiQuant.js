@@ -136,7 +136,7 @@ export const LIMIT_TYPE = {
   BOTH: 'both'
 }
 
-// 结算周期
+// 派息周期
 export const SETTLEMENT_PERIOD = {
   DAILY: 'daily',
   WEEKLY: 'weekly',
@@ -145,15 +145,33 @@ export const SETTLEMENT_PERIOD = {
 }
 
 export const settlementPeriodMeta = {
-  [SETTLEMENT_PERIOD.DAILY]: { label: '每日结算', days: 1 },
-  [SETTLEMENT_PERIOD.WEEKLY]: { label: '每周结算', days: 7 },
-  [SETTLEMENT_PERIOD.MONTHLY]: { label: '每月结算', days: 30 },
-  [SETTLEMENT_PERIOD.CUSTOM]: { label: '自定义周期', days: null }
+  [SETTLEMENT_PERIOD.DAILY]: { label: '每日派息', days: 1 },
+  [SETTLEMENT_PERIOD.WEEKLY]: { label: '每周派息', days: 7 },
+  [SETTLEMENT_PERIOD.MONTHLY]: { label: '每月派息', days: 30 },
+  [SETTLEMENT_PERIOD.CUSTOM]: { label: '自定义派息周期', days: null }
 }
 
 /** 产品编辑表单可选周期（列表/详情仍用 settlementPeriodMeta 全量展示与兼容） */
 export const productFormSettlementPeriodMeta = {
   [SETTLEMENT_PERIOD.DAILY]: settlementPeriodMeta[SETTLEMENT_PERIOD.DAILY]
+}
+
+// 托管周期：控制用户订单运行/持有期限；0 表示无限期
+export const AI_QUANT_DURATION_UNLIMITED = 0
+
+export const aiQuantDurationOptions = [
+  { label: '无限期', value: AI_QUANT_DURATION_UNLIMITED },
+  { label: '7 天', value: 7 },
+  { label: '14 天', value: 14 },
+  { label: '30 天', value: 30 },
+  { label: '60 天', value: 60 },
+  { label: '90 天', value: 90 }
+]
+
+export function formatAiQuantDurationLabel(durationDays) {
+  const n = Number(durationDays)
+  if (!Number.isFinite(n) || n <= 0) return '无限期'
+  return `${n} 天`
 }
 
 /**

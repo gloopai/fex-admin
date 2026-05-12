@@ -18,6 +18,7 @@ import {
   orderStatusMeta,
   SETTLEMENT_PERIOD,
   settlementPeriodMeta,
+  formatAiQuantDurationLabel,
   adjustmentTypeMeta
 } from '../../../../admin/constants/aiQuant'
 
@@ -89,14 +90,7 @@ const tierRows = computed(() => {
 })
 
 function cycleLabel(p) {
-  if (p.settlementPeriod === SETTLEMENT_PERIOD.CUSTOM && p.customDays) {
-    return `${p.customDays} 天`
-  }
-  const m = settlementPeriodMeta[p.settlementPeriod]
-  if (p.settlementPeriod === SETTLEMENT_PERIOD.DAILY) {
-    return '无限期'
-  }
-  return m?.label?.replace('结算', '') ?? '—'
+  return formatAiQuantDurationLabel(p?.durationDays)
 }
 
 function formatAmountSpan(min, max, currency) {
