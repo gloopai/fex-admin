@@ -16,20 +16,31 @@
     <article class="rounded-xl border border-slate-200 bg-white">
       <div class="flex flex-wrap items-center gap-3 border-b border-slate-200 p-4">
         <select v-model="filters.status" class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500">
-          <option value="">全部状态</option>
-          <option value="pending">待审核</option>
-          <option value="active">借贷中</option>
-          <option value="repaying">还款中</option>
-          <option value="overdue">逾期</option>
-          <option value="completed">已完成</option>
-          <option value="liquidated">违约结清</option>
+          <option value="">不限</option>
+          <option
+            v-for="option in orderStatusOptions"
+            :key="option.value"
+            :value="option.value"
+          >
+            {{ option.label }}
+          </option>
+        </select>
+        <select v-model="filters.collateralRisk" class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500">
+          <option value="">不限</option>
+          <option
+            v-for="option in collateralRiskOptions"
+            :key="option.value"
+            :value="option.value"
+          >
+            {{ option.label }}
+          </option>
         </select>
         <input v-model="filters.userId" type="text" placeholder="搜索用户ID..." class="w-full max-w-xs rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500" />
         <button type="button" class="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50" @click="resetFilters">重置</button>
         <div v-if="selectedDeductOrders.length" class="ml-auto flex flex-wrap items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2">
           <span class="text-xs font-medium text-rose-700">已选 {{ selectedDeductOrders.length }} 笔可处理订单</span>
           <button type="button" class="rounded-md bg-rose-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-rose-700" @click="openBatchDeductDialog">
-            批量风险处理
+            {{ batchDeductActionText }}
           </button>
           <button type="button" class="rounded-md border border-rose-200 bg-white px-3 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-50" @click="clearSelectedOrders">
             清空选择
@@ -134,14 +145,7 @@
                 <div class="text-xs text-slate-500">剩余 {{ order.daysRemaining }}d</div>
               </td>
               <td class="px-4 py-3">
-                <span class="rounded-md px-2 py-0.5 text-xs font-medium" :class="{
-                  'bg-blue-50 text-blue-700': order.status === 'pending',
-                  'bg-emerald-50 text-emerald-700': order.status === 'active',
-                  'bg-cyan-50 text-cyan-700': order.status === 'repaying',
-                  'bg-orange-50 text-orange-700': order.status === 'overdue',
-                  'bg-slate-100 text-slate-600': order.status === 'completed',
-                  'bg-rose-50 text-rose-700': order.status === 'liquidated'
-                }">
+                <span class="rounded-md px-2 py-0.5 text-xs font-medium" :class="statusChipClass(order.status)">
                   {{ statusLabel(order.status) }}
                 </span>
                 <div v-if="order.collateralValue && order.status !== 'completed' && order.status !== 'liquidated' && order.status !== 'cancelled'" class="mt-1">
@@ -174,8 +178,8 @@
                     class="rounded border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-medium text-rose-600 transition-colors hover:bg-rose-100 whitespace-nowrap"
                     @click="openDeductDialog(order)"
                   >
-                  风险处理
-                </button>
+                    {{ deductActionText(order) }}
+                  </button>
                 </div>
               </td>
             </tr>
@@ -667,7 +671,7 @@
                   class="rounded-lg border border-rose-300 bg-white px-5 py-2.5 text-sm font-medium text-rose-600 shadow-sm transition-colors hover:bg-rose-50"
                   @click="openDeductDialog(currentReviewOrder)"
                 >
-                  风险处理
+                  {{ deductActionText(currentReviewOrder) }}
                 </button>
                 <button 
                   type="button" 
@@ -695,9 +699,9 @@
         <article class="w-full max-w-2xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl" @click.stop>
           <header class="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-4">
             <div>
-              <p class="text-xs font-semibold uppercase tracking-wide text-rose-600">风险处理</p>
-              <h2 class="mt-1 text-xl font-semibold text-slate-900">确认处理用户质押资产</h2>
-              <p class="mt-1 text-sm text-slate-500">当债务占比触达处理阈值后，可执行逾期处理；确认后订单将标记为「违约结清」，待还债务清零。</p>
+              <p class="text-xs font-semibold uppercase tracking-wide text-rose-600">{{ deductActionText(deductOrder) }}</p>
+              <h2 class="mt-1 text-xl font-semibold text-slate-900">确认{{ deductActionText(deductOrder) }}质押资产</h2>
+              <p class="mt-1 text-sm text-slate-500">{{ deductActionDescription(deductOrder) }}确认后订单将标记为「违约结清」，待还债务清零。</p>
             </div>
             <button type="button" class="text-slate-400 transition hover:text-slate-600" @click="closeDeductDialog">
               <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -743,7 +747,7 @@
             </dl>
 
             <div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-900">
-              逾期处理记录会写入「信用借贷 / 操作日志」。生产环境按实时价格和待还债务拆分计算实际扣除数量；若质押资产价值高于应还债务，差额退回用户借款时的质押账户。
+              {{ deductActionText(deductOrder) }}记录会写入「信用借贷 / 操作日志」。生产环境按实时价格和待还债务拆分计算实际扣除数量；若质押资产价值高于应还债务，差额退回用户借款时的质押账户。
             </div>
           </div>
 
@@ -752,7 +756,7 @@
               取消
             </button>
             <button type="button" class="rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50" :disabled="!canDeductCollateral(deductOrder)" @click="confirmDeductCollateral">
-              确认处理并结清
+              确认{{ deductActionText(deductOrder) }}并结清
             </button>
           </footer>
         </article>
@@ -767,8 +771,8 @@
         <article class="flex h-[min(86vh,46rem)] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl" @click.stop>
           <header class="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 px-6 py-4">
             <div>
-              <p class="text-xs font-semibold uppercase tracking-wide text-rose-600">批量风险处理</p>
-              <h2 class="mt-1 text-xl font-semibold text-slate-900">确认批量处理质押资产</h2>
+              <p class="text-xs font-semibold uppercase tracking-wide text-rose-600">{{ batchDeductActionText }}</p>
+              <h2 class="mt-1 text-xl font-semibold text-slate-900">确认{{ batchDeductActionText }}质押资产</h2>
               <p class="mt-1 text-sm text-slate-500">确认后所选订单将统一标记为「违约结清」，待还债务清零。</p>
             </div>
             <button type="button" class="text-slate-400 transition hover:text-slate-600" @click="closeBatchDeductDialog">
@@ -829,7 +833,7 @@
               取消
             </button>
             <button type="button" class="rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50" :disabled="selectedDeductOrders.length === 0" @click="confirmBatchDeductCollateral">
-              确认批量处理
+              确认{{ batchDeductActionText }}
             </button>
           </footer>
         </article>
@@ -873,8 +877,25 @@ const selectedOrderIds = ref([])
 
 const filters = ref({
   status: '',
+  collateralRisk: '',
   userId: ''
 })
+
+const orderStatusOptions = [
+  { value: LOAN_ORDER_STATUS.PENDING, label: '待审核' },
+  { value: LOAN_ORDER_STATUS.ACTIVE, label: '借贷中' },
+  { value: LOAN_ORDER_STATUS.REPAYING, label: '还款中' },
+  { value: LOAN_ORDER_STATUS.OVERDUE, label: '逾期' },
+  { value: LOAN_ORDER_STATUS.COMPLETED, label: '已完成' },
+  { value: LOAN_ORDER_STATUS.LIQUIDATED, label: '违约结清' },
+  { value: LOAN_ORDER_STATUS.CANCELLED, label: '已取消' }
+]
+
+const collateralRiskOptions = [
+  { value: 'normal', label: '风险正常' },
+  { value: 'warning', label: '风险预警' },
+  { value: 'disposal', label: '触达处理阈值' }
+]
 
 onMounted(() => {
   orders.value = mockOrders
@@ -894,6 +915,12 @@ const filteredOrders = computed(() => {
 
   if (filters.value.status) {
     result = result.filter(o => o.status === filters.value.status)
+  }
+  if (filters.value.collateralRisk) {
+    result = result.filter((o) => {
+      if (!o.collateralValue) return false
+      return collateralRiskStageMeta(o).key === filters.value.collateralRisk
+    })
   }
   if (filters.value.userId) {
     result = result.filter(o => o.userId.includes(filters.value.userId))
@@ -927,6 +954,29 @@ const batchDeductCollateralValueTotal = computed(() =>
   selectedDeductOrders.value.reduce((sum, order) => sum + (Number(order.collateralValue) || 0), 0)
 )
 
+const isOverdueDeductOrder = (order) => order?.status === LOAN_ORDER_STATUS.OVERDUE
+
+const deductActionText = (order) => {
+  if (!order) return '处理质押'
+  return isOverdueDeductOrder(order) ? '逾期处理' : '风险处理'
+}
+
+const deductActionDescription = (order) => {
+  if (isOverdueDeductOrder(order)) {
+    return '订单已到期未还，且债务占比触达处理阈值后，可执行逾期处理；'
+  }
+  return '订单虽未到期，但债务占比已触达处理阈值后，可执行风险处理；'
+}
+
+const batchDeductActionText = computed(() => {
+  if (!selectedDeductOrders.value.length) return '批量处理质押'
+  const allOverdue = selectedDeductOrders.value.every((order) => isOverdueDeductOrder(order))
+  const allRisk = selectedDeductOrders.value.every((order) => !isOverdueDeductOrder(order))
+  if (allOverdue) return '批量逾期处理'
+  if (allRisk) return '批量风险处理'
+  return '批量处理质押'
+})
+
 const totalPages = computed(() => {
   return Math.ceil(filteredOrders.value.length / pageSize.value)
 })
@@ -955,6 +1005,19 @@ const formatDate = (dateStr) => {
 
 const statusLabel = (status) => {
   return LOAN_ORDER_STATUS_LABELS[status] || status
+}
+
+const statusChipClass = (status) => {
+  const statusClassMap = {
+    [LOAN_ORDER_STATUS.PENDING]: 'bg-blue-50 text-blue-700',
+    [LOAN_ORDER_STATUS.ACTIVE]: 'bg-emerald-50 text-emerald-700',
+    [LOAN_ORDER_STATUS.REPAYING]: 'bg-cyan-50 text-cyan-700',
+    [LOAN_ORDER_STATUS.OVERDUE]: 'bg-orange-50 text-orange-700',
+    [LOAN_ORDER_STATUS.COMPLETED]: 'bg-slate-100 text-slate-600',
+    [LOAN_ORDER_STATUS.LIQUIDATED]: 'bg-rose-50 text-rose-700',
+    [LOAN_ORDER_STATUS.CANCELLED]: 'bg-slate-100 text-slate-500'
+  }
+  return statusClassMap[status] || 'bg-slate-100 text-slate-600'
 }
 
 const overduePenaltyRateLabel = (order) => {
@@ -1021,6 +1084,7 @@ const collateralRiskStageMeta = (order) => {
 const resetFilters = () => {
   filters.value = {
     status: '',
+    collateralRisk: '',
     userId: ''
   }
 }
@@ -1404,8 +1468,8 @@ const deductCollateral = (order) => {
     module: LENDING_OP_MODULE.ORDER,
     action: LENDING_OP_ACTION.ORDER_COLLATERAL_DEDUCT,
     refId: order.orderId,
-    targetLabel: '质押风险处理',
-    summary: `债务占比 ${debtRatioLabel} 触达处理阈值 ${thresholdLabel}，处理 ${formatPlainNumber(order.collateralAmount)} ${order.collateralType} 并违约结清`
+    targetLabel: deductActionText(order),
+    summary: `${deductActionText(order)}：债务占比 ${debtRatioLabel} 触达处理阈值 ${thresholdLabel}，处理 ${formatPlainNumber(order.collateralAmount)} ${order.collateralType} 并违约结清`
   })
   if (currentReviewOrder.value?.orderId === order.orderId) currentReviewOrder.value = order
 }
