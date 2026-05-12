@@ -510,7 +510,7 @@
                 </div>
               </div>
               <div v-if="currentReviewOrder?.collateralAmount" class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                当待还债务达到质押估值的 {{ collateralDisposalThresholdLabel(currentReviewOrder) }} 时，订单可进入逾期处理；当前债务占比 {{ collateralDebtRatioLabel(currentReviewOrder) }}。
+                质押估值按实时币价计算；当待还债务达到质押实时估值的 {{ collateralDisposalThresholdLabel(currentReviewOrder) }} 时，运营可进入逾期处理。当前债务占比 {{ collateralDebtRatioLabel(currentReviewOrder) }}。
               </div>
             </section>
 
@@ -662,7 +662,7 @@
                   class="rounded-lg border border-rose-300 bg-white px-5 py-2.5 text-sm font-medium text-rose-600 shadow-sm transition-colors hover:bg-rose-50"
                   @click="openDeductDialog(currentReviewOrder)"
                 >
-                  逾期扣除质押
+                  逾期处理
                 </button>
                 <button 
                   type="button" 
@@ -703,7 +703,7 @@
 
           <div v-if="deductOrder" class="space-y-4 p-6">
             <div class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-relaxed text-rose-900">
-              此操作会从用户账户中扣除锁定质押资产用于抵扣逾期债务，请确认订单与资产信息无误。
+              此操作只处理用户借款时锁定的质押币种，不扣理财账户余额，也不扣其他账户资产；请确认订单与资产信息无误。
             </div>
 
             <dl class="grid gap-3 md:grid-cols-2">
@@ -732,13 +732,13 @@
                 <dd class="mt-1 text-lg font-bold text-rose-700">{{ collateralDebtRatioLabel(deductOrder) }} / {{ collateralDisposalThresholdLabel(deductOrder) }}</dd>
               </div>
               <div class="rounded-lg border border-slate-100 bg-slate-50 p-3">
-                <dt class="text-xs font-medium text-slate-500">抵扣后状态</dt>
+                <dt class="text-xs font-medium text-slate-500">处理后状态</dt>
                 <dd class="mt-1"><span class="rounded-md bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-800">违约结清</span></dd>
               </div>
             </dl>
 
             <div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-900">
-              抵扣记录会写入「信用借贷 / 操作日志」。演示环境按整笔质押资产扣除；生产环境可按实时价格和待还债务拆分计算实际扣除数量。
+              逾期处理记录会写入「信用借贷 / 操作日志」。生产环境按实时价格和待还债务拆分计算实际扣除数量；若质押资产价值高于应还债务，差额退回用户借款时的质押账户。
             </div>
           </div>
 
@@ -790,7 +790,7 @@
             </div>
 
             <div class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-relaxed text-rose-900">
-              批量操作会逐笔处理已锁定质押资产并写入操作日志，请确认列表中的订单均已达到处理阈值。
+              批量操作会逐笔处理已锁定质押资产并写入操作日志；仅处理达到阈值的逾期订单，差额退回用户借款时的质押账户。
             </div>
 
             <div class="overflow-hidden rounded-lg border border-slate-200">
@@ -1365,7 +1365,7 @@ const deductCollateral = (order) => {
     action: LENDING_OP_ACTION.ORDER_COLLATERAL_DEDUCT,
     refId: order.orderId,
     targetLabel: '质押逾期处理',
-    summary: `债务占比 ${debtRatioLabel} 达到阈值 ${thresholdLabel}，处置 ${formatPlainNumber(order.collateralAmount)} ${order.collateralType} 并违约结清`
+    summary: `债务占比 ${debtRatioLabel} 达到阈值 ${thresholdLabel}，处理 ${formatPlainNumber(order.collateralAmount)} ${order.collateralType} 并违约结清`
   })
   if (currentReviewOrder.value?.orderId === order.orderId) currentReviewOrder.value = order
 }

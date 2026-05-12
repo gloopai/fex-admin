@@ -16,7 +16,7 @@ const tabs = [
 const faqList = [
   {
     q: '这是链上抵押借贷吗？',
-    a: '不是。当前为平台作为资金方的场内信用借贷：授信、放款、计息与还款均在站内完成，不要求用户对接链上抵押或智能合约。'
+    a: '不是。当前为平台作为资金方的场内信用借贷：授信、放款、计息与还款均在站内完成；质押资产为站内账户锁定，不是链上合约抵押。'
   },
   {
     q: '借款审核和到账要多久？',
@@ -31,8 +31,16 @@ const faqList = [
     a: '常见口径：应付利息 ≈ 本金 × 年化利率 × 计息天数 / 365。浮动利率产品以页面展示与合同约定为准。'
   },
   {
+    q: '逾期违约金如何计算？',
+    a: '逾期违约金是额外费用，按应还总额（未还本金 + 已累计利息）× 产品配置的每日违约金比例计收。'
+  },
+  {
+    q: '质押币种跌价会怎样？',
+    a: '质押估值按实时币价计算。若待还债务达到产品配置的逾期处理阈值（例如 95%），运营应进入订单管理执行逾期处理。'
+  },
+  {
     q: '「违约结清」是什么意思？',
-    a: '表示订单因严重逾期或触发协议违约条款而由平台按规则结清债权（演示状态）。与链上清算、处置抵押品不是同一概念。'
+    a: '表示订单因严重逾期或触发协议违约条款而由平台按规则结清债权（演示状态）。逾期处理只处理借款时锁定的质押币种。'
   },
   {
     q: '信用评分有什么用？',
@@ -44,7 +52,7 @@ const faqList = [
   },
   {
     q: '逾期会怎样？',
-    a: '可能产生逾期罚息、信用分下调、限制借款；持续逾期可能进入违约结清与催收流程。'
+    a: '可能产生逾期违约金、信用分下调、限制借款；若质押实时估值不足或债务占比触达阈值，运营可处理质押资产并进入违约结清。'
   }
 ]
 </script>
@@ -54,7 +62,7 @@ const faqList = [
     <header>
       <h1 class="text-3xl font-semibold text-slate-900">规则说明</h1>
       <p class="mt-1 text-sm text-slate-500">
-        平台信用借贷：对手方为平台，场内授信与记账；不要求链上抵押。
+        平台信用借贷：对手方为平台，场内授信与记账；质押资产为站内账户锁定并按实时币价估值。
       </p>
     </header>
 
@@ -86,7 +94,7 @@ const faqList = [
           平台信用借贷
         </h2>
         <p class="mt-3 text-sm leading-relaxed text-slate-700">
-          用户在授信额度内发起借款，<strong class="text-blue-600">平台作为对手方</strong>提供资金；本息在<strong>站内账户</strong>结算，当前产品形态<strong>不依赖链上抵押</strong>。
+          用户在授信额度内发起借款，<strong class="text-blue-600">平台作为对手方</strong>提供资金；本息在<strong>站内账户</strong>结算，质押资产从用户站内账户锁定并按实时币价估值，当前产品形态<strong>不依赖链上合约抵押</strong>。
         </p>
         <div class="mt-4 grid gap-3 md:grid-cols-2">
           <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
@@ -100,9 +108,9 @@ const faqList = [
           <div class="rounded-lg border border-blue-200 bg-blue-50 p-4">
             <h3 class="font-semibold text-blue-900">与「链上抵押借贷」的区别</h3>
             <ul class="mt-2 space-y-1 text-sm text-blue-800">
-              <li>• 无需将资产锁进链上合约作为抵押</li>
-              <li>• 风险与定价主要来自平台授信与合同条款</li>
-              <li>• 运营端关注额度、逾期与账务一致性即可</li>
+              <li>• 质押发生在站内账户，不进入链上合约</li>
+              <li>• 风险与定价主要来自平台授信、质押实时估值与合同条款</li>
+              <li>• 运营端关注额度、逾期、质押估值与账务一致性</li>
             </ul>
           </div>
         </div>
@@ -133,13 +141,19 @@ const faqList = [
       <div class="rounded-xl border border-slate-200 bg-white p-5">
         <h3 class="text-lg font-semibold text-slate-900">逾期罚息 / 违约金</h3>
         <p class="mt-2 text-sm text-slate-700">
-          未按期偿还时按产品规则计收；具体费率以产品与合同为准。
+          未按期偿还时额外计收；常见口径为应还总额（未还本金 + 已累计利息）× 每日违约金比例，具体费率以产品与合同为准。
+        </p>
+      </div>
+      <div class="rounded-xl border border-slate-200 bg-white p-5">
+        <h3 class="text-lg font-semibold text-slate-900">逾期处理阈值</h3>
+        <p class="mt-2 text-sm text-slate-700">
+          质押估值按实时币价计算；当待还债务达到质押实时估值的产品阈值（如 95%）时，运营可在订单管理中处理质押资产。
         </p>
       </div>
       <div class="rounded-xl border border-slate-200 bg-white p-5">
         <h3 class="text-lg font-semibold text-slate-900">违约结清（订单状态）</h3>
         <p class="mt-2 text-sm text-slate-700">
-          表示严重违约情形下的债权结清状态（演示标签），<strong>不是</strong>链上清算抵押物。
+          表示严重违约情形下的债权结清状态（演示标签）。逾期处理只处理借款时锁定的质押币种；若质押价值高于应还债务，差额退回用户借款时的质押账户。
         </p>
       </div>
       <div class="rounded-xl border border-slate-200 bg-white p-5">
@@ -155,9 +169,9 @@ const faqList = [
       <div class="rounded-xl border border-purple-200 bg-purple-50 p-6">
         <h2 class="text-xl font-semibold text-purple-900">运营侧要点</h2>
         <ul class="mt-3 space-y-2 text-sm text-purple-900">
-          <li>• <strong>产品管理：</strong>借出币种、额度区间、年化利率、期限与状态；当前无链上抵押字段。</li>
-          <li>• <strong>订单管理：</strong>审核、查看总债务与利息；状态含「违约结清」表示合同/账务结清类终态（演示）。</li>
-          <li>• <strong>还款记录：</strong>跨订单查看还款流水；状态含处理中（演示）。</li>
+          <li>• <strong>产品管理：</strong>借出币种、额度区间、年化利率、逾期违约金、逾期处理阈值、期限与状态。</li>
+          <li>• <strong>订单管理：</strong>审核、查看总债务、质押实时估值与债务占比；达到阈值的逾期订单可处理质押资产。</li>
+          <li>• <strong>还款记录：</strong>跨订单查看还款流水；自动还款只使用借出币种账户资金，不直接扣质押物。</li>
           <li>• <strong>授信中心：</strong>总额度、分币种上限与评分卡，驱动前台可借能力。</li>
         </ul>
       </div>
@@ -171,7 +185,7 @@ const faqList = [
           <li>登录后进入借贷列表，选择产品及金额、期限。</li>
           <li>提交申请；若需人工审核，等待结果。</li>
           <li>通过后资金进入借贷账户，按日计息。</li>
-          <li>按需输入还款金额（先冲利息再冲本金）、可一次结清或自动扣款；避免逾期。</li>
+          <li>按需输入还款金额（先冲利息再冲本金）、可一次结清；自动还款只使用借出币种账户资金，不能直接扣质押物。</li>
         </ol>
       </div>
     </article>
@@ -207,7 +221,7 @@ const faqList = [
         <div class="mt-4 space-y-3">
           <div class="rounded-lg border border-rose-200 bg-rose-50 p-4">
             <h3 class="font-semibold text-rose-900">偿债与信用风险</h3>
-            <p class="mt-2 text-sm text-rose-800">借款构成债务，需按期偿还；逾期将影响费用与信用。</p>
+            <p class="mt-2 text-sm text-rose-800">借款构成债务，需按期偿还；逾期将产生额外违约金并影响信用。</p>
           </div>
           <div class="rounded-lg border border-amber-200 bg-amber-50 p-4">
             <h3 class="font-semibold text-amber-900">利率与费用</h3>
@@ -216,6 +230,10 @@ const faqList = [
           <div class="rounded-lg border border-amber-200 bg-amber-50 p-4">
             <h3 class="font-semibold text-amber-900">流动性与对手方风险</h3>
             <p class="mt-2 text-sm text-amber-800">资金由平台提供，极端情况下平台可能调整授信或放款节奏。</p>
+          </div>
+          <div class="rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <h3 class="font-semibold text-amber-900">质押价格波动风险</h3>
+            <p class="mt-2 text-sm text-amber-800">质押币种按实时币价估值；币价大幅下跌时，即使未主动还款，也可能触发逾期处理。</p>
           </div>
         </div>
         <div class="mt-6 rounded-lg border-2 border-rose-200 bg-rose-50 p-5">

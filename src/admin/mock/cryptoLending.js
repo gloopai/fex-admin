@@ -578,7 +578,7 @@ export const mockOrders = [
     maturityDate: '2025-07-01 10:00:00',
     riskLevel: RISK_LEVEL.HIGH,
     purpose: '杠杆仓位',
-    remarks: '违约处置未完全收回，债务仍在（见 LIQ-20240228-004）'
+    remarks: '逾期处理未完全收回，债务仍在（见 LIQ-20240228-004）'
   }
 ]
 

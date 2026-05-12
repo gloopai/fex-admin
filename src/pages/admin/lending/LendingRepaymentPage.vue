@@ -4,7 +4,7 @@
       <div>
         <h1 class="text-3xl font-semibold text-slate-900">还款记录</h1>
         <p class="mt-1 max-w-3xl text-sm text-slate-500">
-          与前台还款字段一致；主动还款记入站内账户，类型由冲减规则推导，详见详情。
+          与前台还款字段一致；主动/自动还款只使用借出币种账户资金，不能直接扣质押币种。逾期处理请回到订单管理执行质押处理。
         </p>
       </div>
     </header>

@@ -61,7 +61,7 @@
                 <span class="mx-3 text-slate-300">|</span>
                 逾期违约金: <span class="font-medium text-rose-600">{{ overduePenaltyLabel(product) }}</span>
                 <span class="mx-3 text-slate-300">|</span>
-                处理阈值: <span class="font-medium text-amber-700">{{ collateralDisposalThresholdLabel(product) }}</span>
+                逾期处理阈值: <span class="font-medium text-amber-700">{{ collateralDisposalThresholdLabel(product) }}</span>
                 <span class="mx-3 text-slate-300">|</span>
                 质押倍数: <span class="font-medium text-blue-600">{{ collateralLabel(product) }}</span>
               </p>
@@ -167,6 +167,16 @@
                     : 'border-transparent text-slate-600 hover:text-slate-900'"
                 >
                   详细配置
+                </button>
+                <button
+                  type="button"
+                  @click="activeTab = 'rules'"
+                  class="px-4 py-3 text-sm font-medium border-b-2 transition-colors"
+                  :class="activeTab === 'rules'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-slate-600 hover:text-slate-900'"
+                >
+                  计算规则
                 </button>
               </div>
             </div>
@@ -406,7 +416,9 @@
                     class="w-full max-w-xs rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="例如 0.08"
                   />
-                  <p class="mt-2 text-xs text-slate-500">借款逾期后，按未还本金与已计利息合计每日计收。</p>
+                  <p class="mt-2 text-xs text-slate-500">
+                    逾期违约金为额外费用，按应还总额（未还本金 + 已累计利息）× 每日违约金比例计收。
+                  </p>
                 </div>
 
                 <div>
@@ -425,7 +437,9 @@
                     class="w-full max-w-xs rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="例如 95"
                   />
-                  <p class="mt-2 text-xs text-slate-500">当待还债务达到质押估值的该比例时，订单可进入逾期处理。</p>
+                  <p class="mt-2 text-xs text-slate-500">
+                    质押估值按实时币价计算；当待还债务达到质押实时估值的该比例时，运营可进入逾期处理。
+                  </p>
                 </div>
 
                 <div>
@@ -454,6 +468,49 @@
                     class="w-full resize-none rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="可选：产品特点、适用场景等"
                   ></textarea>
+                </div>
+              </div>
+
+              <!-- Tab 3: 计算规则说明 -->
+              <div v-show="activeTab === 'rules'" class="space-y-4">
+                <div class="rounded-xl border border-blue-200 bg-blue-50 p-4">
+                  <h3 class="text-sm font-semibold text-blue-900">计息规则</h3>
+                  <p class="mt-2 text-sm leading-relaxed text-blue-900">
+                    借款按固定年化利率计息，常见口径为：借款本金 × 年化利率 × 实际计息天数 / 365。前台主动还款时优先冲减已累计利息，再冲减本金。
+                  </p>
+                </div>
+
+                <div class="rounded-xl border border-rose-200 bg-rose-50 p-4">
+                  <h3 class="text-sm font-semibold text-rose-900">逾期违约金</h3>
+                  <p class="mt-2 text-sm leading-relaxed text-rose-900">
+                    逾期违约金为额外费用，按应还总额（未还本金 + 已累计利息）× 每日违约金比例计收；原本正常利息口径仍以订单累计利息为准。
+                  </p>
+                  <p class="mt-2 text-xs text-rose-800">
+                    例：借款 1000 USDT，已累计利息 10 USDT，违约金比例 0.1%/日，则当日违约金为 (1000 + 10) × 0.1%。
+                  </p>
+                </div>
+
+                <div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                  <h3 class="text-sm font-semibold text-amber-900">质押估值与逾期处理阈值</h3>
+                  <p class="mt-2 text-sm leading-relaxed text-amber-900">
+                    质押币种按实时币价估值，不按借款申请时的币价固定。当待还债务达到质押实时估值的产品阈值（例如 95%）时，运营可在订单管理中执行逾期处理。
+                  </p>
+                </div>
+
+                <div class="rounded-xl border border-slate-200 bg-white p-4">
+                  <h3 class="text-sm font-semibold text-slate-900">逾期处理扣款规则</h3>
+                  <ul class="mt-2 space-y-2 text-sm leading-relaxed text-slate-700">
+                    <li>• 只处理用户借款时锁定的质押币种，不扣理财账户余额，也不扣其他账户资产。</li>
+                    <li>• 生产环境按实时价格和待还债务拆分计算实际扣除数量。</li>
+                    <li>• 若质押资产价值高于应还债务，差额退回用户借款时的质押账户。</li>
+                  </ul>
+                </div>
+
+                <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                  <h3 class="text-sm font-semibold text-emerald-900">自动还款限制</h3>
+                  <p class="mt-2 text-sm leading-relaxed text-emerald-900">
+                    自动还款只能使用借出币种账户资金，不能直接扣质押币种。质押物价格会变化，用户也可能主动选择逾期，因此质押处理由运营在订单管理中执行。
+                  </p>
                 </div>
               </div>
             </div>
@@ -526,7 +583,7 @@
                       <span class="text-sm font-semibold text-rose-600">{{ formData.overduePenaltyRate ?? 0 }}% / 日</span>
                     </div>
                     <div class="flex justify-between items-center pb-2 border-b border-slate-200">
-                      <span class="text-xs text-slate-600">处理阈值</span>
+                      <span class="text-xs text-slate-600">逾期处理阈值</span>
                       <span class="text-sm font-semibold text-amber-700">{{ formData.collateralDisposalThreshold ?? 95 }}%</span>
                     </div>
                     <div class="flex justify-between items-center pb-2 border-b border-slate-200">
@@ -848,7 +905,7 @@ const saveProduct = () => {
         action: LENDING_OP_ACTION.PRODUCT_UPDATE,
         refId: next.productId,
         targetLabel: next.productName,
-        summary: `编辑产品：${next.productName}（${next.loanCurrency}），年化 ${next.interestRate}%，逾期 ${next.overduePenaltyRate}%/日，处理阈值 ${next.collateralDisposalThreshold}%`
+        summary: `编辑产品：${next.productName}（${next.loanCurrency}），年化 ${next.interestRate}%，逾期 ${next.overduePenaltyRate}%/日，逾期处理阈值 ${next.collateralDisposalThreshold}%`
       })
       alert('产品修改成功')
     }
@@ -866,7 +923,7 @@ const saveProduct = () => {
       action: LENDING_OP_ACTION.PRODUCT_CREATE,
       refId: newProduct.productId,
       targetLabel: newProduct.productName,
-      summary: `新建产品：${newProduct.productName}（${newProduct.loanCurrency}），逾期 ${newProduct.overduePenaltyRate}%/日，处理阈值 ${newProduct.collateralDisposalThreshold}%`
+      summary: `新建产品：${newProduct.productName}（${newProduct.loanCurrency}），逾期 ${newProduct.overduePenaltyRate}%/日，逾期处理阈值 ${newProduct.collateralDisposalThreshold}%`
     })
     alert('产品创建成功')
   }
