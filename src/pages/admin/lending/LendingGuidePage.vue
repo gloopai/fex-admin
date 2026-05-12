@@ -36,7 +36,7 @@ const faqList = [
   },
   {
     q: '质押币种跌价会怎样？',
-    a: '质押估值按实时币价计算。若待还债务达到产品配置的逾期处理阈值（例如 95%），运营应进入订单管理执行逾期处理。'
+    a: '质押估值按实时币价计算。若待还债务达到产品配置的质押预警比例（例如 85%），应提示补充质押或提前还款；达到逾期处理阈值（例如 95%）后，运营可执行逾期处理。'
   },
   {
     q: '「违约结清」是什么意思？',
@@ -145,9 +145,15 @@ const faqList = [
         </p>
       </div>
       <div class="rounded-xl border border-slate-200 bg-white p-5">
+        <h3 class="text-lg font-semibold text-slate-900">质押风险预警比例</h3>
+        <p class="mt-2 text-sm text-slate-700">
+          质押估值按实时币价计算；当待还债务达到质押实时估值的预警比例（如 85%）时，系统应提示用户补充质押或提前还款。
+        </p>
+      </div>
+      <div class="rounded-xl border border-slate-200 bg-white p-5">
         <h3 class="text-lg font-semibold text-slate-900">逾期处理阈值</h3>
         <p class="mt-2 text-sm text-slate-700">
-          质押估值按实时币价计算；当待还债务达到质押实时估值的产品阈值（如 95%）时，运营可在订单管理中处理质押资产。
+          若债务占比继续上升并达到处理阈值（如 95%），运营可在订单管理中处理质押资产。
         </p>
       </div>
       <div class="rounded-xl border border-slate-200 bg-white p-5">
@@ -169,8 +175,8 @@ const faqList = [
       <div class="rounded-xl border border-purple-200 bg-purple-50 p-6">
         <h2 class="text-xl font-semibold text-purple-900">运营侧要点</h2>
         <ul class="mt-3 space-y-2 text-sm text-purple-900">
-          <li>• <strong>产品管理：</strong>借出币种、额度区间、年化利率、逾期违约金、逾期处理阈值、期限与状态。</li>
-          <li>• <strong>订单管理：</strong>审核、查看总债务、质押实时估值与债务占比；达到阈值的逾期订单可处理质押资产。</li>
+          <li>• <strong>产品管理：</strong>借出币种、额度区间、年化利率、逾期违约金、质押预警比例、逾期处理阈值、期限与状态。</li>
+          <li>• <strong>订单管理：</strong>审核、查看总债务、质押实时估值与债务占比；先预警，再对达到处理阈值的风险订单处理质押资产。</li>
           <li>• <strong>还款记录：</strong>跨订单查看还款流水；自动还款只使用借出币种账户资金，不直接扣质押物。</li>
           <li>• <strong>授信中心：</strong>总额度、分币种上限与评分卡，驱动前台可借能力。</li>
         </ul>
@@ -185,7 +191,7 @@ const faqList = [
           <li>登录后进入借贷列表，选择产品及金额、期限。</li>
           <li>提交申请；若需人工审核，等待结果。</li>
           <li>通过后资金进入借贷账户，按日计息。</li>
-          <li>按需输入还款金额（先冲利息再冲本金）、可一次结清；自动还款只使用借出币种账户资金，不能直接扣质押物。</li>
+          <li>按需输入还款金额（先冲逾期利息，再冲正常利息，最后冲本金）、可一次结清；自动还款只使用借出币种账户资金，不能直接扣质押物。</li>
         </ol>
       </div>
     </article>
@@ -233,7 +239,7 @@ const faqList = [
           </div>
           <div class="rounded-lg border border-amber-200 bg-amber-50 p-4">
             <h3 class="font-semibold text-amber-900">质押价格波动风险</h3>
-            <p class="mt-2 text-sm text-amber-800">质押币种按实时币价估值；币价大幅下跌时，即使未主动还款，也可能触发逾期处理。</p>
+            <p class="mt-2 text-sm text-amber-800">质押币种按实时币价估值；币价大幅下跌时，订单会先进入质押风险预警，继续下跌并达到处理阈值后才进入逾期处理。</p>
           </div>
         </div>
         <div class="mt-6 rounded-lg border-2 border-rose-200 bg-rose-50 p-5">

@@ -12,6 +12,7 @@ import {
   INTEREST_RATE_TYPE,
   INTEREST_RATE_TYPE_LABELS,
   normalizeOverduePenaltyRate,
+  normalizeCollateralWarningThreshold,
   normalizeCollateralDisposalThreshold
 } from '../../../../admin/constants/cryptoLending'
 
@@ -77,6 +78,11 @@ const overduePenaltyRate = computed(() => {
 const collateralDisposalThreshold = computed(() => {
   const p = product.value
   return p ? normalizeCollateralDisposalThreshold(p) : null
+})
+
+const collateralWarningThreshold = computed(() => {
+  const p = product.value
+  return p ? normalizeCollateralWarningThreshold(p) : null
 })
 </script>
 
@@ -149,6 +155,10 @@ const collateralDisposalThreshold = computed(() => {
               <dd class="font-medium tabular-nums text-white/85">{{ overduePenaltyRate ?? '—' }}% / 日</dd>
             </div>
             <div class="flex items-center justify-between gap-4 py-3">
+              <dt class="text-white/45">质押预警比例</dt>
+              <dd class="font-medium tabular-nums text-white/85">{{ collateralWarningThreshold ?? '—' }}%</dd>
+            </div>
+            <div class="flex items-center justify-between gap-4 py-3">
               <dt class="text-white/45">逾期处理阈值</dt>
               <dd class="font-medium tabular-nums text-white/85">{{ collateralDisposalThreshold ?? '—' }}%</dd>
             </div>
@@ -205,7 +215,7 @@ const collateralDisposalThreshold = computed(() => {
             与同币种锁仓理财上架规模及平台可借贷比例综合测算，具体以页面与风控规则为准。
           </p>
           <p class="mt-5 rounded-lg border border-amber-400/15 bg-amber-400/[0.06] px-3 py-2.5 text-xs leading-relaxed text-amber-100/85">
-            参与前请充分理解借贷费率、期限与平台规则；逾期或违约可能产生罚金或限制。
+            质押币种按实时币价估值；当债务占比达到预警比例时，平台会提示补充质押或提前还款，达到处理阈值后可进入逾期处理。
           </p>
         </section>
       </div>

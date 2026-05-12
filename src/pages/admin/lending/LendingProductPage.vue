@@ -61,6 +61,8 @@
                 <span class="mx-3 text-slate-300">|</span>
                 逾期违约金: <span class="font-medium text-rose-600">{{ overduePenaltyLabel(product) }}</span>
                 <span class="mx-3 text-slate-300">|</span>
+                质押预警: <span class="font-medium text-orange-600">{{ collateralWarningThresholdLabel(product) }}</span>
+                <span class="mx-3 text-slate-300">|</span>
                 逾期处理阈值: <span class="font-medium text-amber-700">{{ collateralDisposalThresholdLabel(product) }}</span>
                 <span class="mx-3 text-slate-300">|</span>
                 质押倍数: <span class="font-medium text-blue-600">{{ collateralLabel(product) }}</span>
@@ -426,8 +428,23 @@
                     <svg class="h-4 w-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M10 2a1 1 0 01.894.553l7 14A1 1 0 0117 18H3a1 1 0 01-.894-1.447l7-14A1 1 0 0110 2zm0 4a1 1 0 00-1 1v4a1 1 0 102 0V7a1 1 0 00-1-1zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
                     </svg>
-                    逾期处理
+                    质押风险与处理
                   </h3>
+                  <label class="mb-1.5 block text-sm font-medium text-slate-700">质押预警比例（%）</label>
+                  <input
+                    v-model.number="formData.collateralWarningThreshold"
+                    type="number"
+                    step="1"
+                    min="1"
+                    class="w-full max-w-xs rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="例如 85"
+                  />
+                  <p class="mt-2 text-xs text-slate-500">
+                    当待还债务达到质押实时估值的该比例时，订单进入质押风险预警，提醒用户补充质押或提前还款。
+                  </p>
+                </div>
+
+                <div>
                   <label class="mb-1.5 block text-sm font-medium text-slate-700">逾期处理阈值（%）</label>
                   <input
                     v-model.number="formData.collateralDisposalThreshold"
@@ -476,7 +493,7 @@
                 <div class="rounded-xl border border-blue-200 bg-blue-50 p-4">
                   <h3 class="text-sm font-semibold text-blue-900">计息规则</h3>
                   <p class="mt-2 text-sm leading-relaxed text-blue-900">
-                    借款按固定年化利率计息，常见口径为：借款本金 × 年化利率 × 实际计息天数 / 365。前台主动还款时优先冲减已累计利息，再冲减本金。
+                    借款按固定年化利率计息，常见口径为：借款本金 × 年化利率 × 实际计息天数 / 365。正常利息持续按订单累计利息口径展示与结算。
                   </p>
                 </div>
 
@@ -490,10 +507,24 @@
                   </p>
                 </div>
 
+                <div class="rounded-xl border border-violet-200 bg-violet-50 p-4">
+                  <h3 class="text-sm font-semibold text-violet-900">前端应还展示</h3>
+                  <p class="mt-2 text-sm leading-relaxed text-violet-900">
+                    前端还款页应将逾期违约金单独展示，不与正常利息合并。用户需能看到待还总额中分别包含的逾期违约金、正常利息与本金，避免仅展示总额造成理解偏差。
+                  </p>
+                </div>
+
+                <div class="rounded-xl border border-cyan-200 bg-cyan-50 p-4">
+                  <h3 class="text-sm font-semibold text-cyan-900">还款冲减顺序</h3>
+                  <p class="mt-2 text-sm leading-relaxed text-cyan-900">
+                    用户发起还款时，系统按固定顺序冲减：先还逾期违约金，再还正常利息，最后冲减本金。部分还款、还款记录和前端明细展示均按该顺序拆分。
+                  </p>
+                </div>
+
                 <div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
-                  <h3 class="text-sm font-semibold text-amber-900">质押估值与逾期处理阈值</h3>
+                  <h3 class="text-sm font-semibold text-amber-900">质押估值、预警与处理阈值</h3>
                   <p class="mt-2 text-sm leading-relaxed text-amber-900">
-                    质押币种按实时币价估值，不按借款申请时的币价固定。当待还债务达到质押实时估值的产品阈值（例如 95%）时，运营可在订单管理中执行逾期处理。
+                    质押币种按实时币价估值，不按借款申请时的币价固定。当待还债务达到质押实时估值的预警比例（例如 85%）时，系统应提示补充质押或提前还款；达到处理阈值（例如 95%）时，运营可在订单管理中执行逾期处理。
                   </p>
                 </div>
 
@@ -583,6 +614,10 @@
                       <span class="text-sm font-semibold text-rose-600">{{ formData.overduePenaltyRate ?? 0 }}% / 日</span>
                     </div>
                     <div class="flex justify-between items-center pb-2 border-b border-slate-200">
+                      <span class="text-xs text-slate-600">质押预警比例</span>
+                      <span class="text-sm font-semibold text-orange-600">{{ formData.collateralWarningThreshold ?? 85 }}%</span>
+                    </div>
+                    <div class="flex justify-between items-center pb-2 border-b border-slate-200">
                       <span class="text-xs text-slate-600">逾期处理阈值</span>
                       <span class="text-sm font-semibold text-amber-700">{{ formData.collateralDisposalThreshold ?? 95 }}%</span>
                     </div>
@@ -639,6 +674,7 @@ import {
   uniqueCollateralCurrencies,
   normalizeCollateralConfig,
   normalizeOverduePenaltyRate,
+  normalizeCollateralWarningThreshold,
   normalizeCollateralDisposalThreshold
 } from '../../../admin/constants/cryptoLending'
 import {
@@ -667,6 +703,7 @@ const formData = ref({
   maxLoanAmount: 0,
   interestRate: 0,
   overduePenaltyRate: 0.08,
+  collateralWarningThreshold: 85,
   collateralDisposalThreshold: 95,
   minLoanDuration: 7,
   maxLoanDuration: 90,
@@ -770,6 +807,7 @@ const collateralCurrenciesLabel = (product) => {
 }
 
 const overduePenaltyLabel = (product) => `${normalizeOverduePenaltyRate(product)}% / 日`
+const collateralWarningThresholdLabel = (product) => `${normalizeCollateralWarningThreshold(product)}%`
 const collateralDisposalThresholdLabel = (product) => `${normalizeCollateralDisposalThreshold(product)}%`
 
 const resetFilters = () => {
@@ -786,6 +824,7 @@ const resetFormData = () => {
     maxLoanAmount: 0,
     interestRate: 0,
     overduePenaltyRate: 0.08,
+    collateralWarningThreshold: 85,
     collateralDisposalThreshold: 95,
     minLoanDuration: 7,
     maxLoanDuration: 90,
@@ -817,6 +856,7 @@ const editProduct = (product) => {
     maxLoanAmount: product.maxLoanAmount,
     interestRate: Number(product.interestRate) || 0,
     overduePenaltyRate: normalizeOverduePenaltyRate(product),
+    collateralWarningThreshold: normalizeCollateralWarningThreshold(product),
     collateralDisposalThreshold: normalizeCollateralDisposalThreshold(product),
     minLoanDuration: product.minLoanDuration,
     maxLoanDuration: product.maxLoanDuration,
@@ -863,9 +903,18 @@ const saveProduct = () => {
     alert('请填写有效的逾期违约金比例')
     return
   }
+  const collateralWarningThreshold = Number(formData.value.collateralWarningThreshold)
+  if (!Number.isFinite(collateralWarningThreshold) || collateralWarningThreshold <= 0) {
+    alert('请填写有效的质押预警比例')
+    return
+  }
   const collateralDisposalThreshold = Number(formData.value.collateralDisposalThreshold)
   if (!Number.isFinite(collateralDisposalThreshold) || collateralDisposalThreshold <= 0) {
     alert('请填写有效的逾期处理阈值')
+    return
+  }
+  if (collateralWarningThreshold >= collateralDisposalThreshold) {
+    alert('质押预警比例必须小于逾期处理阈值')
     return
   }
   const multiplier = Number(formData.value.collateralMultiplier)
@@ -885,6 +934,7 @@ const saveProduct = () => {
     overdueDeductEnabled: true,
     interestRate: rate,
     overduePenaltyRate,
+    collateralWarningThreshold,
     collateralDisposalThreshold,
     interestRateType: INTEREST_RATE_TYPE.FIXED
   }
@@ -905,7 +955,7 @@ const saveProduct = () => {
         action: LENDING_OP_ACTION.PRODUCT_UPDATE,
         refId: next.productId,
         targetLabel: next.productName,
-        summary: `编辑产品：${next.productName}（${next.loanCurrency}），年化 ${next.interestRate}%，逾期 ${next.overduePenaltyRate}%/日，逾期处理阈值 ${next.collateralDisposalThreshold}%`
+        summary: `编辑产品：${next.productName}（${next.loanCurrency}），年化 ${next.interestRate}%，逾期 ${next.overduePenaltyRate}%/日，预警 ${next.collateralWarningThreshold}% / 处理 ${next.collateralDisposalThreshold}%`
       })
       alert('产品修改成功')
     }
@@ -923,7 +973,7 @@ const saveProduct = () => {
       action: LENDING_OP_ACTION.PRODUCT_CREATE,
       refId: newProduct.productId,
       targetLabel: newProduct.productName,
-      summary: `新建产品：${newProduct.productName}（${newProduct.loanCurrency}），逾期 ${newProduct.overduePenaltyRate}%/日，逾期处理阈值 ${newProduct.collateralDisposalThreshold}%`
+      summary: `新建产品：${newProduct.productName}（${newProduct.loanCurrency}），逾期 ${newProduct.overduePenaltyRate}%/日，预警 ${newProduct.collateralWarningThreshold}% / 处理 ${newProduct.collateralDisposalThreshold}%`
     })
     alert('产品创建成功')
   }

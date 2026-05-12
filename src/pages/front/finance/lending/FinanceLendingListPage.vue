@@ -30,6 +30,7 @@ import {
   LENDING_COLLATERAL_PRICE_USD,
   normalizeCollateralConfig,
   normalizeOverduePenaltyRate,
+  normalizeCollateralWarningThreshold,
   normalizeCollateralDisposalThreshold,
   collateralRequiredAmount,
   collateralRequiredValue
@@ -184,6 +185,29 @@ const repayConfirmEnabled = computed(() => {
   return pay > 0 && debt > 0 && pay <= debt
 })
 
+const repayBreakdown = computed(() => {
+  const o = repayOrder.value
+  const pay = parsedRepay.value
+  if (!o || pay <= 0) {
+    return {
+      overduePenaltyPaid: 0,
+      interestPaid: 0,
+      principalPaid: 0
+    }
+  }
+  const overduePenaltyAccrued = Number(o.overduePenaltyAccrued) || 0
+  const interestAccrued = Number(o.interestAccrued) || 0
+  const overduePenaltyPaid = Math.min(pay, overduePenaltyAccrued)
+  const afterPenalty = pay - overduePenaltyPaid
+  const interestPaid = Math.min(afterPenalty, interestAccrued)
+  const principalPaid = Math.max(0, afterPenalty - interestPaid)
+  return {
+    overduePenaltyPaid,
+    interestPaid,
+    principalPaid
+  }
+})
+
 function confirmRepay() {
   const o = repayOrder.value
   if (!o) return
@@ -191,19 +215,28 @@ function confirmRepay() {
   let pay = parsedRepay.value
   if (pay <= 0 || debt <= 0) return
   pay = Math.min(pay, debt)
+  const overduePenaltyAccrued = Number(o.overduePenaltyAccrued) || 0
   const accrued = Number(o.interestAccrued) || 0
-  const interestPaid = Math.min(pay, accrued)
-  const principalPaid = pay - interestPaid
+  const overduePenaltyPaid = Math.min(pay, overduePenaltyAccrued)
+  const afterPenalty = pay - overduePenaltyPaid
+  const interestPaid = Math.min(afterPenalty, accrued)
+  const principalPaid = afterPenalty - interestPaid
   const newDebt = Math.max(0, debt - pay)
+  const newOverduePenaltyAccrued = Math.max(0, overduePenaltyAccrued - overduePenaltyPaid)
   const newAccrued = Math.max(0, accrued - interestPaid)
   const now = formatLendingNow()
   const idx = orders.value.findIndex((x) => x.orderId === o.orderId)
   if (idx === -1) return
   const nextStatus =
-    newDebt <= 0 ? LOAN_ORDER_STATUS.COMPLETED : LOAN_ORDER_STATUS.REPAYING
+    newDebt <= 0
+      ? LOAN_ORDER_STATUS.COMPLETED
+      : o.status === LOAN_ORDER_STATUS.OVERDUE
+        ? LOAN_ORDER_STATUS.OVERDUE
+        : LOAN_ORDER_STATUS.REPAYING
   orders.value[idx] = {
     ...orders.value[idx],
     totalDebt: newDebt,
+    overduePenaltyAccrued: newOverduePenaltyAccrued,
     interestAccrued: newAccrued,
     status: nextStatus,
     updateTime: now,
@@ -221,6 +254,7 @@ function confirmRepay() {
       loanCurrency: o.loanCurrency || 'USDT',
       repaymentType: deriveRepaymentType({ newDebt }),
       amount: pay,
+      overduePenaltyPaid,
       interestPaid,
       principalPaid,
       remainingDebt: newDebt,
@@ -463,7 +497,9 @@ function submitBorrowApplication() {
       requestedAmount: amount,
       interestRate: Number(p.interestRate) || 0,
       overduePenaltyRate: normalizeOverduePenaltyRate(p),
+      collateralWarningThreshold: normalizeCollateralWarningThreshold(p),
       collateralDisposalThreshold: normalizeCollateralDisposalThreshold(p),
+      overduePenaltyAccrued: 0,
       interestAccrued: 0,
       totalDebt: amount,
       status: LOAN_ORDER_STATUS.PENDING,
@@ -873,6 +909,8 @@ function submitBorrowApplication() {
                       <span class="text-right tabular-nums text-white/70">{{ o.maturityDate }}</span>
                       <span class="text-white/35">待还</span>
                       <span class="text-right font-medium tabular-nums text-white/85">{{ o.totalDebt?.toLocaleString() }}</span>
+                      <span class="text-white/35">逾期利息</span>
+                      <span class="text-right tabular-nums text-orange-200/90">{{ (o.overduePenaltyAccrued || 0)?.toLocaleString() }}</span>
                       <span class="text-white/35">质押</span>
                       <span class="text-right tabular-nums text-white/70">
                         {{ o.collateralAmount ? `${o.collateralAmount?.toLocaleString()} ${o.collateralType}` : '—' }}
@@ -907,7 +945,10 @@ function submitBorrowApplication() {
                     {{ o.maturityDate }}
                   </td>
                   <td class="hidden tabular-nums text-white/80 md:table-cell md:px-5 md:py-3">
-                    {{ o.totalDebt?.toLocaleString() }}
+                    <div>{{ o.totalDebt?.toLocaleString() }}</div>
+                    <div v-if="o.overduePenaltyAccrued" class="text-xs text-orange-200/85">
+                      逾期利息 {{ o.overduePenaltyAccrued?.toLocaleString() }}
+                    </div>
                   </td>
                   <td
                     class="max-md:hidden md:table-cell md:px-5 md:py-3 md:text-left"
@@ -966,6 +1007,12 @@ function submitBorrowApplication() {
                     <div
                       class="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-white/[0.06] pt-3 text-[11px] text-white/50 md:hidden"
                     >
+                      <span class="text-white/35">逾期利息</span>
+                      <span class="text-right tabular-nums text-orange-200/90">{{ (r.overduePenaltyPaid || 0).toLocaleString() }}</span>
+                      <span class="text-white/35">正常利息</span>
+                      <span class="text-right tabular-nums text-lime-300/90">{{ (r.interestPaid || 0).toLocaleString() }}</span>
+                      <span class="text-white/35">本金</span>
+                      <span class="text-right tabular-nums text-white/85">{{ (r.principalPaid || 0).toLocaleString() }}</span>
                       <span class="text-white/35">类型</span>
                       <span class="text-right text-white/75">{{ REPAYMENT_TYPE_LABELS[r.repaymentType] ?? r.repaymentType }}</span>
                       <span class="text-white/35">时间</span>
@@ -973,7 +1020,10 @@ function submitBorrowApplication() {
                     </div>
                   </td>
                   <td class="hidden px-3 py-2.5 tabular-nums md:table-cell md:px-5 md:py-3">
-                    {{ r.amount?.toLocaleString() }} {{ r.loanCurrency || 'USDT' }}
+                    <div>{{ r.amount?.toLocaleString() }} {{ r.loanCurrency || 'USDT' }}</div>
+                    <div class="mt-1 text-xs text-white/50">
+                      逾期利息 {{ (r.overduePenaltyPaid || 0).toLocaleString() }} / 利息 {{ (r.interestPaid || 0).toLocaleString() }} / 本金 {{ (r.principalPaid || 0).toLocaleString() }}
+                    </div>
                   </td>
                   <td class="hidden md:table-cell md:px-5 md:py-3">
                     {{ REPAYMENT_TYPE_LABELS[r.repaymentType] ?? r.repaymentType }}
@@ -1037,7 +1087,7 @@ function submitBorrowApplication() {
           确认还款
         </h2>
         <p class="mt-1.5 text-[13px] leading-relaxed text-white/45">
-          提交后将按比例冲减已计利息与本金，并同步「还款」记录。
+          提交后将按顺序冲减逾期利息、正常利息、最后冲减本金，并同步「还款」记录。
         </p>
         <dl class="mt-4 space-y-2 rounded-xl border border-white/[0.08] bg-black/35 px-3 py-3 text-sm">
           <div class="flex justify-between gap-3">
@@ -1056,6 +1106,12 @@ function submitBorrowApplication() {
             <dt class="text-white/45">待还总额</dt>
             <dd class="tabular-nums font-semibold text-white">
               {{ repayOrder.totalDebt?.toLocaleString() }} {{ repayOrder.loanCurrency }}
+            </dd>
+          </div>
+          <div class="flex justify-between gap-3">
+            <dt class="text-white/45">逾期利息</dt>
+            <dd class="tabular-nums text-orange-200/90">
+              {{ (repayOrder.overduePenaltyAccrued || 0).toLocaleString() }} {{ repayOrder.loanCurrency }}
             </dd>
           </div>
           <div class="flex justify-between gap-3">
@@ -1080,6 +1136,20 @@ function submitBorrowApplication() {
             :class="fx.input"
             placeholder="输入还款金额"
           />
+        </div>
+        <div class="mt-4 rounded-xl border border-white/[0.08] bg-black/30 px-3 py-3 text-xs text-white/60">
+          <div class="flex justify-between gap-3">
+            <span>本次先还逾期利息</span>
+            <span class="tabular-nums text-orange-200/90">{{ repayBreakdown.overduePenaltyPaid.toLocaleString() }} {{ repayOrder.loanCurrency }}</span>
+          </div>
+          <div class="mt-1.5 flex justify-between gap-3">
+            <span>然后还正常利息</span>
+            <span class="tabular-nums text-lime-300/90">{{ repayBreakdown.interestPaid.toLocaleString() }} {{ repayOrder.loanCurrency }}</span>
+          </div>
+          <div class="mt-1.5 flex justify-between gap-3">
+            <span>最后还本金</span>
+            <span class="tabular-nums text-white/85">{{ repayBreakdown.principalPaid.toLocaleString() }} {{ repayOrder.loanCurrency }}</span>
+          </div>
         </div>
         <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <button type="button" :class="fx.btnGhost" @click="closeRepayDialog">
@@ -1229,7 +1299,7 @@ function submitBorrowApplication() {
                 >
                   请及时还款；若逾期，每日额外收取（本金+利息）约
                   <span class="font-semibold">{{ overdueFeePct }}%</span>
-                  作为逾期费，具体以借款合同及平台规则为准。
+                  作为逾期费。质押币种按实时币价估值，达到 {{ normalizeCollateralWarningThreshold(borrowProduct) }}% 将进入风险预警，达到 {{ normalizeCollateralDisposalThreshold(borrowProduct) }}% 可进入逾期处理。
                 </div>
               </div>
 

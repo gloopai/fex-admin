@@ -162,6 +162,8 @@ export const LENDING_COLLATERAL_CURRENCIES = ['BTC', 'ETH', 'BNB', 'SOL', 'USDT'
 
 export const DEFAULT_OVERDUE_PENALTY_RATE = 4
 
+export const DEFAULT_COLLATERAL_WARNING_THRESHOLD = 85
+
 export const DEFAULT_COLLATERAL_DISPOSAL_THRESHOLD = 95
 
 export const LENDING_COLLATERAL_PRICE_USD = {
@@ -235,6 +237,15 @@ export function normalizeCollateralDisposalThreshold(product = {}) {
     : DEFAULT_COLLATERAL_DISPOSAL_THRESHOLD
 }
 
+export function normalizeCollateralWarningThreshold(product = {}) {
+  const threshold = Number(product.collateralWarningThreshold)
+  if (Number.isFinite(threshold) && threshold > 0) {
+    return threshold
+  }
+  const disposal = normalizeCollateralDisposalThreshold(product)
+  return Math.min(DEFAULT_COLLATERAL_WARNING_THRESHOLD, Math.max(1, disposal - 10))
+}
+
 export function collateralRequiredValue(loanAmount, product = {}) {
   const amount = Number(loanAmount) || 0
   const cfg = normalizeCollateralConfig(product)
@@ -266,6 +277,7 @@ export const ORDER_COLUMNS = [
   { key: 'productName', label: '产品名称', sortable: true },
   { key: 'loanAmount', label: '借贷金额', sortable: true },
   { key: 'totalDebt', label: '总债务', sortable: true },
+  { key: 'overduePenaltyAccrued', label: '逾期利息', sortable: true },
   { key: 'interestAccrued', label: '累计利息', sortable: true },
   { key: 'status', label: '状态', sortable: true },
   { key: 'createTime', label: '创建时间', sortable: true },
@@ -280,6 +292,7 @@ export const REPAYMENT_COLUMNS = [
   { key: 'loanCurrency', label: '借出币种', sortable: true },
   { key: 'repaymentType', label: '还款类型', sortable: true },
   { key: 'amount', label: '还款金额', sortable: true },
+  { key: 'overduePenaltyPaid', label: '逾期利息', sortable: true },
   { key: 'interestPaid', label: '利息', sortable: true },
   { key: 'principalPaid', label: '本金', sortable: true },
   { key: 'status', label: '状态', sortable: true },

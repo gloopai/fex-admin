@@ -29,6 +29,7 @@ export const mockProducts = [
     minLoanDuration: 7,
     maxLoanDuration: 365,
     overduePenaltyRate: 0.08,
+    collateralWarningThreshold: 85,
     collateralDisposalThreshold: 95,
     liquidationPenalty: 5,
     status: PRODUCT_STATUS.ACTIVE,
@@ -54,6 +55,7 @@ export const mockProducts = [
     minLoanDuration: 1,
     maxLoanDuration: 180,
     overduePenaltyRate: 0.1,
+    collateralWarningThreshold: 85,
     collateralDisposalThreshold: 95,
     liquidationPenalty: 5,
     status: PRODUCT_STATUS.ACTIVE,
@@ -79,6 +81,7 @@ export const mockProducts = [
     minLoanDuration: 7,
     maxLoanDuration: 90,
     overduePenaltyRate: 0.06,
+    collateralWarningThreshold: 90,
     collateralDisposalThreshold: 98,
     liquidationPenalty: 2,
     status: PRODUCT_STATUS.ACTIVE,
@@ -104,6 +107,7 @@ export const mockProducts = [
     minLoanDuration: 30,
     maxLoanDuration: 365,
     overduePenaltyRate: 0.12,
+    collateralWarningThreshold: 82,
     collateralDisposalThreshold: 92,
     liquidationPenalty: 8,
     status: PRODUCT_STATUS.ACTIVE,
@@ -129,6 +133,7 @@ export const mockProducts = [
     minLoanDuration: 1,
     maxLoanDuration: 30,
     overduePenaltyRate: 0.15,
+    collateralWarningThreshold: 80,
     collateralDisposalThreshold: 90,
     liquidationPenalty: 10,
     status: PRODUCT_STATUS.SUSPENDED,
@@ -154,6 +159,7 @@ export const mockProducts = [
     minLoanDuration: 7,
     maxLoanDuration: 90,
     overduePenaltyRate: 0.12,
+    collateralWarningThreshold: 85,
     collateralDisposalThreshold: 95,
     liquidationPenalty: 6,
     status: PRODUCT_STATUS.INACTIVE,
@@ -186,6 +192,7 @@ export const mockOrders = [
     initialLtv: 70,
     currentLtv: 70,
     interestRate: 8.5,
+    overduePenaltyAccrued: 0,
     interestAccrued: 0,
     totalDebt: 122500,
     liquidationPrice: 35000,
@@ -220,6 +227,7 @@ export const mockOrders = [
     initialLtv: 65,
     currentLtv: 65,
     interestRate: 9.2,
+    overduePenaltyAccrued: 0,
     interestAccrued: 0,
     totalDebt: 156000,
     liquidationPrice: 2450,
@@ -254,6 +262,7 @@ export const mockOrders = [
     initialLtv: 60,
     currentLtv: 60,
     interestRate: 10.5,
+    overduePenaltyAccrued: 0,
     interestAccrued: 0,
     totalDebt: 192000,
     liquidationPrice: 320,
@@ -288,6 +297,7 @@ export const mockOrders = [
     initialLtv: 70,
     currentLtv: 66,
     interestRate: 8.5,
+    overduePenaltyAccrued: 0,
     interestAccrued: 0,
     totalDebt: 82745.5,
     liquidationPrice: 35000,
@@ -322,7 +332,8 @@ export const mockOrders = [
     initialLtv: 65,
     currentLtv: 65,
     interestRate: 9.2,
-    interestAccrued: 47000,
+    overduePenaltyAccrued: 12500,
+    interestAccrued: 34500,
     totalDebt: 144500,
     liquidationPrice: 2450,
     currentPrice: 3000,
@@ -356,6 +367,7 @@ export const mockOrders = [
     initialLtv: 90,
     currentLtv: 90,
     interestRate: 6.8,
+    overduePenaltyAccrued: 0,
     interestAccrued: 102.3,
     totalDebt: 45102.3,
     liquidationPrice: 0.95,
@@ -390,6 +402,7 @@ export const mockOrders = [
     initialLtv: 70,
     currentLtv: 70,
     interestRate: 8.5,
+    overduePenaltyAccrued: 0,
     interestAccrued: 0,
     totalDebt: 42000,
     liquidationPrice: 35294,
@@ -424,8 +437,9 @@ export const mockOrders = [
     initialLtv: 60,
     currentLtv: 82,
     interestRate: 10.5,
+    overduePenaltyAccrued: 120000,
     interestAccrued: 1890.4,
-    totalDebt: 121890.4,
+    totalDebt: 241890.4,
     liquidationPrice: 324,
     currentPrice: 400,
     liquidationThreshold: 75,
@@ -459,6 +473,7 @@ export const mockOrders = [
     initialLtv: 0,
     currentLtv: 0,
     interestRate: 6.8,
+    overduePenaltyAccrued: 0,
     interestAccrued: 0,
     totalDebt: 0,
     liquidationPrice: 0.95,
@@ -494,6 +509,7 @@ export const mockOrders = [
     initialLtv: 71,
     currentLtv: 88,
     interestRate: 9.2,
+    overduePenaltyAccrued: 0,
     interestAccrued: 6500,
     totalDebt: 58500,
     liquidationPrice: 2450,
@@ -529,6 +545,7 @@ export const mockOrders = [
     initialLtv: 69,
     currentLtv: 75,
     interestRate: 8.5,
+    overduePenaltyAccrued: 0,
     interestAccrued: 1000,
     totalDebt: 35000,
     liquidationPrice: 48000,
@@ -562,10 +579,11 @@ export const mockOrders = [
     loanAmount: 70000,
     requestedAmount: 70000,
     initialLtv: 60,
-    currentLtv: 79,
+    currentLtv: 96,
     interestRate: 10.5,
-    interestAccrued: 5000,
-    totalDebt: 75000,
+    overduePenaltyAccrued: 0,
+    interestAccrued: 118000,
+    totalDebt: 188000,
     liquidationPrice: 385,
     currentPrice: 390,
     liquidationThreshold: 75,
@@ -576,9 +594,9 @@ export const mockOrders = [
     createTime: '2024-07-01 10:00:00',
     updateTime: '2024-02-28 14:30:00',
     maturityDate: '2025-07-01 10:00:00',
-    riskLevel: RISK_LEVEL.HIGH,
+    riskLevel: RISK_LEVEL.CRITICAL,
     purpose: '杠杆仓位',
-    remarks: '逾期处理未完全收回，债务仍在（见 LIQ-20240228-004）'
+    remarks: '未到期但币价下跌导致债务占比触达处理阈值，待运营执行风险处理'
   }
 ]
 
@@ -593,6 +611,7 @@ export const mockRepayments = [
     loanCurrency: 'USDT',
     repaymentType: REPAYMENT_TYPE.PARTIAL,
     amount: 245.5,
+    overduePenaltyPaid: 0,
     interestPaid: 245.5,
     principalPaid: 0,
     remainingDebt: 87500,
@@ -611,6 +630,7 @@ export const mockRepayments = [
     loanCurrency: 'USDC',
     repaymentType: REPAYMENT_TYPE.PARTIAL,
     amount: 15000,
+    overduePenaltyPaid: 0,
     interestPaid: 102.3,
     principalPaid: 14897.7,
     remainingDebt: 30102.3,
@@ -629,7 +649,8 @@ export const mockRepayments = [
     loanCurrency: 'USDT',
     repaymentType: REPAYMENT_TYPE.PARTIAL,
     amount: 567.8,
-    interestPaid: 567.8,
+    overduePenaltyPaid: 567.8,
+    interestPaid: 0,
     principalPaid: 0,
     remainingDebt: 98067.8,
     status: REPAYMENT_STATUS.PROCESSING,
@@ -647,6 +668,7 @@ export const mockRepayments = [
     loanCurrency: 'USDT',
     repaymentType: REPAYMENT_TYPE.FULL,
     amount: 42468.5,
+    overduePenaltyPaid: 0,
     interestPaid: 468.5,
     principalPaid: 42000,
     remainingDebt: 0,
@@ -665,6 +687,7 @@ export const mockRepayments = [
     loanCurrency: 'USDT',
     repaymentType: REPAYMENT_TYPE.AUTO,
     amount: 197.5,
+    overduePenaltyPaid: 0,
     interestPaid: 197.5,
     principalPaid: 0,
     remainingDebt: 87500,
@@ -684,6 +707,7 @@ export const mockRepayments = [
     loanCurrency: 'USDT',
     repaymentType: REPAYMENT_TYPE.PARTIAL,
     amount: 5000,
+    overduePenaltyPaid: 0,
     interestPaid: 245.5,
     principalPaid: 4754.5,
     remainingDebt: 82745.5,
@@ -702,7 +726,8 @@ export const mockRepayments = [
     loanCurrency: 'USDT',
     repaymentType: REPAYMENT_TYPE.AUTO,
     amount: 1200,
-    interestPaid: 1200,
+    overduePenaltyPaid: 1200,
+    interestPaid: 0,
     principalPaid: 0,
     remainingDebt: 98067.8,
     status: REPAYMENT_STATUS.OVERDUE,
@@ -725,7 +750,7 @@ export const guideData = {
       <ul>
         <li><strong>场内授信：</strong>额度与利率结合信用与风控规则</li>
         <li><strong>到账快：</strong>审核通过后记入借贷账户，无需链上确认</li>
-        <li><strong>还款灵活：</strong>支持部分还款、先息后本、自动扣款等</li>
+        <li><strong>还款灵活：</strong>支持部分还款、自动扣款等；还款默认先冲逾期利息，再冲正常利息，最后冲本金</li>
         <li><strong>费率透明：</strong>利率与费用以产品页与合同为准</li>
       </ul>
     `
@@ -779,7 +804,7 @@ export const guideData = {
         content: `
           <ol>
             <li>在订单中查看总债务与利息</li>
-            <li>按需输入还款金额（先冲已计利息再冲本金）、一次结清或自动扣款</li>
+            <li>按需输入还款金额（先冲逾期利息，再冲已计利息，最后冲本金）、一次结清或自动扣款</li>
             <li>避免逾期以减少罚息与信用影响</li>
           </ol>
         `
