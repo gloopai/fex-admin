@@ -152,7 +152,36 @@
 				<div class="flex-1 flex overflow-hidden">
 					<!-- 左侧：表单编辑区域 (60%) -->
 					<div class="w-3/5 border-r border-slate-200 flex flex-col">
-						<div class="flex-1 overflow-y-auto p-6 space-y-6">
+						<div class="shrink-0 border-b border-slate-200 px-6">
+							<div class="flex gap-1">
+								<button
+									type="button"
+									:class="[
+										'border-b-2 px-4 py-3 text-sm font-medium transition-colors',
+										productModalTab === 'config'
+											? 'border-blue-600 text-blue-600'
+											: 'border-transparent text-slate-600 hover:text-slate-900'
+									]"
+									@click="productModalTab = 'config'"
+								>
+									产品配置
+								</button>
+								<button
+									type="button"
+									:class="[
+										'border-b-2 px-4 py-3 text-sm font-medium transition-colors',
+										productModalTab === 'rules'
+											? 'border-blue-600 text-blue-600'
+											: 'border-transparent text-slate-600 hover:text-slate-900'
+									]"
+									@click="productModalTab = 'rules'"
+								>
+									计算规则
+								</button>
+							</div>
+						</div>
+						<div class="flex-1 overflow-y-auto p-6">
+						<div v-show="productModalTab === 'config'" class="space-y-6">
 							<!-- 基础信息 -->
 							<div>
 								<h3 class="font-semibold text-slate-900 mb-3">基础信息</h3>
@@ -263,6 +292,54 @@
 									<option v-for="(meta, key) in productStatusMeta" :key="key" :value="key">{{ meta.label }}</option>
 								</select>
 							</div>
+						</div>
+
+						<div v-show="productModalTab === 'rules'" class="space-y-4">
+							<div class="rounded-xl border border-blue-200 bg-blue-50 p-4">
+								<h3 class="text-sm font-semibold text-blue-900">收益阶梯计算</h3>
+								<p class="mt-2 text-sm leading-relaxed text-blue-900">
+									申购金额落入对应阶梯后，按该阶梯日收益率计算预期收益：持仓金额 × 日收益率 × 持有天数。页面收益为预估展示，最终以订单结算记录为准。
+								</p>
+							</div>
+
+							<div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+								<h3 class="text-sm font-semibold text-emerald-900">结算周期</h3>
+								<p class="mt-2 text-sm leading-relaxed text-emerald-900">
+									每日、每周、每月或自定义周期用于控制收益结算频率；结算时生成收益记录并累计到用户订单收益中。
+								</p>
+							</div>
+
+							<div class="rounded-xl border border-violet-200 bg-violet-50 p-4">
+								<h3 class="text-sm font-semibold text-violet-900">运营模式</h3>
+								<p class="mt-2 text-sm leading-relaxed text-violet-900">
+									内部策略、外部托管等运营模式用于区分资金运作口径和后台展示，不改变用户侧按阶梯收益率展示的基础计算方式。
+								</p>
+							</div>
+
+							<div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
+								<h3 class="text-sm font-semibold text-amber-900">提前赎回</h3>
+								<p class="mt-2 text-sm leading-relaxed text-amber-900">
+									若产品允许提前赎回，提前退出时按产品配置收取手续费；不支持提前赎回的产品需按周期或订单规则正常结算退出。
+								</p>
+							</div>
+
+							<div class="rounded-xl border border-slate-200 bg-white p-4">
+								<h3 class="text-sm font-semibold text-slate-900">限购与准入</h3>
+								<ul class="mt-2 space-y-2 text-sm leading-relaxed text-slate-700">
+									<li>• 单用户最大持仓限制用户在该产品下可持有的本金规模。</li>
+									<li>• 产品总限额限制全平台可申购规模。</li>
+									<li>• 月限购次数按自然月统计用户提交申购次数。</li>
+									<li>• 最低 VIP 等级在申购时校验，不影响已成立订单。</li>
+								</ul>
+							</div>
+
+							<div class="rounded-xl border border-rose-200 bg-rose-50 p-4">
+								<h3 class="text-sm font-semibold text-rose-900">风险提示</h3>
+								<p class="mt-2 text-sm leading-relaxed text-rose-900">
+									AI 量化收益受策略表现、市场波动和流动性影响；后台配置的日收益率用于产品展示与模拟计算，实际结算应以订单流水为准。
+								</p>
+							</div>
+						</div>
 						</div>
 					</div>
 
@@ -444,6 +521,7 @@ const modeFilter = ref(COMMON_FILTER_ALL)
 
 const showProductModal = ref(false)
 const editingProductId = ref('')
+const productModalTab = ref('config')
 
 const productForm = reactive({
 	name: '',
@@ -476,6 +554,7 @@ const openCreateProduct = () => {
 	productForm.limitCount = 100
 	productForm.monthlyLimitCount = 5
 	productForm.status = PRODUCT_STATUS.ENABLED
+	productModalTab.value = 'config'
 	showProductModal.value = true
 }
 
@@ -496,6 +575,7 @@ const openEditProduct = (product) => {
 	productForm.limitCount = product.limitCount
 	productForm.monthlyLimitCount = product.monthlyLimitCount
 	productForm.status = product.status
+	productModalTab.value = 'config'
 	showProductModal.value = true
 }
 

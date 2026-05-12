@@ -28,6 +28,7 @@ const currencyFilter = ref(COMMON_FILTER_ALL)
 
 const showProductModal = ref(false)
 const editingProductId = ref('')
+const productModalTab = ref('config')
 
 const productForm = reactive({
 	name: '',
@@ -58,6 +59,7 @@ const openCreateProduct = () => {
 	productForm.minVipLevel = 0
 	productForm.minKycLevel = 'none'
 	productForm.status = PRODUCT_STATUS.ENABLED
+	productModalTab.value = 'config'
 	showProductModal.value = true
 }
 
@@ -80,6 +82,7 @@ const openEditProduct = (product) => {
 	productForm.minVipLevel = product.minVipLevel ?? 0
 	productForm.minKycLevel = product.minKycLevel ?? 'none'
 	productForm.status = product.status
+	productModalTab.value = 'config'
 	showProductModal.value = true
 }
 
@@ -376,7 +379,36 @@ const applyPresetDays = (days) => {
 
 					<div class="flex min-h-0 flex-1 overflow-hidden">
 						<div class="flex w-3/5 flex-col border-r border-slate-200">
-							<div class="flex-1 space-y-6 overflow-y-auto p-6">
+							<div class="shrink-0 border-b border-slate-200 px-6">
+								<div class="flex gap-1">
+									<button
+										type="button"
+										:class="[
+											'border-b-2 px-4 py-3 text-sm font-medium transition-colors',
+											productModalTab === 'config'
+												? 'border-blue-600 text-blue-600'
+												: 'border-transparent text-slate-600 hover:text-slate-900'
+										]"
+										@click="productModalTab = 'config'"
+									>
+										产品配置
+									</button>
+									<button
+										type="button"
+										:class="[
+											'border-b-2 px-4 py-3 text-sm font-medium transition-colors',
+											productModalTab === 'rules'
+												? 'border-blue-600 text-blue-600'
+												: 'border-transparent text-slate-600 hover:text-slate-900'
+										]"
+										@click="productModalTab = 'rules'"
+									>
+										计算规则
+									</button>
+								</div>
+							</div>
+							<div class="flex-1 overflow-y-auto p-6">
+							<div v-show="productModalTab === 'config'" class="space-y-6">
 								<div>
 									<h3 class="mb-3 font-semibold text-slate-900">基础信息</h3>
 									<div class="grid grid-cols-2 gap-4">
@@ -599,6 +631,49 @@ const applyPresetDays = (days) => {
 										</div>
 									</div>
 								</div>
+							</div>
+
+							<div v-show="productModalTab === 'rules'" class="space-y-4">
+								<div class="rounded-xl border border-blue-200 bg-blue-50 p-4">
+									<h3 class="text-sm font-semibold text-blue-900">收益计算</h3>
+									<p class="mt-2 text-sm leading-relaxed text-blue-900">
+										锁仓收益按固定年化单利估算：锁仓本金 × 年化收益率 × 锁仓天数 / 365。收益按用户锁定的币种数量计算，不按法币价格折算。
+									</p>
+								</div>
+
+								<div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+									<h3 class="text-sm font-semibold text-emerald-900">到期结算</h3>
+									<p class="mt-2 text-sm leading-relaxed text-emerald-900">
+										订单锁满对应周期后，到期自动解锁本金并一次性返还本金与累计收益；持有期间收益可在订单中累计展示。
+									</p>
+								</div>
+
+								<div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
+									<h3 class="text-sm font-semibold text-amber-900">提前赎回</h3>
+									<p class="mt-2 text-sm leading-relaxed text-amber-900">
+										若产品开启提前赎回，提前赎回时按本金扣除违约金，已累计收益不发放；未开启提前赎回的产品，用户需持有到期。
+									</p>
+									<p class="mt-2 text-xs text-amber-800">
+										例：本金 5000 USDT，违约金 4%，提前赎回返还 5000 × 96% = 4800 USDT。
+									</p>
+								</div>
+
+								<div class="rounded-xl border border-slate-200 bg-white p-4">
+									<h3 class="text-sm font-semibold text-slate-900">限购与门槛</h3>
+									<ul class="mt-2 space-y-2 text-sm leading-relaxed text-slate-700">
+										<li>• 终身限购按用户在该产品的历史累计锁仓金额判断。</li>
+										<li>• 周期限购按配置周期内的累计申购金额判断。</li>
+										<li>• VIP 与认证门槛在用户提交申购时校验，不影响已成立订单。</li>
+									</ul>
+								</div>
+
+								<div class="rounded-xl border border-rose-200 bg-rose-50 p-4">
+									<h3 class="text-sm font-semibold text-rose-900">风险提示</h3>
+									<p class="mt-2 text-sm leading-relaxed text-rose-900">
+										收益按币种数量计算，币价波动不会改变订单应返还数量，但会影响资产折算法币后的价值。
+									</p>
+								</div>
+							</div>
 							</div>
 						</div>
 
