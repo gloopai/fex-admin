@@ -37,7 +37,6 @@ function paidColumn(row) {
   if (row.status === 'completed' && row.completedAt) {
     return row.creditTxnId ? `${row.completedAt} · ${row.creditTxnId}` : row.completedAt
   }
-  if (row.status === 'rejected') return '—'
   return '待入账'
 }
 
@@ -96,9 +95,7 @@ function toggleExpand(id) {
                       :class="
                         row.status === 'completed'
                           ? 'bg-emerald-500/15 text-emerald-200'
-                          : row.status === 'rejected'
-                            ? 'bg-red-500/15 text-red-200'
-                            : 'bg-amber-500/15 text-amber-100'
+                          : 'bg-amber-500/15 text-amber-100'
                       "
                     >
                       {{ headline(row.status) }}

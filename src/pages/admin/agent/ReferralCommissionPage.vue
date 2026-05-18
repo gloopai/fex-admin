@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, reactive, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, reactive, watch } from 'vue'
 import { referralApi } from '../../../admin/mock/referral'
 import {
   COMMISSION_STATUS,
@@ -35,6 +35,71 @@ const totalPages = computed(() => Math.ceil(pagination.total / pagination.pageSi
 const recordList = ref([])
 const aggregates = ref(null)
 const settlementGlobal = ref(null)
+const toast = ref({ visible: false, message: '', kind: 'info' })
+const confirmDialog = ref({
+  visible: false,
+  message: '',
+  loading: false,
+  onConfirm: null
+})
+let toastTimer = null
+
+function showToast(message, kind = 'info') {
+  if (toastTimer) {
+    clearTimeout(toastTimer)
+    toastTimer = null
+  }
+  toast.value = { visible: true, message: String(message || ''), kind }
+  toastTimer = setTimeout(() => {
+    toast.value.visible = false
+    toastTimer = null
+  }, 3600)
+}
+
+const toastBorderClass = computed(() => {
+  if (toast.value.kind === 'success') return 'border-emerald-200'
+  if (toast.value.kind === 'error') return 'border-red-200'
+  return 'border-blue-200'
+})
+
+const toastIconBgClass = computed(() => {
+  if (toast.value.kind === 'success') return 'bg-emerald-500'
+  if (toast.value.kind === 'error') return 'bg-red-500'
+  return 'bg-blue-500'
+})
+
+function openConfirm(message, onConfirm) {
+  confirmDialog.value = {
+    visible: true,
+    message,
+    loading: false,
+    onConfirm
+  }
+}
+
+function closeConfirm() {
+  if (confirmDialog.value.loading) return
+  confirmDialog.value.visible = false
+  confirmDialog.value.message = ''
+  confirmDialog.value.onConfirm = null
+}
+
+async function submitConfirm() {
+  const fn = confirmDialog.value.onConfirm
+  if (!fn) {
+    closeConfirm()
+    return
+  }
+  confirmDialog.value.loading = true
+  try {
+    await fn()
+  } catch (error) {
+    showToast(error?.message || '操作失败', 'error')
+  } finally {
+    confirmDialog.value.loading = false
+    closeConfirm()
+  }
+}
 
 // 加载分佣记录
 const loadCommissionRecords = async () => {
@@ -53,6 +118,9 @@ const loadCommissionRecords = async () => {
       pagination.total = result.data.total
       aggregates.value = result.data.aggregates ?? null
       settlementGlobal.value = result.data.settlementGlobal ?? null
+      selectedRecords.value = selectedRecords.value.filter(id =>
+        result.data.list.some(r => r.id === id && r.status === COMMISSION_STATUS.PENDING)
+      )
     }
   } catch (error) {
     console.error('Failed to load commission records:', error)
@@ -87,6 +155,10 @@ onMounted(() => {
   loadCommissionRecords()
 })
 
+onUnmounted(() => {
+  if (toastTimer) clearTimeout(toastTimer)
+})
+
 // 选中的记录
 const selectedRecords = ref([])
 
@@ -97,22 +169,16 @@ const stats = computed(() => {
     return [
       { label: '总记录数', value: '—', colorKey: 'blue' },
       { label: '待发放', value: '—', colorKey: 'yellow' },
-      { label: '已完成', value: '—', colorKey: 'green' },
-      { label: '筛选内累计佣金', value: '—', colorKey: 'purple' },
-      { label: '已发放佣金', value: '—', colorKey: 'green' }
+      { label: '已入账', value: '—', colorKey: 'green' },
+      { label: '已入账佣金', value: '—', colorKey: 'green' }
     ]
   }
   return [
     { label: '总记录数', value: a.totalRecords, colorKey: 'blue' },
     { label: '待发放', value: a.pendingCount, colorKey: 'yellow' },
-    { label: '已完成', value: a.completedCount, colorKey: 'green' },
+    { label: '已入账', value: a.completedCount, colorKey: 'green' },
     {
-      label: '筛选内累计佣金',
-      value: `$${a.totalCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      colorKey: 'purple'
-    },
-    {
-      label: '已发放佣金',
+      label: '已入账佣金',
       value: `$${a.completedCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       colorKey: 'green'
     }
@@ -143,17 +209,22 @@ const getTypeLabel = (type) => {
   return REFERRAL_TYPE_OPTIONS.find(t => t.value === type)?.label || type
 }
 
+const executableRecords = computed(() => recordList.value.filter(r => r.status === COMMISSION_STATUS.PENDING))
+
 // 全选/取消全选
 const toggleSelectAll = () => {
-  if (selectedRecords.value.length === recordList.value.length) {
+  const ids = executableRecords.value.map(r => r.id)
+  if (ids.length > 0 && ids.every(id => selectedRecords.value.includes(id))) {
     selectedRecords.value = []
   } else {
-    selectedRecords.value = recordList.value.map(r => r.id)
+    selectedRecords.value = ids
   }
 }
 
 // 切换单个选择
 const toggleSelect = (recordId) => {
+  const row = recordList.value.find(r => r.id === recordId)
+  if (!row || row.status !== COMMISSION_STATUS.PENDING) return
   const index = selectedRecords.value.indexOf(recordId)
   if (index > -1) {
     selectedRecords.value.splice(index, 1)
@@ -169,47 +240,42 @@ const isSelected = (recordId) => {
 
 // 手动执行分佣
 const executeCommission = async (recordId) => {
-  if (!confirm('确认执行该笔分佣？')) return
-  
-  try {
-    const result = await referralApi.executeCommission(recordId)
-    if (result.success) {
-      alert(result.message)
-      await loadCommissionRecords()
-    } else if (result.message) {
-      alert(result.message)
+  openConfirm('确认发放该笔分佣？', async () => {
+    try {
+      const result = await referralApi.executeCommission(recordId)
+      if (result.success) {
+        showToast(result.message || '发放成功', 'success')
+        await loadCommissionRecords()
+      } else if (result.message) {
+        showToast(result.message, 'error')
+      }
+    } catch (error) {
+      showToast('发放失败：' + error.message, 'error')
     }
-  } catch (error) {
-    alert('执行失败：' + error.message)
-  }
+  })
 }
 
-// 批量执行分佣
+// 批量发放分佣
 const batchExecute = async () => {
   if (selectedRecords.value.length === 0) {
-    alert('请先选择要执行的记录')
+    showToast('请先选择待发放记录', 'error')
     return
   }
   
-  if (!confirm(`确认批量执行${selectedRecords.value.length}条分佣记录？`)) return
-  
-  try {
-    const result = await referralApi.batchExecuteCommission(selectedRecords.value)
-    if (result.success) {
-      selectedRecords.value = []
-      alert(result.message)
-      await loadCommissionRecords()
-    } else if (result.message) {
-      alert(result.message)
+  openConfirm(`确认批量发放 ${selectedRecords.value.length} 条分佣记录？`, async () => {
+    try {
+      const result = await referralApi.batchExecuteCommission(selectedRecords.value)
+      if (result.success) {
+        selectedRecords.value = []
+        showToast(result.message || '批量发放成功', 'success')
+        await loadCommissionRecords()
+      } else if (result.message) {
+        showToast(result.message, 'error')
+      }
+    } catch (error) {
+      showToast('批量发放失败：' + error.message, 'error')
     }
-  } catch (error) {
-    alert('批量执行失败：' + error.message)
-  }
-}
-
-// 导出数据
-const exportData = () => {
-  alert('导出功能开发中...')
+  })
 }
 
 // 格式化日期
@@ -238,7 +304,7 @@ const statusBadgeClass = (status) => {
     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
         <h1 class="text-2xl font-bold text-slate-900">裂变分佣记录</h1>
-        <p class="mt-1 text-sm text-slate-500">邀请链分佣流水；执行发放时按「裂变分销设置 → 佣金结算」写入入账快照。</p>
+        <p class="mt-1 text-sm text-slate-500">邀请链分佣流水；发放时按「裂变分销设置 → 佣金结算」写入入账快照。</p>
       </div>
       <router-link
         to="/admin/agent/referral-config"
@@ -248,18 +314,16 @@ const statusBadgeClass = (status) => {
       </router-link>
     </div>
 
-    <div v-if="settlementGlobal" class="space-y-0.5 text-sm text-slate-600">
-      <p>
-        当前入账：<span class="font-medium text-slate-800">{{ settlementGlobal.creditLabel }}</span>
-      </p>
-      <p>
-        结算安排：<span class="font-medium text-slate-800">{{ settlementGlobal.settlementScheduleLabel }}</span>
-      </p>
-      <p class="text-xs text-slate-500">{{ settlementGlobal.settlementNotifyLine }}</p>
+    <div v-if="settlementGlobal" class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+      当前入账：<span class="font-medium text-slate-900">{{ settlementGlobal.creditLabel }}</span>
+      <span class="mx-2 text-slate-300">·</span>
+      <span class="text-slate-500">结算安排：</span>
+      <span class="font-medium text-slate-900">{{ settlementGlobal.settlementScheduleLabel }}</span>
+      <p class="mt-1 text-xs text-slate-500">{{ settlementGlobal.settlementNotifyLine }}</p>
     </div>
 
     <!-- 统计卡片 -->
-    <div class="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-5">
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
       <div
         v-for="stat in stats"
         :key="stat.label"
@@ -326,13 +390,7 @@ const statusBadgeClass = (status) => {
             @click="batchExecute"
             class="ant-btn ant-btn-primary !bg-emerald-600 !border-emerald-600"
           >
-            批量执行 ({{ selectedRecords.length }})
-          </button>
-          <button type="button" class="ant-btn inline-flex items-center gap-2" @click="exportData">
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            导出数据
+            批量发放 ({{ selectedRecords.length }})
           </button>
         </div>
       </div>
@@ -350,7 +408,8 @@ const statusBadgeClass = (status) => {
                 <input
                   type="checkbox"
                   class="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                  :checked="recordList.length > 0 && selectedRecords.length === recordList.length"
+                  :checked="executableRecords.length > 0 && executableRecords.every(r => selectedRecords.includes(r.id))"
+                  :disabled="executableRecords.length === 0"
                   @change="toggleSelectAll"
                 />
               </th>
@@ -373,6 +432,7 @@ const statusBadgeClass = (status) => {
                   type="checkbox"
                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   :checked="isSelected(record.id)"
+                  :disabled="record.status !== COMMISSION_STATUS.PENDING"
                   @change="toggleSelect(record.id)"
                 />
               </td>
@@ -421,12 +481,12 @@ const statusBadgeClass = (status) => {
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <button
-                  v-if="record.status === COMMISSION_STATUS.PENDING || record.status === COMMISSION_STATUS.FAILED"
+                  v-if="record.status === COMMISSION_STATUS.PENDING"
                   type="button"
                   @click="executeCommission(record.id)"
                   class="text-green-600 hover:text-green-900"
                 >
-                  执行
+                  发放
                 </button>
                 <span v-else class="text-gray-400">-</span>
               </td>
@@ -495,6 +555,48 @@ const statusBadgeClass = (status) => {
         </div>
       </div>
     </div>
+
+    <Teleport to="body">
+      <div
+        v-if="confirmDialog.visible"
+        class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 p-4"
+        role="dialog"
+        aria-modal="true"
+        @click.self="closeConfirm"
+      >
+        <div class="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-xl">
+          <p class="text-base font-semibold text-slate-900">请确认</p>
+          <p class="mt-2 text-sm leading-relaxed text-slate-600">{{ confirmDialog.message }}</p>
+          <div class="mt-6 flex justify-end gap-2">
+            <button type="button" class="ant-btn" :disabled="confirmDialog.loading" @click="closeConfirm">
+              取消
+            </button>
+            <button type="button" class="ant-btn ant-btn-primary" :disabled="confirmDialog.loading" @click="submitConfirm">
+              {{ confirmDialog.loading ? '处理中…' : '确定' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div
+        v-if="toast.visible"
+        class="fixed right-4 top-4 z-[110] flex max-w-sm items-center gap-3 rounded-lg border bg-white px-4 py-3 shadow-lg"
+        :class="toastBorderClass"
+      >
+        <div class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full" :class="toastIconBgClass">
+          <svg v-if="toast.kind === 'success'" class="h-3 w-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+          </svg>
+          <svg v-else-if="toast.kind === 'error'" class="h-3 w-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+          <svg v-else class="h-3 w-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <span class="text-sm font-medium text-slate-900">{{ toast.message }}</span>
+      </div>
+    </Teleport>
   </div>
 </template>
 

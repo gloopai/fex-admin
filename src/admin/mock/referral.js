@@ -28,9 +28,6 @@ function round2(n) {
 function computeCommissionAggregates(list) {
   let pendingCount = 0
   let completedCount = 0
-  let failedCount = 0
-  let processingCount = 0
-  let cancelledCount = 0
   let totalCommission = 0
   let completedCommission = 0
   for (const r of list) {
@@ -44,15 +41,6 @@ function computeCommissionAggregates(list) {
         completedCount++
         completedCommission += c
         break
-      case COMMISSION_STATUS.FAILED:
-        failedCount++
-        break
-      case COMMISSION_STATUS.PROCESSING:
-        processingCount++
-        break
-      case COMMISSION_STATUS.CANCELLED:
-        cancelledCount++
-        break
       default:
         break
     }
@@ -61,9 +49,6 @@ function computeCommissionAggregates(list) {
     totalRecords: list.length,
     pendingCount,
     completedCount,
-    failedCount,
-    processingCount,
-    cancelledCount,
     totalCommission: round2(totalCommission),
     completedCommission: round2(completedCommission)
   }
@@ -225,7 +210,7 @@ export const mockCommissionRecords = [
     amount: 800.00,
     commissionRate: 0.05,
     commission: 40.00,
-    status: COMMISSION_STATUS.PROCESSING,
+    status: COMMISSION_STATUS.PENDING,
     createdAt: '2026-03-08 15:30:00',
     completedAt: null
   },
@@ -255,7 +240,7 @@ export const mockCommissionRecords = [
     amount: 1500.00,
     commissionRate: 0.1,
     commission: 150.00,
-    status: COMMISSION_STATUS.FAILED,
+    status: COMMISSION_STATUS.PENDING,
     createdAt: '2026-03-07 16:20:00',
     completedAt: null
   }
@@ -349,6 +334,7 @@ const generateMockCommissionRecords = () => {
   for (let i = 7; i <= 25; i++) {
     const amount = Math.floor(Math.random() * 5000) + 100
     const rate = 0.1
+    const status = i % 3 === 0 ? COMMISSION_STATUS.PENDING : COMMISSION_STATUS.COMPLETED
     records.push({
       id: `COM2026030${Math.floor(Math.random() * 9) + 1}${i.toString().padStart(3, '0')}`,
       agentUid: 100000 + (i % 5 + 1),
@@ -360,9 +346,9 @@ const generateMockCommissionRecords = () => {
       amount: amount,
       commissionRate: rate,
       commission: amount * rate,
-      status: Object.values(COMMISSION_STATUS)[Math.floor(Math.random() * Object.values(COMMISSION_STATUS).length)],
+      status,
       createdAt: `2026-03-08 ${Math.floor(Math.random() * 23).toString().padStart(2, '0')}:30:00`,
-      completedAt: null
+      completedAt: status === COMMISSION_STATUS.COMPLETED ? `2026-03-08 ${Math.floor(Math.random() * 23).toString().padStart(2, '0')}:45:00` : null
     })
   }
   return records
@@ -503,11 +489,8 @@ export const referralApi = {
           resolve({ success: false, message: '未找到该分佣记录' })
           return
         }
-        if (
-          rec.status !== COMMISSION_STATUS.PENDING &&
-          rec.status !== COMMISSION_STATUS.FAILED
-        ) {
-          resolve({ success: false, message: '仅「待发放」或「失败」状态可执行' })
+        if (rec.status !== COMMISSION_STATUS.PENDING) {
+          resolve({ success: false, message: '仅「待发放」状态可执行' })
           return
         }
         const cfg = normalizeReferralConfig(mockReferralConfig)
@@ -525,7 +508,7 @@ export const referralApi = {
     })
   },
 
-  // 批量执行分佣
+  // 批量发放分佣
   batchExecuteCommission: (recordIds) => {
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -536,7 +519,7 @@ export const referralApi = {
           const rec = extendedCommissionRecords.find((r) => r.id === id)
           if (
             !rec ||
-            (rec.status !== COMMISSION_STATUS.PENDING && rec.status !== COMMISSION_STATUS.FAILED)
+            rec.status !== COMMISSION_STATUS.PENDING
           ) {
             continue
           }
@@ -556,7 +539,7 @@ export const referralApi = {
           message:
             n > 0
               ? `已批量发放 ${n} 笔，入账「${credit}」（每自然日 ${time} 日切）。流水号示例：${preview}${txns.length > 2 ? '…' : ''}`
-              : '没有可执行的记录（需为待发放或失败状态）',
+              : '没有可执行的记录（需为待发放状态）',
           data: { count: n, creditTxnIds: txns }
         })
       }, 600)

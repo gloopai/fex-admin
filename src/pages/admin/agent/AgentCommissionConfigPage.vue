@@ -322,25 +322,6 @@ onMounted(() => {
       <div class="divide-y divide-slate-100">
         <div class="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p class="text-sm font-medium text-slate-900">自动执行代理线分佣</p>
-            <p class="mt-1 text-sm text-slate-500">
-              开启后：账务生成待发放记录时由系统自动执行入账。关闭后：待发放记录不自动入账，由运营在管理后台按业务流程逐笔确认并入账。
-            </p>
-          </div>
-          <button
-            type="button"
-            :class="config.agentCommissionAutoExecute ? 'bg-blue-600' : 'bg-slate-200'"
-            class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none"
-            @click="config.agentCommissionAutoExecute = !config.agentCommissionAutoExecute"
-          >
-            <span
-              :class="config.agentCommissionAutoExecute ? 'translate-x-5' : 'translate-x-0'"
-              class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition"
-            />
-          </button>
-        </div>
-        <div class="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
             <p class="text-sm font-medium text-slate-900">仅首笔充值参与代理线记佣</p>
             <p class="mt-1 text-sm text-slate-500">
               仅作用于「充值」产品线：开启时，代理名下客户仅其第一笔充值成功订单参与本条线的 A 与佣金计算；该客户后续充值订单不参与本条线记佣。
@@ -466,7 +447,7 @@ onMounted(() => {
       <p class="font-medium text-slate-800">保存前请确认</p>
       <ul class="mt-2 list-inside list-disc space-y-1 text-slate-600">
         <li>已开启记佣的产品线须填写比例 r（0～1）。</li>
-        <li>账期结算周期、入账位置与结算后通知请在「佣金结算」Tab 配置。</li>
+        <li>账期结算周期、发放方式与结算后通知请在「佣金结算」Tab 配置。</li>
         <li>此处为代理体系全局默认；单个代理的覆盖请在代理列表「记佣配置」中维护。</li>
       </ul>
       <p class="mt-3 text-xs text-slate-500">与「佣金结算」共用右上角保存与重置。</p>
@@ -478,7 +459,7 @@ onMounted(() => {
         <div class="border-b border-slate-100 px-5 py-4">
           <h2 class="text-base font-semibold text-slate-900">佣金结算</h2>
           <p class="mt-1 text-sm text-slate-500">
-            配置代理账期佣金的汇总与结算触发节奏（单周 / 双周 / 月度）、入账位置与结算完成后通知；字段含义对齐裂变「佣金结算」Tab 中的入账与通知方式（代理线为按账期批次，非裂变单笔日结）。
+            配置代理账期佣金的汇总周期、发放方式、入账账户与结算完成后通知；默认入账至代理人币币账户。
           </p>
         </div>
         <div class="space-y-6 p-5">
@@ -486,6 +467,26 @@ onMounted(() => {
             <p class="font-medium text-slate-800">当前规则摘要</p>
             <p class="mt-1 text-xs leading-relaxed text-slate-600">{{ settlementScheduleLine }}</p>
             <p class="mt-1 text-xs leading-relaxed text-slate-600">{{ settlementNotifyLine }}</p>
+          </div>
+
+          <div class="flex max-w-2xl flex-col gap-3 rounded-lg border border-slate-100 bg-slate-50/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p class="text-sm font-medium text-slate-900">自动入账</p>
+              <p class="mt-1 text-xs leading-relaxed text-slate-500">
+                开启后：账期汇总单生成后系统自动划转至代理人账户。关闭后：汇总单进入「佣金结算」，由运营审核通过后入账。
+              </p>
+            </div>
+            <button
+              type="button"
+              :class="config.agentCommissionAutoExecute ? 'bg-blue-600' : 'bg-slate-200'"
+              class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none"
+              @click="config.agentCommissionAutoExecute = !config.agentCommissionAutoExecute"
+            >
+              <span
+                :class="config.agentCommissionAutoExecute ? 'translate-x-5' : 'translate-x-0'"
+                class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition"
+              />
+            </button>
           </div>
 
           <div class="grid gap-6 lg:grid-cols-2">
@@ -536,7 +537,7 @@ onMounted(() => {
           </div>
 
           <div class="max-w-md">
-            <label class="block text-sm font-medium text-slate-800">佣金入账位置</label>
+            <label class="block text-sm font-medium text-slate-800">佣金入账账户</label>
             <select v-model="config.agentCommissionCreditTo" class="ant-input mt-2 w-full text-sm">
               <option v-for="opt in REFERRAL_COMMISSION_CREDIT_TO_OPTIONS" :key="opt.value" :value="opt.value">
                 {{ opt.label }}

@@ -265,7 +265,7 @@ onMounted(() => {
       <div class="min-w-0 flex-1">
         <h1 class="text-2xl font-bold tracking-tight text-slate-900">裂变分销设置</h1>
         <p class="mt-2 text-sm leading-relaxed text-slate-600">
-          邀请链分佣比例、全局开关与佣金入账位置。使用下方 Tab 切换。
+          邀请链分佣比例、全局规则与佣金结算方式。使用下方 Tab 切换。
         </p>
       </div>
       <div class="flex shrink-0 gap-2">
@@ -356,28 +356,9 @@ onMounted(() => {
       <div class="flex items-baseline gap-2 border-b border-slate-100 px-5 py-4">
         <span class="text-xs font-semibold text-slate-400">②</span>
         <h2 class="text-base font-semibold text-slate-900">裂变全局规则</h2>
-        <p class="mt-1 text-xs text-slate-500">以下开关仅作用于邀请链分佣。</p>
+        <p class="mt-1 text-xs text-slate-500">以下规则仅作用于邀请链分佣。</p>
       </div>
       <div class="divide-y divide-slate-100">
-        <div class="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p class="text-sm font-medium text-slate-900">自动执行裂变分佣</p>
-            <p class="mt-1 text-sm text-slate-500">
-              开启后：账务生成待发放记录时由系统自动执行入账。关闭后：待发放记录停留在「分佣记录」列表，由运营在后台逐笔点击执行入账。
-            </p>
-          </div>
-          <button
-            type="button"
-            :class="config.autoExecute ? 'bg-blue-600' : 'bg-slate-200'"
-            class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none"
-            @click="config.autoExecute = !config.autoExecute"
-          >
-            <span
-              :class="config.autoExecute ? 'translate-x-5' : 'translate-x-0'"
-              class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition"
-            />
-          </button>
-        </div>
         <div class="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p class="text-sm font-medium text-slate-900">仅首笔充值参与裂变分佣</p>
@@ -529,7 +510,7 @@ onMounted(() => {
       <p class="font-medium text-slate-800">保存前请确认</p>
       <ul class="mt-2 list-inside list-disc space-y-1 text-slate-600">
         <li>已开启记佣的产品线须填写一级、二级、三级比例（均为 0～1，某级可为 0）。</li>
-        <li>裂变分销固定三级；入账、日结时刻与结算后通知请在「佣金结算」Tab 配置。</li>
+        <li>裂变分销固定三级；发放方式、日结时刻与结算后通知请在「佣金结算」Tab 配置。</li>
       </ul>
     </footer>
     </div>
@@ -539,12 +520,31 @@ onMounted(() => {
         <div class="border-b border-slate-100 px-5 py-4">
           <h2 class="text-base font-semibold text-slate-900">佣金结算</h2>
           <p class="mt-1 text-sm text-slate-500">
-            保存后，在「分佣记录」中执行发放时将按此处写入入账快照；日结按每自然日、在下方指定时刻触发（平台默认时区）。
+            配置裂变佣金的发放方式、入账账户、日结时刻与结算后通知；默认入账至用户币币账户。
           </p>
         </div>
         <div class="max-w-md space-y-5 p-5">
+          <div class="flex flex-col gap-3 rounded-lg border border-slate-100 bg-slate-50/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p class="text-sm font-medium text-slate-900">自动入账</p>
+              <p class="mt-1 text-xs leading-relaxed text-slate-500">
+                开启后：账务生成分佣记录后系统自动入账。关闭后：记录进入「分佣记录」，由运营逐笔或批量发放。
+              </p>
+            </div>
+            <button
+              type="button"
+              :class="config.autoExecute ? 'bg-blue-600' : 'bg-slate-200'"
+              class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none"
+              @click="config.autoExecute = !config.autoExecute"
+            >
+              <span
+                :class="config.autoExecute ? 'translate-x-5' : 'translate-x-0'"
+                class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition"
+              />
+            </button>
+          </div>
           <div>
-            <label class="block text-sm font-medium text-slate-800">入账位置</label>
+            <label class="block text-sm font-medium text-slate-800">入账账户</label>
             <select v-model="config.referralCommissionCreditTo" class="ant-input mt-2 w-full text-sm">
               <option
                 v-for="opt in REFERRAL_COMMISSION_CREDIT_TO_OPTIONS"

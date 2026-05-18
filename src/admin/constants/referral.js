@@ -16,18 +16,12 @@ export const REFERRAL_TYPE_OPTIONS = [
 // 分佣状态
 export const COMMISSION_STATUS = {
   PENDING: 'pending',
-  PROCESSING: 'processing',
-  COMPLETED: 'completed',
-  FAILED: 'failed',
-  CANCELLED: 'cancelled'
+  COMPLETED: 'completed'
 }
 
 export const COMMISSION_STATUS_OPTIONS = [
   { value: COMMISSION_STATUS.PENDING, label: '待发放', color: 'yellow' },
-  { value: COMMISSION_STATUS.PROCESSING, label: '发放中', color: 'blue' },
-  { value: COMMISSION_STATUS.COMPLETED, label: '已完成', color: 'green' },
-  { value: COMMISSION_STATUS.FAILED, label: '失败', color: 'red' },
-  { value: COMMISSION_STATUS.CANCELLED, label: '已取消', color: 'gray' }
+  { value: COMMISSION_STATUS.COMPLETED, label: '已入账', color: 'green' }
 ]
 
 // 分销层级（裂变固定为三级：直属、二级、三级上级）
@@ -106,13 +100,13 @@ export const REFERRAL_COMMISSION_CREDIT_TO = {
 export const REFERRAL_COMMISSION_CREDIT_TO_OPTIONS = [
   {
     value: REFERRAL_COMMISSION_CREDIT_TO.SPOT_AVAILABLE,
-    label: '现货 USDT 可用',
-    hint: '记入上级用户现货 USDT 可用余额，与站内现货资产及出金规则一致。'
+    label: '币币账户',
+    hint: '记入上级用户币币账户余额。'
   },
   {
     value: REFERRAL_COMMISSION_CREDIT_TO.FUNDING,
     label: '资金账户',
-    hint: '记入上级用户资金账户余额。'
+    hint: '预留入账账户类型；选择前需确认账务服务已支持该账户路由。'
   }
 ]
 
@@ -204,7 +198,7 @@ export const DEFAULT_REFERRAL_CONFIG = {
 /** 已下线的入账类型在展示时映射到仍在用的枚举，便于旧数据展示 */
 const LEGACY_REFERRAL_CREDIT_TO = {
   commission_wallet: REFERRAL_COMMISSION_CREDIT_TO.SPOT_AVAILABLE,
-  pending_ledger: REFERRAL_COMMISSION_CREDIT_TO.FUNDING
+  pending_ledger: REFERRAL_COMMISSION_CREDIT_TO.SPOT_AVAILABLE
 }
 
 export function getReferralCreditToLabel(value) {

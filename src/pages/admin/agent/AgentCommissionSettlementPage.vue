@@ -10,7 +10,6 @@ import {
 
 const searchKeyword = ref('')
 const statusFilter = ref('all')
-const agentUidFilter = ref('')
 const loading = ref(false)
 
 const pagination = reactive({
@@ -21,7 +20,12 @@ const pagination = reactive({
 
 const recordList = ref([])
 const aggregates = ref(null)
-const selectedIds = ref([])
+const detailDrawer = ref({
+  visible: false,
+  loading: false,
+  batch: null,
+  list: []
+})
 
 const totalPages = computed(() => Math.max(1, Math.ceil(pagination.total / pagination.pageSize)))
 
@@ -39,14 +43,12 @@ const loadList = async () => {
       page: pagination.currentPage,
       pageSize: pagination.pageSize,
       status: statusFilter.value,
-      searchKeyword: searchKeyword.value,
-      agentUid: agentUidFilter.value.trim() || undefined
+      searchKeyword: searchKeyword.value
     })
     if (res.success) {
       recordList.value = res.data.list
       pagination.total = res.data.total
       aggregates.value = res.data.aggregates
-      selectedIds.value = selectedIds.value.filter((id) => recordList.value.some((r) => r.id === id))
     }
   } catch (e) {
     console.error(e)
@@ -63,7 +65,6 @@ const handleSearch = () => {
 const handleReset = () => {
   searchKeyword.value = ''
   statusFilter.value = 'all'
-  agentUidFilter.value = ''
   pagination.currentPage = 1
   loadList()
 }
@@ -83,35 +84,47 @@ const stats = computed(() => {
   const a = aggregates.value
   if (!a) {
     return [
-      { label: '批次总数', value: '—' },
-      { label: '待复核', value: '—' },
-      { label: '出款中', value: '—' },
-      { label: '已结算批次', value: '—' }
+      { label: '待审核', value: '—' },
+      { label: '自动入账', value: '—' },
+      { label: '已入账', value: '—' }
     ]
   }
   return [
-    { label: '批次总数', value: a.totalBatches },
-    { label: '待复核', value: a.pendingReview },
-    { label: '出款中', value: a.paying },
-    { label: '已结算批次', value: a.completed }
+    { label: '待审核', value: a.pendingReview },
+    { label: '自动入账', value: a.autoCompleted },
+    { label: '已入账', value: a.completed }
   ]
 })
 
-const toggleAll = () => {
-  if (selectedIds.value.length === recordList.value.length) {
-    selectedIds.value = []
-  } else {
-    selectedIds.value = recordList.value.map((r) => r.id)
+const settlementModeLabel = (row) => (row.autoCredit ? '自动入账' : '人工审核')
+
+const formatMoney = (n) => Number(n || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+const openDetails = async (row) => {
+  detailDrawer.value = {
+    visible: true,
+    loading: true,
+    batch: row,
+    list: []
+  }
+  try {
+    const res = await agentSettlementApi.listBatchDetails(row.id)
+    if (res.success) {
+      detailDrawer.value.batch = res.data.batch
+      detailDrawer.value.list = res.data.list
+    } else {
+      showToast(res.message || '明细加载失败', 'error')
+    }
+  } catch (e) {
+    showToast(e?.message || '明细加载失败', 'error')
+  } finally {
+    detailDrawer.value.loading = false
   }
 }
 
-const toggleOne = (id) => {
-  const i = selectedIds.value.indexOf(id)
-  if (i > -1) selectedIds.value.splice(i, 1)
-  else selectedIds.value.push(id)
+const closeDetails = () => {
+  detailDrawer.value.visible = false
 }
-
-const isSelected = (id) => selectedIds.value.includes(id)
 
 /** 非原生提示（右上角 Toast） */
 const toast = ref({ visible: false, message: '', kind: 'info' })
@@ -196,24 +209,6 @@ const doAdvance = (batchId, action, label) => {
     if (res.success) await loadList()
   })
 }
-
-const batchByStatus = (action, label, allowedStatus) => {
-  const picked = recordList.value.filter((r) => selectedIds.value.includes(r.id))
-  const ok = picked.filter((r) => r.status === allowedStatus)
-  if (!ok.length) {
-    showToast(`所选记录中没有处于「${agentSettlementStatusLabel(allowedStatus)}」的项`, 'error')
-    return
-  }
-  openConfirm(`确认对 ${ok.length} 条记录批量${label}？`, async () => {
-    const res = await agentSettlementApi.batchAdvance(
-      ok.map((r) => r.id),
-      action
-    )
-    showToast(res.message, res.success ? 'success' : 'error')
-    selectedIds.value = []
-    await loadList()
-  })
-}
 </script>
 
 <template>
@@ -221,11 +216,11 @@ const batchByStatus = (action, label, allowedStatus) => {
     <div>
       <h1 class="text-xl font-semibold text-slate-900">代理佣金结算</h1>
       <p class="mt-1 text-sm text-slate-600">
-        按账期批次处理：复核 → 出款 → 入账。演示数据为内存态，刷新页面会重置。
+        返佣明细按结算配置汇总成单；人工审核通过后直接划转，开启自动入账的汇总单无需审核。
       </p>
     </div>
 
-    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="grid gap-3 sm:grid-cols-3">
       <div
         v-for="(s, idx) in stats"
         :key="idx"
@@ -244,19 +239,8 @@ const batchByStatus = (action, label, allowedStatus) => {
             <input
               v-model="searchKeyword"
               type="search"
-              placeholder="批次号 / UID / 邮箱 / 账期"
+              placeholder="汇总单号 / UID / 邮箱 / 账期"
               class="mt-1 w-56 rounded-md border border-slate-300 px-2 py-1.5 text-sm"
-              @keyup.enter="handleSearch"
-            />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-slate-600">代理 UID</label>
-            <input
-              v-model="agentUidFilter"
-              type="text"
-              inputmode="numeric"
-              placeholder="可选"
-              class="mt-1 w-32 rounded-md border border-slate-300 px-2 py-1.5 text-sm"
               @keyup.enter="handleSearch"
             />
           </div>
@@ -287,32 +271,6 @@ const batchByStatus = (action, label, allowedStatus) => {
           </button>
         </div>
       </div>
-
-      <div class="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-        <button
-          type="button"
-          class="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700"
-          @click="batchByStatus(AGENT_SETTLEMENT_ACTION.APPROVE, '复核通过', AGENT_SETTLEMENT_STATUS.PENDING_REVIEW)"
-        >
-          批量复核通过
-        </button>
-        <button
-          type="button"
-          class="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
-          @click="
-            batchByStatus(AGENT_SETTLEMENT_ACTION.START_PAYOUT, '发起出款', AGENT_SETTLEMENT_STATUS.APPROVED)
-          "
-        >
-          批量发起出款
-        </button>
-        <button
-          type="button"
-          class="rounded-md bg-slate-800 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-900"
-          @click="batchByStatus(AGENT_SETTLEMENT_ACTION.MARK_COMPLETED, '确认入账', AGENT_SETTLEMENT_STATUS.PAYING)"
-        >
-          批量确认入账
-        </button>
-      </div>
     </div>
 
     <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -320,41 +278,45 @@ const batchByStatus = (action, label, allowedStatus) => {
         <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
           <thead class="bg-slate-50 text-xs font-medium uppercase text-slate-600">
             <tr>
-              <th class="px-3 py-3">
-                <input
-                  type="checkbox"
-                  :checked="recordList.length > 0 && selectedIds.length === recordList.length"
-                  @change="toggleAll"
-                />
-              </th>
-              <th class="px-3 py-3">批次号</th>
+              <th class="px-3 py-3">汇总单号</th>
               <th class="px-3 py-3">账期</th>
               <th class="px-3 py-3">代理</th>
-              <th class="px-3 py-3 text-right">金额 (USDT)</th>
+              <th class="px-3 py-3">汇总来源</th>
+              <th class="px-3 py-3 text-right">佣金 (USDT)</th>
+              <th class="px-3 py-3">入账方式</th>
               <th class="px-3 py-3">状态</th>
-              <th class="px-3 py-3">流水号</th>
+              <th class="px-3 py-3">划转流水</th>
               <th class="px-3 py-3">操作</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
             <tr v-if="loading">
-              <td colspan="8" class="px-4 py-8 text-center text-slate-500">加载中…</td>
+              <td colspan="9" class="px-4 py-8 text-center text-slate-500">加载中…</td>
             </tr>
             <tr v-else-if="!recordList.length">
-              <td colspan="8" class="px-4 py-8 text-center text-slate-500">暂无数据</td>
+              <td colspan="9" class="px-4 py-8 text-center text-slate-500">暂无数据</td>
             </tr>
             <tr v-for="row in recordList" v-else :key="row.id" class="hover:bg-slate-50/80">
-              <td class="px-3 py-2">
-                <input type="checkbox" :checked="isSelected(row.id)" @change="toggleOne(row.id)" />
-              </td>
               <td class="px-3 py-2 font-mono text-xs text-slate-800">{{ row.batchNo }}</td>
               <td class="px-3 py-2 font-mono">{{ row.period }}</td>
               <td class="px-3 py-2">
                 <div class="font-medium text-slate-900">{{ row.agentName }}</div>
                 <div class="text-xs text-slate-500">UID {{ row.agentUid }} · {{ row.agentEmail }}</div>
               </td>
+              <td class="px-3 py-2">
+                <div class="text-sm text-slate-800">{{ row.sourceDetailCount }} 条明细</div>
+                <div class="text-xs text-slate-500">{{ row.invitedUserCount }} 个邀请用户</div>
+              </td>
               <td class="px-3 py-2 text-right tabular-nums font-medium text-slate-900">
-                {{ row.amount.toLocaleString('zh-CN', { minimumFractionDigits: 2 }) }}
+                {{ formatMoney(row.amount) }}
+              </td>
+              <td class="px-3 py-2">
+                <span
+                  class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
+                  :class="row.autoCredit ? 'bg-blue-50 text-blue-800 ring-1 ring-inset ring-blue-200' : 'bg-slate-50 text-slate-700 ring-1 ring-inset ring-slate-200'"
+                >
+                  {{ settlementModeLabel(row) }}
+                </span>
               </td>
               <td class="px-3 py-2">
                 <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium" :class="badgeClass(row.status)">
@@ -365,39 +327,20 @@ const batchByStatus = (action, label, allowedStatus) => {
               <td class="px-3 py-2">
                 <div class="flex flex-wrap gap-1">
                   <button
+                    type="button"
+                    class="rounded border border-slate-200 bg-white px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-50"
+                    @click="openDetails(row)"
+                  >
+                    明细
+                  </button>
+                  <button
                     v-if="row.status === AGENT_SETTLEMENT_STATUS.PENDING_REVIEW"
                     type="button"
                     class="rounded border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs text-emerald-900 hover:bg-emerald-100"
-                    @click="doAdvance(row.id, AGENT_SETTLEMENT_ACTION.APPROVE, '复核通过')"
+                    @click="doAdvance(row.id, AGENT_SETTLEMENT_ACTION.APPROVE, '审核通过并划转入账')"
                   >
-                    通过
+                    审核通过
                   </button>
-                  <button
-                    v-if="row.status === AGENT_SETTLEMENT_STATUS.PENDING_REVIEW"
-                    type="button"
-                    class="rounded border border-red-200 bg-red-50 px-2 py-0.5 text-xs text-red-800 hover:bg-red-100"
-                    @click="doAdvance(row.id, AGENT_SETTLEMENT_ACTION.REJECT, '驳回该账期')"
-                  >
-                    驳回
-                  </button>
-                  <button
-                    v-if="row.status === AGENT_SETTLEMENT_STATUS.APPROVED"
-                    type="button"
-                    class="rounded border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-xs text-indigo-900 hover:bg-indigo-100"
-                    @click="doAdvance(row.id, AGENT_SETTLEMENT_ACTION.START_PAYOUT, '发起出款')"
-                  >
-                    出款
-                  </button>
-                  <button
-                    v-if="row.status === AGENT_SETTLEMENT_STATUS.PAYING"
-                    type="button"
-                    class="rounded border border-slate-300 bg-slate-100 px-2 py-0.5 text-xs text-slate-800 hover:bg-slate-200"
-                    @click="doAdvance(row.id, AGENT_SETTLEMENT_ACTION.MARK_COMPLETED, '确认已入账')"
-                  >
-                    入账完成
-                  </button>
-                  <span v-if="row.status === AGENT_SETTLEMENT_STATUS.COMPLETED" class="text-xs text-slate-400">—</span>
-                  <span v-if="row.status === AGENT_SETTLEMENT_STATUS.REJECTED" class="text-xs text-slate-400">—</span>
                 </div>
               </td>
             </tr>
@@ -430,6 +373,71 @@ const batchByStatus = (action, label, allowedStatus) => {
   </div>
 
   <Teleport to="body">
+    <!-- 汇总明细 -->
+    <div
+      v-if="detailDrawer.visible"
+      class="fixed inset-0 z-[90] flex justify-end bg-slate-900/30"
+      role="dialog"
+      aria-modal="true"
+      @click.self="closeDetails"
+    >
+      <div class="flex h-full w-full max-w-5xl flex-col bg-white shadow-2xl">
+        <div class="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
+          <div>
+            <p class="text-base font-semibold text-slate-900">返佣明细</p>
+            <p class="mt-1 text-xs text-slate-500">
+              {{ detailDrawer.batch?.batchNo }} · {{ detailDrawer.batch?.period }} · UID {{ detailDrawer.batch?.agentUid }}
+            </p>
+          </div>
+          <button type="button" class="rounded-md border border-slate-300 px-2 py-1 text-sm text-slate-600 hover:bg-slate-50" @click="closeDetails">
+            关闭
+          </button>
+        </div>
+
+        <div v-if="detailDrawer.batch" class="grid gap-3 border-b border-slate-100 bg-slate-50 px-5 py-4 sm:grid-cols-2">
+          <div>
+            <p class="text-xs text-slate-500">汇总佣金</p>
+            <p class="mt-1 text-lg font-semibold text-slate-900">{{ formatMoney(detailDrawer.batch.amount) }} USDT</p>
+          </div>
+          <div>
+            <p class="text-xs text-slate-500">明细记录</p>
+            <p class="mt-1 text-lg font-semibold text-slate-900">{{ detailDrawer.batch.sourceDetailCount }} 条</p>
+          </div>
+        </div>
+
+        <div class="min-h-0 flex-1 overflow-auto">
+          <div v-if="detailDrawer.loading" class="px-5 py-10 text-center text-sm text-slate-500">加载明细中…</div>
+          <table v-else class="min-w-full divide-y divide-slate-200 text-left text-sm">
+            <thead class="bg-white text-xs font-medium text-slate-500">
+              <tr>
+                <th class="px-5 py-3">产生时间</th>
+                <th class="px-5 py-3">被邀请用户</th>
+                <th class="px-5 py-3">业务类型</th>
+                <th class="px-5 py-3">来源单号</th>
+                <th class="px-5 py-3 text-right">计佣基数</th>
+                <th class="px-5 py-3 text-right">比例</th>
+                <th class="px-5 py-3 text-right">佣金</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr v-for="item in detailDrawer.list" :key="item.id" class="hover:bg-slate-50/80">
+                <td class="px-5 py-3 font-mono text-xs text-slate-600">{{ item.occurredAt }}</td>
+                <td class="px-5 py-3">
+                  <div class="font-medium text-slate-900">UID {{ item.invitedUid }}</div>
+                  <div class="text-xs text-slate-500">{{ item.invitedEmail }}</div>
+                </td>
+                <td class="px-5 py-3 text-slate-700">{{ item.typeLabel }}</td>
+                <td class="px-5 py-3 font-mono text-xs text-slate-600">{{ item.sourceOrderNo }}</td>
+                <td class="px-5 py-3 text-right tabular-nums">{{ formatMoney(item.baseAmount) }}</td>
+                <td class="px-5 py-3 text-right tabular-nums">{{ (item.commissionRate * 100).toFixed(2) }}%</td>
+                <td class="px-5 py-3 text-right tabular-nums font-medium text-slate-900">{{ formatMoney(item.commission) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- 确认操作 -->
     <div
       v-if="confirmDialog.visible"
