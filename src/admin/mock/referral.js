@@ -356,6 +356,118 @@ const generateMockCommissionRecords = () => {
 
 const extendedCommissionRecords = generateMockCommissionRecords()
 
+const referralSettlementBatches = [
+  {
+    id: 'rs-20260308-100001',
+    batchNo: 'RF-SET-20260308-100001',
+    period: '2026-03-08',
+    agentUid: 100001,
+    agentUsername: 'agent_zhang',
+    detailIds: ['COM20260308001', 'COM20260308004'],
+    invitedUserCount: 1,
+    autoCredit: false,
+    status: COMMISSION_STATUS.PENDING,
+    createdAt: '2026-03-09 02:00:00',
+    completedAt: null,
+    creditTxnId: null
+  },
+  {
+    id: 'rs-20260308-100002',
+    batchNo: 'RF-SET-20260308-100002',
+    period: '2026-03-08',
+    agentUid: 100002,
+    agentUsername: 'agent_wang',
+    detailIds: ['COM20260308003'],
+    invitedUserCount: 1,
+    autoCredit: false,
+    status: COMMISSION_STATUS.PENDING,
+    createdAt: '2026-03-09 02:00:00',
+    completedAt: null,
+    creditTxnId: null
+  },
+  {
+    id: 'rs-20260308-100001-auto',
+    batchNo: 'RF-SET-20260308-100001-A',
+    period: '2026-03-08',
+    agentUid: 100001,
+    agentUsername: 'agent_zhang',
+    detailIds: ['COM20260308002'],
+    invitedUserCount: 1,
+    autoCredit: true,
+    status: COMMISSION_STATUS.COMPLETED,
+    createdAt: '2026-03-09 02:00:00',
+    completedAt: '2026-03-09 02:01:00',
+    creditTxnId: 'RF-SET-CR-202603090201-100001'
+  },
+  {
+    id: 'rs-20260307-100004',
+    batchNo: 'RF-SET-20260307-100004',
+    period: '2026-03-07',
+    agentUid: 100004,
+    agentUsername: 'agent_zhao',
+    detailIds: ['COM20260307001'],
+    invitedUserCount: 1,
+    autoCredit: true,
+    status: COMMISSION_STATUS.COMPLETED,
+    createdAt: '2026-03-08 02:00:00',
+    completedAt: '2026-03-08 02:01:00',
+    creditTxnId: 'RF-SET-CR-202603080201-100004'
+  },
+  {
+    id: 'rs-20260307-100002',
+    batchNo: 'RF-SET-20260307-100002',
+    period: '2026-03-07',
+    agentUid: 100002,
+    agentUsername: 'agent_wang',
+    detailIds: ['COM20260307002'],
+    invitedUserCount: 1,
+    autoCredit: false,
+    status: COMMISSION_STATUS.PENDING,
+    createdAt: '2026-03-08 02:00:00',
+    completedAt: null,
+    creditTxnId: null
+  }
+]
+
+function detailsForBatch(batch) {
+  const ids = new Set(batch.detailIds || [])
+  return extendedCommissionRecords.filter((r) => ids.has(r.id))
+}
+
+function enrichSettlementBatch(batch, cfg) {
+  const details = detailsForBatch(batch)
+  const amount = round2(details.reduce((sum, r) => sum + Number(r.commission || 0), 0))
+  const baseAmount = round2(details.reduce((sum, r) => sum + Number(r.amount || 0), 0))
+  const creditKey = batch.appliedCreditTo ?? cfg.referralCommissionCreditTo
+  return {
+    ...batch,
+    amount,
+    baseAmount,
+    detailCount: details.length,
+    creditLabel: getReferralCreditToLabel(creditKey),
+    settlementScheduleLabel: getReferralSettlementScheduleLine(cfg),
+    settlementNotifyShort: getReferralSettlementNotifyShort(cfg)
+  }
+}
+
+function computeSettlementAggregates(list) {
+  return {
+    totalBatches: list.length,
+    pendingCount: list.filter((b) => b.status === COMMISSION_STATUS.PENDING).length,
+    completedCount: list.filter((b) => b.status === COMMISSION_STATUS.COMPLETED).length,
+    totalAmount: round2(list.reduce((sum, b) => sum + Number(b.amount || 0), 0)),
+    completedAmount: round2(
+      list
+        .filter((b) => b.status === COMMISSION_STATUS.COMPLETED)
+        .reduce((sum, b) => sum + Number(b.amount || 0), 0)
+    )
+  }
+}
+
+function findSettlementBatch(batchId) {
+  return referralSettlementBatches.find((b) => b.id === batchId) || null
+}
+
 // API 模拟函数
 export const referralApi = {
   // 获取分销配置
@@ -453,6 +565,119 @@ export const referralApi = {
           }
         })
       }, 300)
+    })
+  },
+
+  // 获取裂变佣金结算单列表（多条返佣明细汇总成一条结算单）
+  getSettlementBatches: (params = {}) => {
+    const { page = 1, pageSize = 10, searchKeyword = '', status = 'all' } = params
+
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const cfg = normalizeReferralConfig(mockReferralConfig)
+        let list = referralSettlementBatches.map((b) => enrichSettlementBatch(b, cfg))
+
+        if (searchKeyword.trim()) {
+          const keyword = searchKeyword.toLowerCase()
+          list = list.filter((batch) =>
+            batch.batchNo.toLowerCase().includes(keyword) ||
+            String(batch.agentUid).includes(keyword) ||
+            batch.agentUsername.toLowerCase().includes(keyword) ||
+            batch.period.includes(keyword)
+          )
+        }
+
+        if (status !== 'all') {
+          list = list.filter((batch) => batch.status === status)
+        }
+
+        list.sort((a, b) => {
+          if (a.period !== b.period) return b.period.localeCompare(a.period)
+          return a.batchNo.localeCompare(b.batchNo)
+        })
+
+        const total = list.length
+        const start = (page - 1) * pageSize
+        const paginatedList = list.slice(start, start + pageSize)
+
+        resolve({
+          success: true,
+          data: {
+            list: paginatedList,
+            total,
+            page,
+            pageSize,
+            aggregates: computeSettlementAggregates(list),
+            settlementGlobal: {
+              referralCommissionCreditTo: cfg.referralCommissionCreditTo,
+              creditLabel: getReferralCreditToLabel(cfg.referralCommissionCreditTo),
+              referralSettlementTimeLocal: cfg.referralSettlementTimeLocal,
+              settlementScheduleLabel: getReferralSettlementScheduleLine(cfg),
+              settlementNotifyLine: getReferralSettlementNotifyLine(cfg),
+              settlementNotifyShort: getReferralSettlementNotifyShort(cfg)
+            }
+          }
+        })
+      }, 300)
+    })
+  },
+
+  // 获取单张结算单下的返佣明细
+  getSettlementBatchDetails: (batchId) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const cfg = normalizeReferralConfig(mockReferralConfig)
+        const batch = findSettlementBatch(batchId)
+        if (!batch) {
+          resolve({ success: false, message: '未找到结算单', data: { list: [] } })
+          return
+        }
+        const list = detailsForBatch(batch)
+          .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+          .map((r) => enrichCommissionRecord(r, cfg))
+        resolve({
+          success: true,
+          data: {
+            batch: enrichSettlementBatch(batch, cfg),
+            list
+          }
+        })
+      }, 220)
+    })
+  },
+
+  // 发放单张裂变结算单：按结算单一次性入账
+  settleBatch: (batchId) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const cfg = normalizeReferralConfig(mockReferralConfig)
+        const batch = findSettlementBatch(batchId)
+        if (!batch) {
+          resolve({ success: false, message: '未找到结算单' })
+          return
+        }
+        if (batch.status !== COMMISSION_STATUS.PENDING) {
+          resolve({ success: false, message: '仅「待发放」结算单可发放' })
+          return
+        }
+        batch.status = COMMISSION_STATUS.COMPLETED
+        batch.completedAt = formatCompletedAt()
+        batch.appliedCreditTo = cfg.referralCommissionCreditTo
+        batch.appliedSettlementCycle = cfg.referralSettlementCycle
+        batch.creditTxnId = `RF-SET-CR-${Date.now()}-${batch.agentUid}`
+        for (const detail of detailsForBatch(batch)) {
+          detail.status = COMMISSION_STATUS.COMPLETED
+          detail.completedAt = batch.completedAt
+          detail.appliedCreditTo = cfg.referralCommissionCreditTo
+          detail.appliedSettlementCycle = cfg.referralSettlementCycle
+          detail.creditTxnId = batch.creditTxnId
+        }
+        resolve({
+          success: true,
+          message: `发放成功，${enrichSettlementBatch(batch, cfg).amount.toFixed(2)} USDT 已入账「${getReferralCreditToLabel(cfg.referralCommissionCreditTo)}」。流水号：${batch.creditTxnId}`,
+          data: enrichSettlementBatch(batch, cfg)
+        })
+      }, 450)
     })
   },
 
