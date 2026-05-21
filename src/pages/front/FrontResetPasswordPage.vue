@@ -16,7 +16,7 @@ const dialOptionsForPicker = computed(() => {
 })
 
 const dialSelectOptions = computed(() =>
-  dialOptionsForPicker.value.map((o) => ({ value: o.dial, label: o.label })),
+  dialOptionsForPicker.value.map((o) => ({ value: o.dial, label: o.label, icon: o.icon })),
 )
 
 /** 邮箱验证 | 手机号验证 */

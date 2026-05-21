@@ -6,7 +6,6 @@ import { FRONT_LOCALE_CATALOG, PHONE_DIAL_PRESETS } from '../admin/constants/i18
 /** 与 FrontTopNav 共用：语言偏好存于 localStorage，与站点配置联动 */
 export const FRONT_LANG_STORAGE_KEY = 'fex-front-locale-pref-v1'
 
-const DIAL_META = new Map(PHONE_DIAL_PRESETS.map((p) => [p.dial, p]))
 const DEFAULT_DIAL_CODES = ['+86']
 
 const siteConfigRevision = ref(0)
@@ -38,7 +37,35 @@ export function resolveFrontLocalePreference() {
 }
 
 function localeLabel(code) {
-  return FRONT_LOCALE_CATALOG.find((l) => l.code === code)?.label ?? code
+  const snap = getSiteConfigSnapshot()
+  const catalog = localeCatalog(snap)
+  return snap.i18n?.localeMetaOverrides?.[code]?.label || catalog.find((l) => l.code === code)?.label || code
+}
+
+function localeCatalog(siteConfig) {
+  return [
+    ...FRONT_LOCALE_CATALOG,
+    ...(Array.isArray(siteConfig.customLocales) ? siteConfig.customLocales : []),
+  ]
+}
+
+function dialCatalog(siteConfig) {
+  return [
+    ...PHONE_DIAL_PRESETS,
+    ...(Array.isArray(siteConfig.customDialCodes) ? siteConfig.customDialCodes : []),
+  ]
+}
+
+function resolveDialMeta(siteConfig, dial) {
+  const base = dialCatalog(siteConfig).find((p) => p.dial === dial) || { dial, label: dial }
+  const override = siteConfig.dialMetaOverrides?.[dial] || {}
+  return {
+    ...base,
+    ...override,
+    dial,
+    label: override.label || base.label || dial,
+    icon: override.icon || base.icon || '',
+  }
 }
 
 export function useFrontSiteI18n() {
@@ -71,13 +98,14 @@ export function useFrontSiteI18n() {
         })()
       : DEFAULT_DIAL_CODES
     const order = siteConfig.value.dialSortOrder || {}
+    const catalog = dialCatalog(siteConfig.value)
     const sorted = [...codes].sort((a, b) => {
       const da = Number.isFinite(order[a]) ? order[a] : 999999
       const db = Number.isFinite(order[b]) ? order[b] : 999999
       if (da !== db) return da - db
-      return PHONE_DIAL_PRESETS.findIndex((x) => x.dial === a) - PHONE_DIAL_PRESETS.findIndex((x) => x.dial === b)
+      return catalog.findIndex((x) => x.dial === a) - catalog.findIndex((x) => x.dial === b)
     })
-    return sorted.map((dial) => DIAL_META.get(dial) ?? { dial, label: dial })
+    return sorted.map((dial) => resolveDialMeta(siteConfig.value, dial))
   })
 
   const enabledLocales = computed(() => {
@@ -87,11 +115,12 @@ export function useFrontSiteI18n() {
     const list = siteConfig.value.i18n?.enabledLocales
     const base = Array.isArray(list) && list.length ? list : ['zh-CN']
     const order = siteConfig.value.i18n?.localeSortOrder || {}
+    const catalog = localeCatalog(siteConfig.value)
     return [...base].sort((a, b) => {
       const da = Number.isFinite(order[a]) ? order[a] : 999999
       const db = Number.isFinite(order[b]) ? order[b] : 999999
       if (da !== db) return da - db
-      return FRONT_LOCALE_CATALOG.findIndex((x) => x.code === a) - FRONT_LOCALE_CATALOG.findIndex((x) => x.code === b)
+      return catalog.findIndex((x) => x.code === a) - catalog.findIndex((x) => x.code === b)
     })
   })
 
@@ -109,10 +138,17 @@ export function useFrontSiteI18n() {
   })
 
   const localeOptionsForNav = computed(() =>
-    enabledLocales.value.map((code) => ({
-      code,
-      label: localeLabel(code),
-    })),
+    enabledLocales.value.map((code) => {
+      const catalog = localeCatalog(siteConfig.value)
+      const base = catalog.find((l) => l.code === code) || { code, label: code, short: code, icon: '' }
+      const override = siteConfig.value.i18n?.localeMetaOverrides?.[code] || {}
+      return {
+        code,
+        label: override.label || base.label || code,
+        short: override.short || base.short || code,
+        icon: override.icon || base.icon || '',
+      }
+    }),
   )
 
   return {

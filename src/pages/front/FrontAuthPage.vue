@@ -27,7 +27,7 @@ const dialOptionsForLogin = computed(() => {
 })
 
 const dialSelectOptions = computed(() =>
-  dialOptionsForLogin.value.map((o) => ({ value: o.dial, label: o.label })),
+  dialOptionsForLogin.value.map((o) => ({ value: o.dial, label: o.label, icon: o.icon })),
 )
 const loginMode = ref('email')
 /** 注册页：邮箱注册 | 手机号注册 */

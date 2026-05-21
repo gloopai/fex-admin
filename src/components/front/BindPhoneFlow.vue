@@ -21,7 +21,7 @@ const dialOptions = computed(() => {
 })
 
 const dialSelectOptions = computed(() =>
-  dialOptions.value.map((o) => ({ value: o.dial, label: o.label })),
+  dialOptions.value.map((o) => ({ value: o.dial, label: o.label, icon: o.icon })),
 )
 
 const step = ref(1)

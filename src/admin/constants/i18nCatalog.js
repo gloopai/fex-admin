@@ -2,26 +2,26 @@
  * 前台可选语言（与顶栏、localStorage 偏好 code 一致）
  */
 export const FRONT_LOCALE_CATALOG = [
-  { code: 'zh-CN', label: '简体中文', short: '简中' },
-  { code: 'zh-TW', label: '繁體中文', short: '繁中' },
-  { code: 'en', label: 'English', short: 'EN' },
-  { code: 'ja', label: '日本語', short: 'JA' },
-  { code: 'ko', label: '한국어', short: 'KO' }
+  { code: 'zh-CN', label: '简体中文', short: '简中', icon: '🇨🇳' },
+  { code: 'zh-TW', label: '繁體中文', short: '繁中', icon: '🇨🇳' },
+  { code: 'en', label: 'English', short: 'EN', icon: '🇺🇸' },
+  { code: 'ja', label: '日本語', short: 'JA', icon: '🇯🇵' },
+  { code: 'ko', label: '한국어', short: 'KO', icon: '🇰🇷' }
 ]
 
 /** 国际电话区号（后台勾选「允许的区号」） */
 export const PHONE_DIAL_PRESETS = [
-  { dial: '+86', label: '中国 +86' },
-  { dial: '+852', label: '中国香港 +852' },
-  { dial: '+853', label: '中国澳门 +853' },
-  { dial: '+886', label: '中国台湾 +886' },
-  { dial: '+65', label: '新加坡 +65' },
-  { dial: '+81', label: '日本 +81' },
-  { dial: '+82', label: '韩国 +82' },
-  { dial: '+1', label: '美国/加拿大 +1' },
-  { dial: '+44', label: '英国 +44' },
-  { dial: '+61', label: '澳大利亚 +61' },
-  { dial: '+971', label: '阿联酋 +971' }
+  { dial: '+86', label: '中国 +86', icon: '🇨🇳' },
+  { dial: '+852', label: '中国香港 +852', icon: '🇭🇰' },
+  { dial: '+853', label: '中国澳门 +853', icon: '🇲🇴' },
+  { dial: '+886', label: '中国台湾 +886', icon: '🇨🇳' },
+  { dial: '+65', label: '新加坡 +65', icon: '🇸🇬' },
+  { dial: '+81', label: '日本 +81', icon: '🇯🇵' },
+  { dial: '+82', label: '韩国 +82', icon: '🇰🇷' },
+  { dial: '+1', label: '美国/加拿大 +1', icon: '🇺🇸' },
+  { dial: '+44', label: '英国 +44', icon: '🇬🇧' },
+  { dial: '+61', label: '澳大利亚 +61', icon: '🇦🇺' },
+  { dial: '+971', label: '阿联酋 +971', icon: '🇦🇪' }
 ]
 
 export const DEFAULT_I18N_BLOCK = {
@@ -35,5 +35,11 @@ export const DEFAULT_I18N_BLOCK = {
    * 语言在前台列表中的排序权重，数字越小越靠前；未配置的语言按内置目录顺序默认 0、10、20…
    * @type {Record<string, number>}
    */
-  localeSortOrder: {}
+  localeSortOrder: {},
+  /** 语言显示图标/名称覆盖 */
+  localeMetaOverrides: {},
+  /** 管理台上传的全量基础语言文件 */
+  translationBase: null,
+  /** 按语言生成或上传的语言文件 */
+  translationFiles: {}
 }

@@ -10,7 +10,7 @@ const props = defineProps({
   options: {
     type: Array,
     required: true,
-    /** @type {{ value: string, label: string }[]} */
+    /** @type {{ value: string, label: string, icon?: string }[]} */
   },
   /** 用于 aria / 内部 id 唯一前缀 */
   fieldKey: { type: String, default: 'dial' },
@@ -31,6 +31,16 @@ const currentLabel = computed(() => {
   const hit = props.options.find((o) => o.value === props.modelValue)
   return hit?.label ?? props.options[0]?.label ?? '请选择'
 })
+
+const currentIcon = computed(() => {
+  const hit = props.options.find((o) => o.value === props.modelValue)
+  return hit?.icon ?? props.options[0]?.icon ?? ''
+})
+
+function isImageIcon(icon) {
+  const s = String(icon || '').trim()
+  return /^(https?:\/\/|data:image\/|\/)/i.test(s) || /\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(s)
+}
 
 function positionPanel() {
   const el = rootRef.value
@@ -149,7 +159,18 @@ onUnmounted(() => {
       :aria-label="ariaLabel"
       @click="toggle"
     >
-      <span class="min-w-0 flex-1 truncate">{{ currentLabel }}</span>
+      <span class="min-w-0 flex flex-1 items-center gap-1.5 truncate">
+        <span v-if="currentIcon" class="inline-flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded-full">
+          <img
+            v-if="isImageIcon(currentIcon)"
+            :src="currentIcon"
+            alt=""
+            class="h-full w-full object-cover"
+          />
+          <span v-else>{{ currentIcon }}</span>
+        </span>
+        <span class="min-w-0 truncate">{{ currentLabel }}</span>
+      </span>
       <svg
         class="h-3 w-3 shrink-0 text-white/45 transition-transform duration-200"
         :class="open ? 'rotate-180' : ''"
@@ -192,7 +213,18 @@ onUnmounted(() => {
             :aria-selected="modelValue === opt.value"
             @click="pick(opt.value)"
           >
-            <span class="min-w-0">{{ opt.label }}</span>
+            <span class="min-w-0 flex items-center gap-1.5">
+              <span v-if="opt.icon" class="inline-flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded-full">
+                <img
+                  v-if="isImageIcon(opt.icon)"
+                  :src="opt.icon"
+                  :alt="opt.label"
+                  class="h-full w-full object-cover"
+                />
+                <span v-else>{{ opt.icon }}</span>
+              </span>
+              <span class="min-w-0 truncate">{{ opt.label }}</span>
+            </span>
             <svg
               v-if="modelValue === opt.value"
               class="h-4 w-4 shrink-0 text-lime-400/90"

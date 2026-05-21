@@ -54,6 +54,62 @@ export function normalizeWalletLoginProviders(raw) {
 }
 
 const VALID_DIAL = new Set(PHONE_DIAL_PRESETS.map((x) => x.dial))
+const DIAL_PATTERN = /^\+\d{1,6}$/
+
+function normalizePlainObject(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null
+  try {
+    return JSON.parse(JSON.stringify(raw))
+  } catch {
+    return null
+  }
+}
+
+function normalizeCustomDialCodes(raw) {
+  const out = []
+  const seen = new Set(VALID_DIAL)
+  if (!Array.isArray(raw)) return out
+  for (const row of raw) {
+    if (!row || typeof row !== 'object') continue
+    const dial = String(row.dial || '').trim()
+    if (!DIAL_PATTERN.test(dial) || seen.has(dial)) continue
+    seen.add(dial)
+    out.push({
+      dial,
+      label: String(row.label || dial).trim() || dial,
+      icon: String(row.icon || '').trim()
+    })
+  }
+  return out
+}
+
+function dialCatalog(customDialCodes) {
+  return [...PHONE_DIAL_PRESETS, ...(Array.isArray(customDialCodes) ? customDialCodes : [])]
+}
+
+function knownDialSet(customDialCodes) {
+  return new Set(dialCatalog(customDialCodes).map((x) => x.dial))
+}
+
+function normalizeMetaOverrides(raw, validKeys) {
+  /** @type {Record<string, { label?: string, short?: string, icon?: string }>} */
+  const out = {}
+  if (!raw || typeof raw !== 'object' || !validKeys) return out
+  for (const key of validKeys) {
+    const row = raw[key]
+    if (!row || typeof row !== 'object') continue
+    const label = typeof row.label === 'string' ? row.label.trim() : ''
+    const short = typeof row.short === 'string' ? row.short.trim() : ''
+    const icon = typeof row.icon === 'string' ? row.icon.trim() : ''
+    if (label || short || icon) {
+      out[key] = {}
+      if (label) out[key].label = label
+      if (short) out[key].short = short
+      if (icon) out[key].icon = icon
+    }
+  }
+  return out
+}
 
 function newSmsChannelId() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -80,10 +136,10 @@ function parseSmsConfigObject(cfg) {
 /**
  * 从旧版「每区号一条」结构迁移为通道列表（同一区号可多条）。
  * @param {Record<string, { enabled?: boolean, provider?: string, config?: unknown }>|undefined} legacy
- * @returns {Array<{ id: string, dial: string, name: string, enabled: boolean, provider: string, config: Record<string, unknown> }>}
+ * @returns {Array<{ id: string, dial: string, dials: string[], name: string, enabled: boolean, provider: string, config: Record<string, unknown> }>}
  */
 function migrateSmsChannelsFromLegacyByDial(legacy) {
-  /** @type {Array<{ id: string, dial: string, name: string, enabled: boolean, provider: string, config: Record<string, unknown> }>} */
+  /** @type {Array<{ id: string, dial: string, dials: string[], name: string, enabled: boolean, provider: string, config: Record<string, unknown> }>} */
   const list = []
   if (!legacy || typeof legacy !== 'object') return list
   for (const p of PHONE_DIAL_PRESETS) {
@@ -96,6 +152,7 @@ function migrateSmsChannelsFromLegacyByDial(legacy) {
     list.push({
       id: `mig_${p.dial.replace(/[^\d+]/g, '')}`,
       dial: p.dial,
+      dials: [p.dial],
       name: '',
       enabled,
       provider: provider || 'custom',
@@ -105,6 +162,19 @@ function migrateSmsChannelsFromLegacyByDial(legacy) {
   return list
 }
 
+function normalizeSmsChannelDials(row) {
+  const raw = Array.isArray(row?.dials) ? row.dials : [row?.dial]
+  const out = []
+  const seen = new Set()
+  for (const item of raw) {
+    const dial = String(item || '').trim()
+    if (!VALID_DIAL.has(dial) || seen.has(dial)) continue
+    seen.add(dial)
+    out.push(dial)
+  }
+  return out
+}
+
 /**
  * 归一化短信通道列表（演示存于站点配置；生产应由后端加密敏感字段）。
  * @param {unknown} raw
@@ -112,16 +182,17 @@ function migrateSmsChannelsFromLegacyByDial(legacy) {
  * @param {Record<string, unknown>|undefined} legacyByDial
  */
 export function normalizeSmsChannelsList(raw, explicitKey, legacyByDial) {
-  /** @type {Array<{ id: string, dial: string, name: string, enabled: boolean, provider: string, config: Record<string, unknown> }>} */
+  /** @type {Array<{ id: string, dial: string, dials: string[], name: string, enabled: boolean, provider: string, config: Record<string, unknown> }>} */
   const fromArray = []
   if (Array.isArray(raw)) {
     for (const row of raw) {
       if (!row || typeof row !== 'object') continue
-      const dial = String(row.dial || '').trim()
-      if (!VALID_DIAL.has(dial)) continue
+      const dials = normalizeSmsChannelDials(row)
+      if (dials.length === 0) continue
       fromArray.push({
         id: typeof row.id === 'string' && row.id.trim() ? row.id.trim() : newSmsChannelId(),
-        dial,
+        dial: dials[0],
+        dials,
         name: typeof row.name === 'string' ? row.name.trim() : '',
         enabled: typeof row.enabled === 'boolean' ? row.enabled : true,
         provider: typeof row.provider === 'string' ? row.provider.trim() : '',
@@ -202,6 +273,35 @@ export const SITE_CONFIG_STORAGE_KEY = 'fex-admin-site-config'
 const STORAGE_KEY = SITE_CONFIG_STORAGE_KEY
 
 const VALID_LOCALE_CODES = new Set(FRONT_LOCALE_CATALOG.map((x) => x.code))
+const LOCALE_CODE_PATTERN = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})?$/
+
+function normalizeCustomLocales(raw) {
+  const out = []
+  const seen = new Set(VALID_LOCALE_CODES)
+  if (!Array.isArray(raw)) return out
+  for (const row of raw) {
+    if (!row || typeof row !== 'object') continue
+    const code = String(row.code || '').trim()
+    if (!LOCALE_CODE_PATTERN.test(code) || seen.has(code)) continue
+    seen.add(code)
+    const label = String(row.label || code).trim() || code
+    out.push({
+      code,
+      label,
+      short: String(row.short || code).trim() || code,
+      icon: String(row.icon || '').trim()
+    })
+  }
+  return out
+}
+
+function localeCatalog(customLocales) {
+  return [...FRONT_LOCALE_CATALOG, ...(Array.isArray(customLocales) ? customLocales : [])]
+}
+
+function knownLocaleSet(customLocales) {
+  return new Set(localeCatalog(customLocales).map((x) => x.code))
+}
 
 function newSmtpAccountId() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -340,6 +440,25 @@ const DEFAULT_SMTP_ACCOUNTS_DEMO = normalizeSmtpAccountsList(
   undefined
 )
 
+const DEMO_CUSTOM_LOCALES = [
+  {
+    code: 'vi',
+    label: 'Tiếng Việt',
+    short: 'VI',
+    icon:
+      'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%23da251d%22/%3E%3Cpath fill=%22%23ff0%22 d=%22m16 7 2.1 6.3h6.7l-5.4 3.9 2.1 6.3-5.5-3.9-5.5 3.9 2.1-6.3-5.4-3.9h6.7z%22/%3E%3C/svg%3E'
+  }
+]
+
+const DEMO_CUSTOM_DIAL_CODES = [
+  {
+    dial: '+84',
+    label: '越南 +84',
+    icon:
+      'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%23da251d%22/%3E%3Cpath fill=%22%23ff0%22 d=%22m16 7 2.1 6.3h6.7l-5.4 3.9 2.1 6.3-5.5-3.9-5.5 3.9 2.1-6.3-5.4-3.9h6.7z%22/%3E%3C/svg%3E'
+  }
+]
+
 export const DEFAULT_SITE_CONFIG = {
   siteName: 'CryptoX Pro',
   /** PC 端 Logo（完整 URL 或 data URL） */
@@ -367,18 +486,56 @@ export const DEFAULT_SITE_CONFIG = {
   /** 是否在前台开放手机号登录与手机号注册；关闭后仅保留邮箱登录/注册，区号列表仍仅 +86 */
   phoneLoginEnabled: true,
   /** 手机登录/安全绑定可选区号（phoneLoginEnabled 为 true 时生效）；顺序由 dialSortOrder 决定 */
-  allowedDialCodes: ['+86'],
+  allowedDialCodes: ['+86', '+84'],
+  /** 管理台新增的国际区号 */
+  customDialCodes: DEMO_CUSTOM_DIAL_CODES,
+  /** 区号显示图标/名称覆盖 */
+  dialMetaOverrides: {
+    '+84': {
+      label: '越南 +84',
+      icon: DEMO_CUSTOM_DIAL_CODES[0].icon
+    }
+  },
   /**
    * 区号在下拉中的排序权重，数字越小越靠前；未配置的区号按内置预设顺序默认 0、10、20…
    * @type {Record<string, number>}
    */
-  dialSortOrder: {},
+  dialSortOrder: {
+    '+86': 0,
+    '+84': 10
+  },
   /** 启用后，以下多语言配置才会应用到前台；关闭则固定简体中文并隐藏语言切换 */
   languageSettingsEnabled: true,
+  /** 管理台新增的语言 */
+  customLocales: DEMO_CUSTOM_LOCALES,
   /** 邮件服务器（SMTP）多账户，可多条并分别启用 */
   smtpAccounts: DEFAULT_SMTP_ACCOUNTS_DEMO,
   /** 多语言（languageSettingsEnabled 为 true 时生效） */
-  i18n: { ...DEFAULT_I18N_BLOCK },
+  i18n: {
+    ...DEFAULT_I18N_BLOCK,
+    enabledLocales: ['zh-CN', 'en', 'vi'],
+    localeSortOrder: {
+      'zh-CN': 0,
+      en: 10,
+      vi: 20
+    },
+    localeMetaOverrides: {
+      vi: {
+        label: 'Tiếng Việt',
+        short: 'VI',
+        icon: DEMO_CUSTOM_LOCALES[0].icon
+      }
+    },
+    translationFiles: {
+      vi: {
+        common: {
+          login: 'Đăng nhập',
+          register: 'Đăng ký',
+          logout: 'Đăng xuất'
+        }
+      }
+    }
+  },
   /** 短信通道列表（同一国际区号可配置多条；演示存本地，生产应由后端保管密钥） */
   smsChannels: DEFAULT_SMS_CHANNELS_DEMO
 }
@@ -394,14 +551,15 @@ function readStored() {
   }
 }
 
-function normalizeDialSortOrder(raw) {
+function normalizeDialSortOrder(raw, customDialCodes = []) {
   /** @type {Record<string, number>} */
   const out = {}
-  PHONE_DIAL_PRESETS.forEach((p, i) => {
+  const catalog = dialCatalog(customDialCodes)
+  catalog.forEach((p, i) => {
     out[p.dial] = i * 10
   })
   if (raw && typeof raw === 'object') {
-    for (const dial of VALID_DIAL) {
+    for (const dial of knownDialSet(customDialCodes)) {
       if (!Object.prototype.hasOwnProperty.call(raw, dial)) continue
       const n = Number(raw[dial])
       if (Number.isFinite(n)) out[dial] = Math.round(n)
@@ -410,27 +568,30 @@ function normalizeDialSortOrder(raw) {
   return out
 }
 
-function normalizeAllowedDialCodes(raw, dialSortOrder) {
+function normalizeAllowedDialCodes(raw, dialSortOrder, customDialCodes = []) {
   if (!Array.isArray(raw)) raw = ['+86']
-  const d = [...new Set(raw.filter((x) => VALID_DIAL.has(x)))]
+  const valid = knownDialSet(customDialCodes)
+  const d = [...new Set(raw.map((x) => String(x || '').trim()).filter((x) => valid.has(x)))]
   const codes = d.length ? d : ['+86']
-  const order = dialSortOrder && typeof dialSortOrder === 'object' ? dialSortOrder : normalizeDialSortOrder(null)
+  const order = dialSortOrder && typeof dialSortOrder === 'object' ? dialSortOrder : normalizeDialSortOrder(null, customDialCodes)
   return [...codes].sort((a, b) => {
     const da = order[a] ?? 999999
     const db = order[b] ?? 999999
     if (da !== db) return da - db
-    return PHONE_DIAL_PRESETS.findIndex((x) => x.dial === a) - PHONE_DIAL_PRESETS.findIndex((x) => x.dial === b)
+    const catalog = dialCatalog(customDialCodes)
+    return catalog.findIndex((x) => x.dial === a) - catalog.findIndex((x) => x.dial === b)
   })
 }
 
-function normalizeLocaleSortOrder(raw) {
+function normalizeLocaleSortOrder(raw, customLocales = []) {
   /** @type {Record<string, number>} */
   const out = {}
-  FRONT_LOCALE_CATALOG.forEach((l, i) => {
+  const catalog = localeCatalog(customLocales)
+  catalog.forEach((l, i) => {
     out[l.code] = i * 10
   })
   if (raw && typeof raw === 'object') {
-    for (const code of VALID_LOCALE_CODES) {
+    for (const code of knownLocaleSet(customLocales)) {
       if (!Object.prototype.hasOwnProperty.call(raw, code)) continue
       const n = Number(raw[code])
       if (Number.isFinite(n)) out[code] = Math.round(n)
@@ -439,45 +600,61 @@ function normalizeLocaleSortOrder(raw) {
   return out
 }
 
-function normalizeI18n(raw) {
+function normalizeI18n(raw, customLocales = []) {
   const d = { ...DEFAULT_I18N_BLOCK }
+  const validLocales = knownLocaleSet(customLocales)
+  const catalog = localeCatalog(customLocales)
   if (!raw || typeof raw !== 'object') {
-    const localeSortOrder = normalizeLocaleSortOrder(null)
+    const localeSortOrder = normalizeLocaleSortOrder(null, customLocales)
     return {
       ...d,
       localeSortOrder,
+      localeMetaOverrides: {},
+      translationBase: null,
+      translationFiles: {},
       enabledLocales: [...d.enabledLocales].sort((a, b) => {
         const da = localeSortOrder[a] ?? 999999
         const db = localeSortOrder[b] ?? 999999
         if (da !== db) return da - db
-        return FRONT_LOCALE_CATALOG.findIndex((x) => x.code === a) - FRONT_LOCALE_CATALOG.findIndex((x) => x.code === b)
+        return catalog.findIndex((x) => x.code === a) - catalog.findIndex((x) => x.code === b)
       })
     }
   }
   const base = { ...d, ...raw }
   let enabled = Array.isArray(base.enabledLocales)
-    ? base.enabledLocales.filter((c) => VALID_LOCALE_CODES.has(c))
+    ? base.enabledLocales.filter((c) => validLocales.has(c))
     : d.enabledLocales
   if (enabled.length === 0) enabled = [...d.enabledLocales]
-  let def = typeof base.defaultLocale === 'string' && VALID_LOCALE_CODES.has(base.defaultLocale)
+  let def = typeof base.defaultLocale === 'string' && validLocales.has(base.defaultLocale)
     ? base.defaultLocale
     : d.defaultLocale
   if (!enabled.includes(def)) def = enabled[0]
 
-  const localeSortOrder = normalizeLocaleSortOrder(base.localeSortOrder)
+  const localeSortOrder = normalizeLocaleSortOrder(base.localeSortOrder, customLocales)
   enabled = [...enabled].sort((a, b) => {
     const da = localeSortOrder[a] ?? 999999
     const db = localeSortOrder[b] ?? 999999
     if (da !== db) return da - db
-    return FRONT_LOCALE_CATALOG.findIndex((x) => x.code === a) - FRONT_LOCALE_CATALOG.findIndex((x) => x.code === b)
+    return catalog.findIndex((x) => x.code === a) - catalog.findIndex((x) => x.code === b)
   })
+
+  const translationFiles = {}
+  if (base.translationFiles && typeof base.translationFiles === 'object' && !Array.isArray(base.translationFiles)) {
+    for (const code of validLocales) {
+      const file = normalizePlainObject(base.translationFiles[code])
+      if (file) translationFiles[code] = file
+    }
+  }
 
   return {
     enabledLocales: enabled,
     defaultLocale: def,
     languageSwitcherEnabled:
       typeof base.languageSwitcherEnabled === 'boolean' ? base.languageSwitcherEnabled : d.languageSwitcherEnabled,
-    localeSortOrder
+    localeSortOrder,
+    localeMetaOverrides: normalizeMetaOverrides(base.localeMetaOverrides, validLocales),
+    translationBase: normalizePlainObject(base.translationBase),
+    translationFiles
   }
 }
 
@@ -500,8 +677,10 @@ export function normalizeSiteConfig(raw) {
     typeof merged.languageSettingsEnabled === 'boolean'
       ? merged.languageSettingsEnabled
       : DEFAULT_SITE_CONFIG.languageSettingsEnabled
-  merged.dialSortOrder = normalizeDialSortOrder(merged.dialSortOrder)
-  merged.allowedDialCodes = normalizeAllowedDialCodes(merged.allowedDialCodes, merged.dialSortOrder)
+  merged.customDialCodes = normalizeCustomDialCodes(merged.customDialCodes)
+  merged.dialSortOrder = normalizeDialSortOrder(merged.dialSortOrder, merged.customDialCodes)
+  merged.allowedDialCodes = normalizeAllowedDialCodes(merged.allowedDialCodes, merged.dialSortOrder, merged.customDialCodes)
+  merged.dialMetaOverrides = normalizeMetaOverrides(merged.dialMetaOverrides, knownDialSet(merged.customDialCodes))
   const explicitSmtpAccounts = Object.prototype.hasOwnProperty.call(rawObj, 'smtpAccounts')
   const needsSmtpMigration =
     !explicitSmtpAccounts && merged.smtp && typeof merged.smtp === 'object'
@@ -511,7 +690,8 @@ export function normalizeSiteConfig(raw) {
     needsSmtpMigration ? merged.smtp : undefined
   )
   if ('smtp' in merged) delete merged.smtp
-  merged.i18n = normalizeI18n(merged.i18n)
+  merged.customLocales = normalizeCustomLocales(merged.customLocales)
+  merged.i18n = normalizeI18n(merged.i18n, merged.customLocales)
   const explicitSmsChannels = Object.prototype.hasOwnProperty.call(rawObj, 'smsChannels')
   merged.smsChannels = normalizeSmsChannelsList(
     merged.smsChannels,
@@ -591,16 +771,22 @@ export const siteConfigApi = {
             typeof config.languageSettingsEnabled === 'boolean'
               ? config.languageSettingsEnabled
               : DEFAULT_SITE_CONFIG.languageSettingsEnabled,
+          customLocales: normalizeCustomLocales(config.customLocales),
           allowedDialCodes:
             Array.isArray(config.allowedDialCodes) && config.allowedDialCodes.length
               ? [...config.allowedDialCodes]
               : prev.allowedDialCodes,
+          customDialCodes: normalizeCustomDialCodes(config.customDialCodes),
+          dialMetaOverrides:
+            config.dialMetaOverrides !== undefined && config.dialMetaOverrides !== null && typeof config.dialMetaOverrides === 'object'
+              ? { ...config.dialMetaOverrides }
+              : prev.dialMetaOverrides,
           dialSortOrder:
             config.dialSortOrder !== undefined && config.dialSortOrder !== null && typeof config.dialSortOrder === 'object'
               ? { ...config.dialSortOrder }
               : prev.dialSortOrder,
           smtpAccounts: smtpAccountsPayload,
-          i18n: normalizeI18n(config.i18n !== undefined ? config.i18n : prev.i18n),
+          i18n: normalizeI18n(config.i18n !== undefined ? config.i18n : prev.i18n, normalizeCustomLocales(config.customLocales)),
           smsChannels: smsChannelsPayload
         })
         try {

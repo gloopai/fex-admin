@@ -63,6 +63,11 @@ const searchOpen = ref(false)
 const searchQuery = ref('')
 const searchPanelRef = ref(null)
 
+function isImageIcon(icon) {
+  const s = String(icon || '').trim()
+  return /^(https?:\/\/|data:image\/|\/)/i.test(s) || /\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(s)
+}
+
 let downloadLeaveTimer = null
 
 const mainLinks = computed(() => getFrontMainNavLinks(props.prefix))
@@ -982,6 +987,15 @@ function drawerRowClass(item) {
                 stroke-width="1.75"
               />
             </svg>
+            <span v-if="currentLocale.icon" class="hidden h-4 w-4 shrink-0 overflow-hidden rounded-full xl:inline-flex">
+              <img
+                v-if="isImageIcon(currentLocale.icon)"
+                :src="currentLocale.icon"
+                :alt="currentLocale.label"
+                class="h-full w-full object-cover"
+              />
+              <span v-else class="text-sm leading-4">{{ currentLocale.icon }}</span>
+            </span>
             <span class="hidden max-w-[4.5rem] truncate text-xs font-medium xl:inline">
               {{ currentLocale.short }}
             </span>
@@ -1031,7 +1045,18 @@ function drawerRowClass(item) {
                 :aria-selected="localeCode === opt.code"
                 @click="selectLocale(opt.code)"
               >
-                <span>{{ opt.label }}</span>
+                <span class="min-w-0 flex items-center gap-1.5">
+                  <span v-if="opt.icon" class="inline-flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded-full">
+                    <img
+                      v-if="isImageIcon(opt.icon)"
+                      :src="opt.icon"
+                      :alt="opt.label"
+                      class="h-full w-full object-cover"
+                    />
+                    <span v-else>{{ opt.icon }}</span>
+                  </span>
+                  <span class="min-w-0 truncate">{{ opt.label }}</span>
+                </span>
                 <svg
                   v-if="localeCode === opt.code"
                   class="h-4 w-4 shrink-0 text-lime-400/90"
@@ -1383,7 +1408,14 @@ function drawerRowClass(item) {
                     class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.05] text-lime-400/80"
                     aria-hidden="true"
                   >
-                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <img
+                      v-if="isImageIcon(currentLocale.icon)"
+                      :src="currentLocale.icon"
+                      :alt="currentLocale.label"
+                      class="h-full w-full rounded-lg object-cover"
+                    />
+                    <span v-else-if="currentLocale.icon" class="text-base">{{ currentLocale.icon }}</span>
+                    <svg v-else class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                       <path
                         d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"
                         stroke="currentColor"
@@ -1487,7 +1519,18 @@ function drawerRowClass(item) {
                 :aria-selected="localeCode === opt.code"
                 @click="selectLocale(opt.code)"
               >
-                <span>{{ opt.label }}</span>
+                <span class="min-w-0 flex items-center gap-2">
+                  <span v-if="opt.icon" class="inline-flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full">
+                    <img
+                      v-if="isImageIcon(opt.icon)"
+                      :src="opt.icon"
+                      :alt="opt.label"
+                      class="h-full w-full object-cover"
+                    />
+                    <span v-else>{{ opt.icon }}</span>
+                  </span>
+                  <span class="min-w-0 truncate">{{ opt.label }}</span>
+                </span>
                 <svg
                   v-if="localeCode === opt.code"
                   class="h-4 w-4 shrink-0 text-lime-400/90"

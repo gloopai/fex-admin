@@ -20,25 +20,44 @@ const filteredRows = computed(() => {
   const list = config.value.smsChannels || []
   const d = dialFilter.value
   if (!d) return list
-  return list.filter((r) => r.dial === d)
+  return list.filter((r) => (Array.isArray(r.dials) ? r.dials : [r.dial]).includes(d))
 })
 
 const showModal = ref(false)
 /** @type {import('vue').Ref<string | null>} */
 const editingId = ref(null)
-const formDial = ref('+86')
+const formDials = ref(['+86'])
 const formName = ref('')
 const formProvider = ref('')
 const formEnabled = ref(true)
 const formConfigJson = ref('{}')
+const dialSearch = ref('')
+const showDialPicker = ref(false)
+
+const filteredDialOptions = computed(() => {
+  const q = dialSearch.value.trim().toLowerCase()
+  const selected = new Set(formDials.value)
+  const base = PHONE_DIAL_PRESETS.filter((p) => !selected.has(p.dial))
+  if (!q) return base
+  return base.filter((p) => {
+    return p.dial.toLowerCase().includes(q) || p.label.toLowerCase().includes(q)
+  })
+})
+
+const selectedDialOptions = computed(() => {
+  const selected = new Set(formDials.value)
+  return PHONE_DIAL_PRESETS.filter((p) => selected.has(p.dial))
+})
 
 function resetForm() {
   editingId.value = null
-  formDial.value = '+86'
+  formDials.value = ['+86']
   formName.value = ''
   formProvider.value = ''
   formEnabled.value = true
   formConfigJson.value = '{}'
+  dialSearch.value = ''
+  showDialPicker.value = false
 }
 
 function openAdd() {
@@ -48,7 +67,7 @@ function openAdd() {
 
 function openEdit(row) {
   editingId.value = row.id
-  formDial.value = row.dial
+  formDials.value = Array.isArray(row.dials) && row.dials.length ? [...row.dials] : [row.dial || '+86']
   formName.value = row.name || ''
   formProvider.value = row.provider || ''
   formEnabled.value = row.enabled
@@ -58,6 +77,7 @@ function openEdit(row) {
 
 function closeModal() {
   showModal.value = false
+  showDialPicker.value = false
 }
 
 async function load() {
@@ -90,7 +110,41 @@ function parseConfigJson() {
   return v
 }
 
+function toggleFormDial(dial, checked) {
+  const set = new Set(formDials.value)
+  if (checked) set.add(dial)
+  else set.delete(dial)
+  formDials.value = Array.from(set)
+}
+
+function clearFormDials() {
+  formDials.value = []
+}
+
+function removeFormDial(dial) {
+  formDials.value = formDials.value.filter((d) => d !== dial)
+}
+
+function addFormDial(dial) {
+  toggleFormDial(dial, true)
+  dialSearch.value = ''
+  showDialPicker.value = false
+}
+
+function rowDials(row) {
+  return Array.isArray(row.dials) && row.dials.length ? row.dials : [row.dial].filter(Boolean)
+}
+
+function dialSummary(row) {
+  const dials = rowDials(row)
+  return dials.map((dial) => dialLabelMap[dial] || dial).join('、')
+}
+
 async function submitModal() {
+  if (formDials.value.length === 0) {
+    alert('请至少选择一个国际区号')
+    return
+  }
   if (formEnabled.value && !String(formProvider.value ?? '').trim()) {
     alert('已勾选启用时，请填写通道类型（如 aliyun、twilio、custom）')
     return
@@ -105,7 +159,8 @@ async function submitModal() {
 
   const list = [...(config.value.smsChannels || [])]
   const base = {
-    dial: formDial.value,
+    dial: formDials.value[0],
+    dials: [...formDials.value],
     name: String(formName.value ?? '').trim(),
     enabled: formEnabled.value,
     provider: String(formProvider.value ?? '').trim(),
@@ -144,7 +199,7 @@ async function persist() {
 }
 
 async function removeRow(row) {
-  if (!confirm(`确定删除该短信通道？（${dialLabelMap[row.dial] || row.dial}）`)) return
+  if (!confirm(`确定删除该短信通道？（${dialSummary(row)}）`)) return
   config.value.smsChannels = (config.value.smsChannels || []).filter((x) => x.id !== row.id)
   await persist()
 }
@@ -183,7 +238,7 @@ onMounted(() => {
           <option value="">全部区号</option>
           <option v-for="p in PHONE_DIAL_PRESETS" :key="p.dial" :value="p.dial">{{ p.label }}</option>
         </select>
-        <span class="text-xs text-slate-500">同一区号可配置多条通道。</span>
+        <span class="text-xs text-slate-500">一个通道可同时适用于多个国际区号。</span>
       </div>
 
       <div class="overflow-x-auto">
@@ -191,7 +246,7 @@ onMounted(() => {
           <thead class="bg-slate-50/80">
             <tr>
               <th class="px-4 py-3 text-left font-medium text-slate-700">名称</th>
-              <th class="px-4 py-3 text-left font-medium text-slate-700">区号</th>
+              <th class="px-4 py-3 text-left font-medium text-slate-700">适用区号</th>
               <th class="px-4 py-3 text-left font-medium text-slate-700">通道类型</th>
               <th class="px-4 py-3 text-left font-medium text-slate-700">状态</th>
               <th class="px-4 py-3 text-right font-medium text-slate-700">操作</th>
@@ -201,8 +256,16 @@ onMounted(() => {
             <tr v-for="row in filteredRows" :key="row.id">
               <td class="px-4 py-3 text-slate-900">{{ row.name || '—' }}</td>
               <td class="px-4 py-3">
-                <span class="font-mono text-xs text-slate-600">{{ row.dial }}</span>
-                <span class="ml-2 text-xs text-slate-500">{{ dialLabelMap[row.dial] || '' }}</span>
+                <div class="flex max-w-xl flex-wrap gap-1.5">
+                  <span
+                    v-for="dial in rowDials(row)"
+                    :key="row.id + '-' + dial"
+                    class="rounded-full bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-700"
+                  >
+                    {{ dial }}
+                    <span class="ml-1 font-sans text-slate-500">{{ dialLabelMap[dial] || '' }}</span>
+                  </span>
+                </div>
               </td>
               <td class="px-4 py-3 font-mono text-xs text-slate-800">{{ row.provider || '—' }}</td>
               <td class="px-4 py-3">
@@ -237,16 +300,73 @@ onMounted(() => {
         class="fixed inset-0 z-[100] grid place-items-center bg-black/45 p-4"
         @click.self="closeModal"
       >
-      <div class="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl">
+      <div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl">
         <div class="border-b border-slate-200 px-5 py-4">
           <h2 class="text-lg font-semibold text-slate-900">{{ editingId ? '编辑通道' : '添加通道' }}</h2>
         </div>
         <div class="space-y-4 px-5 py-4">
           <div>
-            <label class="mb-1.5 block text-sm font-medium text-slate-700">国际区号</label>
-            <select v-model="formDial" class="ant-input w-full">
-              <option v-for="p in PHONE_DIAL_PRESETS" :key="p.dial" :value="p.dial">{{ p.label }}</option>
-            </select>
+            <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <label class="block text-sm font-medium text-slate-700">国际区号</label>
+              <span class="text-xs text-slate-500">已选 {{ formDials.length }} 个</span>
+            </div>
+            <div class="rounded-lg border border-slate-200 bg-slate-50/50 p-3">
+              <div v-if="selectedDialOptions.length" class="flex flex-wrap gap-1.5">
+                <button
+                  v-for="p in selectedDialOptions"
+                  :key="'selected-' + p.dial"
+                  type="button"
+                  class="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-xs text-indigo-800 ring-1 ring-inset ring-indigo-100"
+                  @click="removeFormDial(p.dial)"
+                >
+                  <span class="font-mono">{{ p.dial }}</span>
+                  <span>{{ p.label.replace(p.dial, '').trim() }}</span>
+                  <span class="text-indigo-400">×</span>
+                </button>
+              </div>
+              <p v-else class="text-sm text-slate-500">未选择区号</p>
+
+              <div class="relative mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                <button
+                  type="button"
+                  class="ant-btn !h-9 !px-3 text-sm"
+                  @click="showDialPicker = !showDialPicker"
+                >
+                  添加区号
+                </button>
+                <button type="button" class="ant-btn !h-9 !px-3 !text-xs" @click="clearFormDials">
+                  清空
+                </button>
+
+                <div
+                  v-if="showDialPicker"
+                  class="absolute left-0 top-10 z-10 w-full max-w-md rounded-lg border border-slate-200 bg-white p-2 shadow-lg"
+                >
+                  <input
+                    v-model="dialSearch"
+                    type="search"
+                    class="ant-input mb-2 w-full text-sm"
+                    placeholder="搜索国家/地区或区号"
+                  />
+                  <div class="max-h-56 overflow-y-auto">
+                    <button
+                      v-for="p in filteredDialOptions"
+                      :key="p.dial"
+                      type="button"
+                      class="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-50"
+                      @click="addFormDial(p.dial)"
+                    >
+                      <span>{{ p.label }}</span>
+                      <span class="font-mono text-xs text-slate-400">{{ p.dial }}</span>
+                    </button>
+                    <div v-if="filteredDialOptions.length === 0" class="px-2 py-6 text-center text-sm text-slate-500">
+                      无可添加区号
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p class="mt-1.5 text-xs text-slate-500">可多选；发送短信时按用户手机号区号匹配可用通道。</p>
           </div>
           <div>
             <label class="mb-1.5 block text-sm font-medium text-slate-700">通道名称（可选）</label>
