@@ -93,8 +93,7 @@ export const REFERRAL_CONFIG_FIELDS = {
  * 裂变佣金记入上级用户的余额类型（与站内钱包/账务模型对齐；入账路由由账务服务执行）
  */
 export const REFERRAL_COMMISSION_CREDIT_TO = {
-  SPOT_AVAILABLE: 'spot_available',
-  FUNDING: 'funding'
+  SPOT_AVAILABLE: 'spot_available'
 }
 
 export const REFERRAL_COMMISSION_CREDIT_TO_OPTIONS = [
@@ -102,11 +101,6 @@ export const REFERRAL_COMMISSION_CREDIT_TO_OPTIONS = [
     value: REFERRAL_COMMISSION_CREDIT_TO.SPOT_AVAILABLE,
     label: '币币账户',
     hint: '记入上级用户币币账户余额。'
-  },
-  {
-    value: REFERRAL_COMMISSION_CREDIT_TO.FUNDING,
-    label: '资金账户',
-    hint: '预留入账账户类型；选择前需确认账务服务已支持该账户路由。'
   }
 ]
 

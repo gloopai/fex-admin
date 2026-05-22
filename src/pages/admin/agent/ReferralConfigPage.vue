@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import {
   mockReferralConfig,
   referralApi,
@@ -9,7 +9,9 @@ import {
 import {
   DEFAULT_REFERRAL_CONFIG,
   REFERRAL_MAX_LEVELS,
-  REFERRAL_COMMISSION_CREDIT_TO_OPTIONS
+  REFERRAL_COMMISSION_CREDIT_TO_OPTIONS,
+  getReferralSettlementScheduleLine,
+  getReferralSettlementNotifyLine
 } from '../../../admin/constants/referral'
 
 const config = ref(normalizeReferralConfig({ ...mockReferralConfig }))
@@ -19,6 +21,11 @@ const activeTab = ref('rules')
 const RATE_LEVEL_INDEXES = [0, 1, 2]
 const isSaving = ref(false)
 const demoBaseAmount = ref(10000)
+const settlementScheduleLine = computed(() => getReferralSettlementScheduleLine(config.value))
+const settlementNotifyLine = computed(() => getReferralSettlementNotifyLine(config.value))
+const currentCreditOption = computed(() =>
+  REFERRAL_COMMISSION_CREDIT_TO_OPTIONS.find((o) => o.value === config.value.referralCommissionCreditTo)
+)
 
 const PRODUCT_LINES = [
   {
@@ -523,12 +530,18 @@ onMounted(() => {
             配置裂变佣金的发放方式、入账账户、日结时刻与结算后通知；默认入账至用户币币账户。
           </p>
         </div>
-        <div class="max-w-md space-y-5 p-5">
-          <div class="flex flex-col gap-3 rounded-lg border border-slate-100 bg-slate-50/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="space-y-6 p-5">
+          <div class="rounded-lg border border-slate-100 bg-slate-50/80 px-4 py-3 text-sm text-slate-700">
+            <p class="font-medium text-slate-800">当前规则摘要</p>
+            <p class="mt-1 text-xs leading-relaxed text-slate-600">{{ settlementScheduleLine }}</p>
+            <p class="mt-1 text-xs leading-relaxed text-slate-600">{{ settlementNotifyLine }}</p>
+          </div>
+
+          <div class="flex max-w-2xl flex-col gap-3 rounded-lg border border-slate-100 bg-slate-50/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p class="text-sm font-medium text-slate-900">自动入账</p>
               <p class="mt-1 text-xs leading-relaxed text-slate-500">
-                开启后：账务生成分佣记录后系统自动入账。关闭后：记录进入「分佣记录」，由运营逐笔或批量发放。
+                开启后：日结汇总单生成后系统自动划转至上级用户账户。关闭后：汇总单进入「裂变佣金结算」，由运营手动发放。
               </p>
             </div>
             <button
@@ -543,37 +556,46 @@ onMounted(() => {
               />
             </button>
           </div>
-          <div>
-            <label class="block text-sm font-medium text-slate-800">入账账户</label>
+
+          <div class="grid gap-6 lg:grid-cols-2">
+            <div>
+              <label class="block text-sm font-medium text-slate-800">结算周期</label>
+              <div class="mt-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-800">
+                每自然日
+              </div>
+              <p class="mt-1 text-xs text-slate-500">
+                裂变佣金按自然日汇总成结算单；充值、交易产生的明细会归入对应上级用户的日结批次。
+              </p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-800">结算触发时刻</label>
+              <p class="mt-1 text-xs text-slate-500">24 小时制，与平台默认时区一致（与代理账期结算配置方式一致）。</p>
+              <input
+                v-model="config.referralSettlementTimeLocal"
+                type="time"
+                step="60"
+                class="ant-input mt-2 w-full max-w-[12rem] text-sm"
+              />
+            </div>
+          </div>
+
+          <div class="max-w-md">
+            <label class="block text-sm font-medium text-slate-800">佣金入账账户</label>
             <select v-model="config.referralCommissionCreditTo" class="ant-input mt-2 w-full text-sm">
-              <option
-                v-for="opt in REFERRAL_COMMISSION_CREDIT_TO_OPTIONS"
-                :key="opt.value"
-                :value="opt.value"
-              >
+              <option v-for="opt in REFERRAL_COMMISSION_CREDIT_TO_OPTIONS" :key="opt.value" :value="opt.value">
                 {{ opt.label }}
               </option>
             </select>
             <p class="mt-1.5 text-xs leading-relaxed text-slate-500">
-              {{
-                REFERRAL_COMMISSION_CREDIT_TO_OPTIONS.find((o) => o.value === config.referralCommissionCreditTo)
-                  ?.hint
-              }}
+              {{ currentCreditOption?.hint }}
             </p>
           </div>
-          <div>
-            <label class="block text-sm font-medium text-slate-800">日结时刻</label>
-            <p class="mt-1 text-xs text-slate-500">结算周期固定为每自然日，请选择当日执行日结的时间（24 小时制，与平台默认时区一致）。</p>
-            <input
-              v-model="config.referralSettlementTimeLocal"
-              type="time"
-              step="60"
-              class="ant-input mt-2 w-full max-w-[12rem] text-sm"
-            />
-          </div>
+
           <div class="rounded-lg border border-slate-100 bg-slate-50/80 px-4 py-3">
             <p class="text-sm font-medium text-slate-800">结算完成后通知用户</p>
-            <p class="mt-1 text-xs text-slate-500">日结入账完成后，按勾选渠道向获得佣金的用户发送通知（需站内消息/短信/邮件服务已开通）。</p>
+            <p class="mt-1 text-xs text-slate-500">
+              日结批次完成入账后，按勾选渠道向获得佣金的上级用户发送通知（需站内消息 / 短信 / 邮件服务已开通；与代理「结算完成后通知代理」一致）。
+            </p>
             <ul class="mt-3 space-y-2 text-sm text-slate-700">
               <li class="flex items-center gap-2">
                 <input
@@ -606,7 +628,14 @@ onMounted(() => {
           </div>
         </div>
       </section>
-      <p class="text-xs text-slate-500">与「分佣规则」共用右上角保存；重置会恢复「佣金结算」中的入账、日结时刻与通知默认值。</p>
+      <footer class="rounded-lg border border-slate-200 bg-slate-50 px-5 py-4 text-sm text-slate-600">
+        <p class="font-medium text-slate-800">保存前请确认</p>
+        <ul class="mt-2 list-inside list-disc space-y-1 text-slate-600">
+          <li>裂变佣金固定按自然日汇总，不配置周/月账期；手动模式下在「裂变佣金结算」按汇总单发放。</li>
+          <li>自动入账、入账账户、触发时刻与通知渠道保存后由账务与消息服务按平台时区执行（演示为前端 mock）。</li>
+        </ul>
+        <p class="mt-3 text-xs text-slate-500">与「分佣规则」共用右上角保存与重置。</p>
+      </footer>
     </div>
   </div>
 </template>

@@ -92,6 +92,7 @@ export function syncVerificationRulesFromVerificationConfig(policy) {
 /** 各维度是否参与「优先级」判断（关闭则跳过该维度） */
 export const defaultDimensionEnabled = () => ({
   [WITHDRAW_POLICY_DIMENSION.VIP]: true,
+  [WITHDRAW_POLICY_DIMENSION.AGENT]: true,
   [WITHDRAW_POLICY_DIMENSION.VERIFICATION]: true,
   [WITHDRAW_POLICY_DIMENSION.CREDIT_SCORE]: true
 })
@@ -103,10 +104,19 @@ function ensureDimensionEnabled(policy) {
   }
 }
 
+function ensureAgentRule(policy) {
+  policy.agentRule = {
+    minWithdrawUsdt: 10,
+    dailyCapUsdt: 200000,
+    ...(policy.agentRule || {})
+  }
+}
+
 /** 可编辑的出金策略（U 本位）；多维度仅采用「按优先级首条命中」 */
 export let withdrawPolicyState = {
   dimensionPriority: [
     WITHDRAW_POLICY_DIMENSION.VIP,
+    WITHDRAW_POLICY_DIMENSION.AGENT,
     WITHDRAW_POLICY_DIMENSION.VERIFICATION,
     WITHDRAW_POLICY_DIMENSION.CREDIT_SCORE
   ],
@@ -116,6 +126,10 @@ export let withdrawPolicyState = {
     dailyCapUsdt: 10000
   },
   vipRules: buildVipRulesFromVipLevels(),
+  agentRule: {
+    minWithdrawUsdt: 10,
+    dailyCapUsdt: 200000
+  },
   verificationRules: buildVerificationRulesFromVerificationConfig(),
   creditScoreRules: [
     { id: 'vr_cs_1', minScore: 0, maxScore: 59, minWithdrawUsdt: 50, dailyCapUsdt: 5000 },
@@ -130,6 +144,7 @@ export function getWithdrawPolicy() {
   syncVipRulesFromVipLevels(p)
   syncVerificationRulesFromVerificationConfig(p)
   ensureDimensionEnabled(p)
+  ensureAgentRule(p)
   if (p.mergeMode !== undefined) delete p.mergeMode
   if (p.enabled !== undefined) delete p.enabled
   return p
@@ -140,6 +155,7 @@ export function saveWithdrawPolicy(next) {
   if (raw.mergeMode !== undefined) delete raw.mergeMode
   if (raw.enabled !== undefined) delete raw.enabled
   ensureDimensionEnabled(raw)
+  ensureAgentRule(raw)
   withdrawPolicyState = raw
   return getWithdrawPolicy()
 }
@@ -204,6 +220,7 @@ export function computeEffectiveWithdrawPolicy(user, policy) {
   }
 
   const vipLevel = num(user?.vipLevel, 0)
+  const isAgent = user?.isAgent === true
   const verificationLevel = user?.verificationLevel ?? VERIFICATION_LEVEL.NONE
   const creditScore = num(user?.creditScore, 0)
 
@@ -214,6 +231,7 @@ export function computeEffectiveWithdrawPolicy(user, policy) {
     : num(def.dailyCapUsdt, 0)
 
   const vipRules = policy.vipRules ?? []
+  const agentRule = policy.agentRule ?? null
   const verificationRules = policy.verificationRules ?? []
   const creditScoreRules = policy.creditScoreRules ?? []
 
@@ -237,6 +255,15 @@ export function computeEffectiveWithdrawPolicy(user, policy) {
     }
   }
 
+  const findAgent = () => {
+    if (!isAgent || !agentRule) return null
+    return {
+      ...agentRule,
+      minWithdrawUsdt: num(agentRule.minWithdrawUsdt, 0),
+      dailyCapUsdt: agentRule.dailyCapUsdt === null || agentRule.dailyCapUsdt === '' ? null : num(agentRule.dailyCapUsdt, 0)
+    }
+  }
+
   const findCredit = () => {
     const sorted = [...creditScoreRules]
       .map((r) => ({
@@ -252,6 +279,7 @@ export function computeEffectiveWithdrawPolicy(user, policy) {
 
   const pickers = {
     [WITHDRAW_POLICY_DIMENSION.VIP]: findVip,
+    [WITHDRAW_POLICY_DIMENSION.AGENT]: findAgent,
     [WITHDRAW_POLICY_DIMENSION.VERIFICATION]: findVerification,
     [WITHDRAW_POLICY_DIMENSION.CREDIT_SCORE]: findCredit
   }
@@ -270,7 +298,7 @@ export function computeEffectiveWithdrawPolicy(user, policy) {
   }
 
   const dimLabel = (dim) =>
-    ({ vip: 'VIP', verification: '认证', credit_score: '信用分' }[dim] || dim)
+    ({ vip: 'VIP', agent: '代理', verification: '认证', credit_score: '信用分' }[dim] || dim)
 
   const candidates = []
   for (const dim of policy.dimensionPriority ?? []) {
@@ -282,6 +310,8 @@ export function computeEffectiveWithdrawPolicy(user, policy) {
     let detail = ''
     if (dim === WITHDRAW_POLICY_DIMENSION.VIP) {
       detail = `${vipLevelLabel(vipLevel)} → 单笔最低 ${minW} / 每日 ${formatCapText(daily)}`
+    } else if (dim === WITHDRAW_POLICY_DIMENSION.AGENT) {
+      detail = `代理身份 → 单笔最低 ${minW} / 每日 ${formatCapText(daily)}`
     } else if (dim === WITHDRAW_POLICY_DIMENSION.VERIFICATION) {
       detail = `${verificationLevelLabel(verificationLevel)} → 单笔最低 ${minW} / 每日 ${formatCapText(daily)}`
     } else {
@@ -295,7 +325,7 @@ export function computeEffectiveWithdrawPolicy(user, policy) {
       minWithdrawUsdt: defMin,
       dailyCapUsdt: effectiveDailyCap(defDaily),
       mode: 'default',
-      explain: `已启用维度均未匹配到规则（请检查试算用户的 VIP / 认证 / 信用分是否在表格中有对应行或区间），使用「全局默认」：单笔最低 ${defMin} USDT，每日上限 ${formatCapText(defDaily)}。`
+      explain: `已启用维度均未匹配到规则（请检查试算用户的 VIP / 代理身份 / 认证 / 信用分是否在表格中有对应行或区间），使用「全局默认」：单笔最低 ${defMin} USDT，每日上限 ${formatCapText(defDaily)}。`
     }
   }
 

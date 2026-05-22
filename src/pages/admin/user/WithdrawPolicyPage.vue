@@ -49,6 +49,7 @@ function setVerificationDailyUnlimited(row, ev) {
 
 const sim = ref({
   vipLevel: 2,
+  isAgent: true,
   verificationLevel: VERIFICATION_LEVEL.BASIC,
   creditScore: 65
 })
@@ -62,6 +63,7 @@ const policyFormSignature = computed(() => {
     dimensionPriority: p.dimensionPriority,
     dimensionEnabled: p.dimensionEnabled,
     vipRules: p.vipRules,
+    agentRule: p.agentRule,
     verificationRules: p.verificationRules,
     creditScoreRules: p.creditScoreRules
   })
@@ -77,6 +79,7 @@ const preview = computed(() => {
   return computeEffectiveWithdrawPolicy(
     {
       vipLevel: sim.value.vipLevel,
+      isAgent: sim.value.isAgent,
       verificationLevel: sim.value.verificationLevel,
       creditScore: sim.value.creditScore
     },
@@ -277,6 +280,36 @@ function toggleDimensionEnabled(dim) {
       </div>
     </div>
 
+    <!-- 代理：后台当前仅一种代理身份 -->
+    <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+      <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-3">
+        <h2 class="text-base font-semibold text-slate-900">按代理身份</h2>
+        <p class="text-xs text-slate-500 mt-0.5">当前代理体系仅区分是否代理；开启「代理身份」维度后，代理用户会命中本规则。</p>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-600">
+            <tr>
+              <th class="px-4 py-2">用户身份</th>
+              <th class="px-4 py-2">单笔最低 (U)</th>
+              <th class="px-4 py-2">每日上限 (U)</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr class="hover:bg-slate-50/50">
+              <td class="px-4 py-2 text-slate-900 font-medium">代理</td>
+              <td class="px-4 py-2">
+                <input v-model.number="policy.agentRule.minWithdrawUsdt" type="number" min="0" step="0.01" class="ant-input !py-1.5 w-32" />
+              </td>
+              <td class="px-4 py-2">
+                <input v-model.number="policy.agentRule.dailyCapUsdt" type="number" min="0" step="1" class="ant-input !py-1.5 w-36" />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- 认证：与 verificationConfig 等级一致 -->
     <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
       <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-3">
@@ -386,6 +419,25 @@ function toggleDimensionEnabled(dim) {
                 <select v-model.number="sim.vipLevel" class="ant-select !py-2 w-full">
                   <option v-for="o in vipLevelOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                 </select>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">代理身份</label>
+                <label class="flex items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
+                  <span>{{ sim.isAgent ? '是代理' : '非代理' }}</span>
+                  <button
+                    type="button"
+                    role="switch"
+                    :aria-checked="sim.isAgent"
+                    class="relative h-5 w-9 shrink-0 cursor-pointer rounded-full border transition-colors duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
+                    :class="sim.isAgent ? 'border-blue-600 bg-blue-600' : 'border-slate-300/90 bg-slate-200'"
+                    @click="sim.isAgent = !sim.isAgent"
+                  >
+                    <span
+                      class="pointer-events-none absolute left-0.5 top-0.5 block h-4 w-4 rounded-full bg-white shadow-sm ring-1 ring-slate-900/10 transition-transform duration-200 ease-out"
+                      :class="sim.isAgent ? 'translate-x-4' : 'translate-x-0'"
+                    />
+                  </button>
+                </label>
               </div>
               <div>
                 <label class="block text-xs font-medium text-slate-600 mb-1">认证等级</label>
