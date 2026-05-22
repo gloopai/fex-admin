@@ -95,6 +95,19 @@ function orderStatusPillClass(status) {
   return 'bg-white/10 text-white/55'
 }
 
+function orderDisplayStatus(order) {
+  if (order?.status === ORDER_STATUS.LOCKED && isOrderMatured(order)) {
+    return {
+      label: '待领取',
+      class: 'bg-lime-400/12 text-lime-200'
+    }
+  }
+  return {
+    label: orderStatusMeta[order?.status]?.label ?? order?.status ?? '—',
+    class: orderStatusPillClass(order?.status)
+  }
+}
+
 /** 订单：提前赎回 / 到期领取（本地更新 orders） */
 const orderActionOpen = ref(false)
 const orderActionKind = ref('early')
@@ -687,9 +700,9 @@ const mineMinVipLabel = computed(() => {
                   >
                     <span
                       class="inline-flex min-h-[1.75rem] items-center rounded-full px-2.5 py-1 text-[11px] font-semibold sm:text-xs"
-                      :class="orderStatusPillClass(o.status)"
+                      :class="orderDisplayStatus(o).class"
                     >
-                      {{ orderStatusMeta[o.status]?.label ?? o.status }}
+                      {{ orderDisplayStatus(o).label }}
                     </span>
                   </td>
                 </tr>

@@ -98,21 +98,27 @@ export function buildLendingDemoExtraRepayments(count = 22) {
 
 export function buildLockedDemoExtraOrders(count = 24) {
   const products = [
-    { id: 'prod-1', name: 'USDT 定期理财', cur: 'USDT' },
-    { id: 'prod-2', name: 'BTC 锁仓挖矿', cur: 'BTC' },
-    { id: 'prod-3', name: 'ETH 流动性质押', cur: 'ETH' },
-    { id: 'prod-5', name: 'USDC 定期理财', cur: 'USDC' }
+    { id: 'prod-1', name: 'USDT 定期理财', cur: 'USDT', earlyRedeemEnabled: true },
+    { id: 'prod-2', name: 'BTC 锁仓挖矿', cur: 'BTC', earlyRedeemEnabled: true },
+    { id: 'prod-3', name: 'ETH 流动性质押', cur: 'ETH', earlyRedeemEnabled: false },
+    { id: 'prod-5', name: 'USDC 定期理财', cur: 'USDC', earlyRedeemEnabled: true }
+  ]
+  const scenarios = [
+    { status: LOCKED_ORDER_STATUS.LOCKED, daysRemaining: 4, suffix: '未到期可提前赎回' },
+    { status: LOCKED_ORDER_STATUS.LOCKED, daysRemaining: 0, suffix: '已到期待领取' },
+    { status: LOCKED_ORDER_STATUS.LOCKED, daysRemaining: 7, productIndex: 2, suffix: '未到期不可提前赎回' },
+    { status: LOCKED_ORDER_STATUS.COMPLETED, daysRemaining: 0, suffix: '到期已完成' },
+    { status: LOCKED_ORDER_STATUS.EARLY_REDEEMED, daysRemaining: 0, suffix: '提前赎回完成' }
   ]
   const out = []
   for (let i = 0; i < count; i++) {
-    const p = products[i % products.length]
-    const mod = i % 5
-    const locked = mod === 0 || mod === 1 || mod === 2
-    const status = locked
-      ? LOCKED_ORDER_STATUS.LOCKED
-      : mod === 3
-        ? LOCKED_ORDER_STATUS.COMPLETED
-        : LOCKED_ORDER_STATUS.EARLY_REDEEMED
+    const sc = scenarios[i % scenarios.length]
+    const p = products[sc.productIndex ?? (i % products.length)]
+    const locked = sc.status === LOCKED_ORDER_STATUS.LOCKED
+    const day = String((i % 28) + 1).padStart(2, '0')
+    const completeDay = String(((i + 3) % 20) + 1).padStart(2, '0')
+    const principal = p.cur === 'BTC' ? Number((0.02 + i * 0.001).toFixed(5)) : 1000 + i * 200
+    const earlyFee = sc.status === LOCKED_ORDER_STATUS.EARLY_REDEEMED ? principal * 0.04 : 0
     out.push({
       id: `ord-bulk-${2000 + i}`,
       userId: `user-bulk-${i}`,
@@ -120,15 +126,19 @@ export function buildLockedDemoExtraOrders(count = 24) {
       productId: p.id,
       productName: p.name,
       currency: p.cur,
-      amount: p.cur === 'BTC' ? Number((0.02 + i * 0.001).toFixed(5)) : 1000 + i * 200,
+      amount: sc.status === LOCKED_ORDER_STATUS.EARLY_REDEEMED
+        ? Number(Math.max(0, principal - earlyFee).toFixed(p.cur === 'BTC' ? 6 : 2))
+        : principal,
       lockDays: [5, 10, 20, 30][i % 4],
       dailyRate: 0.012 + (i % 6) * 0.003,
-      totalInterest: i * 2,
-      status,
-      lockedAt: `2026-03-${String((i % 28) + 1).padStart(2, '0')} 10:00:00`,
-      unlockAt: `2026-04-${String((i % 20) + 1).padStart(2, '0')} 10:00:00`,
-      completedAt: locked ? null : `2026-04-${String((i % 15) + 1).padStart(2, '0')} 11:00:00`,
-      daysRemaining: locked ? (i % 7) + 1 : 0
+      totalInterest: sc.status === LOCKED_ORDER_STATUS.EARLY_REDEEMED ? 0 : Number((i * 2.15).toFixed(p.cur === 'BTC' ? 6 : 2)),
+      status: sc.status,
+      lockedAt: `2026-03-${day} 10:00:00`,
+      unlockAt: `2026-04-${String(((i + 8) % 20) + 1).padStart(2, '0')} 10:00:00`,
+      completedAt: locked ? null : `2026-04-${completeDay} 11:00:00`,
+      daysRemaining: sc.daysRemaining,
+      earlyRedeemFeeApplied: earlyFee ? Number(earlyFee.toFixed(p.cur === 'BTC' ? 6 : 2)) : undefined,
+      demoScenario: sc.suffix
     })
   }
   return out
