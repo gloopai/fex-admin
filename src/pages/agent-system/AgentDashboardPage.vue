@@ -135,7 +135,7 @@ const settlementSubline = computed(() => {
       <h2 class="text-sm font-semibold text-white">快捷入口</h2>
       <ul class="mt-3 space-y-2 text-sm">
         <li>
-          <RouterLink class="text-emerald-300/95 hover:underline" to="/agent-system/data-query">数据查询 · 直邀用户与交易量</RouterLink>
+          <RouterLink class="text-emerald-300/95 hover:underline" to="/agent-system/data-query">数据查询 · 按日期与产品线检索业绩</RouterLink>
         </li>
         <li>
           <RouterLink class="text-emerald-300/95 hover:underline" to="/agent-system/daily-report">数据日报 · 按日交易与佣金</RouterLink>

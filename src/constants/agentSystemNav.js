@@ -1,7 +1,7 @@
 /** 代理系统侧栏导航（/agent-system） */
 export const AGENT_SYSTEM_NAV = [
   { key: 'dashboard', label: '概览', to: '/agent-system/dashboard', desc: '业绩与待办' },
-  { key: 'data', label: '数据查询', to: '/agent-system/data-query', desc: '直邀与交易' },
+  { key: 'data', label: '数据查询', to: '/agent-system/data-query', desc: '业绩检索' },
   { key: 'dailyReport', label: '数据日报', to: '/agent-system/daily-report', desc: '按日统计' },
   { key: 'verification', label: '认证审核', to: '/agent-system/verification-audit', desc: 'KYC 待办' },
   { key: 'team', label: '团队管理', to: '/agent-system/team', desc: '直邀成员' },
