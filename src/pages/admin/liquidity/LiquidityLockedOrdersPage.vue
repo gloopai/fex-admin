@@ -27,6 +27,18 @@ const fmtCurrency = (val, currency, decimals = 2) => {
 	if (currency === 'BTC' || currency === 'ETH') return `${fmtNumber(val, decimals === 2 ? 4 : decimals)} ${currency}`
 	return `${Number(val).toLocaleString()} ${currency}`
 }
+const adjustmentClass = (val) => {
+	const n = Number(val) || 0
+	if (n > 0) return 'text-emerald-600'
+	if (n < 0) return 'text-rose-600'
+	return 'text-slate-400'
+}
+const fmtSignedCurrency = (val, currency) => {
+	const n = Number(val) || 0
+	if (n === 0) return '-'
+	const sign = n > 0 ? '+' : '-'
+	return `${sign}${fmtCurrency(Math.abs(n), currency)}`
+}
 </script>
 
 <template>
@@ -57,7 +69,9 @@ const fmtCurrency = (val, currency, decimals = 2) => {
 							<th class="px-4 py-3 text-left font-medium">金额</th>
 							<th class="px-4 py-3 text-left font-medium">周期</th>
 							<th class="px-4 py-3 text-left font-medium">年化收益率</th>
-							<th class="px-4 py-3 text-left font-medium">预计收益</th>
+							<th class="px-4 py-3 text-left font-medium">基础预计收益</th>
+							<th class="px-4 py-3 text-left font-medium">已执行调整</th>
+							<th class="px-4 py-3 text-left font-medium">应发收益</th>
 							<th class="px-4 py-3 text-left font-medium">状态</th>
 							<th class="px-4 py-3 text-left font-medium">剩余天数</th>
 						</tr>
@@ -70,7 +84,11 @@ const fmtCurrency = (val, currency, decimals = 2) => {
 							<td class="px-4 py-3 font-medium text-slate-900">{{ fmtCurrency(order.amount, order.currency) }}</td>
 							<td class="px-4 py-3 text-slate-700">{{ order.lockDays }} 天</td>
 							<td class="px-4 py-3 font-medium text-emerald-600">{{ lockYieldAnnualPct(order).toFixed(2) }}%</td>
-							<td class="px-4 py-3 font-medium text-blue-600">{{ fmtCurrency(order.totalInterest, order.currency) }}</td>
+							<td class="px-4 py-3 font-medium text-slate-700">{{ fmtCurrency(order.baseInterest, order.currency) }}</td>
+							<td class="px-4 py-3 font-medium" :class="adjustmentClass(order.executedInterestAdjustment)">
+								{{ fmtSignedCurrency(order.executedInterestAdjustment, order.currency) }}
+							</td>
+							<td class="px-4 py-3 font-medium text-blue-600">{{ fmtCurrency(order.payableInterest, order.currency) }}</td>
 							<td class="px-4 py-3"><span class="rounded-md px-2 py-0.5 text-xs font-medium" :class="orderStatusMeta[order.status].class">{{ orderStatusMeta[order.status].label }}</span></td>
 							<td class="px-4 py-3 text-slate-700">{{ order.daysRemaining > 0 ? `${order.daysRemaining} 天` : '-' }}</td>
 						</tr>

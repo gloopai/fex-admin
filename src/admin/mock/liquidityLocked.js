@@ -122,7 +122,7 @@ const products = [
   }
 ]
 
-// 锁仓订单
+// 锁仓订单。收益字段由 createLockedOrdersMock 统一补齐，避免手工调整直接覆盖基础收益。
 const orders = [
   {
     id: 'ord-1001',
@@ -290,6 +290,47 @@ const adjustments = [
   }
 ]
 
+function roundByCurrency(value, currency) {
+  const n = Number(value) || 0
+  const decimals = currency === 'BTC' || currency === 'ETH' ? 8 : 4
+  return Number(n.toFixed(decimals))
+}
+
+function baseInterestForOrder(order) {
+  const amount = Number(order.amount) || 0
+  const dailyRate = Number(order.dailyRate) || 0
+  const days = Number(order.lockDays) || 0
+  return roundByCurrency(amount * (dailyRate / 100) * days, order.currency)
+}
+
+function executedInterestAdjustmentForOrder(orderId) {
+  return adjustments.reduce((sum, adj) => {
+    if (adj.orderId !== orderId || adj.status !== ADJUSTMENT_STATUS.EXECUTED) return sum
+    if (adj.type === ADJUSTMENT_TYPE.ADD_INTEREST) return sum + Number(adj.amount || 0)
+    if (adj.type === ADJUSTMENT_TYPE.DEDUCT_INTEREST) return sum - Number(adj.amount || 0)
+    return sum
+  }, 0)
+}
+
+function enrichOrderYield(order) {
+  const baseInterest = baseInterestForOrder(order)
+  const executedInterestAdjustment = roundByCurrency(
+    executedInterestAdjustmentForOrder(order.id),
+    order.currency
+  )
+  const payableInterest =
+    order.status === ORDER_STATUS.EARLY_REDEEMED
+      ? 0
+      : roundByCurrency(Math.max(0, baseInterest + executedInterestAdjustment), order.currency)
+  return {
+    ...order,
+    baseInterest,
+    executedInterestAdjustment,
+    payableInterest,
+    totalInterest: payableInterest
+  }
+}
+
 // 规则配置
 const rules = {
   positioning: {
@@ -332,6 +373,6 @@ const rules = {
 }
 
 export const createLockedProductsMock = () => clone(products)
-export const createLockedOrdersMock = () => clone(orders)
+export const createLockedOrdersMock = () => clone(orders.map(enrichOrderYield))
 export const createLockedAdjustmentsMock = () => clone(adjustments)
 export const createLockedRulesMock = () => clone(rules)
