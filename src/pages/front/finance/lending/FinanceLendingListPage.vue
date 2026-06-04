@@ -1,6 +1,5 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
-import { useRoute } from 'vue-router'
 import FrontPopupCard from '../../../../components/front/FrontPopupCard.vue'
 import FrontPopupCloseButton from '../../../../components/front/FrontPopupCloseButton.vue'
 import FrontPopupShell from '../../../../components/front/FrontPopupShell.vue'
@@ -38,7 +37,6 @@ import {
 import { FINANCE_FX as fx } from '../../../../constants/frontFinanceUi'
 
 const prefix = '/front'
-const route = useRoute()
 
 const LIST_PAGE_SIZE = 8
 
@@ -822,15 +820,6 @@ function submitBorrowApplication() {
                 </dd>
               </div>
             </dl>
-            <RouterLink
-              :to="{ path: `${prefix}/login`, query: { redirect: route.path } }"
-              :class="['mt-4 flex w-full items-center justify-center sm:mt-5', fx.btnSecondaryBlock]"
-            >
-              获取借款额度
-            </RouterLink>
-            <p class="mt-3 text-center text-[11px] leading-relaxed text-white/35">
-              授信额度与风控规则以平台公示及实际审核结果为准。
-            </p>
           </div>
         </aside>
       </div>
