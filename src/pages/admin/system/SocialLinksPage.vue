@@ -174,7 +174,7 @@ onMounted(() => {
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <h1 class="text-2xl font-bold text-slate-900">社媒配置</h1>
-        <p class="mt-1 text-sm text-slate-500">维护前台首页页脚展示的国内外社媒链接；只展示已启用的链接。</p>
+        <p class="mt-1 text-sm text-slate-500">维护前台首页页脚展示的国内外社媒链接；仅已启用的链接会在前台展示。</p>
       </div>
       <button type="button" class="ant-btn ant-btn-primary shrink-0" :disabled="loading" @click="openAdd">
         添加社媒
@@ -228,12 +228,12 @@ onMounted(() => {
                     row.enabled ? 'rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-800' : 'text-slate-500'
                   "
                 >
-                  {{ row.enabled ? '启用' : '停用' }}
+                  {{ row.enabled ? '已启用' : '已禁用' }}
                 </span>
               </td>
               <td class="whitespace-nowrap px-4 py-3 text-right">
                 <button type="button" class="text-slate-600 hover:underline" @click="toggleEnabled(row)">
-                  {{ row.enabled ? '停用' : '启用' }}
+                  {{ row.enabled ? '禁用' : '启用' }}
                 </button>
                 <span class="mx-2 text-slate-300">|</span>
                 <button type="button" class="text-indigo-600 hover:underline" @click="openEdit(row)">编辑</button>
@@ -308,7 +308,7 @@ onMounted(() => {
               </div>
               <label class="flex cursor-pointer items-center gap-2 pt-7 text-sm text-slate-700">
                 <input v-model="formEnabled" type="checkbox" class="rounded border-slate-300" />
-                启用展示
+                启用该社媒链接
               </label>
             </div>
           </div>

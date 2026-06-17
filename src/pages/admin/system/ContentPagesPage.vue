@@ -259,7 +259,7 @@ async function submitModal() {
     summary: formSummary.value.trim(),
     html: formHtml.value,
     enabled: formEnabled.value,
-    showInNav: formShowInNav.value,
+    showInNav: formParentId.value ? formShowInNav.value : true,
     sort: Number(formSort.value) || 0
   }
   const list = editingId.value
@@ -271,14 +271,6 @@ async function submitModal() {
   })
   await persist()
   closeModal()
-}
-
-async function toggleEnabled(row) {
-  config.value.contentPages = normalizeContentPages({
-    ...config.value.contentPages,
-    pages: rows.value.map((item) => (item.id === row.id ? { ...item, enabled: !item.enabled } : item))
-  })
-  await persist()
 }
 
 async function removeRow(row) {
@@ -356,22 +348,10 @@ onMounted(load)
               <td class="px-4 py-3 tabular-nums text-slate-600">{{ row.sort }}</td>
               <td class="px-4 py-3">
                 <span :class="row.enabled ? 'rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-800' : 'text-slate-500'">
-                  {{ row.enabled ? '启用' : '停用' }}
+                  {{ row.enabled ? '已启用' : '已禁用' }}
                 </span>
               </td>
               <td class="whitespace-nowrap px-4 py-3 text-right">
-                <RouterLink
-                  :to="pagePath(row)"
-                  target="_blank"
-                  class="text-slate-600 hover:underline"
-                >
-                  预览
-                </RouterLink>
-                <span class="mx-2 text-slate-300">|</span>
-                <button type="button" class="text-slate-600 hover:underline" @click="toggleEnabled(row)">
-                  {{ row.enabled ? '停用' : '启用' }}
-                </button>
-                <span class="mx-2 text-slate-300">|</span>
                 <button type="button" class="text-indigo-600 hover:underline" @click="openEdit(row)">编辑</button>
                 <span class="mx-2 text-slate-300">|</span>
                 <button type="button" class="text-red-600 hover:underline" @click="removeRow(row)">删除</button>
@@ -456,14 +436,20 @@ onMounted(load)
             </div>
 
             <aside class="h-fit space-y-4 rounded-xl border border-slate-200 bg-slate-50/70 p-4 lg:sticky lg:top-0">
-              <label class="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
-                <input v-model="formEnabled" type="checkbox" class="rounded border-slate-300" />
-                启用展示
-              </label>
-              <label class="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+              <div>
+                <label class="mb-1.5 block text-sm font-medium text-slate-700">状态</label>
+                <select v-model="formEnabled" class="ant-input w-full">
+                  <option :value="true">启用</option>
+                  <option :value="false">禁用</option>
+                </select>
+              </div>
+              <label v-if="formParentId" class="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
                 <input v-model="formShowInNav" type="checkbox" class="rounded border-slate-300" />
-                显示在子导航
+                在父级子导航中显示
               </label>
+              <p v-else class="rounded-lg bg-white p-3 text-xs leading-relaxed text-slate-500">
+                当前为一级页面。只有子页面需要配置是否显示在父级子导航中。
+              </p>
               <div>
                 <label class="mb-1.5 block text-sm font-medium text-slate-700">排序</label>
                 <input v-model.number="formSort" type="number" class="ant-input w-full" />
