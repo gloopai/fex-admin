@@ -681,7 +681,57 @@ const DEFAULT_RICH_CONTENT_PAGES = [
 
 const CONTENT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
-function normalizeRichContentPages(raw) {
+function normalizeContentPageLocalePayload(raw) {
+  const source = raw && typeof raw === 'object' ? raw : {}
+  return {
+    title: typeof source.title === 'string' ? source.title.trim() : '',
+    navTitle: typeof source.navTitle === 'string' ? source.navTitle.trim() : '',
+    summary: typeof source.summary === 'string' ? source.summary.trim() : '',
+    html: typeof source.html === 'string' ? source.html.trim() : ''
+  }
+}
+
+function hasContentPageLocalePayload(payload) {
+  const text = String(payload.html || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, '').trim()
+  return Boolean(payload.title || payload.navTitle || payload.summary || text)
+}
+
+function normalizeContentPageLocales(row, defaultLocale) {
+  const locales = {}
+  if (row?.locales && typeof row.locales === 'object' && !Array.isArray(row.locales)) {
+    Object.entries(row.locales).forEach(([code, value]) => {
+      const localeCode = String(code || '').trim()
+      if (!localeCode) return
+      const payload = normalizeContentPageLocalePayload(value)
+      if (hasContentPageLocalePayload(payload)) {
+        locales[localeCode] = payload
+      }
+    })
+  }
+  const legacyPayload = normalizeContentPageLocalePayload(row)
+  if (hasContentPageLocalePayload(legacyPayload)) {
+    locales[defaultLocale] = {
+      ...legacyPayload,
+      ...(locales[defaultLocale] || {})
+    }
+  }
+  return locales
+}
+
+function resolveContentPageLocale(locales, preferredLocale, fallbackSlug) {
+  const preferred = locales?.[preferredLocale]
+  const first = Object.values(locales || {}).find((item) => item?.title || item?.html)
+  const payload = preferred || first || {}
+  const title = payload.title || fallbackSlug
+  return {
+    title,
+    navTitle: payload.navTitle || title,
+    summary: payload.summary || '',
+    html: payload.html || ''
+  }
+}
+
+function normalizeRichContentPages(raw, defaultLocale = 'zh-CN') {
   const source = Array.isArray(raw) ? raw : DEFAULT_RICH_CONTENT_PAGES
   const seen = new Set()
   const stage = []
@@ -690,19 +740,20 @@ function normalizeRichContentPages(raw) {
     const slug = String(row.slug || '').trim().toLowerCase()
     if (!CONTENT_SLUG_PATTERN.test(slug) || seen.has(slug)) return
     seen.add(slug)
-    const title = typeof row.title === 'string' ? row.title.trim() : ''
-    const summary = typeof row.summary === 'string' ? row.summary.trim() : ''
-    const html = typeof row.html === 'string' ? row.html.trim() : ''
-    if (!title && !html) return
+    const locales = normalizeContentPageLocales(row, defaultLocale)
+    if (Object.keys(locales).length === 0) return
+    const display = resolveContentPageLocale(locales, defaultLocale, slug)
+    if (!display.title && !display.html) return
     stage.push({
       id: typeof row.id === 'string' && row.id.trim() ? row.id.trim() : newContentRowId('page'),
       slug,
-      title: title || slug,
-      navTitle: typeof row.navTitle === 'string' && row.navTitle.trim() ? row.navTitle.trim() : title || slug,
+      title: display.title || slug,
+      navTitle: display.navTitle || display.title || slug,
       parentId: typeof row.parentId === 'string' ? row.parentId.trim() : '',
       showInNav: typeof row.showInNav === 'boolean' ? row.showInNav : true,
-      summary,
-      html,
+      summary: display.summary,
+      html: display.html,
+      locales,
       enabled: typeof row.enabled === 'boolean' ? row.enabled : true,
       sort: Number.isFinite(Number(row.sort)) ? Math.round(Number(row.sort)) : index * 10
     })
@@ -719,7 +770,7 @@ function normalizeRichContentPages(raw) {
   })
 }
 
-export function normalizeContentPages(raw) {
+export function normalizeContentPages(raw, defaultLocale = 'zh-CN') {
   const base = {
     about: {
       enabled: true,
@@ -772,7 +823,7 @@ export function normalizeContentPages(raw) {
   const input = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {}
   const aboutRaw = input.about && typeof input.about === 'object' ? input.about : {}
   return {
-    pages: normalizeRichContentPages(input.pages),
+    pages: normalizeRichContentPages(input.pages, defaultLocale),
     about: {
       enabled: typeof aboutRaw.enabled === 'boolean' ? aboutRaw.enabled : base.about.enabled,
       title: typeof aboutRaw.title === 'string' && aboutRaw.title.trim() ? aboutRaw.title.trim() : base.about.title,

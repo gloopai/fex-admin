@@ -5,6 +5,7 @@ import {
   normalizeContentPages,
   siteConfigApi
 } from '../../../admin/mock/siteConfig'
+import { FRONT_LOCALE_CATALOG } from '../../../admin/constants/i18nCatalog'
 
 const config = ref({ ...DEFAULT_SITE_CONFIG })
 const loading = ref(true)
@@ -95,8 +96,36 @@ const formHtml = ref('')
 const formEnabled = ref(true)
 const formShowInNav = ref(true)
 const formSort = ref(0)
+const formLocales = ref({})
+const activeLocale = ref('zh-CN')
 
 const parentOptions = computed(() => rows.value.filter((row) => row.id !== editingId.value && !row.parentId))
+const localeOptions = computed(() => {
+  const custom = Array.isArray(config.value.customLocales) ? config.value.customLocales : []
+  const catalog = [...FRONT_LOCALE_CATALOG, ...custom]
+  const enabled = config.value.i18n?.enabledLocales?.length ? config.value.i18n.enabledLocales : ['zh-CN']
+  const order = config.value.i18n?.localeSortOrder || {}
+  return [...enabled]
+    .sort((a, b) => {
+      const da = Number.isFinite(order[a]) ? order[a] : 999999
+      const db = Number.isFinite(order[b]) ? order[b] : 999999
+      if (da !== db) return da - db
+      return catalog.findIndex((x) => x.code === a) - catalog.findIndex((x) => x.code === b)
+    })
+    .map((code) => {
+      const base = catalog.find((x) => x.code === code) || { code, label: code, short: code }
+      const override = config.value.i18n?.localeMetaOverrides?.[code] || {}
+      return {
+        code,
+        label: override.label || base.label || code,
+        short: override.short || base.short || code
+      }
+    })
+})
+const defaultLocale = computed(() => {
+  const code = config.value.i18n?.defaultLocale
+  return localeOptions.value.some((item) => item.code === code) ? code : localeOptions.value[0]?.code || 'zh-CN'
+})
 
 function pageById(id) {
   return rows.value.find((row) => row.id === id)
@@ -118,6 +147,10 @@ function resetForm() {
   formEnabled.value = true
   formShowInNav.value = true
   formSort.value = rows.value.length * 10
+  activeLocale.value = defaultLocale.value
+  formLocales.value = {
+    [activeLocale.value]: emptyLocalePayload()
+  }
 }
 
 async function openAdd() {
@@ -130,14 +163,13 @@ async function openAdd() {
 async function openEdit(row) {
   editingId.value = row.id
   formSlug.value = row.slug || ''
-  formTitle.value = row.title || ''
-  formNavTitle.value = row.navTitle || row.title || ''
   formParentId.value = row.parentId || ''
-  formSummary.value = row.summary || ''
-  formHtml.value = row.html || '<p></p>'
   formEnabled.value = row.enabled
   formShowInNav.value = row.showInNav !== false
   formSort.value = row.sort ?? 0
+  activeLocale.value = defaultLocale.value
+  formLocales.value = normalizeFormLocales(row)
+  loadLocaleFields(activeLocale.value)
   modalOpen.value = true
   await nextTick()
   syncEditor()
@@ -153,6 +185,92 @@ function syncEditor() {
 
 function pullEditorHtml() {
   formHtml.value = editorRef.value?.innerHTML || ''
+}
+
+function emptyLocalePayload() {
+  return {
+    title: '',
+    navTitle: '',
+    summary: '',
+    html: '<p></p>'
+  }
+}
+
+function hasLocalePayload(payload) {
+  const text = String(payload?.html || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, '').trim()
+  return Boolean(payload?.title?.trim() || payload?.navTitle?.trim() || payload?.summary?.trim() || text)
+}
+
+function normalizeFormLocales(row = {}) {
+  const source = row.locales && typeof row.locales === 'object' ? row.locales : {}
+  const out = {}
+  Object.entries(source).forEach(([code, value]) => {
+    if (!code) return
+    out[code] = {
+      ...emptyLocalePayload(),
+      title: typeof value?.title === 'string' ? value.title : '',
+      navTitle: typeof value?.navTitle === 'string' ? value.navTitle : '',
+      summary: typeof value?.summary === 'string' ? value.summary : '',
+      html: typeof value?.html === 'string' && value.html.trim() ? value.html : '<p></p>'
+    }
+  })
+  const fallbackCode = defaultLocale.value
+  if (!out[fallbackCode]) {
+    out[fallbackCode] = {
+      ...emptyLocalePayload(),
+      title: row.title || '',
+      navTitle: row.navTitle || row.title || '',
+      summary: row.summary || '',
+      html: row.html || '<p></p>'
+    }
+  }
+  return out
+}
+
+function saveActiveLocaleFields() {
+  pullEditorHtml()
+  formLocales.value = {
+    ...formLocales.value,
+    [activeLocale.value]: {
+      title: formTitle.value,
+      navTitle: formNavTitle.value,
+      summary: formSummary.value,
+      html: formHtml.value || '<p></p>'
+    }
+  }
+}
+
+function loadLocaleFields(code) {
+  const payload = formLocales.value[code] || emptyLocalePayload()
+  formTitle.value = payload.title || ''
+  formNavTitle.value = payload.navTitle || ''
+  formSummary.value = payload.summary || ''
+  formHtml.value = payload.html || '<p></p>'
+}
+
+async function switchLocale(code) {
+  if (!code || code === activeLocale.value) return
+  saveActiveLocaleFields()
+  activeLocale.value = code
+  if (!formLocales.value[code]) {
+    formLocales.value = {
+      ...formLocales.value,
+      [code]: emptyLocalePayload()
+    }
+  }
+  loadLocaleFields(code)
+  await nextTick()
+  syncEditor()
+}
+
+function localeCompletion(row) {
+  const locales = row.locales || {}
+  const total = localeOptions.value.length || 1
+  const done = localeOptions.value.filter((item) => {
+    const payload = locales[item.code]
+    return hasLocalePayload(payload)
+  }).length
+  return `${done}/${total}`
 }
 
 function exec(command, value = null) {
@@ -205,7 +323,7 @@ async function load() {
     const result = await siteConfigApi.getSiteConfig()
     if (result.success) {
       config.value = { ...DEFAULT_SITE_CONFIG, ...result.data }
-      config.value.contentPages = normalizeContentPages(config.value.contentPages)
+      config.value.contentPages = normalizeContentPages(config.value.contentPages, config.value.i18n?.defaultLocale || 'zh-CN')
     }
   } catch (e) {
     console.error(e)
@@ -230,9 +348,13 @@ async function persist() {
 }
 
 async function submitModal() {
-  pullEditorHtml()
+  saveActiveLocaleFields()
   const slug = formSlug.value.trim().toLowerCase()
-  const title = formTitle.value.trim()
+  const locales = Object.fromEntries(
+    Object.entries(formLocales.value).filter(([, payload]) => hasLocalePayload(payload))
+  )
+  const primaryLocale = locales[defaultLocale.value] || locales[activeLocale.value] || emptyLocalePayload()
+  const title = primaryLocale.title.trim()
   if (!title) {
     alert('请填写页面标题')
     return
@@ -254,10 +376,11 @@ async function submitModal() {
     id,
     slug,
     title,
-    navTitle: formNavTitle.value.trim() || title,
+    navTitle: primaryLocale.navTitle.trim() || title,
     parentId: formParentId.value,
-    summary: formSummary.value.trim(),
-    html: formHtml.value,
+    summary: primaryLocale.summary.trim(),
+    html: primaryLocale.html,
+    locales,
     enabled: formEnabled.value,
     showInNav: formParentId.value ? formShowInNav.value : true,
     sort: Number(formSort.value) || 0
@@ -268,7 +391,7 @@ async function submitModal() {
   config.value.contentPages = normalizeContentPages({
     ...config.value.contentPages,
     pages: list
-  })
+  }, defaultLocale.value)
   await persist()
   closeModal()
 }
@@ -332,6 +455,7 @@ onMounted(load)
               <th class="px-4 py-3 text-left font-medium text-slate-700">路径</th>
               <th class="px-4 py-3 text-left font-medium text-slate-700">排序</th>
               <th class="px-4 py-3 text-left font-medium text-slate-700">状态</th>
+              <th class="px-4 py-3 text-left font-medium text-slate-700">多语言</th>
               <th class="px-4 py-3 text-right font-medium text-slate-700">操作</th>
             </tr>
           </thead>
@@ -351,6 +475,7 @@ onMounted(load)
                   {{ row.enabled ? '已启用' : '已禁用' }}
                 </span>
               </td>
+              <td class="px-4 py-3 text-xs text-slate-600">{{ localeCompletion(row) }}</td>
               <td class="whitespace-nowrap px-4 py-3 text-right">
                 <button type="button" class="text-indigo-600 hover:underline" @click="openEdit(row)">编辑</button>
                 <span class="mx-2 text-slate-300">|</span>
@@ -358,7 +483,7 @@ onMounted(load)
               </td>
             </tr>
             <tr v-if="pagedRows.length === 0">
-              <td colspan="6" class="px-4 py-10 text-center text-sm text-slate-500">
+              <td colspan="7" class="px-4 py-10 text-center text-sm text-slate-500">
                 暂无匹配内容页。
               </td>
             </tr>
@@ -384,6 +509,25 @@ onMounted(load)
           <div class="min-h-0 flex-1 overflow-y-auto px-5 py-4">
             <div class="grid min-h-full gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
             <div class="flex min-h-0 flex-col gap-4">
+              <div class="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div class="min-w-0">
+                  <p class="text-sm font-medium text-slate-700">编辑语言</p>
+                  <p class="mt-1 text-xs text-slate-500">
+                    未配置字段回退默认语言；默认语言在「语言与区号」中设置。
+                  </p>
+                </div>
+                <div class="shrink-0 sm:w-64">
+                  <select
+                    :value="activeLocale"
+                    class="ant-input w-full"
+                    @change="switchLocale($event.target.value)"
+                  >
+                    <option v-for="loc in localeOptions" :key="loc.code" :value="loc.code">
+                      {{ loc.label }}{{ loc.code === defaultLocale ? '（默认）' : '' }} - {{ loc.code }}
+                    </option>
+                  </select>
+                </div>
+              </div>
               <div class="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label class="mb-1.5 block text-sm font-medium text-slate-700">页面标题</label>

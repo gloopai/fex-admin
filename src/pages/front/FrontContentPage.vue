@@ -2,20 +2,30 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { getSiteConfigSnapshot } from '../../admin/mock/siteConfig'
+import { resolveFrontLocalePreference, useFrontSiteI18n } from '../../composables/useFrontSiteI18n'
 
 const route = useRoute()
 const siteConfig = ref(getSiteConfigSnapshot())
+const currentLocale = ref(resolveFrontLocalePreference())
+const { defaultLocale } = useFrontSiteI18n()
 
 function refreshSiteConfig() {
   siteConfig.value = getSiteConfigSnapshot()
+  currentLocale.value = resolveFrontLocalePreference()
+}
+
+function refreshLocale() {
+  currentLocale.value = resolveFrontLocalePreference()
 }
 
 onMounted(() => {
   window.addEventListener('admin-site-config-updated', refreshSiteConfig)
+  window.addEventListener('front-locale-change', refreshLocale)
 })
 
 onUnmounted(() => {
   window.removeEventListener('admin-site-config-updated', refreshSiteConfig)
+  window.removeEventListener('front-locale-change', refreshLocale)
 })
 
 const slug = computed(() => String(route.params.slug || route.meta.contentSlug || '').trim().toLowerCase())
@@ -50,10 +60,25 @@ const activePage = computed(() => {
   return page.value
 })
 const headerPage = computed(() => parentPage.value || activePage.value)
+const headerContent = computed(() => localizedPage(headerPage.value))
+const activeContent = computed(() => localizedPage(activePage.value))
 
 function childPath(child) {
   const parent = parentPage.value
   return parent ? `/front/pages/${parent.slug}/${child.slug}` : `/front/pages/${child.slug}`
+}
+
+function localizedPage(row) {
+  if (!row) return null
+  const locales = row.locales || {}
+  const payload = locales[currentLocale.value] || locales[defaultLocale.value] || locales['zh-CN'] || {}
+  const title = payload.title || row.title || ''
+  return {
+    title,
+    navTitle: payload.navTitle || row.navTitle || title,
+    summary: payload.summary || row.summary || '',
+    html: payload.html || row.html || ''
+  }
 }
 </script>
 
@@ -65,10 +90,10 @@ function childPath(child) {
           Content
         </p>
         <h1 class="mt-3 text-2xl font-bold tracking-tight text-white sm:text-3xl md:text-4xl">
-          {{ headerPage?.title || '页面不存在' }}
+          {{ headerContent?.title || '页面不存在' }}
         </h1>
         <p class="mt-4 max-w-2xl text-sm leading-relaxed text-white/55 sm:text-base">
-          {{ headerPage?.summary || '该页面未配置或已被删除。' }}
+          {{ headerContent?.summary || '该页面未配置或已被删除。' }}
         </p>
       </div>
     </section>
@@ -87,14 +112,14 @@ function childPath(child) {
             class="whitespace-nowrap transition"
             :class="activePage?.id === child.id ? 'text-white' : 'text-white/45 hover:text-lime-300'"
           >
-            {{ child.navTitle || child.title }}
+            {{ localizedPage(child).navTitle || localizedPage(child).title }}
           </RouterLink>
         </div>
       </nav>
       <article
         v-if="activePage && activePage.enabled"
         class="content-body rounded-xl border border-white/[0.07] bg-white/[0.03] px-6 py-7 sm:px-8 md:px-10"
-        v-html="activePage.html"
+        v-html="activeContent?.html"
       />
       <div v-else class="rounded-xl border border-white/[0.07] bg-white/[0.03] p-8 text-center text-white/45">
         页面暂未启用。
