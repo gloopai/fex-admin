@@ -495,6 +495,15 @@ export const consoleRoutes = [
     }
   },
   {
+    path: 'system/content-pages',
+    name: 'system-content-pages',
+    component: () => import('../../pages/admin/system/ContentPagesPage.vue'),
+    meta: {
+      title: '系统设置 / 内容页配置',
+      desc: '维护前台关于、公司资质与白皮书页面内容。'
+    }
+  },
+  {
     path: 'system/sms-channels',
     name: 'system-sms-channels',
     component: () => import('../../pages/admin/system/SmsChannelsPage.vue'),

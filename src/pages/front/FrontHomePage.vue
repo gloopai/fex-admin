@@ -141,6 +141,14 @@ const footerColumns = [
       { label: '推荐计划', to: `${prefix}/personal-center/referral` },
       { label: '消息通知', to: `${prefix}/personal-center/notifications` }
     ]
+  },
+  {
+    title: '关于平台',
+    links: [
+      { label: '关于我们', to: `${prefix}/pages/about` },
+      { label: '公司资质', to: `${prefix}/pages/company-qualifications` },
+      { label: '白皮书', to: `${prefix}/pages/whitepaper` }
+    ]
   }
 ]
 </script>
@@ -564,7 +572,7 @@ const footerColumns = [
             </div>
           </div>
           <div
-            class="grid grid-cols-2 gap-8 sm:gap-6 md:grid-cols-4 lg:col-span-8"
+            class="grid grid-cols-2 gap-8 sm:gap-6 md:grid-cols-5 lg:col-span-8"
           >
             <div v-for="col in footerColumns" :key="col.title">
               <p class="text-[11px] font-semibold uppercase tracking-wider text-white/50">

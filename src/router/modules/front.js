@@ -23,6 +23,36 @@ export const frontDesktopRoutes = [
     meta: { title: '行情' }
   },
   {
+    path: 'about',
+    name: 'front-about',
+    component: () => import('../../pages/front/FrontContentPage.vue'),
+    meta: { title: '关于我们', contentSlug: 'about' }
+  },
+  {
+    path: 'company-qualifications',
+    name: 'front-company-qualifications',
+    component: () => import('../../pages/front/FrontContentPage.vue'),
+    meta: { title: '公司资质', contentSlug: 'company-qualifications' }
+  },
+  {
+    path: 'whitepaper',
+    name: 'front-whitepaper',
+    component: () => import('../../pages/front/FrontContentPage.vue'),
+    meta: { title: '白皮书', contentSlug: 'whitepaper' }
+  },
+  {
+    path: 'pages/:slug',
+    name: 'front-content-page',
+    component: () => import('../../pages/front/FrontContentPage.vue'),
+    meta: { title: '内容页' }
+  },
+  {
+    path: 'pages/:parentSlug/:slug',
+    name: 'front-content-child-page',
+    component: () => import('../../pages/front/FrontContentPage.vue'),
+    meta: { title: '内容页' }
+  },
+  {
     path: 'finance',
     component: () => import('../../layouts/FinanceShellLayout.vue'),
     meta: { title: '金融', requiresAuth: true },

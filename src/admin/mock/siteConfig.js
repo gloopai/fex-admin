@@ -520,6 +520,276 @@ const DEFAULT_SOCIAL_LINKS_DEMO = normalizeSocialLinksList([
   }
 ])
 
+function newContentRowId(prefix) {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`
+}
+
+function normalizeContentSections(raw) {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .map((row, index) => ({
+      id: typeof row?.id === 'string' && row.id.trim() ? row.id.trim() : newContentRowId('section'),
+      title: typeof row?.title === 'string' ? row.title.trim() : '',
+      body: typeof row?.body === 'string' ? row.body.trim() : '',
+      imageUrl: typeof row?.imageUrl === 'string' ? row.imageUrl.trim() : '',
+      sort: Number.isFinite(Number(row?.sort)) ? Math.round(Number(row.sort)) : index * 10
+    }))
+    .filter((row) => row.title || row.body || row.imageUrl)
+    .sort((a, b) => a.sort - b.sort)
+}
+
+function normalizeQualificationRows(raw) {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .map((row, index) => ({
+      id: typeof row?.id === 'string' && row.id.trim() ? row.id.trim() : newContentRowId('qual'),
+      name: typeof row?.name === 'string' ? row.name.trim() : '',
+      issuer: typeof row?.issuer === 'string' ? row.issuer.trim() : '',
+      certificateNo: typeof row?.certificateNo === 'string' ? row.certificateNo.trim() : '',
+      fileUrl: typeof row?.fileUrl === 'string' ? row.fileUrl.trim() : '',
+      fileType: row?.fileType === 'pdf' ? 'pdf' : 'image',
+      validFrom: typeof row?.validFrom === 'string' ? row.validFrom.trim() : '',
+      validTo: typeof row?.validTo === 'string' ? row.validTo.trim() : '',
+      enabled: typeof row?.enabled === 'boolean' ? row.enabled : true,
+      sort: Number.isFinite(Number(row?.sort)) ? Math.round(Number(row.sort)) : index * 10
+    }))
+    .filter((row) => row.name || row.fileUrl)
+    .sort((a, b) => a.sort - b.sort)
+}
+
+function normalizeWhitepaperRows(raw) {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .map((row, index) => ({
+      id: typeof row?.id === 'string' && row.id.trim() ? row.id.trim() : newContentRowId('whitepaper'),
+      title: typeof row?.title === 'string' ? row.title.trim() : '',
+      locale: typeof row?.locale === 'string' ? row.locale.trim() : 'zh-CN',
+      version: typeof row?.version === 'string' ? row.version.trim() : '',
+      fileUrl: typeof row?.fileUrl === 'string' ? row.fileUrl.trim() : '',
+      updatedAt: typeof row?.updatedAt === 'string' ? row.updatedAt.trim() : '',
+      enabled: typeof row?.enabled === 'boolean' ? row.enabled : true,
+      sort: Number.isFinite(Number(row?.sort)) ? Math.round(Number(row.sort)) : index * 10
+    }))
+    .filter((row) => row.title || row.fileUrl)
+    .sort((a, b) => a.sort - b.sort)
+}
+
+const DEFAULT_RICH_CONTENT_PAGES = [
+  {
+    id: 'page-about',
+    slug: 'about',
+    title: '关于我们',
+    navTitle: '关于我们',
+    parentId: '',
+    showInNav: true,
+    summary: '了解平台定位、系统能力与安全风控建设。',
+    html:
+      '<h2>平台定位</h2><p>CryptoX Pro 面向全球用户提供数字资产交易、金融增值与账户安全服务。</p><h2>安全与风控</h2><p>平台持续建设账户安全、风控审核、资金出入金策略与操作审计能力，降低异常风险。</p>',
+    enabled: true,
+    sort: 0
+  },
+  {
+    id: 'page-company-qualifications',
+    slug: 'company-qualifications',
+    title: '公司资质',
+    navTitle: '公司资质',
+    parentId: '',
+    showInNav: true,
+    summary: '平台资质、合规登记与相关证明文件集中展示。',
+    html:
+      '<h2>资质展示</h2><p>后台可在此维护资质说明、图片、PDF 链接或合规登记信息。当前为演示内容。</p>',
+    enabled: true,
+    sort: 10
+  },
+  {
+    id: 'page-member-register',
+    slug: 'member-register',
+    title: 'Member Register',
+    navTitle: 'Member Register',
+    parentId: 'page-company-qualifications',
+    showInNav: true,
+    summary: '会员登记资料与平台主体信息展示。',
+    html: '<h2>Member Register</h2><p>这里可维护会员登记文件、图片或 PDF 链接。当前为演示内容。</p>',
+    enabled: true,
+    sort: 0
+  },
+  {
+    id: 'page-articles-of-association',
+    slug: 'articles-of-association',
+    title: 'Articles of Association',
+    navTitle: 'Articles of Association',
+    parentId: 'page-company-qualifications',
+    showInNav: true,
+    summary: '公司章程文件展示。',
+    html: '<h2>Articles of Association</h2><p>这里可维护公司章程正文、扫描件或下载链接。</p>',
+    enabled: true,
+    sort: 10
+  },
+  {
+    id: 'page-meeting-minutes',
+    slug: 'meeting-minutes',
+    title: 'Meeting Minutes',
+    navTitle: 'Meeting Minutes',
+    parentId: 'page-company-qualifications',
+    showInNav: true,
+    summary: '会议纪要与授权资料展示。',
+    html: '<h2>Meeting Minutes</h2><p>这里可维护会议纪要、授权证明与相关附件。</p>',
+    enabled: true,
+    sort: 20
+  },
+  {
+    id: 'page-tax-id-document',
+    slug: 'tax-id-document',
+    title: 'Tax ID Document (EIN)',
+    navTitle: 'Tax ID Document (EIN)',
+    parentId: 'page-company-qualifications',
+    showInNav: true,
+    summary: '税号文件与登记证明展示。',
+    html: '<h2>Tax ID Document (EIN)</h2><p>这里可维护税号证明文件、图片或 PDF。</p>',
+    enabled: true,
+    sort: 30
+  },
+  {
+    id: 'page-employment-certificate',
+    slug: 'employment-certificate',
+    title: 'Employment Certificate',
+    navTitle: 'Employment Certificate',
+    parentId: 'page-company-qualifications',
+    showInNav: true,
+    summary: '雇佣证明与相关说明展示。',
+    html: '<h2>Employment Certificate</h2><p>这里可维护雇佣证明、人员授权证明或相关附件。</p>',
+    enabled: true,
+    sort: 40
+  },
+  {
+    id: 'page-whitepaper',
+    slug: 'whitepaper',
+    title: '白皮书',
+    navTitle: '白皮书',
+    parentId: '',
+    showInNav: true,
+    summary: '查看平台白皮书、版本更新与不同语言资料。',
+    html:
+      '<h2>CryptoX Pro 白皮书</h2><p>后台可上传或粘贴白皮书下载链接，也可以直接维护白皮书摘要、版本记录与多语言说明。</p>',
+    enabled: true,
+    sort: 20
+  }
+]
+
+const CONTENT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+
+function normalizeRichContentPages(raw) {
+  const source = Array.isArray(raw) ? raw : DEFAULT_RICH_CONTENT_PAGES
+  const seen = new Set()
+  const stage = []
+  source.forEach((row, index) => {
+    if (!row || typeof row !== 'object') return
+    const slug = String(row.slug || '').trim().toLowerCase()
+    if (!CONTENT_SLUG_PATTERN.test(slug) || seen.has(slug)) return
+    seen.add(slug)
+    const title = typeof row.title === 'string' ? row.title.trim() : ''
+    const summary = typeof row.summary === 'string' ? row.summary.trim() : ''
+    const html = typeof row.html === 'string' ? row.html.trim() : ''
+    if (!title && !html) return
+    stage.push({
+      id: typeof row.id === 'string' && row.id.trim() ? row.id.trim() : newContentRowId('page'),
+      slug,
+      title: title || slug,
+      navTitle: typeof row.navTitle === 'string' && row.navTitle.trim() ? row.navTitle.trim() : title || slug,
+      parentId: typeof row.parentId === 'string' ? row.parentId.trim() : '',
+      showInNav: typeof row.showInNav === 'boolean' ? row.showInNav : true,
+      summary,
+      html,
+      enabled: typeof row.enabled === 'boolean' ? row.enabled : true,
+      sort: Number.isFinite(Number(row.sort)) ? Math.round(Number(row.sort)) : index * 10
+    })
+  })
+  const validIds = new Set(stage.map((row) => row.id))
+  const out = stage.map((row) => ({
+    ...row,
+    parentId: row.parentId && validIds.has(row.parentId) && row.parentId !== row.id ? row.parentId : ''
+  }))
+  return out.sort((a, b) => {
+    if (a.parentId !== b.parentId) return a.parentId.localeCompare(b.parentId)
+    if (a.sort !== b.sort) return a.sort - b.sort
+    return a.slug.localeCompare(b.slug)
+  })
+}
+
+export function normalizeContentPages(raw) {
+  const base = {
+    about: {
+      enabled: true,
+      title: '关于我们',
+      summary: 'CryptoX Pro 面向全球用户提供数字资产交易、金融增值与账户安全服务。',
+      sections: [
+        {
+          id: 'about-platform',
+          title: '平台定位',
+          body: '我们围绕现货、合约、流动性、信用借贷等场景，提供一体化的交易与资产管理体验。',
+          imageUrl: '',
+          sort: 0
+        },
+        {
+          id: 'about-security',
+          title: '安全与风控',
+          body: '平台持续建设账户安全、风控审核、资金出入金策略与操作审计能力，降低异常风险。',
+          imageUrl: '',
+          sort: 10
+        }
+      ]
+    },
+    qualifications: [
+      {
+        id: 'qual-demo-msb',
+        name: 'MSB 合规登记（演示）',
+        issuer: 'Financial Services Authority',
+        certificateNo: 'MSB-DEMO-2026',
+        fileUrl: '',
+        fileType: 'image',
+        validFrom: '2026-01-01',
+        validTo: '2027-01-01',
+        enabled: true,
+        sort: 0
+      }
+    ],
+    whitepapers: [
+      {
+        id: 'whitepaper-demo-zh',
+        title: 'CryptoX Pro 白皮书',
+        locale: 'zh-CN',
+        version: 'v1.0',
+        fileUrl: '',
+        updatedAt: '2026-06-01',
+        enabled: true,
+        sort: 0
+      }
+    ]
+  }
+  const input = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {}
+  const aboutRaw = input.about && typeof input.about === 'object' ? input.about : {}
+  return {
+    pages: normalizeRichContentPages(input.pages),
+    about: {
+      enabled: typeof aboutRaw.enabled === 'boolean' ? aboutRaw.enabled : base.about.enabled,
+      title: typeof aboutRaw.title === 'string' && aboutRaw.title.trim() ? aboutRaw.title.trim() : base.about.title,
+      summary: typeof aboutRaw.summary === 'string' ? aboutRaw.summary.trim() : base.about.summary,
+      sections: normalizeContentSections(
+        Array.isArray(aboutRaw.sections) ? aboutRaw.sections : base.about.sections
+      )
+    },
+    qualifications: normalizeQualificationRows(
+      Array.isArray(input.qualifications) ? input.qualifications : base.qualifications
+    ),
+    whitepapers: normalizeWhitepaperRows(
+      Array.isArray(input.whitepapers) ? input.whitepapers : base.whitepapers
+    )
+  }
+}
+
 const DEMO_CUSTOM_LOCALES = [
   {
     code: 'vi',
@@ -619,7 +889,9 @@ export const DEFAULT_SITE_CONFIG = {
   /** 短信通道列表（同一国际区号可配置多条；演示存本地，生产应由后端保管密钥） */
   smsChannels: DEFAULT_SMS_CHANNELS_DEMO,
   /** 社媒链接（前台首页页脚展示启用项） */
-  socialLinks: DEFAULT_SOCIAL_LINKS_DEMO
+  socialLinks: DEFAULT_SOCIAL_LINKS_DEMO,
+  /** 前台公开内容页：关于、资质、白皮书 */
+  contentPages: normalizeContentPages()
 }
 
 function readStored() {
@@ -782,6 +1054,7 @@ export function normalizeSiteConfig(raw) {
   )
   if ('smsChannelsByDial' in merged) delete merged.smsChannelsByDial
   merged.socialLinks = normalizeSocialLinksList(merged.socialLinks)
+  merged.contentPages = normalizeContentPages(merged.contentPages)
   const legacy = merged.logoUrl
   if (typeof legacy === 'string' && legacy && !merged.logoUrlPc && !merged.logoUrlMobile) {
     merged.logoUrlPc = legacy
@@ -825,6 +1098,8 @@ export const siteConfigApi = {
             : prev.smtpAccounts
         const socialLinksPayload =
           config.socialLinks !== undefined ? normalizeSocialLinksList(config.socialLinks) : prev.socialLinks
+        const contentPagesPayload =
+          config.contentPages !== undefined ? normalizeContentPages(config.contentPages) : prev.contentPages
         memory = normalizeSiteConfig({
           ...DEFAULT_SITE_CONFIG,
           siteName: String(config.siteName ?? '').trim() || DEFAULT_SITE_CONFIG.siteName,
@@ -873,7 +1148,8 @@ export const siteConfigApi = {
           smtpAccounts: smtpAccountsPayload,
           i18n: normalizeI18n(config.i18n !== undefined ? config.i18n : prev.i18n, normalizeCustomLocales(config.customLocales)),
           smsChannels: smsChannelsPayload,
-          socialLinks: socialLinksPayload
+          socialLinks: socialLinksPayload,
+          contentPages: contentPagesPayload
         })
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(memory))

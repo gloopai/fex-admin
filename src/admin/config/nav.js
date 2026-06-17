@@ -142,6 +142,7 @@ export const navTree = [
     children: [
       { title: '站点配置', path: '/admin/system/site-config' },
       { title: '社媒配置', path: '/admin/system/social-links' },
+      { title: '内容页配置', path: '/admin/system/content-pages' },
       { title: '短信通道', path: '/admin/system/sms-channels' },
       { title: '邮件服务 (SMTP)', path: '/admin/system/smtp-settings' },
       { title: '语言与区号', path: '/admin/system/locale-settings' },
