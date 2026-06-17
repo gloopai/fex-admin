@@ -310,6 +310,13 @@ function newSmtpAccountId() {
   return `smtp_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`
 }
 
+function newSocialLinkId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return `social_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`
+}
+
 /** SMTP 单条账户结构（演示持久化；生产环境密码应由后端加密存储） */
 export const DEFAULT_SMTP_CONFIG = {
   /** 是否启用该账户发信 */
@@ -440,6 +447,79 @@ const DEFAULT_SMTP_ACCOUNTS_DEMO = normalizeSmtpAccountsList(
   undefined
 )
 
+function normalizeSocialUrl(url) {
+  const text = typeof url === 'string' ? url.trim() : ''
+  if (!text) return ''
+  if (/^https?:\/\//i.test(text)) return text
+  return ''
+}
+
+export function normalizeSocialLinksList(raw) {
+  const out = []
+  if (!Array.isArray(raw)) return out
+  for (const row of raw) {
+    if (!row || typeof row !== 'object') continue
+    const name = typeof row.name === 'string' ? row.name.trim() : ''
+    const url = normalizeSocialUrl(row.url)
+    if (!name && !url) continue
+    const sortNum = Number(row.sort)
+    out.push({
+      id:
+        typeof row.id === 'string' && row.id.trim()
+          ? row.id.trim()
+          : newSocialLinkId(),
+      name: name || '未命名社媒',
+      url,
+      iconUrl: typeof row.iconUrl === 'string' ? row.iconUrl.trim() : '',
+      enabled: typeof row.enabled === 'boolean' ? row.enabled : true,
+      sort: Number.isFinite(sortNum) ? Math.round(sortNum) : out.length * 10
+    })
+  }
+  return out.sort((a, b) => {
+    if (a.sort !== b.sort) return a.sort - b.sort
+    return a.name.localeCompare(b.name)
+  })
+}
+
+const DEFAULT_SOCIAL_LINKS_DEMO = normalizeSocialLinksList([
+  {
+    id: 'demo-social-x',
+    name: 'X / Twitter',
+    url: 'https://x.com/cryptoxpro',
+    iconUrl:
+      'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%23000%22/%3E%3Cpath fill=%22%23fff%22 d=%22M18.5 14.2 27 4h-2.1l-7.4 8.8L11.6 4H4.8l8.9 13.1L4.8 28h2.1l7.7-9.2 6.2 9.2h6.8l-9.1-13.8Zm-2.7 3.2-.9-1.3L7.7 5.6h2.9l5.8 8.5.9 1.3L24.6 26h-2.9l-5.9-8.6Z%22/%3E%3C/svg%3E',
+    enabled: true,
+    sort: 0
+  },
+  {
+    id: 'demo-social-telegram',
+    name: 'Telegram',
+    url: 'https://t.me/cryptoxpro',
+    iconUrl:
+      'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%2326a5e4%22/%3E%3Cpath fill=%22%23fff%22 d=%22M25.8 7.5 21.9 25c-.3 1.2-1 1.5-2.1.9l-5.8-4.3-2.8 2.7c-.3.3-.6.6-1.2.6l.4-5.9L21.1 9.4c.5-.4-.1-.7-.7-.3L7.2 17.4l-5.7-1.8c-1.2-.4-1.2-1.2.3-1.8L24.1 5.2c1-.4 1.9.2 1.7 2.3Z%22/%3E%3C/svg%3E',
+    enabled: true,
+    sort: 10
+  },
+  {
+    id: 'demo-social-wechat',
+    name: '微信公众号',
+    url: 'https://example.com/wechat',
+    iconUrl:
+      'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%2307c160%22/%3E%3Cpath fill=%22%23fff%22 d=%22M13.5 8.2c-5 0-9 3.2-9 7.2 0 2.3 1.3 4.3 3.4 5.6l-.8 2.5 3-1.5c1 .3 2.1.5 3.3.5h.5c-.3-.8-.5-1.6-.5-2.5 0-3.8 3.6-6.8 8.1-6.8h.4c-1.1-2.9-4.4-5-8.4-5Zm-3 4.4a1.1 1.1 0 1 1 0 2.2 1.1 1.1 0 0 1 0-2.2Zm6 0a1.1 1.1 0 1 1 0 2.2 1.1 1.1 0 0 1 0-2.2Zm5.3 2.1c-3.8 0-6.9 2.5-6.9 5.5s3.1 5.5 6.9 5.5c.9 0 1.8-.1 2.6-.4l2.4 1.2-.7-2c1.6-1 2.6-2.6 2.6-4.3 0-3-3.1-5.5-6.9-5.5Zm-2.2 3.3a.9.9 0 1 1 0 1.8.9.9 0 0 1 0-1.8Zm4.6 0a.9.9 0 1 1 0 1.8.9.9 0 0 1 0-1.8Z%22/%3E%3C/svg%3E',
+    enabled: true,
+    sort: 20
+  },
+  {
+    id: 'demo-social-discord',
+    name: 'Discord',
+    url: 'https://discord.gg/cryptoxpro',
+    iconUrl:
+      'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%235865f2%22/%3E%3Cpath fill=%22%23fff%22 d=%22M23.6 9.4A18 18 0 0 0 19.2 8l-.2.4c1.6.4 2.4 1 2.4 1s-2.1-1.1-5.4-1.1-5.4 1.1-5.4 1.1.8-.6 2.4-1l-.2-.4c-1.5.3-3 .8-4.4 1.4-2.8 4.2-3.6 8.2-3.2 12.1 1.9 1.4 3.8 2.2 5.6 2.7l1.2-1.9c-.7-.3-1.4-.6-2-1 0 0 .2.1.5.2 3.8 1.8 8 1.8 11.7 0 .3-.1.5-.2.5-.2-.6.4-1.3.8-2 1l1.2 1.9c1.8-.5 3.7-1.3 5.6-2.7.5-4.5-.8-8.4-3.2-12.1ZM12.7 19.1c-1.1 0-2-1-2-2.2s.9-2.2 2-2.2 2 1 2 2.2-.9 2.2-2 2.2Zm6.6 0c-1.1 0-2-1-2-2.2s.9-2.2 2-2.2 2 1 2 2.2-.9 2.2-2 2.2Z%22/%3E%3C/svg%3E',
+    enabled: false,
+    sort: 30
+  }
+])
+
 const DEMO_CUSTOM_LOCALES = [
   {
     code: 'vi',
@@ -537,7 +617,9 @@ export const DEFAULT_SITE_CONFIG = {
     }
   },
   /** 短信通道列表（同一国际区号可配置多条；演示存本地，生产应由后端保管密钥） */
-  smsChannels: DEFAULT_SMS_CHANNELS_DEMO
+  smsChannels: DEFAULT_SMS_CHANNELS_DEMO,
+  /** 社媒链接（前台首页页脚展示启用项） */
+  socialLinks: DEFAULT_SOCIAL_LINKS_DEMO
 }
 
 function readStored() {
@@ -699,6 +781,7 @@ export function normalizeSiteConfig(raw) {
     merged.smsChannelsByDial
   )
   if ('smsChannelsByDial' in merged) delete merged.smsChannelsByDial
+  merged.socialLinks = normalizeSocialLinksList(merged.socialLinks)
   const legacy = merged.logoUrl
   if (typeof legacy === 'string' && legacy && !merged.logoUrlPc && !merged.logoUrlMobile) {
     merged.logoUrlPc = legacy
@@ -740,6 +823,8 @@ export const siteConfigApi = {
           config.smtpAccounts !== undefined
             ? normalizeSmtpAccountsList(config.smtpAccounts, true, config.smtp)
             : prev.smtpAccounts
+        const socialLinksPayload =
+          config.socialLinks !== undefined ? normalizeSocialLinksList(config.socialLinks) : prev.socialLinks
         memory = normalizeSiteConfig({
           ...DEFAULT_SITE_CONFIG,
           siteName: String(config.siteName ?? '').trim() || DEFAULT_SITE_CONFIG.siteName,
@@ -787,7 +872,8 @@ export const siteConfigApi = {
               : prev.dialSortOrder,
           smtpAccounts: smtpAccountsPayload,
           i18n: normalizeI18n(config.i18n !== undefined ? config.i18n : prev.i18n, normalizeCustomLocales(config.customLocales)),
-          smsChannels: smsChannelsPayload
+          smsChannels: smsChannelsPayload,
+          socialLinks: socialLinksPayload
         })
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(memory))

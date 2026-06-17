@@ -1,8 +1,34 @@
 <script setup>
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { getSiteConfigSnapshot } from '../../admin/mock/siteConfig'
 import { getFrontTradeDefaultPath } from '../../constants/frontNav'
 
 const prefix = '/front'
 const tradeDefault = getFrontTradeDefaultPath(prefix)
+const siteConfig = ref(getSiteConfigSnapshot())
+
+const socialLinks = computed(() =>
+  (siteConfig.value.socialLinks || [])
+    .filter((row) => row.enabled && row.name && row.url)
+    .sort((a, b) => {
+      const sa = Number(a.sort) || 0
+      const sb = Number(b.sort) || 0
+      if (sa !== sb) return sa - sb
+      return a.name.localeCompare(b.name)
+    })
+)
+
+function refreshSiteConfig() {
+  siteConfig.value = getSiteConfigSnapshot()
+}
+
+onMounted(() => {
+  window.addEventListener('admin-site-config-updated', refreshSiteConfig)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('admin-site-config-updated', refreshSiteConfig)
+})
 
 const brandValues = ['安全稳定', '专业撮合', '快捷下单', '透明费率']
 
@@ -504,6 +530,28 @@ const footerColumns = [
             <p class="mt-3 max-w-sm text-[13px] leading-relaxed text-white/45 sm:text-sm">
               面向全球用户的数字资产交易平台。现货、合约与账户安全能力持续迭代；演示环境数据仅供参考。
             </p>
+            <div v-if="socialLinks.length" class="mt-5">
+              <p class="text-[11px] font-semibold uppercase tracking-wider text-white/45">社媒</p>
+              <div class="mt-3 flex flex-wrap gap-2">
+                <a
+                  v-for="item in socialLinks"
+                  :key="item.id"
+                  :href="item.url"
+                  target="_blank"
+                  rel="noreferrer"
+                  class="inline-flex max-w-full items-center gap-2 rounded-md border border-white/[0.07] bg-white/[0.03] px-3 py-2 text-[12px] font-medium text-white/55 transition hover:border-lime-400/20 hover:bg-lime-400/[0.07] hover:text-lime-200 sm:text-[13px]"
+                >
+                  <span
+                    class="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded bg-white/[0.06] text-[10px] font-bold uppercase text-lime-300"
+                    aria-hidden="true"
+                  >
+                    <img v-if="item.iconUrl" :src="item.iconUrl" alt="" class="h-full w-full object-cover" />
+                    <span v-else>{{ item.name.slice(0, 1) }}</span>
+                  </span>
+                  <span class="truncate">{{ item.name }}</span>
+                </a>
+              </div>
+            </div>
             <div
               class="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-white/[0.06] pt-5 text-[11px] text-white/35 sm:text-xs"
             >

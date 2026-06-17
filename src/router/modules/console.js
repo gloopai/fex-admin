@@ -486,6 +486,15 @@ export const consoleRoutes = [
     }
   },
   {
+    path: 'system/social-links',
+    name: 'system-social-links',
+    component: () => import('../../pages/admin/system/SocialLinksPage.vue'),
+    meta: {
+      title: '系统设置 / 社媒配置',
+      desc: '维护前台展示的国内外社媒链接。'
+    }
+  },
+  {
     path: 'system/sms-channels',
     name: 'system-sms-channels',
     component: () => import('../../pages/admin/system/SmsChannelsPage.vue'),
