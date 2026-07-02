@@ -268,13 +268,33 @@ onMounted(() => {
         <!-- 登录设置 -->
         <div v-show="activeTab === 'login'" class="space-y-4">
           <p class="text-sm text-slate-500">
-            配置手机号登录、钱包登录、图形验证码与邀请码等。
+            配置邮箱登录、手机号登录、钱包登录、图形验证码与邀请码等。
           </p>
 
           <div class="flex items-start justify-between gap-4 rounded-lg border border-slate-100 bg-slate-50/80 px-4 py-3">
             <div class="min-w-0 flex-1">
+              <p class="text-sm font-medium text-slate-900">邮箱登录</p>
+              <p class="mt-1 text-xs text-slate-500">关闭后前台隐藏邮箱登录与邮箱注册；若邮箱和手机号都关闭，登录页只显示钱包登录按钮。</p>
+            </div>
+            <button
+              type="button"
+              :class="config.emailLoginEnabled ? 'bg-blue-600' : 'bg-slate-200'"
+              class="relative mt-0.5 inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none"
+              :aria-pressed="config.emailLoginEnabled"
+              aria-label="切换邮箱登录"
+              @click="config.emailLoginEnabled = !config.emailLoginEnabled"
+            >
+              <span
+                :class="config.emailLoginEnabled ? 'translate-x-5' : 'translate-x-0'"
+                class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+              />
+            </button>
+          </div>
+
+          <div class="flex items-start justify-between gap-4 rounded-lg border border-slate-100 bg-slate-50/80 px-4 py-3">
+            <div class="min-w-0 flex-1">
               <p class="text-sm font-medium text-slate-900">手机号码登录</p>
-              <p class="mt-1 text-xs text-slate-500">关闭后前台隐藏手机号登录与手机号注册，仅保留邮箱方式。</p>
+              <p class="mt-1 text-xs text-slate-500">关闭后前台隐藏手机号登录与手机号注册；若邮箱和手机号都关闭，登录页只显示钱包登录按钮。</p>
             </div>
             <button
               type="button"
@@ -295,7 +315,7 @@ onMounted(() => {
             <div class="min-w-0 flex-1">
               <p class="text-sm font-medium text-slate-900">区块链钱包登录</p>
               <p class="mt-1 text-xs text-slate-500">
-                关闭后，前台登录页将隐藏 MetaMask、WalletConnect 等钱包入口，仅保留邮箱登录。
+                关闭后，前台登录页将隐藏 MetaMask、WalletConnect 等钱包入口。
               </p>
             </div>
             <button
@@ -514,4 +534,3 @@ onMounted(() => {
     </div>
   </div>
 </template>
-

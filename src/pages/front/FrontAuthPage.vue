@@ -186,7 +186,8 @@ function maybeStartLoginSecondFactor() {
 
 const walletProviders = computed(() => {
   const c = getSiteConfigSnapshot()
-  if (c.walletLoginEnabled === false) return []
+  const credentialsDisabled = c.emailLoginEnabled === false && c.phoneLoginEnabled === false
+  if (c.walletLoginEnabled === false && !credentialsDisabled) return []
   const rows = Array.isArray(c.walletLoginProviders) ? c.walletLoginProviders : []
   const byKey = new Map(rows.map((r) => [r.key, r]))
   return FRONT_WALLET_LOGIN_PROVIDERS.filter((d) => {
@@ -201,6 +202,7 @@ const walletProviders = computed(() => {
 })
 
 const walletLoginEnabled = ref(true)
+const emailLoginEnabled = ref(true)
 const phoneLoginEnabled = ref(true)
 const loginCaptchaEnabled = ref(false)
 const inviteCodeRequired = ref(false)
@@ -212,8 +214,10 @@ const showCaptchaBlock = computed(
 
 function refreshSiteAuthSettings() {
   const c = getSiteConfigSnapshot()
+  emailLoginEnabled.value = c.emailLoginEnabled !== false
   phoneLoginEnabled.value = c.phoneLoginEnabled !== false
-  walletLoginEnabled.value = c.walletLoginEnabled !== false
+  walletLoginEnabled.value =
+    (c.emailLoginEnabled === false && c.phoneLoginEnabled === false) || c.walletLoginEnabled !== false
   loginCaptchaEnabled.value = c.loginCaptchaEnabled === true
   inviteCodeRequired.value = c.inviteCodeRequired === true
   if (showCaptchaBlock.value) {
@@ -231,12 +235,36 @@ const onSiteConfigStorage = (e) => {
 
 const onAdminSiteConfigUpdated = () => refreshSiteAuthSettings()
 
-watch(phoneLoginEnabled, (on) => {
-  if (!on) {
-    loginMode.value = 'email'
-    registerMode.value = 'email'
+const passwordLoginEnabled = computed(() => emailLoginEnabled.value || phoneLoginEnabled.value)
+const walletOnlyLogin = computed(
+  () => !isRegister.value && !emailLoginEnabled.value && !phoneLoginEnabled.value
+)
+const showRegisterModeTabs = computed(
+  () => isRegister.value && emailLoginEnabled.value && phoneLoginEnabled.value
+)
+const showLoginModeTabs = computed(
+  () => !isRegister.value && emailLoginEnabled.value && phoneLoginEnabled.value
+)
+const showWalletLoginButton = computed(
+  () =>
+    !isRegister.value &&
+    walletLoginEnabled.value &&
+    walletProviders.value.length > 0
+)
+
+function syncAuthModesToEnabledMethods() {
+  if (emailLoginEnabled.value) {
+    if (loginMode.value !== 'phone' || !phoneLoginEnabled.value) loginMode.value = 'email'
+    if (registerMode.value !== 'phone' || !phoneLoginEnabled.value) registerMode.value = 'email'
+    return
   }
-})
+  if (phoneLoginEnabled.value) {
+    loginMode.value = 'phone'
+    registerMode.value = 'phone'
+  }
+}
+
+watch([emailLoginEnabled, phoneLoginEnabled], syncAuthModesToEnabledMethods, { immediate: true })
 
 onMounted(() => {
   refreshSiteAuthSettings()
@@ -313,6 +341,9 @@ watch(
 
 const title = computed(() => (isRegister.value ? '创建账户' : '欢迎回来'))
 const subtitle = computed(() => {
+  if (walletOnlyLogin.value) {
+    return '使用钱包连接完成登录'
+  }
   if (isRegister.value) {
     return registerMode.value === 'phone'
       ? '获取短信验证码后，填写手机号与密码完成注册'
@@ -364,6 +395,10 @@ async function onSubmit() {
   try {
     await Promise.resolve()
     auth.ensureHydrated()
+    if (walletOnlyLogin.value) {
+      walletPickerOpen.value = true
+      return
+    }
     if (!isRegister.value && loginMode.value === 'phone') {
       const r = auth.loginWithPhone(phoneDial.value, phoneNational.value, password.value)
       if (!r.ok) {
@@ -387,6 +422,10 @@ async function onSubmit() {
         return
       }
       navigateAfterAuth()
+      return
+    }
+    if (!passwordLoginEnabled.value) {
+      errorMsg.value = '当前仅支持钱包登录'
       return
     }
     const r = isRegister.value
@@ -473,7 +512,7 @@ async function onPickWalletProvider(providerKey) {
         </div>
 
         <div
-          v-if="isRegister && phoneLoginEnabled"
+          v-if="showRegisterModeTabs"
           class="mb-4 flex rounded-xl border border-white/[0.07] bg-black/40 p-1 shadow-inner shadow-black/20"
           role="tablist"
           aria-label="注册方式"
@@ -509,7 +548,7 @@ async function onPickWalletProvider(providerKey) {
         </div>
 
         <div
-          v-if="!isRegister && phoneLoginEnabled"
+          v-if="showLoginModeTabs"
           class="mb-4 flex rounded-xl border border-white/[0.07] bg-black/40 p-1 shadow-inner shadow-black/20"
           role="tablist"
           aria-label="登录方式"
@@ -552,7 +591,7 @@ async function onPickWalletProvider(providerKey) {
           {{ errorMsg }}
         </p>
 
-        <form class="space-y-2" @submit.prevent="onSubmit">
+        <form v-if="!walletOnlyLogin && passwordLoginEnabled" class="space-y-2" @submit.prevent="onSubmit">
           <!-- 注册：邮箱与手机互斥；区号按钮与输入框均为 2.75rem 高，切换时高度一致，无需额外 min-h（避免块内留白） -->
           <div v-if="isRegister">
             <div v-if="registerMode === 'email'">
@@ -787,8 +826,8 @@ async function onPickWalletProvider(providerKey) {
           </button>
         </form>
 
-        <template v-if="!isRegister && walletLoginEnabled && loginMode === 'email' && walletProviders.length">
-          <div class="relative my-3">
+        <template v-if="showWalletLoginButton">
+          <div v-if="!walletOnlyLogin" class="relative my-3">
             <div class="absolute inset-0 flex items-center" aria-hidden="true">
               <div class="w-full border-t border-white/[0.06]"></div>
             </div>
@@ -821,7 +860,7 @@ async function onPickWalletProvider(providerKey) {
         </template>
 
         <p
-          v-if="!isRegister"
+          v-if="!isRegister && passwordLoginEnabled"
           class="mt-5 text-center text-sm text-white/45"
         >
           还没有账号？

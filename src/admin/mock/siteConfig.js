@@ -884,6 +884,8 @@ export const DEFAULT_SITE_CONFIG = {
   loginCaptchaEnabled: false,
   /** 登录与注册是否必填邀请码 */
   inviteCodeRequired: false,
+  /** 是否在前台开放邮箱登录与邮箱注册 */
+  emailLoginEnabled: true,
   /** 是否在前台开放手机号登录与手机号注册；关闭后仅保留邮箱登录/注册，区号列表仍仅 +86 */
   phoneLoginEnabled: true,
   /** 手机登录/安全绑定可选区号（phoneLoginEnabled 为 true 时生效）；顺序由 dialSortOrder 决定 */
@@ -1078,6 +1080,9 @@ export function normalizeSiteConfig(raw) {
     merged.phoneLoginEnabled = DEFAULT_SITE_CONFIG.phoneLoginEnabled
   }
   if ('loginSettingsEnabled' in merged) delete merged.loginSettingsEnabled
+  if (typeof merged.emailLoginEnabled !== 'boolean') {
+    merged.emailLoginEnabled = DEFAULT_SITE_CONFIG.emailLoginEnabled
+  }
   merged.languageSettingsEnabled =
     typeof merged.languageSettingsEnabled === 'boolean'
       ? merged.languageSettingsEnabled
@@ -1174,6 +1179,10 @@ export const siteConfigApi = {
             typeof config.inviteCodeRequired === 'boolean'
               ? config.inviteCodeRequired
               : DEFAULT_SITE_CONFIG.inviteCodeRequired,
+          emailLoginEnabled:
+            typeof config.emailLoginEnabled === 'boolean'
+              ? config.emailLoginEnabled
+              : DEFAULT_SITE_CONFIG.emailLoginEnabled,
           phoneLoginEnabled:
             typeof config.phoneLoginEnabled === 'boolean'
               ? config.phoneLoginEnabled
