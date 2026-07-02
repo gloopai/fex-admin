@@ -116,7 +116,7 @@ function onSubmit() {
     submitError.value = '请输入有效的提币数量'
     return
   }
-  const maxWd = Number(selectedAsset.value.withdrawable ?? selectedAsset.value.balance)
+  const maxWd = parseAmountNum(selectedAsset.value.withdrawable ?? selectedAsset.value.balance)
   if (Number.isFinite(maxWd) && amt > maxWd) {
     submitError.value = '提币数量不能超过可提币数量'
     return

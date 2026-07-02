@@ -2,7 +2,10 @@
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import FrontStrokeIcon from '../../components/front/FrontStrokeIcon.vue'
-import { FRONT_DEPOSIT_DEFAULT_SYMBOL_LOWER } from '../../constants/frontAssetCenterDemo'
+import {
+  FRONT_ASSET_OVERVIEW,
+  FRONT_DEPOSIT_DEFAULT_SYMBOL_LOWER
+} from '../../constants/frontAssetCenterDemo'
 
 const route = useRoute()
 const prefix = '/front'
@@ -12,9 +15,9 @@ const convertPath = `${prefix}/personal-center/assets/convert`
 
 /** 示例估值，对接接口后替换 */
 const hideBalance = ref(false)
-const totalBtc = ref('0')
-const totalUsd = ref('0')
-const todayPnl = ref('0')
+const totalBtc = FRONT_ASSET_OVERVIEW.totalBtc
+const totalUsd = FRONT_ASSET_OVERVIEW.totalUsd
+const todayPnl = FRONT_ASSET_OVERVIEW.todayPnl
 
 /** 充提划转闪兑 */
 const assetQuickActions = [
@@ -58,36 +61,7 @@ function actionActive(a) {
   return p === t || p.startsWith(`${t}/`)
 }
 
-const subAccounts = ref([
-  {
-    key: 'spot',
-    title: '币币账户资产',
-    btc: '0',
-    usd: '0',
-    dayPnl: '0'
-  },
-  {
-    key: 'perp',
-    title: '永续合约账户资产',
-    btc: '0',
-    usd: '0',
-    dayPnl: '0'
-  },
-  {
-    key: 'delivery',
-    title: '交割合约账户资产',
-    btc: '0',
-    usd: '0',
-    dayPnl: '0'
-  },
-  {
-    key: 'earn',
-    title: '理财账户资产',
-    btc: '0',
-    usd: '0',
-    dayPnl: '0'
-  }
-])
+const subAccounts = FRONT_ASSET_OVERVIEW.subAccounts
 
 const masked = computed(() => hideBalance.value)
 
@@ -137,9 +111,9 @@ const actionPillOff =
             </button>
           </div>
           <p class="mt-3 font-mono text-[1.625rem] font-medium leading-none tracking-tight text-white">
-            {{ displayVal(totalBtc) }}
+            $ {{ displayVal(totalUsd) }}
           </p>
-          <p class="mt-2 text-xs text-white/40">≈ $ {{ displayVal(totalUsd) }}</p>
+          <p class="mt-2 text-xs text-white/40">≈ {{ displayVal(totalBtc) }}</p>
           <div class="mt-3 flex items-center gap-2 border-t border-white/[0.06] pt-3 text-xs text-white/42">
             <span>今日收益 {{ displayVal(todayPnl) }}</span>
             <button
@@ -198,9 +172,9 @@ const actionPillOff =
               </button>
             </div>
             <p class="mt-3 font-mono text-2xl font-medium tracking-tight text-white md:text-3xl">
-              {{ displayVal(totalBtc) }}
+              $ {{ displayVal(totalUsd) }}
             </p>
-            <p class="mt-1 text-sm text-white/42">≈ $ {{ displayVal(totalUsd) }}</p>
+            <p class="mt-1 text-sm text-white/42">≈ {{ displayVal(totalBtc) }}</p>
             <div class="mt-3 flex flex-wrap items-center gap-2 text-sm text-white/45">
               <span>今日收益 {{ displayVal(todayPnl) }}</span>
               <button
@@ -248,9 +222,9 @@ const actionPillOff =
           <article v-for="acc in subAccounts" :key="acc.key" :class="`${card} p-4 md:p-5`">
             <p class="text-sm font-medium text-white/72">{{ acc.title }}</p>
             <p class="mt-3 font-mono text-xl font-medium tabular-nums text-white md:text-2xl">
-              {{ displayVal(acc.btc) }}
+              $ {{ displayVal(acc.usd) }}
             </p>
-            <p class="mt-1 text-xs text-white/40">≈ $ {{ displayVal(acc.usd) }}</p>
+            <p class="mt-1 text-xs text-white/40">≈ {{ displayVal(acc.btc) }}</p>
             <p class="mt-3 text-xs text-white/38">今日收益 {{ displayVal(acc.dayPnl) }}</p>
           </article>
         </div>
