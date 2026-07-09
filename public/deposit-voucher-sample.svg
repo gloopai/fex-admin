@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="620" viewBox="0 0 900 620">
+  <rect width="900" height="620" fill="#f8fafc"/>
+  <rect x="70" y="54" width="760" height="512" rx="28" fill="#ffffff" stroke="#dbe4ee" stroke-width="2"/>
+  <rect x="70" y="54" width="760" height="112" rx="28" fill="#0f172a"/>
+  <path d="M70 138h760v28H70z" fill="#0f172a"/>
+  <text x="110" y="118" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#ffffff">Deposit Voucher</text>
+  <text x="110" y="150" font-family="Arial, sans-serif" font-size="15" fill="#cbd5e1">Manual payment receipt uploaded by user</text>
+  <rect x="110" y="210" width="310" height="76" rx="16" fill="#ecfeff" stroke="#a5f3fc"/>
+  <text x="134" y="240" font-family="Arial, sans-serif" font-size="14" fill="#0891b2">Amount</text>
+  <text x="134" y="270" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#0f172a">1,500.00 USDT</text>
+  <rect x="480" y="210" width="310" height="76" rx="16" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="504" y="240" font-family="Arial, sans-serif" font-size="14" fill="#16a34a">Network</text>
+  <text x="504" y="270" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#0f172a">TRC20</text>
+  <text x="110" y="342" font-family="Arial, sans-serif" font-size="15" fill="#64748b">Transaction Hash</text>
+  <rect x="110" y="360" width="680" height="48" rx="12" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="132" y="391" font-family="Menlo, Consolas, monospace" font-size="16" fill="#334155">0x7a3e59b4c92d8f2a6f0c3119e4bd58a8e1c04d2f</text>
+  <text x="110" y="456" font-family="Arial, sans-serif" font-size="15" fill="#64748b">Platform Address</text>
+  <rect x="110" y="474" width="680" height="48" rx="12" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="132" y="505" font-family="Menlo, Consolas, monospace" font-size="16" fill="#334155">TQ9n6uYKV9q4mYvKfZB4qA2sQ8xN5g8L2m</text>
+  <circle cx="724" cy="112" r="34" fill="#22d3ee"/>
+  <path d="M708 113l10 10 23-25" fill="none" stroke="#0f172a" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

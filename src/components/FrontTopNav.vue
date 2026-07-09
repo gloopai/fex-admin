@@ -51,6 +51,7 @@ const tradeOpen = ref(false)
 const financeOpen = ref(false)
 const langOpen = ref(false)
 const downloadOpen = ref(false)
+const accountOpen = ref(false)
 const mobileOpen = ref(false)
 /** 移动端：主抽屉内点「语言」后从底部弹出的语言选择层 */
 const mobileLangSheetOpen = ref(false)
@@ -69,6 +70,7 @@ function isImageIcon(icon) {
 }
 
 let downloadLeaveTimer = null
+let accountLeaveTimer = null
 
 const mainLinks = computed(() => getFrontMainNavLinks(props.prefix))
 /** 主导航中位于「交易 / 金融」之前的链接（首页、行情） */
@@ -372,6 +374,61 @@ function onDownloadMouseLeave() {
   }, 200)
 }
 
+function onAccountMouseEnter() {
+  if (accountLeaveTimer) {
+    clearTimeout(accountLeaveTimer)
+    accountLeaveTimer = null
+  }
+  accountOpen.value = true
+  tradeOpen.value = false
+  financeOpen.value = false
+  langOpen.value = false
+  downloadOpen.value = false
+  searchOpen.value = false
+}
+
+function onAccountMouseLeave() {
+  accountLeaveTimer = setTimeout(() => {
+    accountOpen.value = false
+    accountLeaveTimer = null
+  }, 180)
+}
+
+const accountName = computed(() => authDisplay.value || 'wallet_lee48cql')
+const accountId = computed(() => {
+  const raw = authEmail.value || authNickname.value || 'front-demo-user'
+  let hash = 0
+  for (let i = 0; i < raw.length; i += 1) {
+    hash = (hash * 31 + raw.charCodeAt(i)) >>> 0
+  }
+  return `ID:${String(hash % 100000).padStart(5, '0')}`
+})
+const accountTotalAssets = computed(() => '0.00 USDT')
+
+const accountPrimaryLinks = computed(() => [
+  { key: 'personal', label: '个人中心', to: `${props.prefix}/personal-center` },
+  { key: 'security', label: '安全中心', to: `${props.prefix}/personal-center/security` },
+  { key: 'verify', label: '身份认证', to: `${props.prefix}/personal-center/verification` }
+])
+
+const accountInfoItems = [
+  { key: 'whitepaper', label: '白皮书' },
+  { key: 'company', label: '公司资质' },
+  { key: 'regulatory', label: '监管文件' }
+]
+
+function clearFrontCache() {
+  try {
+    sessionStorage.clear()
+  } catch {
+    /* ignore */
+  }
+  if (typeof caches !== 'undefined') {
+    caches.keys().then((keys) => keys.forEach((key) => caches.delete(key))).catch(() => {})
+  }
+  closeOverlays()
+}
+
 /** 演示：App 下载页链接（二维码内容） */
 const appQrIosUrl = 'https://apps.apple.com/app/cryptox-pro-demo'
 const appQrAndroidUrl = 'https://play.google.com/store/apps/details?id=demo.cryptox.pro'
@@ -472,6 +529,7 @@ function closeOverlays() {
   financeOpen.value = false
   langOpen.value = false
   downloadOpen.value = false
+  accountOpen.value = false
   searchOpen.value = false
   mobileOpen.value = false
   mobileLangSheetOpen.value = false
@@ -488,6 +546,7 @@ function closeIfDesktopBreakpoint() {
     financeOpen.value = false
     langOpen.value = false
     downloadOpen.value = false
+    accountOpen.value = false
     searchOpen.value = false
   }
 }
@@ -550,6 +609,7 @@ const anyPanelOpen = computed(
     financeOpen.value ||
     langOpen.value ||
     downloadOpen.value ||
+    accountOpen.value ||
     searchOpen.value ||
     mobileOpen.value ||
     mobileLangSheetOpen.value
@@ -586,6 +646,7 @@ watch(mobileOpen, (open) => {
     financeOpen.value = false
     langOpen.value = false
     downloadOpen.value = false
+    accountOpen.value = false
     searchOpen.value = false
   } else {
     mobileLangSheetOpen.value = false
@@ -601,6 +662,7 @@ watch(searchOpen, (open) => {
 
 onUnmounted(() => {
   if (downloadLeaveTimer) clearTimeout(downloadLeaveTimer)
+  if (accountLeaveTimer) clearTimeout(accountLeaveTimer)
   removeMediaListener()
   document.removeEventListener('pointerdown', onDocPointerDown, true)
   window.removeEventListener('keydown', onEscape)
@@ -1078,22 +1140,139 @@ function drawerRowClass(item) {
         </div>
 
         <template v-if="isLoggedIn">
-          <RouterLink
-            :to="`${prefix}/personal-center`"
-            class="max-w-[11rem] truncate rounded-lg bg-[#1f2429] px-3.5 py-2 text-sm font-medium text-[#eaecef] transition [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b0e11] hover:bg-[#3f4652] sm:max-w-xs sm:px-4"
-            :class="isPersonalCenterNavActive() ? 'bg-[#3f4652] text-white' : ''"
-            :title="authEmail || undefined"
-            @click="mobileOpen = false"
+          <div
+            class="relative hidden lg:block"
+            @mouseenter="onAccountMouseEnter"
+            @mouseleave="onAccountMouseLeave"
           >
-            {{ authDisplay }}
-          </RouterLink>
-          <button
-            type="button"
-            class="rounded-lg border border-white/[0.12] px-3 py-2 text-sm font-medium text-white/75 transition hover:bg-white/[0.06] hover:text-white"
-            @click="logoutFront"
-          >
-            退出
-          </button>
+            <button
+              type="button"
+              class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#1f2429] text-[#eaecef] transition hover:bg-[#3f4652] hover:text-lime-300"
+              :class="accountOpen || isPersonalCenterNavActive() ? 'bg-[#3f4652] text-white' : ''"
+              :title="authEmail || undefined"
+              aria-label="账户菜单"
+              aria-haspopup="true"
+              :aria-expanded="accountOpen"
+              aria-controls="front-account-panel"
+            >
+              <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M12 12a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                />
+                <path
+                  d="M5 20c1.4-3.1 4-4.75 7-4.75S17.6 16.9 19 20"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </button>
+            <Transition
+              enter-active-class="transition duration-150 ease-out"
+              enter-from-class="opacity-0 -translate-y-1"
+              enter-to-class="opacity-100 translate-y-0"
+              leave-active-class="transition duration-100 ease-in"
+              leave-from-class="opacity-100 translate-y-0"
+              leave-to-class="opacity-0 -translate-y-1"
+            >
+              <div
+                v-show="accountOpen"
+                id="front-account-panel"
+                class="absolute right-0 top-full z-40 w-[13.75rem] pt-2"
+                role="menu"
+                @mouseenter="onAccountMouseEnter"
+                @mouseleave="onAccountMouseLeave"
+              >
+                <div class="overflow-hidden rounded-xl border border-white/[0.08] bg-[#24242e] py-3 shadow-2xl shadow-black/55">
+                  <div class="flex items-center gap-3 px-4">
+                    <div class="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-orange-300 to-orange-600 text-sm font-bold text-white">
+                      {{ accountName.slice(0, 1).toUpperCase() }}
+                    </div>
+                    <div class="min-w-0">
+                      <p class="truncate text-sm font-semibold text-white" :title="accountName">{{ accountName }}</p>
+                      <div class="mt-0.5 flex items-center gap-1.5 text-xs text-white/55">
+                        <span>{{ accountId }}</span>
+                        <svg class="h-3.5 w-3.5 text-cyan-300" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path
+                            d="M9 9h10v10H9V9Z"
+                            stroke="currentColor"
+                            stroke-width="1.7"
+                          />
+                          <path
+                            d="M5 15V5h10"
+                            stroke="currentColor"
+                            stroke-width="1.7"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="mx-4 mt-3 rounded-md border border-indigo-400/30 bg-[#27243a] py-1.5 text-center text-xs font-medium text-white/85">
+                    信用分 10
+                  </div>
+                  <div class="mx-4 mt-2 rounded-md border border-white/[0.08] bg-black/15 px-3 py-2">
+                    <div class="flex items-center justify-between gap-3">
+                      <span class="text-xs text-white/50">资产总额</span>
+                      <span class="font-mono text-xs font-semibold text-lime-200">{{ accountTotalAssets }}</span>
+                    </div>
+                  </div>
+
+                  <div class="mt-3 py-1">
+                    <RouterLink
+                      v-for="item in accountPrimaryLinks"
+                      :key="item.key"
+                      :to="item.to"
+                      role="menuitem"
+                      class="block px-4 py-2.5 text-sm text-white/85 transition hover:bg-white/[0.06] hover:text-white"
+                      @click="accountOpen = false"
+                    >
+                      {{ item.label }}
+                    </RouterLink>
+                  </div>
+
+                  <div class="border-t border-white/[0.06] py-1">
+                    <button
+                      v-for="item in accountInfoItems"
+                      :key="item.key"
+                      type="button"
+                      role="menuitem"
+                      class="block w-full px-4 py-2.5 text-left text-sm text-white/85 transition hover:bg-white/[0.06] hover:text-white"
+                      @click="accountOpen = false"
+                    >
+                      {{ item.label }}
+                    </button>
+                  </div>
+
+                  <div class="border-t border-white/[0.06] py-1">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      class="block w-full px-4 py-2.5 text-left text-sm text-white/85 transition hover:bg-white/[0.06] hover:text-white"
+                      @click="clearFrontCache"
+                    >
+                      清除缓存
+                    </button>
+                  </div>
+
+                  <div class="border-t border-white/[0.06] pt-1">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      class="block w-full px-4 py-2.5 text-left text-sm text-white/85 transition hover:bg-white/[0.06] hover:text-white"
+                      @click="logoutFront"
+                    >
+                      退出登录
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </Transition>
+          </div>
         </template>
         <template v-else>
           <RouterLink
@@ -1199,6 +1378,10 @@ function drawerRowClass(item) {
                   >
                     {{ authDisplay }}
                   </p>
+                  <div class="mt-2 flex items-center justify-between gap-3 rounded-lg border border-white/[0.07] bg-white/[0.035] px-3 py-2">
+                    <span class="text-[11px] text-white/45">资产总额</span>
+                    <span class="font-mono text-[11px] font-semibold text-lime-200">{{ accountTotalAssets }}</span>
+                  </div>
                   <div class="mt-2 flex flex-wrap gap-2">
                     <RouterLink
                       :to="`${prefix}/personal-center`"
