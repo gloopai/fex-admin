@@ -20,6 +20,24 @@ export const consoleRoutes = [
     component: () => import('../../pages/admin/user/UserListPage.vue')
   },
   {
+    path: 'users/withdraw-audit',
+    name: 'users-withdraw-audit',
+    component: () => import('../../pages/admin/user/WithdrawAuditPage.vue'),
+    meta: {
+      title: '用户管理 / 出金审核',
+      desc: '审核用户出金申请，查看出金金额、账户、链路与处理状态。'
+    }
+  },
+  {
+    path: 'users/deposit-orders',
+    name: 'users-deposit-orders',
+    component: () => import('../../pages/admin/user/DepositOrdersPage.vue'),
+    meta: {
+      title: '用户管理 / 入金订单',
+      desc: '查看用户入金订单、充值凭证、到账状态与处理记录。'
+    }
+  },
+  {
     path: 'contracts/panel',
     name: 'contracts-panel',
     component: () => import('../../pages/admin/contracts/ContractsPanelPage.vue')
