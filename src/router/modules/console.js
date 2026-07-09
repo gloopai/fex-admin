@@ -33,8 +33,8 @@ export const consoleRoutes = [
     name: 'users-deposit-orders',
     component: () => import('../../pages/admin/user/DepositOrdersPage.vue'),
     meta: {
-      title: '用户管理 / 入金订单',
-      desc: '查看用户入金订单、充值凭证、到账状态与处理记录。'
+      title: '用户管理 / 入金审核',
+      desc: '审核用户入金申请，核对充值凭证并手动关联链上通知记录。'
     }
   },
   {

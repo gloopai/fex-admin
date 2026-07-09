@@ -19,8 +19,13 @@ const aggregates = ref(null)
 const selectedOrder = ref(null)
 const selectedUser = ref(null)
 const showUserDrawer = ref(false)
+const chainEventKeyword = ref('')
+const chainEvents = ref([])
+const selectedChainEventId = ref('')
+const loadingChainEvents = ref(false)
 const actionType = ref('')
 const actionNote = ref('')
+const previewVoucher = ref(null)
 const toast = ref({ show: false, text: '', kind: 'info' })
 
 const pagination = reactive({
@@ -32,13 +37,17 @@ const pagination = reactive({
 const coins = ['USDT', 'BTC', 'ETH', 'USDC', 'TRX']
 
 const totalPages = computed(() => Math.max(1, Math.ceil(pagination.total / pagination.pageSize)))
+const canProcessSelectedOrder = computed(() => (
+  selectedOrder.value &&
+  selectedOrder.value.status === DEPOSIT_ORDER_STATUS.REVIEW
+))
 
 const stats = computed(() => {
   const byStatus = aggregates.value?.byStatus || {}
   return [
-    { label: '待确认', value: byStatus[DEPOSIT_ORDER_STATUS.PENDING] || 0, class: 'text-amber-600' },
-    { label: '链上观察', value: byStatus[DEPOSIT_ORDER_STATUS.WATCHING] || 0, class: 'text-violet-600' },
+    { label: '待确认', value: byStatus[DEPOSIT_ORDER_STATUS.REVIEW] || 0, class: 'text-amber-600' },
     { label: '已入账', value: byStatus[DEPOSIT_ORDER_STATUS.CREDITED] || 0, class: 'text-emerald-600' },
+    { label: '已驳回', value: byStatus[DEPOSIT_ORDER_STATUS.REJECTED] || 0, class: 'text-rose-600' },
     { label: '筛选金额', value: formatMoney(aggregates.value?.totalUsdt || 0), class: 'text-slate-900' }
   ]
 })
@@ -66,6 +75,24 @@ function confirmationClass(order) {
   if (order.confirmations >= order.requiredConfirmations) return 'text-emerald-600'
   if (order.confirmations > 0) return 'text-amber-600'
   return 'text-rose-600'
+}
+
+function eventConfirmationClass(event) {
+  if (event.confirmations >= event.requiredConfirmations) return 'text-emerald-600'
+  if (event.confirmations > 0) return 'text-amber-600'
+  return 'text-rose-600'
+}
+
+function matchText(order) {
+  if (order.linkedChainEventId) return '已关联链上通知'
+  if (order.status === DEPOSIT_ORDER_STATUS.REJECTED) return '无需关联'
+  return '待人工选择'
+}
+
+function matchClass(order) {
+  if (order.linkedChainEventId) return 'text-emerald-600'
+  if (order.status === DEPOSIT_ORDER_STATUS.REJECTED) return 'text-slate-500'
+  return 'text-amber-600'
 }
 
 function showToast(text, kind = 'info') {
@@ -114,10 +141,16 @@ function openDetail(order) {
   selectedOrder.value = order
   actionType.value = ''
   actionNote.value = ''
+  selectedChainEventId.value = ''
+  chainEventKeyword.value = ''
+  loadChainEvents()
 }
 
 function closeDetail() {
   selectedOrder.value = null
+  chainEvents.value = []
+  selectedChainEventId.value = ''
+  chainEventKeyword.value = ''
   actionType.value = ''
   actionNote.value = ''
 }
@@ -136,20 +169,64 @@ function closeUserPanel() {
   selectedUser.value = null
 }
 
+function openVoucherPreview(order) {
+  previewVoucher.value = {
+    name: order.voucherName,
+    url: order.voucherUrl
+  }
+}
+
+function closeVoucherPreview() {
+  previewVoucher.value = null
+}
+
+async function loadChainEvents() {
+  if (!selectedOrder.value) return
+  loadingChainEvents.value = true
+  try {
+    const res = await fundOrderApi.listUnconfirmedChainDepositEvents(
+      selectedOrder.value.id,
+      chainEventKeyword.value
+    )
+    if (res.success) {
+      chainEvents.value = res.data
+      if (!chainEvents.value.some((event) => event.id === selectedChainEventId.value)) {
+        selectedChainEventId.value = ''
+      }
+    } else {
+      chainEvents.value = []
+      showToast(res.message || '链上通知记录加载失败', 'error')
+    }
+  } finally {
+    loadingChainEvents.value = false
+  }
+}
+
 async function submitAction(action) {
   if (!selectedOrder.value) return
-  if (action === 'reject' && !actionNote.value.trim()) {
-    showToast('驳回入金订单时必须填写原因', 'error')
+  if (action === 'credit' && !selectedChainEventId.value) {
+    showToast('确认入账前请选择一条未确认链上通知记录', 'error')
     return
   }
-  const res = await fundOrderApi.updateDepositOrder(selectedOrder.value.id, action, actionNote.value.trim())
+  if (action === 'reject' && !actionNote.value.trim()) {
+    showToast('驳回入金审核时必须填写原因', 'error')
+    return
+  }
+  const res = await fundOrderApi.updateDepositOrder(
+    selectedOrder.value.id,
+    action,
+    actionNote.value.trim(),
+    selectedChainEventId.value
+  )
   showToast(res.message, res.success ? 'success' : 'error')
   if (res.success) {
     actionType.value = ''
     actionNote.value = ''
+    selectedChainEventId.value = ''
     await loadList()
     const latest = rows.value.find((item) => item.id === selectedOrder.value.id)
     if (latest) selectedOrder.value = latest
+    await loadChainEvents()
   }
 }
 
@@ -165,8 +242,8 @@ onMounted(loadList)
   <section class="space-y-6">
     <header class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <h1 class="text-2xl font-bold text-slate-900">入金订单</h1>
-        <p class="mt-1 text-sm text-slate-500">查看用户充值订单、链上确认数、上传凭证与入账处理记录。</p>
+        <h1 class="text-2xl font-bold text-slate-900">入金审核</h1>
+        <p class="mt-1 text-sm text-slate-500">核对用户入金申请、上传凭证，并手动选择链上通知记录确认入账。</p>
       </div>
       <div v-if="toast.show" class="rounded-lg border bg-white px-4 py-2 text-sm shadow-sm" :class="toast.kind === 'error' ? 'border-rose-200 text-rose-700' : 'border-emerald-200 text-emerald-700'">
         {{ toast.text }}
@@ -218,7 +295,7 @@ onMounted(loadList)
               <th class="px-4 py-3">订单</th>
               <th class="px-4 py-3">用户</th>
               <th class="px-4 py-3 text-right">入金金额</th>
-              <th class="px-4 py-3">链上信息</th>
+              <th class="px-4 py-3">匹配状态</th>
               <th class="px-4 py-3">凭证</th>
               <th class="px-4 py-3">状态</th>
               <th class="px-4 py-3">提交时间</th>
@@ -232,7 +309,7 @@ onMounted(loadList)
             <tr v-for="order in rows" v-else :key="order.id" class="hover:bg-slate-50">
               <td class="px-4 py-3">
                 <div class="font-mono text-xs text-slate-500">{{ order.id }}</div>
-                <div class="mt-1 text-xs text-slate-400">{{ order.source }}</div>
+                <div class="mt-1 text-xs text-slate-400">用户提交凭证</div>
               </td>
               <td class="px-4 py-3">
                 <button
@@ -249,14 +326,14 @@ onMounted(loadList)
                 <div class="text-xs text-slate-500">折合 {{ formatMoney(order.usdtValue) }} USDT</div>
               </td>
               <td class="max-w-[260px] px-4 py-3">
-                <div class="truncate font-mono text-xs text-slate-700">{{ order.txHash }}</div>
-                <div class="mt-1 text-xs" :class="confirmationClass(order)">
-                  {{ order.network }} · {{ order.confirmations }}/{{ order.requiredConfirmations }} 确认
-                </div>
+                <div class="text-sm font-medium" :class="matchClass(order)">{{ matchText(order) }}</div>
+                <div class="mt-1 truncate font-mono text-xs text-slate-500">{{ order.linkedChainEventId || order.toAddress }}</div>
               </td>
               <td class="px-4 py-3">
                 <div class="flex items-center gap-2">
-                  <img :src="order.voucherUrl" alt="" class="h-10 w-14 rounded border border-slate-200 object-cover" />
+                  <button type="button" class="rounded border border-slate-200 transition hover:border-blue-400" @click="openVoucherPreview(order)">
+                    <img :src="order.voucherUrl" :alt="order.voucherName" class="h-10 w-14 rounded object-cover" />
+                  </button>
                   <span class="max-w-[120px] truncate text-xs text-slate-500">{{ order.voucherName }}</span>
                 </div>
               </td>
@@ -269,7 +346,7 @@ onMounted(loadList)
               </td>
             </tr>
             <tr v-if="!loading && rows.length === 0">
-              <td colspan="8" class="px-4 py-10 text-center text-slate-500">暂无入金订单</td>
+              <td colspan="8" class="px-4 py-10 text-center text-slate-500">暂无入金审核记录</td>
             </tr>
           </tbody>
         </table>
@@ -284,11 +361,11 @@ onMounted(loadList)
 
     <Teleport to="body">
       <div v-if="selectedOrder" class="fixed inset-0 z-50 flex justify-end bg-slate-900/35" @click.self="closeDetail">
-        <aside class="flex h-full w-full max-w-2xl flex-col bg-white shadow-2xl">
+        <aside class="flex h-full w-full max-w-6xl flex-col bg-white shadow-2xl">
           <header class="border-b border-slate-200 px-6 py-4">
             <div class="flex items-start justify-between gap-4">
               <div>
-                <p class="text-xs font-medium text-slate-500">入金订单详情</p>
+                <p class="text-xs font-medium text-slate-500">入金审核详情</p>
                 <h2 class="mt-1 text-xl font-semibold text-slate-900">{{ selectedOrder.id }}</h2>
               </div>
               <button type="button" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100" @click="closeDetail">关闭</button>
@@ -314,52 +391,134 @@ onMounted(loadList)
               </div>
             </div>
 
-            <div class="rounded-xl border border-slate-200 p-4">
-              <p class="text-sm font-semibold text-slate-900">链上校验</p>
-              <div class="mt-3 space-y-2 text-sm">
-                <div class="flex justify-between gap-4"><span class="text-slate-500">网络</span><span class="font-medium text-slate-900">{{ selectedOrder.network }}</span></div>
-                <div class="flex justify-between gap-4"><span class="text-slate-500">确认数</span><span class="font-medium" :class="confirmationClass(selectedOrder)">{{ selectedOrder.confirmations }}/{{ selectedOrder.requiredConfirmations }}</span></div>
-                <div class="flex justify-between gap-4"><span class="text-slate-500">付款地址</span><span class="break-all text-right font-mono text-slate-900">{{ selectedOrder.fromAddress }}</span></div>
-                <div class="flex justify-between gap-4"><span class="text-slate-500">平台地址</span><span class="break-all text-right font-mono text-slate-900">{{ selectedOrder.toAddress }}</span></div>
-                <div class="flex justify-between gap-4"><span class="text-slate-500">TxHash</span><span class="break-all text-right font-mono text-slate-900">{{ selectedOrder.txHash }}</span></div>
-              </div>
-            </div>
+            <div
+              class="grid gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)]"
+            >
+              <div class="space-y-5">
+                <div class="rounded-xl border border-slate-200 p-4">
+                  <p class="text-sm font-semibold text-slate-900">入金申请</p>
+                  <div class="mt-3 space-y-2 text-sm">
+                    <div class="flex justify-between gap-4"><span class="text-slate-500">网络</span><span class="font-medium text-slate-900">{{ selectedOrder.network }}</span></div>
+                    <div class="flex justify-between gap-4"><span class="text-slate-500">平台地址</span><span class="break-all text-right font-mono text-slate-900">{{ selectedOrder.toAddress }}</span></div>
+                    <div class="flex justify-between gap-4"><span class="text-slate-500">链上通知</span><span class="font-medium" :class="matchClass(selectedOrder)">{{ matchText(selectedOrder) }}</span></div>
+                  </div>
+                </div>
 
-            <div class="rounded-xl border border-slate-200 p-4">
-              <div class="flex items-center justify-between gap-3">
-                <p class="text-sm font-semibold text-slate-900">上传凭证</p>
-                <span class="text-xs text-slate-500">{{ selectedOrder.voucherName }}</span>
+                <div class="rounded-xl border border-slate-200 p-4">
+                  <div class="flex items-center justify-between gap-3">
+                    <p class="text-sm font-semibold text-slate-900">上传凭证</p>
+                    <span class="text-xs text-slate-500">{{ selectedOrder.voucherName }}</span>
+                  </div>
+                  <button type="button" class="mt-3 block w-full rounded-xl border border-slate-200 bg-slate-50 transition hover:border-blue-400" @click="openVoucherPreview(selectedOrder)">
+                    <img :src="selectedOrder.voucherUrl" :alt="selectedOrder.voucherName" class="max-h-[360px] w-full rounded-xl object-contain" />
+                  </button>
+                </div>
               </div>
-              <img :src="selectedOrder.voucherUrl" :alt="selectedOrder.voucherName" class="mt-3 max-h-[260px] w-full rounded-xl border border-slate-200 object-contain" />
-            </div>
 
-            <div class="rounded-xl border border-slate-200 p-4">
-              <p class="text-sm font-semibold text-slate-900">处理信息</p>
-              <div class="mt-3 space-y-2 text-sm text-slate-600">
-                <div>状态：<span class="font-medium text-slate-900">{{ statusMeta(selectedOrder.status).label }}</span></div>
-                <div>操作人：{{ selectedOrder.operator || '-' }}</div>
-                <div>入账时间：{{ formatTime(selectedOrder.creditedTime) }}</div>
-                <div>备注：{{ selectedOrder.auditNote || '-' }}</div>
-              </div>
-            </div>
+              <div v-if="canProcessSelectedOrder" class="rounded-xl border border-slate-200 p-4">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p class="text-sm font-semibold text-slate-900">未确认链上通知记录</p>
+                    <p class="mt-1 text-sm text-slate-500">请选择一条与凭证、币种、网络和平台地址一致的链上通知记录。</p>
+                  </div>
+                  <div class="flex gap-2">
+                    <input
+                      v-model="chainEventKeyword"
+                      type="text"
+                      placeholder="搜索 TxHash / 地址 / 金额"
+                      class="h-9 w-56 rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs outline-none focus:border-blue-500"
+                      @keyup.enter="loadChainEvents"
+                    />
+                    <button type="button" class="ant-btn" @click="loadChainEvents">查询</button>
+                  </div>
+                </div>
 
-            <div v-if="[DEPOSIT_ORDER_STATUS.PENDING, DEPOSIT_ORDER_STATUS.WATCHING].includes(selectedOrder.status)" class="rounded-xl border border-slate-200 p-4">
-              <p class="text-sm font-semibold text-slate-900">订单处理</p>
-              <p class="mt-1 text-sm text-slate-500">确认凭证、金额、地址和链上确认数后，可将订单入账或驳回。</p>
-              <div class="mt-3 flex gap-2">
-                <button type="button" class="ant-btn ant-btn-primary" @click="actionType = 'credit'">确认入账</button>
-                <button type="button" class="ant-btn" @click="actionType = 'reject'">驳回</button>
+                <div class="mt-3 max-h-[420px] space-y-2 overflow-y-auto pr-1">
+                  <div v-if="loadingChainEvents" class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-4 text-center text-sm text-slate-500">加载链上通知记录...</div>
+                  <template v-else>
+                    <label
+                      v-for="event in chainEvents"
+                      :key="event.id"
+                      class="block cursor-pointer rounded-xl border p-3 transition"
+                      :class="selectedChainEventId === event.id ? 'border-blue-400 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'"
+                    >
+                      <div class="flex items-start gap-3">
+                        <input v-model="selectedChainEventId" type="radio" :value="event.id" class="mt-1" />
+                        <div class="min-w-0 flex-1">
+                          <div class="flex flex-wrap items-center justify-between gap-2">
+                            <p class="font-mono text-xs text-slate-700">{{ event.txHash }}</p>
+                            <p class="text-sm font-semibold text-slate-900">{{ formatMoney(event.amount) }} {{ event.coin }}</p>
+                          </div>
+                          <div class="mt-2 grid gap-2 text-xs text-slate-500 sm:grid-cols-2">
+                            <p class="truncate">付款地址：<span class="font-mono text-slate-700">{{ event.fromAddress }}</span></p>
+                            <p class="truncate">平台地址：<span class="font-mono text-slate-700">{{ event.toAddress }}</span></p>
+                            <p>网络：{{ event.network }}</p>
+                            <p>确认数：<span :class="eventConfirmationClass(event)">{{ event.confirmations }}/{{ event.requiredConfirmations }}</span></p>
+                          </div>
+                        </div>
+                      </div>
+                    </label>
+                  </template>
+                  <div v-if="!loadingChainEvents && chainEvents.length === 0" class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-4 text-sm text-amber-700">
+                    暂无同币种、同网络、同平台地址的未确认链上通知记录。
+                  </div>
+                </div>
+
+                <div class="mt-4 border-t border-slate-200 pt-4">
+                  <p class="text-sm font-semibold text-slate-900">审核处理</p>
+                  <p class="mt-1 text-sm text-slate-500">确认入账前必须选择一条未确认链上通知记录；驳回时必须填写原因。</p>
+                  <div class="mt-3 flex gap-2">
+                    <button type="button" class="ant-btn ant-btn-primary" @click="actionType = 'credit'">确认入账</button>
+                    <button type="button" class="ant-btn" @click="actionType = 'reject'">驳回</button>
+                  </div>
+                  <div v-if="actionType" class="mt-3">
+                    <textarea v-model="actionNote" rows="3" class="ant-input w-full" :placeholder="actionType === 'reject' ? '请输入驳回原因' : '请输入入账备注（可选）'"></textarea>
+                    <div class="mt-3 flex justify-end gap-2">
+                      <button type="button" class="ant-btn" @click="actionType = ''">取消</button>
+                      <button type="button" class="ant-btn ant-btn-primary" @click="submitAction(actionType)">确认提交</button>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div v-if="actionType" class="mt-3">
-                <textarea v-model="actionNote" rows="3" class="ant-input w-full" :placeholder="actionType === 'reject' ? '请输入驳回原因' : '请输入入账备注（可选）'"></textarea>
-                <div class="mt-3 flex justify-end gap-2">
-                  <button type="button" class="ant-btn" @click="actionType = ''">取消</button>
-                  <button type="button" class="ant-btn ant-btn-primary" @click="submitAction(actionType)">确认提交</button>
+
+              <div v-else class="space-y-5">
+                <div v-if="selectedOrder.linkedChainEvent" class="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4">
+                  <p class="text-sm font-semibold text-emerald-950">已关联链上通知记录</p>
+                  <div class="mt-3 space-y-2 text-sm">
+                    <div class="flex justify-between gap-4"><span class="text-emerald-700">TxHash</span><span class="break-all text-right font-mono text-emerald-950">{{ selectedOrder.linkedChainEvent.txHash }}</span></div>
+                    <div class="flex justify-between gap-4"><span class="text-emerald-700">付款地址</span><span class="break-all text-right font-mono text-emerald-950">{{ selectedOrder.linkedChainEvent.fromAddress }}</span></div>
+                    <div class="flex justify-between gap-4"><span class="text-emerald-700">金额</span><span class="font-medium text-emerald-950">{{ formatMoney(selectedOrder.linkedChainEvent.amount) }} {{ selectedOrder.linkedChainEvent.coin }}</span></div>
+                    <div class="flex justify-between gap-4"><span class="text-emerald-700">确认数</span><span class="font-medium" :class="eventConfirmationClass(selectedOrder.linkedChainEvent)">{{ selectedOrder.linkedChainEvent.confirmations }}/{{ selectedOrder.linkedChainEvent.requiredConfirmations }}</span></div>
+                  </div>
+                </div>
+
+                <div class="rounded-xl border border-slate-200 p-4">
+                  <p class="text-sm font-semibold text-slate-900">处理信息</p>
+                  <div class="mt-3 space-y-2 text-sm text-slate-600">
+                    <div>状态：<span class="font-medium text-slate-900">{{ statusMeta(selectedOrder.status).label }}</span></div>
+                    <div>操作人：{{ selectedOrder.operator || '-' }}</div>
+                    <div>入账时间：{{ formatTime(selectedOrder.creditedTime) }}</div>
+                    <div>备注：{{ selectedOrder.auditNote || '-' }}</div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </aside>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="previewVoucher" class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/75 p-6" @click.self="closeVoucherPreview">
+        <div class="flex max-h-full w-full max-w-5xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
+          <header class="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-3">
+            <p class="truncate text-sm font-semibold text-slate-900">{{ previewVoucher.name }}</p>
+            <button type="button" class="rounded-lg px-3 py-1.5 text-sm text-slate-500 hover:bg-slate-100" @click="closeVoucherPreview">关闭</button>
+          </header>
+          <div class="min-h-0 overflow-auto bg-slate-100 p-4">
+            <img :src="previewVoucher.url" :alt="previewVoucher.name" class="mx-auto max-h-[78vh] max-w-full rounded-lg bg-white object-contain shadow-sm" />
+          </div>
+        </div>
       </div>
     </Teleport>
 

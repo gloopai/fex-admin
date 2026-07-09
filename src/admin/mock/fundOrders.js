@@ -9,10 +9,15 @@ export const WITHDRAW_AUDIT_STATUS = {
 }
 
 export const DEPOSIT_ORDER_STATUS = {
-  PENDING: 'pending',
+  REVIEW: 'review',
   CREDITED: 'credited',
-  REJECTED: 'rejected',
-  WATCHING: 'watching'
+  REJECTED: 'rejected'
+}
+
+export const CHAIN_DEPOSIT_EVENT_STATUS = {
+  UNCONFIRMED: 'unconfirmed',
+  LINKED: 'linked',
+  IGNORED: 'ignored'
 }
 
 export const withdrawStatusOptions = [
@@ -22,8 +27,7 @@ export const withdrawStatusOptions = [
 ]
 
 export const depositStatusOptions = [
-  { value: DEPOSIT_ORDER_STATUS.PENDING, label: '待确认', badgeClass: 'bg-amber-100 text-amber-700' },
-  { value: DEPOSIT_ORDER_STATUS.WATCHING, label: '链上观察', badgeClass: 'bg-violet-100 text-violet-700' },
+  { value: DEPOSIT_ORDER_STATUS.REVIEW, label: '待确认', badgeClass: 'bg-amber-100 text-amber-700' },
   { value: DEPOSIT_ORDER_STATUS.CREDITED, label: '已入账', badgeClass: 'bg-emerald-100 text-emerald-700' },
   { value: DEPOSIT_ORDER_STATUS.REJECTED, label: '已驳回', badgeClass: 'bg-rose-100 text-rose-700' }
 ]
@@ -75,28 +79,56 @@ const createDepositOrder = (index, overrides = {}) => {
   const user = pickUser(index + 5)
   const coin = coins[(index + 1) % coins.length]
   const amount = [300, 880, 1500, 5200, 12600, 48000][index % 6] + index * 23
+  const network = networks[(index + 1) % networks.length]
   return {
     id: `dp_${String(index + 1).padStart(5, '0')}`,
     userId: user.id,
     username: user.username,
     email: user.email,
     coin,
-    network: networks[(index + 1) % networks.length],
+    network,
     amount,
     usdtValue: coin === 'BTC' ? amount * 98000 : coin === 'ETH' ? amount * 3200 : amount,
-    fromAddress: makeAddress(coin === 'BTC' ? 'bc1q' : '0x', index + 31),
     toAddress: makeAddress('platform_', index + 71),
-    txHash: makeHash('0xdep', index + 1),
-    confirmations: (index % 5) + 1,
     requiredConfirmations: coin === 'BTC' ? 3 : 12,
-    voucherName: `deposit-voucher-${index + 1}.png`,
-    voucherUrl: `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="360" height="220"><rect width="360" height="220" fill="#f8fafc"/><rect x="24" y="24" width="312" height="172" rx="14" fill="#e0f2fe"/><text x="42" y="78" font-family="Arial" font-size="22" font-weight="700" fill="#0f172a">Deposit Voucher</text><text x="42" y="116" font-family="Arial" font-size="16" fill="#334155">${amount} ${coin}</text><text x="42" y="150" font-family="Arial" font-size="13" fill="#475569">${user.username}</text></svg>`)}`,
-    status: index % 5 === 0 ? DEPOSIT_ORDER_STATUS.WATCHING : DEPOSIT_ORDER_STATUS.PENDING,
+    linkedChainEventId: null,
+    linkedChainEvent: null,
+    txHash: '',
+    fromAddress: '',
+    confirmations: 0,
+    voucherName: 'deposit-voucher-sample.svg',
+    voucherUrl: '/deposit-voucher-sample.svg',
+    status: DEPOSIT_ORDER_STATUS.REVIEW,
     submitTime: isoDaysAgo(index % 6, index + 2),
     creditedTime: null,
     operator: null,
     auditNote: '',
-    source: index % 3 === 0 ? '前台凭证提交' : '链上监听',
+    source: '前台凭证提交',
+    ...overrides
+  }
+}
+
+const createChainDepositEvent = (index, overrides = {}) => {
+  const order = depositOrders[index % depositOrders.length]
+  const coin = overrides.coin || order?.coin || coins[index % coins.length]
+  const network = overrides.network || order?.network || networks[index % networks.length]
+  const amount = Number(overrides.amount ?? order?.amount ?? (500 + index * 37))
+  return {
+    id: `chain_dp_${String(index + 1).padStart(5, '0')}`,
+    chain: network,
+    network,
+    txHash: makeHash('0xchain', index + 1),
+    fromAddress: makeAddress(coin === 'BTC' ? 'bc1q' : '0x', index + 131),
+    toAddress: overrides.toAddress || order?.toAddress || makeAddress('platform_', index + 171),
+    coin,
+    amount,
+    usdtValue: coin === 'BTC' ? amount * 98000 : coin === 'ETH' ? amount * 3200 : amount,
+    confirmations: Number(overrides.confirmations ?? ((index % 8) + 1)),
+    requiredConfirmations: coin === 'BTC' ? 3 : 12,
+    blockTime: isoDaysAgo(index % 5, index + 3),
+    listenTime: isoDaysAgo(index % 5, index + 2),
+    status: CHAIN_DEPOSIT_EVENT_STATUS.UNCONFIRMED,
+    linkedOrderId: null,
     ...overrides
   }
 }
@@ -115,12 +147,37 @@ let depositOrders = Array.from({ length: 20 }, (_, i) => createDepositOrder(i, {
   status:
     i === 1 || i === 7 ? DEPOSIT_ORDER_STATUS.CREDITED :
     i === 4 ? DEPOSIT_ORDER_STATUS.REJECTED :
-    i % 5 === 0 ? DEPOSIT_ORDER_STATUS.WATCHING :
-    DEPOSIT_ORDER_STATUS.PENDING,
+    DEPOSIT_ORDER_STATUS.REVIEW,
   creditedTime: i === 1 || i === 7 ? isoDaysAgo(1, i) : null,
   operator: i === 1 || i === 7 || i === 4 ? 'admin_02' : null,
   auditNote: i === 4 ? rejectReasons[1] : ''
 }))
+
+let chainDepositEvents = Array.from({ length: 26 }, (_, i) => createChainDepositEvent(i, {
+  amount: i % 4 === 0 && depositOrders[i] ? depositOrders[i].amount + 1.8 : undefined,
+  confirmations: i % 3 === 0 ? 12 : undefined
+}))
+
+;[1, 7].forEach((orderIndex, idx) => {
+  const order = depositOrders[orderIndex]
+  const event = chainDepositEvents[idx]
+  if (!order || !event) return
+  event.coin = order.coin
+  event.network = order.network
+  event.chain = order.network
+  event.amount = order.amount
+  event.usdtValue = order.usdtValue
+  event.toAddress = order.toAddress
+  event.confirmations = order.requiredConfirmations
+  event.requiredConfirmations = order.requiredConfirmations
+  event.status = CHAIN_DEPOSIT_EVENT_STATUS.LINKED
+  event.linkedOrderId = order.id
+  order.linkedChainEventId = event.id
+  order.linkedChainEvent = clone(event)
+  order.txHash = event.txHash
+  order.fromAddress = event.fromAddress
+  order.confirmations = event.confirmations
+})
 
 function applyFilters(list, { status = FUND_ORDER_FILTER_ALL, coin = FUND_ORDER_FILTER_ALL, keyword = '' } = {}) {
   const kw = String(keyword || '').trim().toLowerCase()
@@ -170,6 +227,18 @@ export const fundOrderApi = {
       }
     })
   },
+  listUnconfirmedChainDepositEvents(orderId, keyword = '') {
+    const order = depositOrders.find((item) => item.id === orderId)
+    if (!order) return Promise.resolve({ success: false, message: '入金申请不存在' })
+    const kw = String(keyword || '').trim().toLowerCase()
+    const list = chainDepositEvents.filter((event) => {
+      if (event.status !== CHAIN_DEPOSIT_EVENT_STATUS.UNCONFIRMED) return false
+      if (event.coin !== order.coin || event.network !== order.network || event.toAddress !== order.toAddress) return false
+      const hay = `${event.id} ${event.txHash} ${event.fromAddress} ${event.toAddress} ${event.amount} ${event.coin} ${event.network}`.toLowerCase()
+      return !kw || hay.includes(kw)
+    })
+    return Promise.resolve({ success: true, data: clone(list) })
+  },
   updateWithdrawOrder(id, action, note = '') {
     const order = withdrawOrders.find((item) => item.id === id)
     if (!order) return Promise.resolve({ success: false, message: '出金单不存在' })
@@ -189,21 +258,34 @@ export const fundOrderApi = {
     }
     return Promise.resolve({ success: false, message: '当前状态不支持该操作' })
   },
-  updateDepositOrder(id, action, note = '') {
+  updateDepositOrder(id, action, note = '', chainEventId = '') {
     const order = depositOrders.find((item) => item.id === id)
     if (!order) return Promise.resolve({ success: false, message: '入金单不存在' })
-    if (action === 'credit' && [DEPOSIT_ORDER_STATUS.PENDING, DEPOSIT_ORDER_STATUS.WATCHING].includes(order.status)) {
+    if (action === 'credit' && order.status === DEPOSIT_ORDER_STATUS.REVIEW) {
+      const event = chainDepositEvents.find((item) => item.id === chainEventId)
+      if (!event) return Promise.resolve({ success: false, message: '请先选择一条未确认链上通知记录' })
+      if (event.status !== CHAIN_DEPOSIT_EVENT_STATUS.UNCONFIRMED) return Promise.resolve({ success: false, message: '该链上通知记录已被处理' })
+      if (event.coin !== order.coin || event.network !== order.network || event.toAddress !== order.toAddress) {
+        return Promise.resolve({ success: false, message: '所选链上通知记录与入金申请不匹配' })
+      }
       order.status = DEPOSIT_ORDER_STATUS.CREDITED
       order.creditedTime = new Date().toISOString()
       order.operator = 'admin_current'
-      order.auditNote = note || '凭证与链上信息一致，确认入账'
-      return Promise.resolve({ success: true, message: '入金订单已确认入账' })
+      order.auditNote = note || '凭证与链上通知记录一致，确认入账'
+      order.linkedChainEventId = event.id
+      order.txHash = event.txHash
+      order.fromAddress = event.fromAddress
+      order.confirmations = event.confirmations
+      event.status = CHAIN_DEPOSIT_EVENT_STATUS.LINKED
+      event.linkedOrderId = order.id
+      order.linkedChainEvent = clone(event)
+      return Promise.resolve({ success: true, message: '入金审核已确认入账' })
     }
-    if (action === 'reject' && [DEPOSIT_ORDER_STATUS.PENDING, DEPOSIT_ORDER_STATUS.WATCHING].includes(order.status)) {
+    if (action === 'reject' && order.status === DEPOSIT_ORDER_STATUS.REVIEW) {
       order.status = DEPOSIT_ORDER_STATUS.REJECTED
       order.operator = 'admin_current'
-      order.auditNote = note || '入金订单已驳回'
-      return Promise.resolve({ success: true, message: '入金订单已驳回' })
+      order.auditNote = note || '入金审核已驳回'
+      return Promise.resolve({ success: true, message: '入金审核已驳回' })
     }
     return Promise.resolve({ success: false, message: '当前状态不支持该操作' })
   }
