@@ -42,6 +42,8 @@ const mfaBound = computed({
 
 const networkKey = ref(FRONT_WITHDRAW_NETWORKS[0].key)
 const depositAmount = ref('')
+const depositVoucher = ref(null)
+const depositVoucherPreview = ref('')
 const copied = ref(false)
 let copyTimer = null
 
@@ -117,6 +119,39 @@ function assetSwatch(sym) {
   return 'bg-white/20'
 }
 
+function formatBytes(size) {
+  if (!Number.isFinite(size) || size <= 0) return '0 B'
+  const units = ['B', 'KB', 'MB', 'GB']
+  const index = Math.min(Math.floor(Math.log(size) / Math.log(1024)), units.length - 1)
+  const value = size / 1024 ** index
+  return `${value >= 10 || index === 0 ? value.toFixed(0) : value.toFixed(1)} ${units[index]}`
+}
+
+function resetVoucherPreview() {
+  if (depositVoucherPreview.value) {
+    URL.revokeObjectURL(depositVoucherPreview.value)
+    depositVoucherPreview.value = ''
+  }
+}
+
+function onPickVoucher(event) {
+  const file = event.target.files?.[0] || null
+  event.target.value = ''
+  if (!file) return
+  if (!file.type?.startsWith('image/')) {
+    window.alert('请上传图片格式的充值凭证')
+    return
+  }
+  resetVoucherPreview()
+  depositVoucher.value = file
+  depositVoucherPreview.value = URL.createObjectURL(file)
+}
+
+function clearVoucher() {
+  depositVoucher.value = null
+  resetVoucherPreview()
+}
+
 async function copyAddress() {
   try {
     await navigator.clipboard.writeText(address.value)
@@ -131,9 +166,13 @@ async function copyAddress() {
 }
 
 function onQuickPay() {
+  if (!depositVoucher.value) {
+    window.alert('请先上传充值凭证')
+    return
+  }
   auth.ensureHydrated()
   security.ensureHydrated()
-  // 演示：视为快捷支付入账成功；未绑定任一安全方式时引导绑定（与提币校验一致：至少一种）
+  // 演示：视为提交充值记录；未绑定任一安全方式时引导绑定（与提币校验一致：至少一种）
   if (!security.hasAnyVerifyChannel) {
     securityCheckOpen.value = true
   }
@@ -141,6 +180,7 @@ function onQuickPay() {
 
 onUnmounted(() => {
   if (copyTimer) clearTimeout(copyTimer)
+  resetVoucherPreview()
 })
 
 /** 与提币页一致 */
@@ -268,6 +308,52 @@ const addressShell =
             />
           </div>
 
+          <div class="min-w-0">
+            <label :class="labelBase">上传凭证</label>
+            <label
+              v-if="!depositVoucher"
+              class="grid h-24 w-24 cursor-pointer place-items-center rounded-2xl border border-dashed border-white/[0.14] bg-white/[0.04] text-white/45 transition hover:border-lime-300/45 hover:bg-lime-300/[0.06] hover:text-lime-200 [-webkit-tap-highlight-color:transparent] sm:h-28 sm:w-28 lg:rounded-xl"
+              aria-label="上传充值凭证"
+            >
+              <span class="text-4xl font-light leading-none">+</span>
+              <input type="file" accept="image/*" class="hidden" @change="onPickVoucher" />
+            </label>
+
+            <div
+              v-else
+              class="flex min-w-0 gap-3 rounded-xl border border-white/[0.08] bg-white/[0.04] p-3 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] lg:max-w-xl lg:rounded-lg"
+            >
+              <div class="h-24 w-24 shrink-0 overflow-hidden rounded-lg border border-white/[0.08] bg-black/30 sm:h-28 sm:w-28">
+                <img
+                  :src="depositVoucherPreview"
+                  :alt="depositVoucher.name"
+                  class="h-full w-full object-cover"
+                />
+              </div>
+              <div class="flex min-w-0 flex-1 flex-col justify-between">
+                <div class="min-w-0">
+                  <p class="truncate text-sm font-medium text-white/90">{{ depositVoucher.name }}</p>
+                  <p class="mt-1 text-xs text-white/45">已上传 · {{ formatBytes(depositVoucher.size) }}</p>
+                </div>
+                <div class="mt-3 flex flex-wrap gap-2">
+                  <label
+                    class="cursor-pointer rounded-full border border-lime-300/35 bg-lime-300/[0.08] px-3 py-1.5 text-xs font-semibold text-lime-100 transition hover:bg-lime-300/[0.14] [-webkit-tap-highlight-color:transparent]"
+                  >
+                    重传
+                    <input type="file" accept="image/*" class="hidden" @change="onPickVoucher" />
+                  </label>
+                  <button
+                    type="button"
+                    class="rounded-full border border-white/[0.1] px-3 py-1.5 text-xs font-semibold text-white/55 transition hover:border-white/20 hover:text-white"
+                    @click="clearVoucher"
+                  >
+                    删除
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div
             class="mt-3 border-t border-white/[0.08] pt-3 max-lg:bg-black/15 max-lg:rounded-lg max-lg:px-3 max-lg:py-2.5 lg:mt-2 lg:bg-transparent lg:px-0 lg:pt-5"
           >
@@ -288,7 +374,7 @@ const addressShell =
           class="w-full rounded-xl bg-lime-400 py-3 text-base font-semibold text-black transition hover:bg-lime-300 active:scale-[0.99] [-webkit-tap-highlight-color:transparent] sm:py-2.5 sm:text-sm lg:w-auto lg:min-w-[200px] lg:rounded-lg lg:px-8 lg:py-3 lg:text-base"
           @click="onQuickPay"
         >
-          快捷支付
+          提交
         </button>
       </div>
     </div>
