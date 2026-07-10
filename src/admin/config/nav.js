@@ -1,4 +1,4 @@
-import { LENDING_CREDIT_PERM } from '../constants/lendingCreditPermissions'
+import { LENDING_CREDIT_PERM } from '../constants/lendingCreditPermissions.js'
 
 export const navTree = [
   {
@@ -6,6 +6,7 @@ export const navTree = [
     icon: 'dashboard',
     path: '/admin'
   },
+  { title: '客服管理', icon: 'customer-service', path: '/admin/customer-service/workbench' },
   { title: '合约场控面板', icon: 'contract', path: '/admin/contracts/panel' },
   {
     title: '用户管理',

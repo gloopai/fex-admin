@@ -11,6 +11,15 @@ export const consoleRoutes = [
     }
   },
   {
+    path: 'customer-service/workbench',
+    name: 'customer-service-workbench',
+    component: () => import('../../pages/admin/customer-service/CustomerServiceWorkbenchPage.vue'),
+    meta: {
+      title: '客服管理 / 操作面板',
+      desc: '演示处理前台用户咨询、人工回复与结束会话。'
+    }
+  },
+  {
     path: 'users',
     redirect: '/admin/users/list'
   },
