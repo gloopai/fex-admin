@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
+import CustomerServiceImagePreview from '../../components/customer-service/CustomerServiceImagePreview.vue'
 import {
   MAX_CUSTOMER_SERVICE_IMAGE_BYTES,
   WELCOME_MESSAGE_TEXT
@@ -19,6 +20,7 @@ const draft = ref('')
 const pendingImageUrl = ref('')
 const pendingImageName = ref('')
 const errorMessage = ref('')
+const previewImageUrl = ref('')
 const snapshot = ref(customerServiceRepository.getSnapshot())
 let unsubscribe = null
 
@@ -89,6 +91,10 @@ function clearPendingImage() {
   pendingImageName.value = ''
 }
 
+function previewImage(url) {
+  previewImageUrl.value = url
+}
+
 async function sendMessage() {
   if (!canSend.value) return
   errorMessage.value = ''
@@ -147,7 +153,9 @@ onUnmounted(() => unsubscribe?.())
         <div class="space-y-4">
           <article v-for="message in messages" :key="message.id" class="flex" :class="message.sender === 'user' ? 'justify-end' : 'justify-start'">
             <div class="max-w-[82%] rounded-2xl px-4 py-3 text-[15px] leading-relaxed shadow-sm sm:max-w-[70%]" :class="message.sender === 'user' ? 'rounded-br-md bg-[#1597e5] text-white lg:bg-sky-500' : 'rounded-bl-md bg-[#f0f1f3] text-[#161a1e] lg:bg-white/[0.08] lg:text-white/90'">
-              <img v-if="message.imageDataUrl" :src="message.imageDataUrl" alt="消息图片" class="mb-2 max-h-64 w-auto max-w-full rounded-xl object-contain" />
+              <button v-if="message.imageDataUrl" type="button" class="mb-2 block cursor-zoom-in overflow-hidden rounded-xl" aria-label="放大消息图片" @click="previewImage(message.imageDataUrl)">
+                <img :src="message.imageDataUrl" alt="消息图片" class="max-h-64 w-auto max-w-full object-contain transition hover:opacity-90" />
+              </button>
               <p v-if="message.text" class="whitespace-pre-wrap break-words">{{ message.text }}</p>
             </div>
           </article>
@@ -177,6 +185,7 @@ onUnmounted(() => unsubscribe?.())
         <p class="mt-2 hidden text-center text-[11px] text-white/30 lg:block">Enter 发送 · Shift + Enter 换行 · 图片上限 1 MB</p>
       </footer>
     </section>
+    <CustomerServiceImagePreview :src="previewImageUrl" @close="previewImageUrl = ''" />
   </main>
 </template>
 

@@ -55,3 +55,20 @@ test('presents customer service as a user inbox without conversation lifecycle c
   assert.match(source, /全部用户/)
   assert.doesNotMatch(source, /结束会话|待回复|待用户|已结束/)
 })
+
+test('uses the shared image preview in both customer service surfaces', () => {
+  const adminSource = readFileSync(
+    new URL('../src/pages/admin/customer-service/CustomerServiceWorkbenchPage.vue', import.meta.url),
+    'utf8'
+  )
+  const frontSource = readFileSync(
+    new URL('../src/pages/front/FrontCustomerServicePage.vue', import.meta.url),
+    'utf8'
+  )
+
+  for (const source of [adminSource, frontSource]) {
+    assert.match(source, /import CustomerServiceImagePreview from/)
+    assert.match(source, /<CustomerServiceImagePreview/)
+    assert.match(source, /@click="previewImage\(message\.imageDataUrl\)"/)
+  }
+})

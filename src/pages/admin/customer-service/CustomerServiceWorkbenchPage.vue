@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import UserDetailDrawer from '../../../admin/components/user/UserDetailDrawer.vue'
 import { USER_KYC_STATUS, USER_ROLE, USER_STATUS } from '../../../admin/constants/user.js'
+import CustomerServiceImagePreview from '../../../components/customer-service/CustomerServiceImagePreview.vue'
 import {
   filterCustomerServiceThreads,
   summarizeCustomerServiceThreads
@@ -16,6 +17,7 @@ const draft = ref('')
 const errorMessage = ref('')
 const listOpen = ref(false)
 const profileOpen = ref(false)
+const previewImageUrl = ref('')
 const messageListRef = ref(null)
 let unsubscribe = null
 
@@ -73,6 +75,10 @@ function lastPreview(thread) {
   const message = thread.messages.at(-1)
   if (!message) return '暂无消息'
   return message.text || (message.imageDataUrl ? '[图片]' : '暂无消息')
+}
+
+function previewImage(url) {
+  previewImageUrl.value = url
 }
 
 async function scrollToLatest() {
@@ -195,7 +201,9 @@ onUnmounted(() => unsubscribe?.())
             <div class="space-y-4">
               <article v-for="message in selected.messages" :key="message.id" class="flex" :class="message.sender === 'agent' ? 'justify-end' : 'justify-start'">
                 <div class="max-w-[78%] rounded-2xl px-3.5 py-2.5 text-sm shadow-sm" :class="message.sender === 'agent' ? 'rounded-br-md bg-blue-600 text-white' : 'rounded-bl-md border border-slate-200 bg-white text-slate-700'">
-                  <img v-if="message.imageDataUrl" :src="message.imageDataUrl" alt="消息图片" class="mb-2 max-h-52 rounded-lg object-contain" />
+                  <button v-if="message.imageDataUrl" type="button" class="mb-2 block cursor-zoom-in overflow-hidden rounded-lg" aria-label="放大消息图片" @click="previewImage(message.imageDataUrl)">
+                    <img :src="message.imageDataUrl" alt="消息图片" class="max-h-52 object-contain transition hover:opacity-90" />
+                  </button>
                   <p v-if="message.text" class="whitespace-pre-wrap break-words">{{ message.text }}</p>
                   <p class="mt-1 text-[10px]" :class="message.sender === 'agent' ? 'text-blue-100' : 'text-slate-400'">{{ formatTime(message.createdAt) }}</p>
                 </div>
@@ -219,5 +227,6 @@ onUnmounted(() => unsubscribe?.())
 
     <button v-if="listOpen" type="button" class="fixed inset-0 z-40 bg-black/30 lg:hidden" aria-label="关闭客服面板" @click="listOpen = false" />
     <UserDetailDrawer :visible="profileOpen" :user="detailUser" @close="profileOpen = false" />
+    <CustomerServiceImagePreview :src="previewImageUrl" @close="previewImageUrl = ''" />
   </section>
 </template>
