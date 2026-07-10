@@ -1,10 +1,10 @@
 /**
  * 前台路由（/front）。
- * 需登录：personal-center 整树、finance 整树、trade/:assetClass/:tradeMode、verification-*-demo。
+ * 需登录：customer-service、personal-center 整树、finance 整树、trade/:assetClass/:tradeMode、verification-*-demo。
  * 公开：home、market、login、register、reset-password。
  * 守卫与组合式函数：router/index.js、src/composables/useRequireFrontAuth.js
  */
-import { FRONT_DEPOSIT_DEFAULT_SYMBOL_LOWER } from '../../constants/frontAssetCenterDemo'
+import { FRONT_DEPOSIT_DEFAULT_SYMBOL_LOWER } from '../../constants/frontAssetCenterDemo.js'
 export const frontDesktopRoutes = [
   {
     path: '',
@@ -21,6 +21,12 @@ export const frontDesktopRoutes = [
     name: 'front-market-desktop',
     component: () => import('../../pages/front/FrontMarketPage.vue'),
     meta: { title: '行情' }
+  },
+  {
+    path: 'customer-service',
+    name: 'front-customer-service',
+    component: () => import('../../pages/front/FrontCustomerServicePage.vue'),
+    meta: { title: '客服', requiresAuth: true }
   },
   {
     path: 'finance',
