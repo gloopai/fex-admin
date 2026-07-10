@@ -132,6 +132,7 @@ const pcDrawerShortcuts = computed(() =>
 
 const pcBase = computed(() => `${props.prefix}/personal-center`)
 const assetsBase = computed(() => `${props.prefix}/personal-center/assets`)
+const customerServicePath = computed(() => `${props.prefix}/customer-service`)
 
 /** 抽屉：首页 / 行情 / 资产 */
 const drawerPrimaryNavEntries = computed(() =>
@@ -200,7 +201,8 @@ function drawerPcIconKey(key) {
     'fees-vip': 'percent',
     referral: 'gift',
     notifications: 'bell',
-    preferences: 'sliders'
+    preferences: 'sliders',
+    'customer-service': 'message'
   }
   return m[key] || 'circle'
 }
@@ -262,6 +264,7 @@ function drawerIconPaths(icon) {
       'M10.3 21a1.94 1.94 0 0 0 3.4 0'
     ],
     sliders: ['M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h4M17 14h4M9 8h4'],
+    message: ['M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z', 'M8 10h.01M12 10h.01M16 10h.01'],
     percent: ['M19 5 5 19', 'M7.5 7.5h.01M16.5 16.5h.01'],
     circle: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z']
   }
@@ -1140,6 +1143,18 @@ function drawerRowClass(item) {
         </div>
 
         <template v-if="isLoggedIn">
+          <RouterLink
+            :to="customerServicePath"
+            class="hidden h-9 w-9 items-center justify-center rounded-full bg-[#1f2429] text-[#eaecef] transition hover:bg-[#3f4652] hover:text-sky-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/45 lg:inline-flex"
+            :class="isActivePath(customerServicePath) ? 'bg-[#3f4652] text-sky-300' : ''"
+            aria-label="在线客服"
+            title="在线客服"
+          >
+            <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z" />
+              <path d="M8 10h.01M12 10h.01M16 10h.01" />
+            </svg>
+          </RouterLink>
           <div
             class="relative hidden lg:block"
             @mouseenter="onAccountMouseEnter"

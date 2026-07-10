@@ -24,7 +24,8 @@ const shellQuickIconByKey = {
   notifications: 'bell',
   'fees-vip': 'star',
   referral: 'gift',
-  preferences: 'cog'
+  preferences: 'cog',
+  'customer-service': 'message-circle'
 }
 
 function shellQuickIcon(key) {

@@ -1,6 +1,6 @@
 <script setup>
 defineProps({
-  /** eye | eye-off | refresh | key | smartphone | mail | shield | lightbulb | star | monitor | cpu | lock | check | chevron-down | chevron-up | chevron-right | x | wallet | clipboard | id-card | link | bell | cog | gift | arrow-right | arrow-left | arrows-swap | bolt */
+  /** eye | eye-off | refresh | key | smartphone | mail | shield | lightbulb | star | monitor | message-circle | cpu | lock | check | chevron-down | chevron-up | chevron-right | x | wallet | clipboard | id-card | link | bell | cog | gift | arrow-right | arrow-left | arrows-swap | bolt */
   name: { type: String, required: true },
   sizeClass: { type: String, default: 'h-5 w-5' }
 })
@@ -63,6 +63,10 @@ defineProps({
       v-else-if="name === 'monitor'"
       d="M2.25 13.5h19.5M6.75 18H9m9 0h-1.5M9 18v3.75a.75.75 0 0 0 1.5 0V18m3 0v3.75a.75.75 0 0 0 1.5 0V18M4.5 5.25h15a.75.75 0 0 1 .75.75v7.5a.75.75 0 0 1-.75.75h-15a.75.75 0 0 1-.75-.75v-7.5a.75.75 0 0 1 .75-.75z"
     />
+    <g v-else-if="name === 'message-circle'">
+      <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z" />
+      <path d="M8 10h.01M12 10h.01M16 10h.01" />
+    </g>
     <g v-else-if="name === 'cpu'">
       <rect width="16" height="16" x="4" y="4" fill="none" rx="2" />
       <rect width="8" height="8" x="8" y="8" fill="none" rx="1" />

@@ -1,10 +1,10 @@
 /**
  * 前台路由（/front）。
- * 需登录：personal-center 整树、finance 整树、trade/:assetClass/:tradeMode、verification-*-demo。
+ * 需登录：customer-service、personal-center 整树、finance 整树、trade/:assetClass/:tradeMode、verification-*-demo。
  * 公开：home、market、login、register、reset-password。
  * 守卫与组合式函数：router/index.js、src/composables/useRequireFrontAuth.js
  */
-import { FRONT_DEPOSIT_DEFAULT_SYMBOL_LOWER } from '../../constants/frontAssetCenterDemo'
+import { FRONT_DEPOSIT_DEFAULT_SYMBOL_LOWER } from '../../constants/frontAssetCenterDemo.js'
 export const frontDesktopRoutes = [
   {
     path: '',
@@ -23,34 +23,10 @@ export const frontDesktopRoutes = [
     meta: { title: '行情' }
   },
   {
-    path: 'about',
-    name: 'front-about',
-    component: () => import('../../pages/front/FrontContentPage.vue'),
-    meta: { title: '关于我们', contentSlug: 'about' }
-  },
-  {
-    path: 'company-qualifications',
-    name: 'front-company-qualifications',
-    component: () => import('../../pages/front/FrontContentPage.vue'),
-    meta: { title: '公司资质', contentSlug: 'company-qualifications' }
-  },
-  {
-    path: 'whitepaper',
-    name: 'front-whitepaper',
-    component: () => import('../../pages/front/FrontContentPage.vue'),
-    meta: { title: '白皮书', contentSlug: 'whitepaper' }
-  },
-  {
-    path: 'pages/:slug',
-    name: 'front-content-page',
-    component: () => import('../../pages/front/FrontContentPage.vue'),
-    meta: { title: '内容页' }
-  },
-  {
-    path: 'pages/:parentSlug/:slug',
-    name: 'front-content-child-page',
-    component: () => import('../../pages/front/FrontContentPage.vue'),
-    meta: { title: '内容页' }
+    path: 'customer-service',
+    name: 'front-customer-service',
+    component: () => import('../../pages/front/FrontCustomerServicePage.vue'),
+    meta: { title: '客服', requiresAuth: true }
   },
   {
     path: 'finance',

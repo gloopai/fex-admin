@@ -10,7 +10,8 @@ export const PERSONAL_CENTER_SHELL_MOBILE_KEYS_ORDER = [
   'notifications',
   'fees-vip',
   'referral',
-  'preferences'
+  'preferences',
+  'customer-service'
 ]
 
 /**
@@ -96,6 +97,13 @@ export function getPersonalCenterNavItems(prefix) {
       label: '账户设置',
       description: '语言、时区与交易偏好',
       to: `${prefix}/personal-center/preferences`,
+      match: 'prefix'
+    },
+    {
+      key: 'customer-service',
+      label: '在线客服',
+      description: '咨询问题与提交图片',
+      to: `${prefix}/customer-service`,
       match: 'prefix'
     }
   ]
