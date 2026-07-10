@@ -139,21 +139,10 @@ onUnmounted(() => unsubscribe?.())
 </script>
 
 <template>
-  <section class="flex h-[calc(100vh-7rem)] min-h-0 flex-col gap-4">
-    <header class="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h1 class="text-xl font-semibold text-slate-900">客服操作面板</h1>
-        <p class="mt-1 text-sm text-slate-500">前后台本地联动演示 · 当前 {{ summary.all }} 个会话</p>
-      </div>
-      <div class="flex items-center gap-2">
-        <button type="button" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 lg:hidden" @click="listOpen = true">会话列表</button>
-        <button type="button" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 xl:hidden" :disabled="!selected" @click="profileOpen = true">用户信息</button>
-      </div>
-    </header>
-
+  <section class="relative h-full min-h-0">
     <p v-if="errorMessage" class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">{{ errorMessage }}</p>
 
-    <div class="grid min-h-0 flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)_280px]">
+    <div class="grid h-full min-h-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)_280px]">
       <aside
         class="fixed inset-y-0 left-0 z-50 flex w-[min(86vw,320px)] flex-col border-r border-slate-200 bg-white shadow-xl transition-transform lg:static lg:z-auto lg:w-auto lg:translate-x-0 lg:shadow-none"
         :class="listOpen ? 'translate-x-0' : '-translate-x-full'"
@@ -203,6 +192,7 @@ onUnmounted(() => unsubscribe?.())
       <main class="flex min-w-0 flex-col bg-slate-50/50">
         <template v-if="selected">
           <header class="flex min-h-16 items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3">
+            <button type="button" class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-600 lg:hidden" @click="listOpen = true">会话</button>
             <div class="min-w-0">
               <div class="flex items-center gap-2">
                 <h2 class="truncate font-semibold text-slate-900">{{ selected.user.nickname || selected.user.email }}</h2>
@@ -210,7 +200,10 @@ onUnmounted(() => unsubscribe?.())
               </div>
               <p class="mt-1 text-xs text-slate-400">UID {{ selected.user.uid || selected.userId }} · {{ selected.user.email }}</p>
             </div>
-            <button type="button" class="shrink-0 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-40" :disabled="isClosed" @click="endConversation">结束会话</button>
+            <div class="flex shrink-0 items-center gap-2">
+              <button type="button" class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-600 xl:hidden" @click="profileOpen = true">用户</button>
+              <button type="button" class="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-40" :disabled="isClosed" @click="endConversation">结束会话</button>
+            </div>
           </header>
 
           <div ref="messageListRef" class="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
