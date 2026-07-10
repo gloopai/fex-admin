@@ -1,19 +1,7 @@
-export const CUSTOMER_SERVICE_STATUS = Object.freeze({
-  WAITING: 'waiting',
-  ACTIVE: 'active',
-  WAITING_USER: 'waiting-user',
-  CLOSED: 'closed'
-})
-
-export const CUSTOMER_SERVICE_SENDER = Object.freeze({
-  USER: 'user',
-  AGENT: 'agent'
-})
-
+export const CUSTOMER_SERVICE_SENDER = Object.freeze({ USER: 'user', AGENT: 'agent' })
 export const WELCOME_MESSAGE_TEXT = '你好，请问有什么需要帮助的吗？'
 export const MAX_CUSTOMER_SERVICE_IMAGE_BYTES = 1024 * 1024
 
-const VALID_STATUSES = new Set(Object.values(CUSTOMER_SERVICE_STATUS))
 const VALID_SENDERS = new Set(Object.values(CUSTOMER_SERVICE_SENDER))
 
 function asString(value, fallback = '') {
@@ -44,25 +32,12 @@ function normalizeUser(user, userId = '') {
   }
 }
 
-export function createCustomerServiceMessage({
-  id,
-  sender,
-  text = '',
-  imageDataUrl = '',
-  createdAt = ''
-}) {
+export function createCustomerServiceMessage({ id, sender, text = '', imageDataUrl = '', createdAt = '' }) {
   const normalizedText = String(text ?? '').trim()
   const normalizedImage = String(imageDataUrl ?? '').trim()
   if (!normalizedText && !normalizedImage) return null
   if (!VALID_SENDERS.has(sender)) throw new Error('无效的消息发送方')
-
-  return {
-    id: String(id),
-    sender,
-    text: normalizedText,
-    imageDataUrl: normalizedImage,
-    createdAt: String(createdAt)
-  }
+  return { id: String(id), sender, text: normalizedText, imageDataUrl: normalizedImage, createdAt: String(createdAt) }
 }
 
 function normalizeMessage(raw) {
@@ -80,46 +55,59 @@ function normalizeMessage(raw) {
   }
 }
 
-function normalizeConversation(raw) {
-  if (!raw || typeof raw !== 'object' || raw.id == null || raw.userId == null) return null
-  const status = VALID_STATUSES.has(raw.status) ? raw.status : CUSTOMER_SERVICE_STATUS.WAITING
+function normalizeThread(raw) {
+  if (!raw || typeof raw !== 'object' || raw.userId == null) return null
+  const userId = String(raw.userId)
   const messages = Array.isArray(raw.messages) ? raw.messages.map(normalizeMessage).filter(Boolean) : []
   return {
-    id: String(raw.id),
-    userId: String(raw.userId),
-    user: normalizeUser(raw.user, raw.userId),
-    status,
+    id: `user-${userId}`,
+    userId,
+    user: normalizeUser(raw.user, userId),
     messages,
     adminUnread: asNonNegativeInteger(raw.adminUnread),
     userUnread: asNonNegativeInteger(raw.userUnread),
-    internalNote: asString(raw.internalNote),
-    createdAt: asString(raw.createdAt),
-    updatedAt: asString(raw.updatedAt, asString(raw.createdAt)),
-    closedAt: status === CUSTOMER_SERVICE_STATUS.CLOSED ? asString(raw.closedAt) : ''
+    createdAt: asString(raw.createdAt, messages[0]?.createdAt || ''),
+    updatedAt: asString(raw.updatedAt, messages.at(-1)?.createdAt || asString(raw.createdAt))
   }
+}
+
+function mergeThreads(items) {
+  const byUser = new Map()
+  for (const raw of items) {
+    const thread = normalizeThread(raw)
+    if (!thread) continue
+    const existing = byUser.get(thread.userId)
+    if (!existing) {
+      byUser.set(thread.userId, thread)
+      continue
+    }
+    existing.user = { ...existing.user, ...thread.user }
+    existing.messages = [...existing.messages, ...thread.messages]
+      .filter((message, index, all) => all.findIndex((item) => item.id === message.id) === index)
+      .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)))
+    existing.adminUnread += thread.adminUnread
+    existing.userUnread += thread.userUnread
+    existing.createdAt = [existing.createdAt, thread.createdAt].filter(Boolean).sort()[0] || ''
+    existing.updatedAt = [existing.updatedAt, thread.updatedAt].filter(Boolean).sort().at(-1) || ''
+  }
+  return [...byUser.values()]
 }
 
 export function normalizeCustomerServiceState(raw) {
   const source = raw && typeof raw === 'object' ? raw : {}
-  const conversations = Array.isArray(source.conversations)
-    ? source.conversations.map(normalizeConversation).filter(Boolean)
-    : []
-  return { version: 1, conversations }
+  const items = Array.isArray(source.threads)
+    ? source.threads
+    : (Array.isArray(source.conversations) ? source.conversations : [])
+  return { version: 2, threads: mergeThreads(items) }
 }
 
-function updateConversation(state, conversationId, updater) {
+function updateThread(state, threadId, updater) {
   const normalized = normalizeCustomerServiceState(state)
-  const index = normalized.conversations.findIndex((item) => item.id === String(conversationId))
-  if (index === -1) throw new Error('会话不存在')
-  const conversations = normalized.conversations.slice()
-  conversations[index] = updater(clone(conversations[index]))
-  return { ...normalized, conversations }
-}
-
-function findOpenConversation(conversations, userId) {
-  return conversations.find(
-    (item) => item.userId === String(userId) && item.status !== CUSTOMER_SERVICE_STATUS.CLOSED
-  )
+  const index = normalized.threads.findIndex((item) => item.id === String(threadId))
+  if (index === -1) throw new Error('用户消息不存在')
+  const threads = normalized.threads.slice()
+  threads[index] = updater(clone(threads[index]))
+  return { ...normalized, threads }
 }
 
 export function sendUserMessage(state, input) {
@@ -133,33 +121,31 @@ export function sendUserMessage(state, input) {
   })
   if (!message) return normalized
 
-  const open = findOpenConversation(normalized.conversations, input.userId)
-  if (open) {
-    return updateConversation(normalized, open.id, (conversation) => ({
-      ...conversation,
-      user: normalizeUser(input.user, input.userId),
-      status: CUSTOMER_SERVICE_STATUS.WAITING,
-      messages: [...conversation.messages, message],
-      adminUnread: conversation.adminUnread + 1,
-      updatedAt: String(input.now),
-      closedAt: ''
+  const userId = String(input.userId)
+  const existing = normalized.threads.find((item) => item.userId === userId)
+  if (existing) {
+    return updateThread(normalized, existing.id, (thread) => ({
+      ...thread,
+      user: normalizeUser(input.user, userId),
+      messages: [...thread.messages, message],
+      adminUnread: thread.adminUnread + 1,
+      updatedAt: String(input.now)
     }))
   }
 
-  const conversation = {
-    id: String(input.conversationId),
-    userId: String(input.userId),
-    user: normalizeUser(input.user, input.userId),
-    status: CUSTOMER_SERVICE_STATUS.WAITING,
-    messages: [message],
-    adminUnread: 1,
-    userUnread: 0,
-    internalNote: '',
-    createdAt: String(input.now),
-    updatedAt: String(input.now),
-    closedAt: ''
+  return {
+    ...normalized,
+    threads: [{
+      id: `user-${userId}`,
+      userId,
+      user: normalizeUser(input.user, userId),
+      messages: [message],
+      adminUnread: 1,
+      userUnread: 0,
+      createdAt: String(input.now),
+      updatedAt: String(input.now)
+    }, ...normalized.threads]
   }
-  return { ...normalized, conversations: [conversation, ...normalized.conversations] }
 }
 
 export function sendAgentMessage(state, input) {
@@ -171,77 +157,36 @@ export function sendAgentMessage(state, input) {
     createdAt: input.now
   })
   if (!message) return normalizeCustomerServiceState(state)
-  return updateConversation(state, input.conversationId, (conversation) => {
-    if (conversation.status === CUSTOMER_SERVICE_STATUS.CLOSED) throw new Error('会话已结束')
-    return {
-      ...conversation,
-      status: CUSTOMER_SERVICE_STATUS.WAITING_USER,
-      messages: [...conversation.messages, message],
-      userUnread: conversation.userUnread + 1,
-      adminUnread: 0,
-      updatedAt: String(input.now)
-    }
-  })
+  return updateThread(state, input.threadId, (thread) => ({
+    ...thread,
+    messages: [...thread.messages, message],
+    userUnread: thread.userUnread + 1,
+    adminUnread: 0,
+    updatedAt: String(input.now)
+  }))
 }
 
-export function markConversationRead(state, { conversationId, reader }) {
-  return updateConversation(state, conversationId, (conversation) => ({
-    ...conversation,
+export function markCustomerServiceThreadRead(state, { threadId, reader }) {
+  return updateThread(state, threadId, (thread) => ({
+    ...thread,
     ...(reader === 'user' ? { userUnread: 0 } : { adminUnread: 0 })
   }))
 }
 
-export function markConversationActive(state, { conversationId, now }) {
-  return updateConversation(state, conversationId, (conversation) => {
-    if (conversation.status === CUSTOMER_SERVICE_STATUS.CLOSED) throw new Error('会话已结束')
-    return { ...conversation, status: CUSTOMER_SERVICE_STATUS.ACTIVE, updatedAt: String(now) }
-  })
-}
-
-export function closeConversation(state, { conversationId, now }) {
-  return updateConversation(state, conversationId, (conversation) => ({
-    ...conversation,
-    status: CUSTOMER_SERVICE_STATUS.CLOSED,
-    adminUnread: 0,
-    closedAt: String(now),
-    updatedAt: String(now)
-  }))
-}
-
-export function saveConversationNote(state, { conversationId, note, now }) {
-  return updateConversation(state, conversationId, (conversation) => ({
-    ...conversation,
-    internalNote: String(note ?? '').trim(),
-    updatedAt: String(now)
-  }))
-}
-
-export function filterCustomerServiceConversations(conversations, filters = {}) {
+export function filterCustomerServiceThreads(threads, filters = {}) {
   const query = String(filters.query ?? '').trim().toLowerCase()
-  const status = String(filters.status ?? '')
-  return (Array.isArray(conversations) ? conversations : [])
-    .filter((conversation) => !status || status === 'all' || conversation.status === status)
-    .filter((conversation) => !filters.unreadOnly || conversation.adminUnread > 0)
-    .filter((conversation) => {
+  return (Array.isArray(threads) ? threads : [])
+    .filter((thread) => !filters.unreadOnly || thread.adminUnread > 0)
+    .filter((thread) => {
       if (!query) return true
-      const lastMessage = conversation.messages.at(-1)
-      return [
-        conversation.userId,
-        conversation.user?.email,
-        conversation.user?.nickname,
-        lastMessage?.text
-      ].some((value) => String(value ?? '').toLowerCase().includes(query))
+      return [thread.userId, thread.user?.email, thread.user?.nickname, ...thread.messages.map((message) => message.text)]
+        .some((value) => String(value ?? '').toLowerCase().includes(query))
     })
     .slice()
     .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))
 }
 
-export function summarizeCustomerServiceConversations(conversations) {
-  const summary = { all: 0, waiting: 0, active: 0, 'waiting-user': 0, closed: 0, unread: 0 }
-  for (const conversation of Array.isArray(conversations) ? conversations : []) {
-    summary.all += 1
-    if (Object.hasOwn(summary, conversation.status)) summary[conversation.status] += 1
-    if (conversation.adminUnread > 0) summary.unread += 1
-  }
-  return summary
+export function summarizeCustomerServiceThreads(threads) {
+  const list = Array.isArray(threads) ? threads : []
+  return { all: list.length, unread: list.filter((thread) => thread.adminUnread > 0).length }
 }

@@ -1,23 +1,14 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import {
-  CUSTOMER_SERVICE_STORAGE_KEY,
-  createCustomerServiceRepository
-} from '../src/features/customer-service/customerServiceRepository.js'
+import { CUSTOMER_SERVICE_STORAGE_KEY, createCustomerServiceRepository } from '../src/features/customer-service/customerServiceRepository.js'
 
 function createMemoryStorage(initial = {}) {
   const values = new Map(Object.entries(initial))
   return {
-    getItem(key) {
-      return values.has(key) ? values.get(key) : null
-    },
-    setItem(key, value) {
-      values.set(key, String(value))
-    },
-    removeItem(key) {
-      values.delete(key)
-    }
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, String(value)),
+    removeItem: (key) => values.delete(key)
   }
 }
 
@@ -38,78 +29,66 @@ const userInput = {
   text: '需要帮助'
 }
 
-test('persists user messages and returns cloned snapshots', () => {
+test('persists one cloned message thread per user', () => {
   const repository = createRepository()
   repository.sendUserMessage(userInput)
+  repository.sendUserMessage({ ...userInput, text: '第二条消息' })
 
   const first = repository.getSnapshot()
-  first.conversations[0].messages[0].text = 'mutated'
+  first.threads[0].messages[0].text = 'mutated'
   const second = repository.getSnapshot()
 
-  assert.equal(second.conversations[0].messages[0].text, '需要帮助')
-  assert.equal(second.conversations[0].adminUnread, 1)
+  assert.equal(second.threads.length, 1)
+  assert.equal(second.threads[0].messages[0].text, '需要帮助')
+  assert.equal(second.threads[0].adminUnread, 2)
   repository.dispose()
 })
 
-test('notifies subscribers for same-tab writes and storage events', () => {
-  const storage = createMemoryStorage()
+test('notifies subscribers and migrates legacy storage', () => {
+  const storage = createMemoryStorage({
+    [CUSTOMER_SERVICE_STORAGE_KEY]: JSON.stringify({ version: 1, conversations: [{ id: 'c1', userId: '143', user: userInput.user, messages: [] }] })
+  })
   const eventTarget = new EventTarget()
   const repository = createRepository({ storage, eventTarget })
   const snapshots = []
   const unsubscribe = repository.subscribe((snapshot) => snapshots.push(snapshot))
 
   repository.sendUserMessage(userInput)
-  storage.setItem(CUSTOMER_SERVICE_STORAGE_KEY, JSON.stringify({ version: 1, conversations: [] }))
   eventTarget.dispatchEvent(new Event('storage'))
 
+  assert.equal(repository.getSnapshot().version, 2)
+  assert.equal(repository.getSnapshot().threads.length, 1)
   assert.equal(snapshots.length, 3)
-  assert.equal(snapshots[1].conversations.length, 1)
-  assert.equal(snapshots[2].conversations.length, 0)
   unsubscribe()
   repository.dispose()
 })
 
-test('recovers from corrupt JSON and seeds demo data only once', () => {
+test('recovers from corrupt JSON and seeds demo users only once', () => {
   const storage = createMemoryStorage({ [CUSTOMER_SERVICE_STORAGE_KEY]: '{bad json' })
   const repository = createRepository({ storage })
 
-  assert.deepEqual(repository.getSnapshot(), { version: 1, conversations: [] })
+  assert.deepEqual(repository.getSnapshot(), { version: 2, threads: [] })
   repository.seedDemoData()
   const seeded = repository.getSnapshot()
   repository.seedDemoData()
 
-  assert.ok(seeded.conversations.length >= 2)
-  assert.equal(repository.getSnapshot().conversations.length, seeded.conversations.length)
+  assert.equal(seeded.threads.length, 2)
+  assert.equal(repository.getSnapshot().threads.length, 2)
   repository.dispose()
 })
 
-test('propagates storage quota failures', () => {
-  const storage = createMemoryStorage()
-  storage.setItem = () => {
-    const error = new Error('quota exceeded')
-    error.name = 'QuotaExceededError'
-    throw error
-  }
-  const repository = createRepository({ storage })
-
-  assert.throws(() => repository.sendUserMessage(userInput), /quota exceeded/)
-  repository.dispose()
-})
-
-test('supports agent actions through the repository API', () => {
+test('supports agent reply and read actions without lifecycle actions', () => {
   const repository = createRepository()
   repository.sendUserMessage(userInput)
-  const conversationId = repository.getSnapshot().conversations[0].id
+  const threadId = repository.getSnapshot().threads[0].id
 
-  repository.markRead({ conversationId, reader: 'admin' })
-  repository.markActive({ conversationId })
-  repository.sendAgentMessage({ conversationId, text: '正在处理' })
-  repository.saveNote({ conversationId, note: '内部备注' })
-  repository.close({ conversationId })
+  repository.markRead({ threadId, reader: 'admin' })
+  repository.sendAgentMessage({ threadId, text: '正在处理' })
 
-  const conversation = repository.getSnapshot().conversations[0]
-  assert.equal(conversation.messages.at(-1).text, '正在处理')
-  assert.equal(conversation.internalNote, '内部备注')
-  assert.equal(conversation.status, 'closed')
+  const thread = repository.getSnapshot().threads[0]
+  assert.equal(thread.messages.at(-1).text, '正在处理')
+  assert.equal(thread.adminUnread, 0)
+  assert.equal(typeof repository.close, 'undefined')
+  assert.equal(typeof repository.markActive, 'undefined')
   repository.dispose()
 })

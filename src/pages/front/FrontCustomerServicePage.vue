@@ -3,7 +3,6 @@ import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import {
-  CUSTOMER_SERVICE_STATUS,
   MAX_CUSTOMER_SERVICE_IMAGE_BYTES,
   WELCOME_MESSAGE_TEXT
 } from '../../features/customer-service/customerService.js'
@@ -36,20 +35,11 @@ const userSnapshot = computed(() => ({
   accountStatus: '正常'
 }))
 
-const ownConversations = computed(() =>
-  snapshot.value.conversations
-    .filter((item) => item.userId === userId.value)
-    .slice()
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
-)
-const conversation = computed(
-  () => ownConversations.value.find((item) => item.status !== CUSTOMER_SERVICE_STATUS.CLOSED) || ownConversations.value[0] || null
-)
+const thread = computed(() => snapshot.value.threads.find((item) => item.userId === userId.value) || null)
 const messages = computed(() => [
   { id: 'welcome', sender: 'agent', text: WELCOME_MESSAGE_TEXT, imageDataUrl: '' },
-  ...(conversation.value?.messages || [])
+  ...(thread.value?.messages || [])
 ])
-const sessionClosed = computed(() => conversation.value?.status === CUSTOMER_SERVICE_STATUS.CLOSED)
 const canSend = computed(() => Boolean(draft.value.trim() || pendingImageUrl.value))
 
 async function scrollToLatest() {
@@ -128,11 +118,9 @@ function onComposerKeydown(event) {
 onMounted(() => {
   unsubscribe = customerServiceRepository.subscribe((next) => {
     snapshot.value = next
-    const current = next.conversations.find(
-      (item) => item.userId === userId.value && item.status !== CUSTOMER_SERVICE_STATUS.CLOSED
-    )
+    const current = next.threads.find((item) => item.userId === userId.value)
     if (current?.userUnread) {
-      customerServiceRepository.markRead({ conversationId: current.id, reader: 'user' })
+      customerServiceRepository.markRead({ threadId: current.id, reader: 'user' })
       return
     }
     scrollToLatest()
@@ -151,7 +139,7 @@ onUnmounted(() => unsubscribe?.())
         </button>
         <div class="text-center">
           <h1 class="text-lg font-semibold tracking-wide">客服</h1>
-          <p class="mt-0.5 hidden text-[11px] text-white/45 lg:block">在线服务 · 人工会话演示</p>
+          <p class="mt-0.5 hidden text-[11px] text-white/45 lg:block">在线服务 · 人工客服演示</p>
         </div>
       </header>
 
@@ -159,13 +147,10 @@ onUnmounted(() => unsubscribe?.())
         <div class="space-y-4">
           <article v-for="message in messages" :key="message.id" class="flex" :class="message.sender === 'user' ? 'justify-end' : 'justify-start'">
             <div class="max-w-[82%] rounded-2xl px-4 py-3 text-[15px] leading-relaxed shadow-sm sm:max-w-[70%]" :class="message.sender === 'user' ? 'rounded-br-md bg-[#1597e5] text-white lg:bg-sky-500' : 'rounded-bl-md bg-[#f0f1f3] text-[#161a1e] lg:bg-white/[0.08] lg:text-white/90'">
-              <img v-if="message.imageDataUrl" :src="message.imageDataUrl" alt="会话图片" class="mb-2 max-h-64 w-auto max-w-full rounded-xl object-contain" />
+              <img v-if="message.imageDataUrl" :src="message.imageDataUrl" alt="消息图片" class="mb-2 max-h-64 w-auto max-w-full rounded-xl object-contain" />
               <p v-if="message.text" class="whitespace-pre-wrap break-words">{{ message.text }}</p>
             </div>
           </article>
-          <p v-if="sessionClosed" class="mx-auto max-w-sm rounded-full bg-black/[0.05] px-4 py-2 text-center text-xs text-black/50 lg:bg-white/[0.06] lg:text-white/45">
-            本次服务已结束，继续发送消息将创建新的会话。
-          </p>
         </div>
       </div>
 

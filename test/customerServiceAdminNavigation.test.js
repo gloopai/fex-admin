@@ -43,3 +43,15 @@ test('reuses the user management detail drawer in customer service', () => {
   assert.match(source, /<UserDetailDrawer/)
   assert.doesNotMatch(source, /aria-label="客服用户信息"/)
 })
+
+test('presents customer service as a user inbox without conversation lifecycle controls', () => {
+  const source = readFileSync(
+    new URL('../src/pages/admin/customer-service/CustomerServiceWorkbenchPage.vue', import.meta.url),
+    'utf8'
+  )
+
+  assert.match(source, /用户消息/)
+  assert.match(source, /新消息/)
+  assert.match(source, /全部用户/)
+  assert.doesNotMatch(source, /结束会话|待回复|待用户|已结束/)
+})
