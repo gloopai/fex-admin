@@ -117,9 +117,7 @@ watch(selected, (thread) => {
 })
 
 onMounted(() => {
-  if (!customerServiceRepository.getSnapshot().threads.length) {
-    customerServiceRepository.seedDemoData()
-  }
+  customerServiceRepository.seedDemoData()
   unsubscribe = customerServiceRepository.subscribe((next) => {
     snapshot.value = next
     if (!selectedId.value || !next.threads.some((item) => item.id === selectedId.value)) {

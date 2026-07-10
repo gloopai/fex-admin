@@ -74,7 +74,27 @@ test('recovers from corrupt JSON and seeds demo users only once', () => {
 
   assert.equal(seeded.threads.length, 2)
   assert.equal(repository.getSnapshot().threads.length, 2)
+  const alice = seeded.threads.find((thread) => thread.userId === '20018')
+  const imageMessage = alice.messages.find((message) => message.id === 'demo-alice-voucher')
+  assert.equal(imageMessage.text, '这是提币记录截图，请帮我看一下。')
+  assert.equal(imageMessage.imageDataUrl, '/deposit-voucher-sample.svg')
   repository.dispose()
+})
+
+test('adds the demo image message to existing seed data without duplicating it', () => {
+  const repository = createRepository()
+  repository.sendUserMessage({
+    userId: '20018',
+    user: { uid: '20018', email: 'alice@example.com', nickname: 'Alice' },
+    text: '已有消息',
+    messageId: 'existing-message'
+  })
+
+  repository.seedDemoData()
+  repository.seedDemoData()
+
+  const alice = repository.getSnapshot().threads.find((thread) => thread.userId === '20018')
+  assert.equal(alice.messages.filter((message) => message.id === 'demo-alice-voucher').length, 1)
 })
 
 test('supports agent reply and read actions without lifecycle actions', () => {
