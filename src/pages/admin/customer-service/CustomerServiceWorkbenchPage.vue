@@ -18,12 +18,6 @@ const profileOpen = ref(false)
 const messageListRef = ref(null)
 let unsubscribe = null
 
-const quickReplies = [
-  '您好，已收到您的问题，我来帮您处理。',
-  '请稍等，我正在为您查询。',
-  '感谢您的耐心等待，问题已经处理完成。'
-]
-
 const conversations = computed(() =>
   filterCustomerServiceConversations(snapshot.value.conversations, { query: query.value })
 )
@@ -76,10 +70,6 @@ function selectConversation(conversation) {
     customerServiceRepository.markRead({ conversationId: conversation.id, reader: 'admin' })
   }
   scrollToLatest()
-}
-
-function useQuickReply(text) {
-  draft.value = text
 }
 
 function sendReply() {
@@ -220,9 +210,6 @@ onUnmounted(() => unsubscribe?.())
           </div>
 
           <footer class="border-t border-slate-200 bg-white p-3 md:p-4">
-            <div class="mb-2 flex gap-2 overflow-x-auto pb-1">
-              <button v-for="reply in quickReplies" :key="reply" type="button" class="shrink-0 rounded-full bg-slate-100 px-3 py-1.5 text-xs text-slate-600 hover:bg-blue-50 hover:text-blue-700 disabled:opacity-40" :disabled="isClosed" @click="useQuickReply(reply)">{{ reply }}</button>
-            </div>
             <div class="flex items-end gap-2">
               <textarea v-model="draft" rows="2" class="min-h-16 min-w-0 flex-1 resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100" :disabled="isClosed" :placeholder="isClosed ? '会话已结束' : '输入回复内容，Enter 发送'" aria-label="客服回复" @keydown="onReplyKeydown" />
               <button type="button" class="h-10 rounded-lg bg-blue-600 px-4 text-sm font-medium text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-slate-300" :disabled="!canReply" @click="sendReply">发送</button>

@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 
 import { navTree } from '../src/admin/config/nav.js'
 import { consoleRoutes } from '../src/router/modules/console.js'
@@ -20,4 +21,14 @@ test('registers the admin customer service workbench route', () => {
   assert.ok(route)
   assert.equal(route.path, 'customer-service/workbench')
   assert.equal(route.meta.title, '客服管理 / 操作面板')
+})
+
+test('keeps the customer service composer free of quick replies', () => {
+  const source = readFileSync(
+    new URL('../src/pages/admin/customer-service/CustomerServiceWorkbenchPage.vue', import.meta.url),
+    'utf8'
+  )
+
+  assert.doesNotMatch(source, /quickReplies|useQuickReply/)
+  assert.doesNotMatch(source, /您好，已收到您的问题|请稍等，我正在为您查询|感谢您的耐心等待/)
 })
