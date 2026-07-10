@@ -32,3 +32,14 @@ test('keeps the customer service composer free of quick replies', () => {
   assert.doesNotMatch(source, /quickReplies|useQuickReply/)
   assert.doesNotMatch(source, /您好，已收到您的问题|请稍等，我正在为您查询|感谢您的耐心等待/)
 })
+
+test('reuses the user management detail drawer in customer service', () => {
+  const source = readFileSync(
+    new URL('../src/pages/admin/customer-service/CustomerServiceWorkbenchPage.vue', import.meta.url),
+    'utf8'
+  )
+
+  assert.match(source, /import UserDetailDrawer from/)
+  assert.match(source, /<UserDetailDrawer/)
+  assert.doesNotMatch(source, /aria-label="客服用户信息"/)
+})

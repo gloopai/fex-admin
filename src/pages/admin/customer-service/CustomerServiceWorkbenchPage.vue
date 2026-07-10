@@ -1,5 +1,7 @@
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import UserDetailDrawer from '../../../admin/components/user/UserDetailDrawer.vue'
+import { USER_KYC_STATUS, USER_ROLE, USER_STATUS } from '../../../admin/constants/user.js'
 import {
   CUSTOMER_SERVICE_STATUS,
   filterCustomerServiceConversations,
@@ -11,7 +13,6 @@ const snapshot = ref(customerServiceRepository.getSnapshot())
 const selectedId = ref('')
 const query = ref('')
 const draft = ref('')
-const noteDraft = ref('')
 const errorMessage = ref('')
 const listOpen = ref(false)
 const profileOpen = ref(false)
@@ -25,6 +26,35 @@ const summary = computed(() => summarizeCustomerServiceConversations(snapshot.va
 const selected = computed(() =>
   snapshot.value.conversations.find((item) => item.id === selectedId.value) || null
 )
+const detailUser = computed(() => {
+  const conversation = selected.value
+  if (!conversation) return null
+
+  const user = conversation.user || {}
+  const uid = user.uid || conversation.userId
+  const vipLevel = Number(user.vip || 0)
+
+  return {
+    id: `user_${uid}`,
+    username: user.nickname || user.email || `user_${uid}`,
+    email: user.email || '',
+    phone: user.phone || '-',
+    role: USER_ROLE.USER,
+    status: user.accountStatus === '正常' ? USER_STATUS.ACTIVE : USER_STATUS.INACTIVE,
+    kycStatus: user.kyc === '高级认证' ? USER_KYC_STATUS.VERIFIED : USER_KYC_STATUS.NOT_VERIFIED,
+    isVip: vipLevel > 0,
+    vipLevel,
+    creditScore: Number(user.creditScore || 0),
+    balance: 0,
+    frozenBalance: 0,
+    totalProfit: 0,
+    tradingVolume: 0,
+    registerTime: conversation.createdAt,
+    lastLoginTime: conversation.updatedAt,
+    lastLoginIp: '-',
+    remark: conversation.internalNote || ''
+  }
+})
 const isClosed = computed(() => selected.value?.status === CUSTOMER_SERVICE_STATUS.CLOSED)
 const canReply = computed(() => Boolean(selected.value && !isClosed.value && draft.value.trim()))
 
@@ -64,7 +94,6 @@ async function scrollToLatest() {
 
 function selectConversation(conversation) {
   selectedId.value = conversation.id
-  noteDraft.value = conversation.internalNote || ''
   listOpen.value = false
   if (conversation.adminUnread) {
     customerServiceRepository.markRead({ conversationId: conversation.id, reader: 'admin' })
@@ -99,17 +128,9 @@ function endConversation() {
   customerServiceRepository.close({ conversationId: selected.value.id })
 }
 
-function saveNote() {
-  if (!selected.value) return
-  customerServiceRepository.saveNote({
-    conversationId: selected.value.id,
-    note: noteDraft.value
-  })
-}
-
 watch(selected, (conversation) => {
   if (!conversation) return
-  noteDraft.value = conversation.internalNote || ''
+  profileOpen.value = false
   scrollToLatest()
 })
 
@@ -132,7 +153,7 @@ onUnmounted(() => unsubscribe?.())
   <section class="relative h-full min-h-0">
     <p v-if="errorMessage" class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">{{ errorMessage }}</p>
 
-    <div class="grid h-full min-h-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)_280px]">
+    <div class="grid h-full min-h-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm lg:grid-cols-[280px_minmax(0,1fr)]">
       <aside
         class="fixed inset-y-0 left-0 z-50 flex w-[min(86vw,320px)] flex-col border-r border-slate-200 bg-white shadow-xl transition-transform lg:static lg:z-auto lg:w-auto lg:translate-x-0 lg:shadow-none"
         :class="listOpen ? 'translate-x-0' : '-translate-x-full'"
@@ -191,7 +212,7 @@ onUnmounted(() => unsubscribe?.())
               <p class="mt-1 text-xs text-slate-400">UID {{ selected.user.uid || selected.userId }} · {{ selected.user.email }}</p>
             </div>
             <div class="flex shrink-0 items-center gap-2">
-              <button type="button" class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-600 xl:hidden" @click="profileOpen = true">用户</button>
+              <button type="button" class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700" @click="profileOpen = true">用户信息</button>
               <button type="button" class="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-40" :disabled="isClosed" @click="endConversation">结束会话</button>
             </div>
           </header>
@@ -221,38 +242,9 @@ onUnmounted(() => unsubscribe?.())
         </div>
       </main>
 
-      <aside
-        class="fixed inset-y-0 right-0 z-50 flex w-[min(86vw,320px)] flex-col border-l border-slate-200 bg-white p-5 shadow-xl transition-transform xl:static xl:z-auto xl:w-auto xl:translate-x-0 xl:shadow-none"
-        :class="profileOpen ? 'translate-x-0' : 'translate-x-full'"
-        aria-label="客服用户信息"
-      >
-        <div class="flex items-center justify-between">
-          <h2 class="font-semibold text-slate-900">用户信息</h2>
-          <button type="button" class="text-xl text-slate-400 xl:hidden" aria-label="关闭用户信息" @click="profileOpen = false">×</button>
-        </div>
-        <template v-if="selected">
-          <div class="mt-5 flex items-center gap-3">
-            <span class="grid h-11 w-11 place-items-center rounded-full bg-slate-800 font-semibold text-white">{{ (selected.user.nickname || selected.user.email || '?').slice(0, 1).toUpperCase() }}</span>
-            <div class="min-w-0"><p class="truncate font-medium text-slate-900">{{ selected.user.nickname || '未设置昵称' }}</p><p class="truncate text-xs text-slate-500">{{ selected.user.email }}</p></div>
-          </div>
-          <dl class="mt-5 space-y-3 text-sm">
-            <div class="flex justify-between gap-4"><dt class="text-slate-400">UID</dt><dd class="text-slate-700">{{ selected.user.uid || selected.userId }}</dd></div>
-            <div class="flex justify-between gap-4"><dt class="text-slate-400">VIP</dt><dd class="text-slate-700">VIP {{ selected.user.vip }}</dd></div>
-            <div class="flex justify-between gap-4"><dt class="text-slate-400">认证</dt><dd class="text-slate-700">{{ selected.user.kyc }}</dd></div>
-            <div class="flex justify-between gap-4"><dt class="text-slate-400">信用分</dt><dd class="text-slate-700">{{ selected.user.creditScore }}</dd></div>
-            <div class="flex justify-between gap-4"><dt class="text-slate-400">账户状态</dt><dd class="text-emerald-600">{{ selected.user.accountStatus }}</dd></div>
-            <div class="flex justify-between gap-4"><dt class="text-slate-400">会话开始</dt><dd class="text-right text-slate-700">{{ formatTime(selected.createdAt) }}</dd></div>
-          </dl>
-          <div class="mt-6 border-t border-slate-200 pt-5">
-            <label class="text-sm font-medium text-slate-700" for="customer-note">内部备注</label>
-            <textarea id="customer-note" v-model="noteDraft" rows="4" class="mt-2 w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" placeholder="仅管理台可见" />
-            <button type="button" class="mt-2 w-full rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-700" @click="saveNote">保存备注</button>
-          </div>
-        </template>
-        <p v-else class="mt-10 text-center text-sm text-slate-400">请选择会话查看用户信息</p>
-      </aside>
     </div>
 
-    <button v-if="listOpen || profileOpen" type="button" class="fixed inset-0 z-40 bg-black/30 xl:hidden" aria-label="关闭客服面板" @click="listOpen = false; profileOpen = false" />
+    <button v-if="listOpen" type="button" class="fixed inset-0 z-40 bg-black/30 lg:hidden" aria-label="关闭客服面板" @click="listOpen = false" />
+    <UserDetailDrawer :visible="profileOpen" :user="detailUser" @close="profileOpen = false" />
   </section>
 </template>
