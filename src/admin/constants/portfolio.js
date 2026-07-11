@@ -116,3 +116,14 @@ export function formatPortfolioAmount(value, currency = 'USDT') {
   if (!Number.isFinite(n)) return `0 ${currency}`
   return `${n.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${currency}`
 }
+
+export function sortPortfolioProducts(products = []) {
+  return [...products].sort((a, b) => {
+    const sa = Number(a?.sortOrder)
+    const sb = Number(b?.sortOrder)
+    const aOrder = Number.isFinite(sa) ? sa : 9999
+    const bOrder = Number.isFinite(sb) ? sb : 9999
+    if (aOrder !== bOrder) return aOrder - bOrder
+    return String(a?.id ?? '').localeCompare(String(b?.id ?? ''))
+  })
+}

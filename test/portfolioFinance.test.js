@@ -87,7 +87,7 @@ test('front portfolio list only renders enabled products', () => {
     'utf8'
   )
 
-  assert.match(source, /const enabledProducts = computed\(\(\) =>\s*products\.value\.filter\(\(product\) => product\.status === PRODUCT_STATUS\.ENABLED\)\s*\)/)
+  assert.match(source, /const enabledProducts = computed\(\(\) =>\s*sortPortfolioProducts\(products\.value\.filter\(\(product\) => product\.status === PRODUCT_STATUS\.ENABLED\)\)\s*\)/)
   assert.match(source, /v-for="product in visibleProducts"/)
   assert.doesNotMatch(source, /v-for="product in products"/)
 })
@@ -393,6 +393,28 @@ test('portfolio products support configurable hot badge display', () => {
   assert.match(listSource, /product\.isHot/)
   assert.match(detailSource, /product\.isHot/)
   assert.match(mockSource, /isHot:/)
+})
+
+test('portfolio admin supports numeric sorting and recommended flag', () => {
+  const adminSource = readFileSync(
+    new URL('../src/pages/admin/portfolio/PortfolioProductPage.vue', import.meta.url),
+    'utf8'
+  )
+  const listSource = readFileSync(
+    new URL('../src/pages/front/finance/portfolio/FinancePortfolioListPage.vue', import.meta.url),
+    'utf8'
+  )
+  const mockSource = readFileSync(new URL('../src/admin/mock/portfolio.js', import.meta.url), 'utf8')
+
+  assert.match(mockSource, /sortOrder:/)
+  assert.match(mockSource, /isRecommended:/)
+  assert.match(adminSource, /productForm\.sortOrder/)
+  assert.match(adminSource, /v-model\.number="productForm\.sortOrder"/)
+  assert.match(adminSource, /productForm\.isRecommended/)
+  assert.match(adminSource, /加到推荐/)
+  assert.doesNotMatch(adminSource, /<div>排序 \{\{ Number\(product\.sortOrder\) \|\| 0 \}\}<\/div>/)
+  assert.match(adminSource, /sortPortfolioProducts/)
+  assert.match(listSource, /sortPortfolioProducts/)
 })
 
 test('front portfolio list places daily yield in the lower metrics grid', () => {

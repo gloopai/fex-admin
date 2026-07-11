@@ -15,7 +15,8 @@ import {
   formatPortfolioDuration,
   formatPortfolioRateRange,
   productStatusMeta,
-  redeemArrivalModeMeta
+  redeemArrivalModeMeta,
+  sortPortfolioProducts
 } from '../../../admin/constants/portfolio'
 
 const products = portfolioProductsCatalog
@@ -60,6 +61,8 @@ const defaultForm = () => ({
   monthlyLimitCount: 6,
   minVipLevel: 0,
   isHot: false,
+  isRecommended: false,
+  sortOrder: 100,
   status: PRODUCT_STATUS.ENABLED,
   earlyRedeemEnabled: true,
   earlyRedeemMode: EARLY_REDEEM_MODE.FORFEIT_YIELD,
@@ -71,7 +74,7 @@ const productForm = reactive(defaultForm())
 
 const filteredProducts = computed(() => {
   const kw = search.value.trim().toLowerCase()
-  return products.value.filter((product) => {
+  return sortPortfolioProducts(products.value.filter((product) => {
     const matchesSearch =
       !kw ||
       product.name.toLowerCase().includes(kw) ||
@@ -79,7 +82,7 @@ const filteredProducts = computed(() => {
       product.assets.some((asset) => asset.symbol.toLowerCase().includes(kw))
     const matchesStatus = statusFilter.value === COMMON_FILTER_ALL || product.status === statusFilter.value
     return matchesSearch && matchesStatus
-  })
+  }))
 })
 
 function resetForm(next = defaultForm()) {
@@ -181,6 +184,7 @@ function statusClass(status) {
         <thead class="border-b border-slate-200 bg-slate-50">
           <tr>
             <th class="px-6 py-3 text-left text-xs font-medium uppercase text-slate-500">产品信息</th>
+            <th class="px-6 py-3 text-left text-xs font-medium uppercase text-slate-500">排序/推荐</th>
             <th class="px-6 py-3 text-left text-xs font-medium uppercase text-slate-500">组合币种</th>
             <th class="px-6 py-3 text-left text-xs font-medium uppercase text-slate-500">收益与费用</th>
             <th class="px-6 py-3 text-left text-xs font-medium uppercase text-slate-500">限额规则</th>
@@ -195,6 +199,15 @@ function statusClass(status) {
               <div class="font-medium text-slate-900">{{ product.name }}</div>
               <div class="mt-1 font-mono text-xs text-slate-400">{{ product.id }}</div>
               <div class="mt-1 text-xs text-slate-500">{{ vipLevelLabel(product.minVipLevel) }}+</div>
+            </td>
+            <td class="px-6 py-4 text-sm text-slate-600">
+              <div>{{ Number(product.sortOrder) || 0 }}</div>
+              <span
+                v-if="product.isRecommended"
+                class="mt-1 inline-flex rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-600"
+              >
+                推荐
+              </span>
             </td>
             <td class="px-6 py-4">
               <div class="flex max-w-xs flex-wrap gap-1.5">
@@ -275,9 +288,17 @@ function statusClass(status) {
                     <span class="mb-1 block text-sm font-medium text-slate-700">产品名称</span>
                     <input v-model="productForm.name" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
                   </label>
+                  <label class="block">
+                    <span class="mb-1 block text-sm font-medium text-slate-700">排序</span>
+                    <input v-model.number="productForm.sortOrder" type="number" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                  </label>
                   <label class="flex items-center gap-2 text-sm text-slate-700">
                     <input v-model="productForm.isHot" type="checkbox" class="h-4 w-4" />
                     HOT 角标
+                  </label>
+                  <label class="flex items-center gap-2 text-sm text-slate-700">
+                    <input v-model="productForm.isRecommended" type="checkbox" class="h-4 w-4" />
+                    加到推荐
                   </label>
                   <label class="block">
                     <span class="mb-1 block text-sm font-medium text-slate-700">状态</span>

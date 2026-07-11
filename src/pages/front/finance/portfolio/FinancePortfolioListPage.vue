@@ -11,7 +11,8 @@ import {
   formatPortfolioDuration,
   formatPortfolioRateRange,
   orderStatusMeta,
-  redeemArrivalModeMeta
+  redeemArrivalModeMeta,
+  sortPortfolioProducts
 } from '../../../../admin/constants/portfolio'
 
 const prefix = '/front'
@@ -31,7 +32,7 @@ const visibleOrderCount = ref(mobileOrderPageSize)
 const redeemOrder = ref(null)
 
 const enabledProducts = computed(() =>
-  products.value.filter((product) => product.status === PRODUCT_STATUS.ENABLED)
+  sortPortfolioProducts(products.value.filter((product) => product.status === PRODUCT_STATUS.ENABLED))
 )
 const visibleProducts = computed(() => enabledProducts.value.slice(0, visibleProductCount.value))
 const hasMoreProducts = computed(() => visibleProductCount.value < enabledProducts.value.length)
