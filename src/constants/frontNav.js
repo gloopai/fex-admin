@@ -75,7 +75,7 @@ export function getFrontFinanceHubPath(prefix) {
 }
 
 /**
- * 顶栏「金融」下拉 / 抽屉 / 金融首页卡片：三个产品频道（tag + 约十字 desc）
+ * 顶栏「金融」下拉 / 抽屉 / 金融首页卡片：产品频道（tag + 约十字 desc）
  * @param {string} prefix 如 `/front`
  */
 export function getFrontFinanceChannelEntries(prefix) {
@@ -101,6 +101,13 @@ export function getFrontFinanceChannelEntries(prefix) {
       tag: 'Quant',
       desc: '策略托管分档参考年化',
       to: `${b}/ai-quant`
+    },
+    {
+      key: 'portfolio',
+      label: '投资组合',
+      tag: 'Portfolio',
+      desc: '多币组合定期收益产品',
+      to: `${b}/portfolio`
     }
   ]
 }

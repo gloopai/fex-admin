@@ -104,6 +104,29 @@ export const frontDesktopRoutes = [
         name: 'front-finance-ai-quant-detail',
         component: () => import('../../pages/front/finance/aiQuant/FinanceAiQuantDetailPage.vue'),
         meta: { title: '策略详情' }
+      },
+      {
+        path: 'portfolio',
+        name: 'front-finance-portfolio',
+        component: () => import('../../pages/front/finance/portfolio/FinancePortfolioListPage.vue'),
+        meta: { title: '投资组合', hideFrontFloatingOnMobile: true }
+      },
+      {
+        path: 'portfolio/rules',
+        redirect: '/front/finance/portfolio'
+      },
+      {
+        path: 'portfolio/:productId/rules',
+        redirect: (to) => ({
+          name: 'front-finance-portfolio-detail',
+          params: { productId: to.params.productId }
+        })
+      },
+      {
+        path: 'portfolio/:productId',
+        name: 'front-finance-portfolio-detail',
+        component: () => import('../../pages/front/finance/portfolio/FinancePortfolioDetailPage.vue'),
+        meta: { title: '组合详情', hideFrontChromeOnMobile: true, hideFrontFloatingOnMobile: true }
       }
     ]
   },

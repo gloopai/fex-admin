@@ -47,6 +47,8 @@ const currencyTypeLabel = (value) => {
   return String(type || '')
 }
 
+const coinIconFallback = (symbol) => String(symbol || '?').slice(0, 1).toUpperCase()
+
 const applySearch = () => {
   searchApplied.value = searchDraft.value
   currencyTypeApplied.value = currencyTypeDraft.value
@@ -348,31 +350,36 @@ const badgeClass = (status) => (status === ASSET_STATUS.ENABLED ? 'bg-emerald-10
           :class="coin.status === ASSET_STATUS.ENABLED ? 'hover:border-emerald-200 hover:bg-emerald-50/30' : 'hover:border-slate-300 hover:bg-slate-50'"
         >
           <div class="flex flex-wrap items-start justify-between gap-2">
-            <div>
-              <div class="flex flex-wrap items-center gap-2">
-                <h3 class="text-2xl font-semibold leading-none text-slate-900">{{ coin.symbol }}</h3>
-                <span class="text-base text-slate-500">{{ coin.name }}</span>
-                <span class="rounded-md px-2 py-0.5 text-xs font-medium" :class="badgeClass(coin.status)">{{ coin.status === ASSET_STATUS.ENABLED ? '已启用' : '已禁用' }}</span>
-                <span class="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{{ currencyTypeLabel(coin.type) }}</span>
-                <span v-if="coin.isQuoteCurrency" class="rounded-md bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">计价</span>
+            <div class="flex min-w-0 items-start gap-3">
+              <div class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-slate-900 text-base font-semibold text-white shadow-sm">
+                {{ coinIconFallback(coin.symbol) }}
               </div>
-              <p class="mt-1.5 text-xs text-slate-600">
-                精度: {{ coin.precision }} 位
-                <span class="mx-2 text-slate-300">|</span>
-                入金: <span class="font-medium" :class="coin.canDeposit ? 'text-emerald-600' : 'text-slate-500'">{{ coin.canDeposit ? '开启' : '关闭' }}</span>
-                <span class="mx-2 text-slate-300">|</span>
-                出金: <span class="font-medium" :class="coin.canWithdraw ? 'text-emerald-600' : 'text-slate-500'">{{ coin.canWithdraw ? '开启' : '关闭' }}</span>
-              </p>
-              <p class="mt-1 text-xs text-slate-500">
-                支持网络 ({{ isNonVirtualType(coin.type) ? '-' : coin.networks.length }})
-                <template v-if="!isNonVirtualType(coin.type)">
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
+                  <h3 class="text-2xl font-semibold leading-none text-slate-900">{{ coin.symbol }}</h3>
+                  <span class="text-base text-slate-500">{{ coin.name }}</span>
+                  <span class="rounded-md px-2 py-0.5 text-xs font-medium" :class="badgeClass(coin.status)">{{ coin.status === ASSET_STATUS.ENABLED ? '已启用' : '已禁用' }}</span>
+                  <span class="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{{ currencyTypeLabel(coin.type) }}</span>
+                  <span v-if="coin.isQuoteCurrency" class="rounded-md bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">计价</span>
+                </div>
+                <p class="mt-1.5 text-xs text-slate-600">
+                  精度: {{ coin.precision }} 位
                   <span class="mx-2 text-slate-300">|</span>
-                  归集设置:
-                  <span class="font-medium" :class="coin.autoCollect ? 'text-blue-600' : 'text-slate-500'">
-                    {{ coin.autoCollect ? '开启（按网络）' : '关闭' }}
-                  </span>
-                </template>
-              </p>
+                  入金: <span class="font-medium" :class="coin.canDeposit ? 'text-emerald-600' : 'text-slate-500'">{{ coin.canDeposit ? '开启' : '关闭' }}</span>
+                  <span class="mx-2 text-slate-300">|</span>
+                  出金: <span class="font-medium" :class="coin.canWithdraw ? 'text-emerald-600' : 'text-slate-500'">{{ coin.canWithdraw ? '开启' : '关闭' }}</span>
+                </p>
+                <p class="mt-1 text-xs text-slate-500">
+                  支持网络 ({{ isNonVirtualType(coin.type) ? '-' : coin.networks.length }})
+                  <template v-if="!isNonVirtualType(coin.type)">
+                    <span class="mx-2 text-slate-300">|</span>
+                    归集设置:
+                    <span class="font-medium" :class="coin.autoCollect ? 'text-blue-600' : 'text-slate-500'">
+                      {{ coin.autoCollect ? '开启（按网络）' : '关闭' }}
+                    </span>
+                  </template>
+                </p>
+              </div>
             </div>
             <button type="button" class="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50" @click="openEdit(coin)">编辑</button>
           </div>
@@ -522,6 +529,21 @@ const badgeClass = (status) => (status === ASSET_STATUS.ENABLED ? 'bg-emerald-10
               <span class="text-sm">币种符号</span>
               <input v-model="form.symbol" type="text" class="w-full rounded-lg border border-slate-300 px-3 py-2" />
             </label>
+            <div class="space-y-2 md:col-span-2">
+              <span class="text-sm">币种 Icon</span>
+              <div class="flex items-center gap-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
+                <div class="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-slate-900 text-lg font-semibold text-white shadow-sm">
+                  {{ coinIconFallback(form.symbol) }}
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-medium text-slate-800">上传 Icon</p>
+                  <p class="mt-1 text-xs text-slate-500">支持 PNG/JPG/SVG，建议 120x120；当前仅展示界面，后续接入上传接口。</p>
+                </div>
+                <button type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-100">
+                  选择图片
+                </button>
+              </div>
+            </div>
             <label class="inline-flex items-center gap-2 text-sm md:col-span-2">
               <input v-model="form.isQuoteCurrency" type="checkbox" class="h-4 w-4" />
               是否计价货币

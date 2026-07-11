@@ -364,6 +364,39 @@ export const consoleRoutes = [
     component: () => import('../../pages/admin/aiQuant/AiQuantRulePage.vue')
   },
   {
+    path: 'portfolio',
+    redirect: '/admin/portfolio/products'
+  },
+  {
+    path: 'portfolio/products',
+    name: 'portfolio-products',
+    component: () => import('../../pages/admin/portfolio/PortfolioProductPage.vue')
+  },
+  {
+    path: 'portfolio/orders',
+    name: 'portfolio-orders',
+    component: () => import('../../pages/admin/portfolio/PortfolioOrderPage.vue')
+  },
+  {
+    path: 'portfolio/yield-records',
+    name: 'portfolio-yield-records',
+    component: () => import('../../pages/admin/portfolio/PortfolioYieldRecordsPage.vue')
+  },
+  {
+    path: 'portfolio/operation-log',
+    name: 'portfolio-operation-log',
+    component: () => import('../../pages/admin/portfolio/PortfolioOperationLogPage.vue'),
+    meta: {
+      title: '投资组合 / 操作日志',
+      desc: '产品配置、订单与赎回规则调整等管理操作审计记录。'
+    }
+  },
+  {
+    path: 'portfolio/rules',
+    name: 'portfolio-rules',
+    component: () => import('../../pages/admin/portfolio/PortfolioRulePage.vue')
+  },
+  {
     path: 'spot',
     redirect: '/admin/spot/products'
   },

@@ -3,11 +3,13 @@ import { computed } from 'vue'
 import {
   lendingProductsCatalog,
   lockedProductsCatalog,
-  aiQuantProductsCatalog
+  aiQuantProductsCatalog,
+  portfolioProductsCatalog
 } from '../../../admin/state/financeCatalogs'
 import { PRODUCT_STATUS as LOCK_PRODUCT_STATUS } from '../../../admin/constants/liquidityLocked'
 import { PRODUCT_STATUS as LEND_STATUS } from '../../../admin/constants/cryptoLending'
 import { PRODUCT_STATUS as AIQ_STATUS } from '../../../admin/constants/aiQuant'
+import { PRODUCT_STATUS as PORTFOLIO_STATUS } from '../../../admin/constants/portfolio'
 import { getFrontFinanceChannelEntries } from '../../../constants/frontNav'
 
 const prefix = '/front'
@@ -23,11 +25,15 @@ const lendingCount = computed(() =>
 const aiCount = computed(
   () => aiQuantProductsCatalog.value.filter((p) => p.status === AIQ_STATUS.ENABLED).length
 )
+const portfolioCount = computed(
+  () => portfolioProductsCatalog.value.filter((p) => p.status === PORTFOLIO_STATUS.ENABLED).length
+)
 
 const statByKey = computed(() => ({
   liquidity: `${liquidityCount.value} 款在售`,
   lending: `${lendingCount.value} 款借贷产品`,
-  'ai-quant': `${aiCount.value} 款策略`
+  'ai-quant': `${aiCount.value} 款策略`,
+  portfolio: `${portfolioCount.value} 款组合`
 }))
 
 const channelVisual = {
@@ -45,6 +51,11 @@ const channelVisual = {
     mesh: 'from-lime-500/28 via-emerald-600/12 to-transparent',
     border: 'group-hover:border-lime-400/35',
     glow: 'bg-lime-400/20'
+  },
+  portfolio: {
+    mesh: 'from-violet-500/24 via-lime-600/10 to-transparent',
+    border: 'group-hover:border-violet-300/30',
+    glow: 'bg-violet-400/16'
   }
 }
 </script>

@@ -138,6 +138,17 @@ export const navTree = [
       { title: '规则说明', path: '/admin/ai-quant/rules' }
     ]
   },
+  {
+    title: '投资组合',
+    icon: 'finance',
+    children: [
+      { title: '产品管理', path: '/admin/portfolio/products' },
+      { title: '订单管理', path: '/admin/portfolio/orders' },
+      { title: '收益记录', path: '/admin/portfolio/yield-records' },
+      { title: '操作日志', path: '/admin/portfolio/operation-log' },
+      { title: '规则说明', path: '/admin/portfolio/rules' }
+    ]
+  },
 
   {
     title: '系统设置',
