@@ -81,6 +81,16 @@ const PRODUCT_LINES = [
     theme: 'amber'
   },
   {
+    key: 'portfolio',
+    enabledKey: 'agentPortfolioCommissionEnabled',
+    rateKey: 'agentPortfolioCommissionRate',
+    title: '投资组合',
+    baseDesc:
+      '计佣基数 A = 代理名下客户该笔投资组合订单在计佣结算时点，账务系统为该笔订单写入的 USDT 计佣基数（单笔订单一个数值）。',
+    formula: '佣金 = A × r',
+    theme: 'cyan'
+  },
+  {
     key: 'lending',
     enabledKey: 'agentLendingCommissionEnabled',
     rateKey: 'agentLendingCommissionRate',
@@ -105,7 +115,7 @@ const PRODUCT_LINES = [
 const PRODUCT_GROUPS = [
   { id: 'fund', name: '入金', blurb: '含链上与站内 USDT 充值', lineKeys: ['deposit'] },
   { id: 'trade', name: '交易', blurb: '合约与现货订单', lineKeys: ['perpetual', 'delivery', 'spot'] },
-  { id: 'fin', name: '产品与策略', blurb: '量化、理财、借贷', lineKeys: ['aiQuant', 'lending', 'borrowing'] }
+  { id: 'fin', name: '产品与策略', blurb: '量化、投资组合、理财、借贷', lineKeys: ['aiQuant', 'portfolio', 'lending', 'borrowing'] }
 ]
 
 const BORDER_ACCENT = {
@@ -114,6 +124,7 @@ const BORDER_ACCENT = {
   violet: 'border-l-violet-500',
   orange: 'border-l-orange-500',
   amber: 'border-l-amber-500',
+  cyan: 'border-l-cyan-500',
   emerald: 'border-l-emerald-500',
   rose: 'border-l-rose-500'
 }

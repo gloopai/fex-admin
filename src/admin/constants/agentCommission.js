@@ -45,6 +45,14 @@ export const AGENT_PRODUCT_LINE_DEFS = [
     group: 'fin'
   },
   {
+    key: 'portfolio',
+    enabledKey: 'agentPortfolioCommissionEnabled',
+    rateKey: 'agentPortfolioCommissionRate',
+    title: '投资组合',
+    theme: 'cyan',
+    group: 'fin'
+  },
+  {
     key: 'lending',
     enabledKey: 'agentLendingCommissionEnabled',
     rateKey: 'agentLendingCommissionRate',
@@ -65,7 +73,7 @@ export const AGENT_PRODUCT_LINE_DEFS = [
 export const AGENT_PRODUCT_GROUPS = [
   { id: 'fund', name: '入金', blurb: '含链上与站内 USDT 充值', lineKeys: ['deposit'] },
   { id: 'trade', name: '交易', blurb: '合约与现货订单', lineKeys: ['perpetual', 'delivery', 'spot'] },
-  { id: 'fin', name: '产品与策略', blurb: '量化、理财、借贷', lineKeys: ['aiQuant', 'lending', 'borrowing'] }
+  { id: 'fin', name: '产品与策略', blurb: '量化、投资组合、理财、借贷', lineKeys: ['aiQuant', 'portfolio', 'lending', 'borrowing'] }
 ]
 
 /**
@@ -199,6 +207,9 @@ export const DEFAULT_AGENT_GLOBAL_COMMISSION = {
 
   agentAiQuantCommissionEnabled: false,
   agentAiQuantCommissionRate: '0',
+
+  agentPortfolioCommissionEnabled: false,
+  agentPortfolioCommissionRate: '0',
 
   agentLendingCommissionEnabled: false,
   agentLendingCommissionRate: '0',

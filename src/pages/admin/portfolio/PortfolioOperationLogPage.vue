@@ -1,5 +1,15 @@
 <script setup>
+import AdminListPaginationBar from '../../../admin/components/AdminListPaginationBar.vue'
+import { useAdminListPagination } from '../../../admin/composables/useAdminListPagination'
 import { portfolioOperationLogs } from '../../../admin/state/portfolioOperationLogs'
+
+const {
+  currentPage,
+  pageSize,
+  totalPages,
+  pagedRows: pagedLogs,
+  onPageSizeChange
+} = useAdminListPagination(portfolioOperationLogs)
 </script>
 
 <template>
@@ -21,7 +31,7 @@ import { portfolioOperationLogs } from '../../../admin/state/portfolioOperationL
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-200">
-          <tr v-for="log in portfolioOperationLogs" :key="log.id" class="hover:bg-slate-50">
+          <tr v-for="log in pagedLogs" :key="log.id" class="hover:bg-slate-50">
             <td class="px-6 py-4 text-sm text-slate-600">{{ log.createdAt }}</td>
             <td class="px-6 py-4 text-sm text-slate-900">{{ log.operator }}</td>
             <td class="px-6 py-4 text-sm text-blue-600">{{ log.action }}</td>
@@ -30,6 +40,14 @@ import { portfolioOperationLogs } from '../../../admin/state/portfolioOperationL
           </tr>
         </tbody>
       </table>
+      <AdminListPaginationBar
+        :current-page="currentPage"
+        :total-pages="totalPages"
+        :total-count="portfolioOperationLogs.length"
+        :page-size="pageSize"
+        @update:current-page="currentPage = $event"
+        @update:page-size="onPageSizeChange"
+      />
     </article>
   </section>
 </template>

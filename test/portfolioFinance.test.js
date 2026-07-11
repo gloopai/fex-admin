@@ -141,7 +141,7 @@ test('front portfolio detail follows the mobile portfolio subscription layout', 
   assert.match(source, /product\.assets/)
   assert.match(source, /组合信息/)
   assert.match(source, /申购金额/)
-  assert.match(source, /预计申购金额/)
+  assert.doesNotMatch(source, /预计申购金额/)
   assert.match(source, /怎样进行运作/)
   assert.doesNotMatch(source, /产品规则|收益模拟/)
 })
@@ -574,6 +574,45 @@ test('portfolio admin provides yield control and adjustment log pages', () => {
   assert.match(logSource, /AdminListPaginationBar/)
   assert.match(stateSource, /portfolioYieldAdjustmentLogs/)
   assert.match(stateSource, /appendPortfolioYieldAdjustmentLog/)
+})
+
+test('portfolio admin list pages use pagination', () => {
+  const pages = [
+    {
+      path: '../src/pages/admin/portfolio/PortfolioProductPage.vue',
+      rows: 'pagedProducts',
+      sourceRows: 'filteredProducts'
+    },
+    {
+      path: '../src/pages/admin/portfolio/PortfolioYieldControlPage.vue',
+      rows: 'pagedProducts',
+      sourceRows: 'filteredProducts'
+    },
+    {
+      path: '../src/pages/admin/portfolio/PortfolioOrderPage.vue',
+      rows: 'pagedOrders',
+      sourceRows: 'filteredOrders'
+    },
+    {
+      path: '../src/pages/admin/portfolio/PortfolioYieldRecordsPage.vue',
+      rows: 'pagedRecords',
+      sourceRows: 'portfolioYieldRecords'
+    },
+    {
+      path: '../src/pages/admin/portfolio/PortfolioOperationLogPage.vue',
+      rows: 'pagedLogs',
+      sourceRows: 'portfolioOperationLogs'
+    }
+  ]
+
+  for (const page of pages) {
+    const source = readFileSync(new URL(page.path, import.meta.url), 'utf8')
+    assert.match(source, /AdminListPaginationBar/)
+    assert.match(source, /useAdminListPagination/)
+    assert.match(source, new RegExp(`v-for="[^"]+ in ${page.rows}"`))
+    assert.match(source, new RegExp(`total-count="${page.sourceRows}\\.length"`))
+    assert.match(source, /@update:page-size="onPageSizeChange"/)
+  }
 })
 
 test('portfolio UI and admin do not expose product share quotas', () => {

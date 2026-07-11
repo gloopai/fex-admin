@@ -82,6 +82,7 @@ const COMMISSION_RATE_KEYS = [
   'deliveryCommissionRates',
   'spotCommissionRates',
   'aiQuantCommissionRates',
+  'portfolioCommissionRates',
   'lendingCommissionRates',
   'borrowingCommissionRates'
 ]
@@ -121,6 +122,7 @@ export function normalizeReferralConfig(raw) {
     'commissionDeliveryEnabled',
     'commissionSpotEnabled',
     'commissionAiQuantEnabled',
+    'commissionPortfolioEnabled',
     'commissionLendingEnabled',
     'commissionBorrowingEnabled'
   ]

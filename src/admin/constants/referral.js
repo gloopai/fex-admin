@@ -3,14 +3,16 @@ export const REFERRAL_TYPE = {
   DEPOSIT: 'deposit',           // 充值
   PERIODIC: 'periodic',         // 周期产品
   LENDING: 'lending',           // 理财
-  AI_QUANT: 'ai_quant'          // AI量化
+  AI_QUANT: 'ai_quant',         // AI量化
+  PORTFOLIO: 'portfolio'        // 投资组合
 }
 
 export const REFERRAL_TYPE_OPTIONS = [
   { value: REFERRAL_TYPE.DEPOSIT, label: '充值分销' },
   { value: REFERRAL_TYPE.PERIODIC, label: '周期产品' },
   { value: REFERRAL_TYPE.LENDING, label: '理财产品' },
-  { value: REFERRAL_TYPE.AI_QUANT, label: 'AI量化' }
+  { value: REFERRAL_TYPE.AI_QUANT, label: 'AI量化' },
+  { value: REFERRAL_TYPE.PORTFOLIO, label: '投资组合' }
 ]
 
 // 分佣状态
@@ -86,7 +88,8 @@ export const REFERRAL_CONFIG_FIELDS = {
   SPOT_COMMISSION_RATES: 'spotCommissionRates',
   LENDING_COMMISSION_RATES: 'lendingCommissionRates',
   BORROWING_COMMISSION_RATES: 'borrowingCommissionRates',
-  AI_QUANT_COMMISSION_RATES: 'aiQuantCommissionRates'
+  AI_QUANT_COMMISSION_RATES: 'aiQuantCommissionRates',
+  PORTFOLIO_COMMISSION_RATES: 'portfolioCommissionRates'
 }
 
 /**
@@ -177,6 +180,7 @@ export const DEFAULT_REFERRAL_CONFIG = {
   commissionDeliveryEnabled: false,
   commissionSpotEnabled: false,
   commissionAiQuantEnabled: false,
+  commissionPortfolioEnabled: false,
   commissionLendingEnabled: false,
   commissionBorrowingEnabled: false,
   /** 各线均为「一级,二级,三级」三个比例（0～1），不足补 0 */
@@ -185,6 +189,7 @@ export const DEFAULT_REFERRAL_CONFIG = {
   deliveryCommissionRates: '0,0,0',
   spotCommissionRates: '0,0,0',
   aiQuantCommissionRates: '0,0,0',
+  portfolioCommissionRates: '0,0,0',
   lendingCommissionRates: '0,0,0',
   borrowingCommissionRates: '0,0,0'
 }

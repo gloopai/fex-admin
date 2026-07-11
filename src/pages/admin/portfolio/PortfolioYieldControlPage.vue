@@ -1,5 +1,7 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
+import AdminListPaginationBar from '../../../admin/components/AdminListPaginationBar.vue'
+import { useAdminListPagination } from '../../../admin/composables/useAdminListPagination'
 import { portfolioProductsCatalog } from '../../../admin/state/financeCatalogs'
 import { appendPortfolioOperationLog } from '../../../admin/state/portfolioOperationLogs'
 import { appendPortfolioYieldAdjustmentLog } from '../../../admin/state/portfolioYieldAdjustmentLogs'
@@ -31,6 +33,14 @@ const filteredProducts = computed(() => {
     return text.includes(kw)
   })
 })
+
+const {
+  currentPage,
+  pageSize,
+  totalPages,
+  pagedRows: pagedProducts,
+  onPageSizeChange
+} = useAdminListPagination(filteredProducts, { resetSources: [keyword] })
 
 const summary = computed(() => {
   const total = products.value.length
@@ -198,7 +208,7 @@ const validUntilMin = computed(() => {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="product in filteredProducts" :key="product.id" class="border-t border-slate-100 hover:bg-slate-50">
+          <tr v-for="product in pagedProducts" :key="product.id" class="border-t border-slate-100 hover:bg-slate-50">
             <td class="px-4 py-3">
               <div class="font-medium text-slate-900">{{ productTitle(product) }}</div>
               <div class="font-mono text-xs text-slate-400">{{ product.id }}</div>
@@ -222,6 +232,14 @@ const validUntilMin = computed(() => {
         </tbody>
       </table>
       <div v-if="filteredProducts.length === 0" class="py-12 text-center text-sm text-slate-500">暂无产品</div>
+      <AdminListPaginationBar
+        :current-page="currentPage"
+        :total-pages="totalPages"
+        :total-count="filteredProducts.length"
+        :page-size="pageSize"
+        @update:current-page="currentPage = $event"
+        @update:page-size="onPageSizeChange"
+      />
     </article>
 
     <Teleport to="body">

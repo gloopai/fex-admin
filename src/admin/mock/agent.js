@@ -31,7 +31,9 @@ export const mockAgentList = [
       agentLendingCommissionEnabled: true,
       agentLendingCommissionRate: '0.10',
       agentBorrowingCommissionEnabled: false,
-      agentBorrowingCommissionRate: '0'
+      agentBorrowingCommissionRate: '0',
+      agentPortfolioCommissionEnabled: true,
+      agentPortfolioCommissionRate: '0.10'
     })
   },
   {

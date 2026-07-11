@@ -1,6 +1,16 @@
 <script setup>
+import AdminListPaginationBar from '../../../admin/components/AdminListPaginationBar.vue'
+import { useAdminListPagination } from '../../../admin/composables/useAdminListPagination'
 import { portfolioYieldRecords } from '../../../admin/state/portfolioOrders'
 import { formatPortfolioAmount } from '../../../admin/constants/portfolio'
+
+const {
+  currentPage,
+  pageSize,
+  totalPages,
+  pagedRows: pagedRecords,
+  onPageSizeChange
+} = useAdminListPagination(portfolioYieldRecords)
 </script>
 
 <template>
@@ -24,7 +34,7 @@ import { formatPortfolioAmount } from '../../../admin/constants/portfolio'
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-200">
-          <tr v-for="record in portfolioYieldRecords" :key="record.id" class="hover:bg-slate-50">
+          <tr v-for="record in pagedRecords" :key="record.id" class="hover:bg-slate-50">
             <td class="px-6 py-4 font-mono text-xs text-slate-500">{{ record.id }}</td>
             <td class="px-6 py-4 font-mono text-xs text-slate-500">{{ record.orderId }}</td>
             <td class="px-6 py-4 text-sm text-slate-900">{{ record.productName }}</td>
@@ -38,6 +48,14 @@ import { formatPortfolioAmount } from '../../../admin/constants/portfolio'
           </tr>
         </tbody>
       </table>
+      <AdminListPaginationBar
+        :current-page="currentPage"
+        :total-pages="totalPages"
+        :total-count="portfolioYieldRecords.length"
+        :page-size="pageSize"
+        @update:current-page="currentPage = $event"
+        @update:page-size="onPageSizeChange"
+      />
     </article>
   </section>
 </template>

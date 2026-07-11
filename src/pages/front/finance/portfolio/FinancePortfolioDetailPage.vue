@@ -176,11 +176,7 @@ function confirmSubscribe() {
           <span class="h-3 w-3 rounded-sm bg-fuchsia-400 shadow-[8px_6px_0_0_#2bf2b5]" />
           <h2 class="text-[22px] font-bold leading-7">申购金额</h2>
         </div>
-
-        <div class="mt-8 text-center">
-          <p class="text-[17px] font-bold">预计申购金额</p>
-          <p class="mt-3 text-[14px] text-white/45">账户余额: {{ formatPortfolioAmount(availableBalance) }}</p>
-        </div>
+        <p class="mt-4 text-[14px] text-white/45">账户余额: {{ formatPortfolioAmount(availableBalance) }}</p>
 
         <div class="mt-7 flex min-h-[4.5rem] items-center gap-3 rounded-2xl border border-slate-500/70 px-3">
           <button
@@ -359,11 +355,7 @@ function confirmSubscribe() {
               <span class="h-3 w-3 rounded-sm bg-fuchsia-400 shadow-[8px_6px_0_0_#2bf2b5]" />
               <h2 class="text-lg font-semibold text-white">申购金额</h2>
             </div>
-
-            <div class="mt-5 rounded-xl border border-white/[0.06] bg-black/25 px-4 py-4 text-center">
-              <p class="text-sm font-semibold text-white">预计申购金额</p>
-              <p class="mt-2 text-xs text-white/45">账户余额: {{ formatPortfolioAmount(availableBalance) }}</p>
-            </div>
+            <p class="mt-3 text-xs text-white/45">账户余额: {{ formatPortfolioAmount(availableBalance) }}</p>
 
             <div class="mt-5 flex min-h-[3.25rem] items-center gap-2 rounded-xl border border-white/[0.12] bg-black/40 px-2 focus-within:border-lime-400/45 focus-within:ring-2 focus-within:ring-lime-400/25">
               <button

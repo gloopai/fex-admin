@@ -3,6 +3,8 @@ import { computed, reactive, ref } from 'vue'
 import { ASSET_CURRENCY_TYPE, ASSET_STATUS } from '../../../admin/constants/assets'
 import { createAssetsCoinsMock } from '../../../admin/mock/assets'
 import { getActiveVipLevels } from '../../../admin/mock/vip'
+import AdminListPaginationBar from '../../../admin/components/AdminListPaginationBar.vue'
+import { useAdminListPagination } from '../../../admin/composables/useAdminListPagination'
 import { portfolioProductsCatalog } from '../../../admin/state/financeCatalogs'
 import { appendPortfolioOperationLog } from '../../../admin/state/portfolioOperationLogs'
 import {
@@ -89,6 +91,14 @@ const filteredProducts = computed(() => {
     return matchesSearch && matchesStatus
   }))
 })
+
+const {
+  currentPage,
+  pageSize,
+  totalPages,
+  pagedRows: pagedProducts,
+  onPageSizeChange
+} = useAdminListPagination(filteredProducts, { resetSources: [search, statusFilter] })
 
 function resetForm(next = defaultForm()) {
   Object.assign(productForm, JSON.parse(JSON.stringify(next)))
@@ -210,7 +220,7 @@ function statusClass(status) {
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-200">
-          <tr v-for="product in filteredProducts" :key="product.id" class="transition hover:bg-slate-50">
+          <tr v-for="product in pagedProducts" :key="product.id" class="transition hover:bg-slate-50">
             <td class="px-6 py-4">
               <div class="font-medium text-slate-900">{{ product.name }}</div>
               <div class="mt-1 font-mono text-xs text-slate-400">{{ product.id }}</div>
@@ -260,6 +270,14 @@ function statusClass(status) {
         </tbody>
       </table>
       <div v-if="filteredProducts.length === 0" class="py-12 text-center text-slate-500">暂无产品数据</div>
+      <AdminListPaginationBar
+        :current-page="currentPage"
+        :total-pages="totalPages"
+        :total-count="filteredProducts.length"
+        :page-size="pageSize"
+        @update:current-page="currentPage = $event"
+        @update:page-size="onPageSizeChange"
+      />
     </article>
 
     <Teleport to="body">

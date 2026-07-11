@@ -1,5 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
+import AdminListPaginationBar from '../../../admin/components/AdminListPaginationBar.vue'
+import { useAdminListPagination } from '../../../admin/composables/useAdminListPagination'
 import { portfolioOrders } from '../../../admin/state/portfolioOrders'
 import { COMMON_FILTER_ALL, ORDER_STATUS, formatPortfolioAmount, orderStatusMeta } from '../../../admin/constants/portfolio'
 
@@ -18,6 +20,14 @@ const filteredOrders = computed(() => {
     return matchesSearch && matchesStatus
   })
 })
+
+const {
+  currentPage,
+  pageSize,
+  totalPages,
+  pagedRows: pagedOrders,
+  onPageSizeChange
+} = useAdminListPagination(filteredOrders, { resetSources: [search, statusFilter] })
 
 function statusClass(status) {
   return orderStatusMeta[status]?.class ?? 'bg-slate-100 text-slate-600'
@@ -55,7 +65,7 @@ function statusClass(status) {
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-200">
-          <tr v-for="order in filteredOrders" :key="order.id" class="hover:bg-slate-50">
+          <tr v-for="order in pagedOrders" :key="order.id" class="hover:bg-slate-50">
             <td class="px-6 py-4 font-mono text-xs text-slate-500">{{ order.id }}</td>
             <td class="px-6 py-4 text-sm text-slate-700">
               <div>{{ order.userName }}</div>
@@ -87,6 +97,14 @@ function statusClass(status) {
           </tr>
         </tbody>
       </table>
+      <AdminListPaginationBar
+        :current-page="currentPage"
+        :total-pages="totalPages"
+        :total-count="filteredOrders.length"
+        :page-size="pageSize"
+        @update:current-page="currentPage = $event"
+        @update:page-size="onPageSizeChange"
+      />
     </article>
   </section>
 </template>
