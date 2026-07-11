@@ -373,6 +373,16 @@ export const consoleRoutes = [
     component: () => import('../../pages/admin/portfolio/PortfolioProductPage.vue')
   },
   {
+    path: 'portfolio/yield-control',
+    name: 'portfolio-yield-control',
+    component: () => import('../../pages/admin/portfolio/PortfolioYieldControlPage.vue')
+  },
+  {
+    path: 'portfolio/yield-adjustment-log',
+    name: 'portfolio-yield-adjustment-log',
+    component: () => import('../../pages/admin/portfolio/PortfolioYieldAdjustmentLogPage.vue')
+  },
+  {
     path: 'portfolio/orders',
     name: 'portfolio-orders',
     component: () => import('../../pages/admin/portfolio/PortfolioOrderPage.vue')

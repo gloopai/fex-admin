@@ -143,6 +143,8 @@ export const navTree = [
     icon: 'finance',
     children: [
       { title: '产品管理', path: '/admin/portfolio/products' },
+      { title: '收益调控', path: '/admin/portfolio/yield-control' },
+      { title: '收益调整日志', path: '/admin/portfolio/yield-adjustment-log' },
       { title: '订单管理', path: '/admin/portfolio/orders' },
       { title: '收益记录', path: '/admin/portfolio/yield-records' },
       { title: '操作日志', path: '/admin/portfolio/operation-log' },

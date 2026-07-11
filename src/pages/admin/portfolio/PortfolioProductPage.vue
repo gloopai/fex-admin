@@ -25,6 +25,7 @@ const statusFilter = ref(COMMON_FILTER_ALL)
 const showModal = ref(false)
 const editingId = ref('')
 const activeTab = ref('base')
+const MAX_PORTFOLIO_ASSETS = 3
 const activeVipLevels = computed(() => getActiveVipLevels().slice().sort((a, b) => a.level - b.level))
 const supportedTradeCoins = computed(() =>
   createAssetsCoinsMock()
@@ -52,8 +53,12 @@ const defaultForm = () => ({
     { symbol: 'ETH' }
   ],
   durationDays: 3,
+  baseMinDailyRatePct: 0.2,
+  baseMaxDailyRatePct: 0.6,
   minDailyRatePct: 0.2,
   maxDailyRatePct: 0.6,
+  yieldAdjustmentRate: 0,
+  currentYieldMultiplier: 1,
   subscriptionFeePct: 0.3,
   minAmount: 1000,
   maxAmount: 30000,
@@ -104,6 +109,7 @@ function openEdit(product) {
 }
 
 function addAsset() {
+  if (productForm.assets.length >= MAX_PORTFOLIO_ASSETS) return
   const usedSymbols = new Set(productForm.assets.map((asset) => asset.symbol))
   const nextCoin = supportedTradeCoins.value.find((coin) => !usedSymbols.has(coin.symbol)) ?? supportedTradeCoins.value[0]
   if (!nextCoin) return
@@ -117,6 +123,10 @@ function removeAsset(index) {
 
 function saveProduct() {
   const row = JSON.parse(JSON.stringify(productForm))
+  row.baseMinDailyRatePct = Number(row.baseMinDailyRatePct ?? row.minDailyRatePct) || 0
+  row.baseMaxDailyRatePct = Number(row.baseMaxDailyRatePct ?? row.maxDailyRatePct) || 0
+  row.yieldAdjustmentRate = Number(row.yieldAdjustmentRate || 0)
+  row.currentYieldMultiplier = Number(row.currentYieldMultiplier || 1)
   const idx = products.value.findIndex((product) => product.id === editingId.value)
   if (idx >= 0) {
     products.value[idx] = row
@@ -133,12 +143,18 @@ function saveProduct() {
 }
 
 function toggleStatus(product) {
-  product.status = product.status === PRODUCT_STATUS.ENABLED ? PRODUCT_STATUS.DISABLED : PRODUCT_STATUS.ENABLED
+  const nextStatus = product.status === PRODUCT_STATUS.ENABLED ? PRODUCT_STATUS.DISABLED : PRODUCT_STATUS.ENABLED
+  const confirmMessage =
+    nextStatus === PRODUCT_STATUS.DISABLED ? '确认禁用该投资组合产品？' : '确认启用该投资组合产品？'
+  const confirmed = window.confirm(confirmMessage)
+  if (!confirmed) return
+
+  product.status = nextStatus
   appendPortfolioOperationLog({
     operator: 'admin',
     action: '切换状态',
     target: product.name,
-    summary: `状态切换为 ${productStatusMeta[product.status]?.label}`
+    summary: `状态切换为 ${productStatusMeta[nextStatus]?.label}`
   })
 }
 
@@ -317,7 +333,7 @@ function statusClass(status) {
                 </div>
 
                 <div v-show="activeTab === 'assets'" class="space-y-3">
-                  <p class="text-xs text-slate-500">组合币种从资产管理 / 币种管理中已配置的虚拟币选择，不再手动输入。</p>
+                  <p class="text-xs text-slate-500">组合币种从资产管理 / 币种管理中已配置的虚拟币选择，最多选择 {{ MAX_PORTFOLIO_ASSETS }} 个币种。</p>
                   <div v-for="(asset, idx) in productForm.assets" :key="idx" class="grid grid-cols-[1fr_auto] gap-3 rounded-lg bg-slate-50 p-3">
                     <select v-model="asset.symbol" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
                       <option v-for="coin in supportedTradeCoins" :key="coin.symbol" :value="coin.symbol">
@@ -326,7 +342,13 @@ function statusClass(status) {
                     </select>
                     <button class="text-sm text-red-600" @click="removeAsset(idx)">删除</button>
                   </div>
-                  <button class="text-sm font-medium text-blue-600" @click="addAsset">+ 添加资产</button>
+                  <button
+                    class="text-sm font-medium text-blue-600 disabled:cursor-not-allowed disabled:text-slate-400"
+                    :disabled="productForm.assets.length >= MAX_PORTFOLIO_ASSETS"
+                    @click="addAsset"
+                  >
+                    + 添加资产
+                  </button>
                 </div>
 
                 <div v-show="activeTab === 'yield'" class="grid grid-cols-2 gap-4">

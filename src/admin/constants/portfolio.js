@@ -117,6 +117,57 @@ export function formatPortfolioAmount(value, currency = 'USDT') {
   return `${n.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${currency}`
 }
 
+export function getPortfolioBaseRates(product = {}) {
+  const min = Number(product.baseMinDailyRatePct ?? product.minDailyRatePct)
+  const max = Number(product.baseMaxDailyRatePct ?? product.maxDailyRatePct)
+  return {
+    min: Number.isFinite(min) ? min : 0,
+    max: Number.isFinite(max) ? max : 0
+  }
+}
+
+export function portfolioYieldMultiplier(adjustmentRate = 0) {
+  const rate = Number(adjustmentRate)
+  const safeRate = Number.isFinite(rate) ? Math.min(100, Math.max(-100, rate)) : 0
+  return roundMoney(1 + safeRate / 100, 4)
+}
+
+export function applyPortfolioYieldAdjustment(product = {}, adjustmentRate = 0) {
+  const rate = Number(adjustmentRate)
+  const safeRate = Number.isFinite(rate) ? Math.min(100, Math.max(-100, rate)) : 0
+  const multiplier = portfolioYieldMultiplier(safeRate)
+  const base = getPortfolioBaseRates(product)
+
+  return {
+    ...product,
+    baseMinDailyRatePct: base.min,
+    baseMaxDailyRatePct: base.max,
+    yieldAdjustmentRate: safeRate,
+    currentYieldMultiplier: multiplier,
+    minDailyRatePct: roundMoney(base.min * multiplier, 4),
+    maxDailyRatePct: roundMoney(base.max * multiplier, 4)
+  }
+}
+
+export function resetPortfolioYieldAdjustment(product = {}) {
+  const base = getPortfolioBaseRates(product)
+  return {
+    ...product,
+    baseMinDailyRatePct: base.min,
+    baseMaxDailyRatePct: base.max,
+    yieldAdjustmentRate: 0,
+    currentYieldMultiplier: 1,
+    minDailyRatePct: base.min,
+    maxDailyRatePct: base.max
+  }
+}
+
+export function formatPortfolioAdjustmentRate(rate) {
+  const n = Number(rate)
+  if (!Number.isFinite(n) || n === 0) return '0%'
+  return `${n > 0 ? '+' : ''}${n}%`
+}
+
 export function sortPortfolioProducts(products = []) {
   return [...products].sort((a, b) => {
     const sa = Number(a?.sortOrder)

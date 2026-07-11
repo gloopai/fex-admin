@@ -3,9 +3,11 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 
 import {
+  applyPortfolioYieldAdjustment,
   calculatePortfolioEstimate,
   canSubscribePortfolio,
-  PRODUCT_STATUS
+  PRODUCT_STATUS,
+  resetPortfolioYieldAdjustment
 } from '../src/admin/constants/portfolio.js'
 import { getFrontFinanceChannelEntries } from '../src/constants/frontNav.js'
 import { frontDesktopRoutes } from '../src/router/modules/front.js'
@@ -41,6 +43,28 @@ test('validates whether a portfolio product can be subscribed', () => {
   assert.equal(canSubscribePortfolio(product, 999).reason, '金额低于最低申购金额')
   assert.equal(canSubscribePortfolio(product, 1000, { availableBalance: 500 }).reason, '可用余额不足')
   assert.equal(canSubscribePortfolio({ ...product, status: PRODUCT_STATUS.DISABLED }, 1000).reason, '产品当前不可认购')
+})
+
+test('applies and resets portfolio yield adjustment against base daily rates', () => {
+  const product = {
+    id: 'pf-test',
+    minDailyRatePct: 0.2,
+    maxDailyRatePct: 0.6
+  }
+
+  const adjusted = applyPortfolioYieldAdjustment(product, 50)
+  assert.equal(adjusted.yieldAdjustmentRate, 50)
+  assert.equal(adjusted.currentYieldMultiplier, 1.5)
+  assert.equal(adjusted.baseMinDailyRatePct, 0.2)
+  assert.equal(adjusted.baseMaxDailyRatePct, 0.6)
+  assert.equal(adjusted.minDailyRatePct, 0.3)
+  assert.equal(adjusted.maxDailyRatePct, 0.9)
+
+  const reset = resetPortfolioYieldAdjustment(adjusted)
+  assert.equal(reset.yieldAdjustmentRate, 0)
+  assert.equal(reset.currentYieldMultiplier, 1)
+  assert.equal(reset.minDailyRatePct, 0.2)
+  assert.equal(reset.maxDailyRatePct, 0.6)
 })
 
 test('front portfolio subscription surfaces balance and detail-page subscribe flow', () => {
@@ -417,6 +441,18 @@ test('portfolio admin supports numeric sorting and recommended flag', () => {
   assert.match(listSource, /sortPortfolioProducts/)
 })
 
+test('portfolio admin requires confirmation before enabling or disabling product', () => {
+  const source = readFileSync(
+    new URL('../src/pages/admin/portfolio/PortfolioProductPage.vue', import.meta.url),
+    'utf8'
+  )
+
+  assert.match(source, /window\.confirm/)
+  assert.match(source, /确认禁用/)
+  assert.match(source, /确认启用/)
+  assert.match(source, /if \(!confirmed\) return/)
+})
+
 test('front portfolio list places daily yield in the lower metrics grid', () => {
   const source = readFileSync(
     new URL('../src/pages/front/finance/portfolio/FinancePortfolioListPage.vue', import.meta.url),
@@ -499,6 +535,45 @@ test('portfolio admin selects composition assets from supported exchange coins',
   assert.match(source, /supportedTradeCoins/)
   assert.match(source, /<select\s+v-model="asset\.symbol"/)
   assert.doesNotMatch(source, /<input\s+v-model="asset\.symbol"/)
+})
+
+test('portfolio admin limits composition assets to three coins', () => {
+  const source = readFileSync(
+    new URL('../src/pages/admin/portfolio/PortfolioProductPage.vue', import.meta.url),
+    'utf8'
+  )
+
+  assert.match(source, /const MAX_PORTFOLIO_ASSETS = 3/)
+  assert.match(source, /productForm\.assets\.length >= MAX_PORTFOLIO_ASSETS/)
+  assert.match(source, /:disabled="productForm\.assets\.length >= MAX_PORTFOLIO_ASSETS"/)
+  assert.match(source, /最多选择 \{\{ MAX_PORTFOLIO_ASSETS \}\} 个币种/)
+})
+
+test('portfolio admin provides yield control and adjustment log pages', () => {
+  const controlSource = readFileSync(
+    new URL('../src/pages/admin/portfolio/PortfolioYieldControlPage.vue', import.meta.url),
+    'utf8'
+  )
+  const logSource = readFileSync(
+    new URL('../src/pages/admin/portfolio/PortfolioYieldAdjustmentLogPage.vue', import.meta.url),
+    'utf8'
+  )
+  const stateSource = readFileSync(
+    new URL('../src/admin/state/portfolioYieldAdjustmentLogs.js', import.meta.url),
+    'utf8'
+  )
+
+  assert.match(controlSource, /portfolioProductsCatalog/)
+  assert.match(controlSource, /applyPortfolioYieldAdjustment/)
+  assert.match(controlSource, /resetPortfolioYieldAdjustment/)
+  assert.match(controlSource, /appendPortfolioYieldAdjustmentLog/)
+  assert.match(controlSource, /收益调控/)
+  assert.match(controlSource, /调整原因/)
+  assert.match(logSource, /portfolioYieldAdjustmentLogs/)
+  assert.match(logSource, /收益调整日志/)
+  assert.match(logSource, /AdminListPaginationBar/)
+  assert.match(stateSource, /portfolioYieldAdjustmentLogs/)
+  assert.match(stateSource, /appendPortfolioYieldAdjustmentLog/)
 })
 
 test('portfolio UI and admin do not expose product share quotas', () => {
@@ -586,6 +661,8 @@ test('registers portfolio admin navigation and routes', () => {
     item.children.map((child) => child.path),
     [
       '/admin/portfolio/products',
+      '/admin/portfolio/yield-control',
+      '/admin/portfolio/yield-adjustment-log',
       '/admin/portfolio/orders',
       '/admin/portfolio/yield-records',
       '/admin/portfolio/operation-log',
@@ -594,6 +671,8 @@ test('registers portfolio admin navigation and routes', () => {
   )
 
   assert.equal(consoleRoutes.find((route) => route.name === 'portfolio-products')?.path, 'portfolio/products')
+  assert.equal(consoleRoutes.find((route) => route.name === 'portfolio-yield-control')?.path, 'portfolio/yield-control')
+  assert.equal(consoleRoutes.find((route) => route.name === 'portfolio-yield-adjustment-log')?.path, 'portfolio/yield-adjustment-log')
   assert.equal(consoleRoutes.find((route) => route.name === 'portfolio-orders')?.path, 'portfolio/orders')
   assert.equal(consoleRoutes.find((route) => route.name === 'portfolio-yield-records')?.path, 'portfolio/yield-records')
   assert.equal(consoleRoutes.find((route) => route.name === 'portfolio-operation-log')?.path, 'portfolio/operation-log')
