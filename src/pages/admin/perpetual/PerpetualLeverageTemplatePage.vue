@@ -83,6 +83,9 @@ const showTemplateModal = ref(false)
 const editingTemplateId = ref(null)
 const newTemplateName = ref('')
 const selectedLeverages = ref([])
+const activeTemplateTab = ref('leverage')
+const templateOrderMode = ref('cost')
+const templateContractFaceValueUsdt = ref(1000)
 
 const toggleLeverage = (value) => {
   if (selectedLeverages.value.includes(value)) {
@@ -104,6 +107,9 @@ const openCreateTemplate = () => {
   editingTemplateId.value = null
   newTemplateName.value = ''
   selectedLeverages.value = []
+  activeTemplateTab.value = 'leverage'
+  templateOrderMode.value = 'cost'
+  templateContractFaceValueUsdt.value = 1000
   showTemplateModal.value = true
 }
 
@@ -111,6 +117,9 @@ const openEditTemplate = (template) => {
   editingTemplateId.value = template.id
   newTemplateName.value = template.name
   selectedLeverages.value = template.levels.map((item) => Number(parseNumeric(item))).filter((item) => Number.isFinite(item))
+  activeTemplateTab.value = 'leverage'
+  templateOrderMode.value = template.orderMode ?? 'cost'
+  templateContractFaceValueUsdt.value = Number(template.contractFaceValueUsdt ?? 1000)
   showTemplateModal.value = true
 }
 
@@ -121,7 +130,9 @@ const submitTemplate = () => {
     status: PERPETUAL_STATUS.ENABLED,
     leverageRange: `${Math.min(...selectedLeverages.value)}x - ${Math.max(...selectedLeverages.value)}x`,
     leverageCount: selectedLeverages.value.length,
-    levels: selectedLeverages.value.map((item) => `${item}x`)
+    levels: selectedLeverages.value.map((item) => `${item}x`),
+    orderMode: templateOrderMode.value,
+    contractFaceValueUsdt: Number(templateContractFaceValueUsdt.value) || 1000
   }
   if (editingTemplateId.value) {
     templates.value = templates.value.map((item) => (item.id === editingTemplateId.value ? { ...item, ...payload } : item))
@@ -139,6 +150,9 @@ const submitTemplate = () => {
   editingTemplateId.value = null
   newTemplateName.value = ''
   selectedLeverages.value = []
+  activeTemplateTab.value = 'leverage'
+  templateOrderMode.value = 'cost'
+  templateContractFaceValueUsdt.value = 1000
 }
 </script>
 
@@ -282,7 +296,23 @@ const submitTemplate = () => {
           />
         </label>
 
-        <div class="space-y-3">
+        <div class="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
+          <button
+            v-for="tab in [
+              ['leverage', '杠杆档位'],
+              ['contract', '合约模板']
+            ]"
+            :key="tab[0]"
+            type="button"
+            class="rounded-md px-4 py-2 text-sm font-medium transition"
+            :class="activeTemplateTab === tab[0] ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'"
+            @click="activeTemplateTab = tab[0]"
+          >
+            {{ tab[1] }}
+          </button>
+        </div>
+
+        <div v-show="activeTemplateTab === 'leverage'" class="space-y-3">
           <div class="flex items-center justify-between">
             <p class="text-sm font-medium text-slate-700">选择杠杆档位 <span class="text-rose-500">*</span></p>
             <p class="text-sm text-slate-500">已选择: <span class="font-semibold text-blue-600">{{ selectedLeverages.length }}</span> 个档位</p>
@@ -325,6 +355,34 @@ const submitTemplate = () => {
             <p>- 50-125x: 高风险，仅适合专业交易者</p>
             <p class="mt-2 font-medium text-rose-500">杠杆越高，强制平仓风险越大</p>
           </div>
+        </div>
+
+        <div v-show="activeTemplateTab === 'contract'" class="space-y-4">
+          <div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <p class="text-sm font-medium text-slate-700">下单模式</p>
+            <div class="mt-3 grid gap-3 sm:grid-cols-2">
+              <label class="flex cursor-pointer items-center gap-3 rounded-lg border bg-white p-3 text-sm transition" :class="templateOrderMode === 'cost' ? 'border-blue-300 text-blue-600 shadow-sm' : 'border-slate-200 text-slate-700'">
+                <input v-model="templateOrderMode" type="radio" value="cost" class="h-4 w-4" />
+                <span>按成本(USDT)下单</span>
+              </label>
+              <label class="flex cursor-pointer items-center gap-3 rounded-lg border bg-white p-3 text-sm transition" :class="templateOrderMode === 'quantity' ? 'border-blue-300 text-blue-600 shadow-sm' : 'border-slate-200 text-slate-700'">
+                <input v-model="templateOrderMode" type="radio" value="quantity" class="h-4 w-4" />
+                <span>按数量下单</span>
+              </label>
+            </div>
+          </div>
+
+          <label class="block space-y-2">
+            <span class="text-sm font-medium text-slate-700">合约面值 <span class="text-slate-400">USDT</span></span>
+            <input
+              v-model.number="templateContractFaceValueUsdt"
+              type="number"
+              min="1"
+              step="1"
+              class="ant-input"
+              placeholder="默认 1000"
+            />
+          </label>
         </div>
       </div>
 

@@ -13,6 +13,11 @@ export const createDefaultPerpetualControlConfig = () => ({
   autoTriggerEnabled: true
 })
 
+export const createDefaultPerpetualTemplateContractConfig = () => ({
+  orderMode: 'cost',
+  contractFaceValueUsdt: 1000
+})
+
 const perpetualTemplates = [
   {
     id: 'all-levels',
@@ -246,6 +251,10 @@ export const perpetualProductStatusMeta = {
   }
 }
 
-export const createPerpetualTemplatesMock = () => clone(perpetualTemplates)
+export const createPerpetualTemplatesMock = () =>
+  clone(perpetualTemplates).map((template) => ({
+    ...createDefaultPerpetualTemplateContractConfig(),
+    ...template
+  }))
 export const createPerpetualProductsMock = () => clone(perpetualProducts)
 export const createPerpetualControlConfigsMock = () => clone(perpetualControlConfigs)
