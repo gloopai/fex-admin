@@ -367,7 +367,7 @@ const submitTemplate = () => {
               </label>
               <label class="flex cursor-pointer items-center gap-3 rounded-lg border bg-white p-3 text-sm transition" :class="templateOrderMode === 'quantity' ? 'border-blue-300 text-blue-600 shadow-sm' : 'border-slate-200 text-slate-700'">
                 <input v-model="templateOrderMode" type="radio" value="quantity" class="h-4 w-4" />
-                <span>按数量下单</span>
+                <span>按数量(张数)下单</span>
               </label>
             </div>
           </div>
@@ -383,6 +383,16 @@ const submitTemplate = () => {
               placeholder="默认 1000"
             />
           </label>
+
+          <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            <p class="font-medium text-slate-800">模式影响</p>
+            <p class="mt-2">- 按成本(USDT)下单：用户输入的是保证金成本，系统按当前杠杆反推可开的合约数量。</p>
+            <p>- 按数量(张数)下单：用户输入的是张数，系统根据合约面值和杠杆计算需要占用的保证金。</p>
+            <p class="mt-3 font-medium text-slate-800">保证金计算规则</p>
+            <p class="mt-2">- 按成本模式：保证金 = 用户输入成本。</p>
+            <p>- 按数量模式：保证金 = 张数 × 合约面值 ÷ 杠杆倍数。</p>
+            <p class="mt-2 text-amber-700">合约面值用于张数与 USDT 名义价值之间的换算，例如合约面值 1000 USDT 时，1 张代表 1000 USDT 名义价值。</p>
+          </div>
         </div>
       </div>
 
