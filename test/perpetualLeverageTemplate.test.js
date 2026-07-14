@@ -37,9 +37,9 @@ test('perpetual contract template settings explain order mode impact and margin 
 
   assert.match(source, /模式影响/)
   assert.match(source, /按成本\(USDT\)下单：用户输入的是保证金成本/)
-  assert.match(source, /按数量\(张数=币价\)下单：用户输入的是张数，张数按币价口径填写/)
+  assert.match(source, /按数量\(张数=币价\)下单：用户输入的是张数，1 张的名义价值等于当前币种价格/)
   assert.match(source, /保证金计算规则/)
   assert.match(source, /按成本模式：保证金 = 用户输入成本/)
-  assert.match(source, /按数量模式：保证金 = 张数\(币价口径\) × 合约面值 ÷ 杠杆倍数/)
-  assert.match(source, /合约面值用于张数\(币价口径\)与 USDT 名义价值之间的换算/)
+  assert.match(source, /按数量模式：保证金 = 张数 × 当前币种价格 ÷ 杠杆倍数/)
+  assert.match(source, /合约面值仅作为后台模板参数保留，不参与按数量\(张数=币价\)模式的保证金计算/)
 })
