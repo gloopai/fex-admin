@@ -86,6 +86,8 @@ const selectedLeverages = ref([])
 const activeTemplateTab = ref('leverage')
 const templateOrderMode = ref('cost')
 const templateContractFaceValueUsdt = ref(1000)
+const templateMaintenanceMarginRate = ref(0.5)
+const templateLiquidationFeeRate = ref(0)
 
 const toggleLeverage = (value) => {
   if (selectedLeverages.value.includes(value)) {
@@ -110,6 +112,8 @@ const openCreateTemplate = () => {
   activeTemplateTab.value = 'leverage'
   templateOrderMode.value = 'cost'
   templateContractFaceValueUsdt.value = 1000
+  templateMaintenanceMarginRate.value = 0.5
+  templateLiquidationFeeRate.value = 0
   showTemplateModal.value = true
 }
 
@@ -120,6 +124,8 @@ const openEditTemplate = (template) => {
   activeTemplateTab.value = 'leverage'
   templateOrderMode.value = template.orderMode ?? 'cost'
   templateContractFaceValueUsdt.value = Number(template.contractFaceValueUsdt ?? 1000)
+  templateMaintenanceMarginRate.value = Number(template.maintenanceMarginRate ?? 0.5)
+  templateLiquidationFeeRate.value = Number(template.liquidationFeeRate ?? 0)
   showTemplateModal.value = true
 }
 
@@ -132,7 +138,9 @@ const submitTemplate = () => {
     leverageCount: selectedLeverages.value.length,
     levels: selectedLeverages.value.map((item) => `${item}x`),
     orderMode: templateOrderMode.value,
-    contractFaceValueUsdt: Number(templateContractFaceValueUsdt.value) || 1000
+    contractFaceValueUsdt: Number(templateContractFaceValueUsdt.value) || 1000,
+    maintenanceMarginRate: Number(templateMaintenanceMarginRate.value) || 0.5,
+    liquidationFeeRate: Number(templateLiquidationFeeRate.value) || 0
   }
   if (editingTemplateId.value) {
     templates.value = templates.value.map((item) => (item.id === editingTemplateId.value ? { ...item, ...payload } : item))
@@ -153,6 +161,8 @@ const submitTemplate = () => {
   activeTemplateTab.value = 'leverage'
   templateOrderMode.value = 'cost'
   templateContractFaceValueUsdt.value = 1000
+  templateMaintenanceMarginRate.value = 0.5
+  templateLiquidationFeeRate.value = 0
 }
 </script>
 
@@ -384,6 +394,34 @@ const submitTemplate = () => {
             />
           </label>
 
+          <div class="grid gap-4 sm:grid-cols-2">
+            <label class="block space-y-2">
+              <span class="text-sm font-medium text-slate-700">维持保证金率 <span class="text-slate-400">%</span></span>
+              <input
+                v-model.number="templateMaintenanceMarginRate"
+                type="number"
+                min="0.01"
+                max="100"
+                step="0.01"
+                class="ant-input"
+                placeholder="默认 0.5"
+              />
+            </label>
+
+            <label class="block space-y-2">
+              <span class="text-sm font-medium text-slate-700">强平手续费率 <span class="text-slate-400">%</span></span>
+              <input
+                v-model.number="templateLiquidationFeeRate"
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                class="ant-input"
+                placeholder="默认 0"
+              />
+            </label>
+          </div>
+
           <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
             <p class="font-medium text-slate-800">模式影响</p>
             <p class="mt-2">- 按成本(USDT)下单：用户输入的是保证金成本，系统按当前杠杆反推可开的合约数量。</p>
@@ -391,6 +429,10 @@ const submitTemplate = () => {
             <p class="mt-3 font-medium text-slate-800">保证金计算规则</p>
             <p class="mt-2">- 按成本模式：保证金 = 用户输入的 USDT 数量 × 合约面值(配置)。</p>
             <p>- 按数量下单模式：保证金 = 用户输入的张数 × 合约面值(币价)。</p>
+            <p class="mt-3 font-medium text-slate-800">爆仓与强平配置</p>
+            <p class="mt-2">- 维持保证金率用于计算爆仓安全线，维持保证金 = 仓位价值 × 维持保证金率。</p>
+            <p>- 强平手续费率用于爆仓强平时扣除费用。</p>
+            <p>- 二者不影响下单保证金。</p>
           </div>
         </div>
       </div>
