@@ -406,16 +406,24 @@ const submitTemplate = () => {
           <div class="rounded-lg border border-blue-200 bg-blue-50 p-4">
             <p class="font-medium text-slate-800">当前选择的杠杆档位</p>
             <div v-if="selectedLeverages.length" class="mt-2 flex flex-wrap gap-2">
-              <button
+              <div
                 v-for="lv in selectedLeverages"
                 :key="`picked-${lv}`"
-                type="button"
-                class="inline-flex items-center gap-1 rounded-md bg-white px-2 py-0.5 text-sm text-blue-600 hover:bg-blue-100"
-                :aria-label="`移除 ${lv}x 杠杆档位`"
-                @click="toggleLeverage(lv)"
+                class="inline-flex items-center overflow-hidden rounded-md border border-blue-100 bg-white text-sm shadow-sm"
               >
-                <span>{{ lv }}x</span><span aria-hidden="true">−</span>
-              </button>
+                <span class="px-2 py-1 font-medium text-blue-600">{{ lv }}x</span>
+                <button
+                  type="button"
+                  class="grid h-7 w-7 place-items-center border-l border-rose-100 bg-rose-50 text-rose-500 transition hover:bg-rose-100 hover:text-rose-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-rose-300"
+                  :aria-label="`删除 ${lv}x 杠杆档位`"
+                  title="删除该档位"
+                  @click="toggleLeverage(lv)"
+                >
+                  <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" aria-hidden="true" fill="none">
+                    <path d="M4.5 6.5H15.5M8 3.5H12M6.5 6.5L7 16H13L13.5 6.5M8.5 9V13.5M11.5 9V13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </button>
+              </div>
             </div>
             <p v-else class="mt-2 text-sm text-slate-500">暂无选择任何档位</p>
           </div>

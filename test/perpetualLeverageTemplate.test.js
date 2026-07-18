@@ -74,5 +74,7 @@ test('perpetual leverage template editor supports validated custom leverage leve
   assert.match(source, /@keyup\.enter="addCustomLeverage"/)
   assert.match(source, /@click="addCustomLeverage"/)
   assert.match(source, /@click="toggleLeverage\(lv\)"/)
-  assert.match(source, /<span aria-hidden="true">−<\/span>/)
+  assert.match(source, /title="删除该档位"/)
+  assert.match(source, /bg-rose-50 text-rose-500/)
+  assert.match(source, /<svg[^>]+viewBox="0 0 20 20"[^>]+aria-hidden="true"/)
 })
