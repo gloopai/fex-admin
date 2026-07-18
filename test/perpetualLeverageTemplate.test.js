@@ -56,3 +56,22 @@ test('perpetual contract template settings explain order mode impact and margin 
   assert.match(source, /强平手续费率用于爆仓强平时扣除费用/)
   assert.match(source, /二者不影响下单保证金/)
 })
+
+test('perpetual leverage template editor supports validated custom leverage levels', () => {
+  const source = readFileSync(
+    new URL('../src/pages/admin/perpetual/PerpetualLeverageTemplatePage.vue', import.meta.url),
+    'utf8'
+  )
+
+  assert.match(source, /customLeverageInput/)
+  assert.match(source, /customLeverageError/)
+  assert.match(source, /const addCustomLeverage = \(\) =>/)
+  assert.match(source, /Number\.isInteger\(value\)/)
+  assert.match(source, /value < 1 \|\| value > 150/)
+  assert.match(source, /请输入杠杆倍数/)
+  assert.match(source, /请输入 1–150 的正整数/)
+  assert.match(source, /该杠杆档位已存在/)
+  assert.match(source, /@keyup\.enter="addCustomLeverage"/)
+  assert.match(source, /@click="addCustomLeverage"/)
+  assert.match(source, /@click="toggleLeverage\(lv\)"/)
+})

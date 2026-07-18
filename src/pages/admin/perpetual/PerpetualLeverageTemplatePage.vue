@@ -83,6 +83,8 @@ const showTemplateModal = ref(false)
 const editingTemplateId = ref(null)
 const newTemplateName = ref('')
 const selectedLeverages = ref([])
+const customLeverageInput = ref('')
+const customLeverageError = ref('')
 const activeTemplateTab = ref('leverage')
 const templateOrderMode = ref('cost')
 const templateContractFaceValueUsdt = ref(1000)
@@ -97,6 +99,27 @@ const toggleLeverage = (value) => {
   selectedLeverages.value = [...selectedLeverages.value, value].sort((a, b) => a - b)
 }
 
+const addCustomLeverage = () => {
+  customLeverageError.value = ''
+  if (String(customLeverageInput.value).trim() === '') {
+    customLeverageError.value = '请输入杠杆倍数'
+    return
+  }
+
+  const value = Number(customLeverageInput.value)
+  if (!Number.isInteger(value) || value < 1 || value > 150) {
+    customLeverageError.value = '请输入 1–150 的正整数'
+    return
+  }
+  if (selectedLeverages.value.includes(value)) {
+    customLeverageError.value = '该杠杆档位已存在'
+    return
+  }
+
+  selectedLeverages.value = [...selectedLeverages.value, value].sort((a, b) => a - b)
+  customLeverageInput.value = ''
+}
+
 const pickLeveragePack = (type) => {
   if (type === 'all') selectedLeverages.value = [...leverageLevels]
   if (type === 'clear') selectedLeverages.value = []
@@ -109,6 +132,8 @@ const openCreateTemplate = () => {
   editingTemplateId.value = null
   newTemplateName.value = ''
   selectedLeverages.value = []
+  customLeverageInput.value = ''
+  customLeverageError.value = ''
   activeTemplateTab.value = 'leverage'
   templateOrderMode.value = 'cost'
   templateContractFaceValueUsdt.value = 1000
@@ -121,6 +146,8 @@ const openEditTemplate = (template) => {
   editingTemplateId.value = template.id
   newTemplateName.value = template.name
   selectedLeverages.value = template.levels.map((item) => Number(parseNumeric(item))).filter((item) => Number.isFinite(item))
+  customLeverageInput.value = ''
+  customLeverageError.value = ''
   activeTemplateTab.value = 'leverage'
   templateOrderMode.value = template.orderMode ?? 'cost'
   templateContractFaceValueUsdt.value = Number(template.contractFaceValueUsdt ?? 1000)
@@ -158,6 +185,8 @@ const submitTemplate = () => {
   editingTemplateId.value = null
   newTemplateName.value = ''
   selectedLeverages.value = []
+  customLeverageInput.value = ''
+  customLeverageError.value = ''
   activeTemplateTab.value = 'leverage'
   templateOrderMode.value = 'cost'
   templateContractFaceValueUsdt.value = 1000
@@ -342,6 +371,30 @@ const submitTemplate = () => {
             </button>
           </div>
 
+          <div class="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <label for="custom-leverage" class="block text-sm font-medium text-slate-700">手动添加倍数</label>
+            <div class="flex gap-2">
+              <div class="relative min-w-0 flex-1">
+                <input
+                  id="custom-leverage"
+                  v-model="customLeverageInput"
+                  type="number"
+                  min="1"
+                  max="150"
+                  step="1"
+                  class="ant-input pr-8"
+                  :class="customLeverageError ? '!border-rose-400' : ''"
+                  placeholder="请输入 1–150"
+                  @input="customLeverageError = ''"
+                  @keyup.enter="addCustomLeverage"
+                />
+                <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">x</span>
+              </div>
+              <button type="button" class="ant-btn ant-btn-primary shrink-0" @click="addCustomLeverage">添加</button>
+            </div>
+            <p v-if="customLeverageError" class="text-sm text-rose-500">{{ customLeverageError }}</p>
+          </div>
+
           <div class="flex flex-wrap gap-2">
             <button type="button" class="ant-btn !h-8 !px-3 !text-xs" @click="pickLeveragePack('all')">全选</button>
             <button type="button" class="ant-btn !h-8 !px-3 !text-xs" @click="pickLeveragePack('clear')">清空</button>
@@ -353,7 +406,16 @@ const submitTemplate = () => {
           <div class="rounded-lg border border-blue-200 bg-blue-50 p-4">
             <p class="font-medium text-slate-800">当前选择的杠杆档位</p>
             <div v-if="selectedLeverages.length" class="mt-2 flex flex-wrap gap-2">
-              <span v-for="lv in selectedLeverages" :key="`picked-${lv}`" class="rounded-md bg-white px-2 py-0.5 text-sm text-blue-600">{{ lv }}x</span>
+              <button
+                v-for="lv in selectedLeverages"
+                :key="`picked-${lv}`"
+                type="button"
+                class="inline-flex items-center gap-1 rounded-md bg-white px-2 py-0.5 text-sm text-blue-600 hover:bg-blue-100"
+                :aria-label="`移除 ${lv}x 杠杆档位`"
+                @click="toggleLeverage(lv)"
+              >
+                <span>{{ lv }}x</span><span aria-hidden="true">×</span>
+              </button>
             </div>
             <p v-else class="mt-2 text-sm text-slate-500">暂无选择任何档位</p>
           </div>
