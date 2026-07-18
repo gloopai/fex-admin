@@ -253,14 +253,19 @@
                     </select>
                   </div>
                   <div class="space-y-1.5">
+                    <label class="text-sm text-black/85 font-medium">产品排序</label>
+                    <p class="text-sm text-black/45">数字越大越靠前。</p>
+                    <input v-model.number="formData.sortOrder" type="number" placeholder="数字越大越靠前" class="ant-input font-mono" />
+                  </div>
+                </div>
+
+                <div class="space-y-1.5">
                     <label class="text-sm text-black/85 font-medium">交易对 <span class="text-rose-500">*</span></label>
                     <p class="text-sm text-black/45">选择交易对</p>
                     <select v-model="formData.spotSymbol" class="ant-select" :disabled="spotSymbolLoading">
                       <option value="" disabled>{{ spotSymbolLoading ? '加载中...' : '请选择交易对' }}</option>
                       <option v-for="opt in spotSymbolOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
                     </select>
-                    
-                  </div>
                 </div>
               </div>
             </section>
@@ -417,6 +422,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { mockSpotProducts, symbolApi } from '../../../admin/mock/spot'
+import { sortSpotProducts } from '../../../admin/constants/spotProduct'
 
 const products = ref([])
 const showModal = ref(false)
@@ -451,6 +457,7 @@ const formData = ref({
   buyFee: 0.1,
   sellFee: 0.1,
   status: 'trading',
+  sortOrder: 0,
   volume24h: 0,
   priceChange24h: 0,
   bidDepth: 0,
@@ -582,7 +589,7 @@ const pageButtons = computed(() => {
     if (prev !== undefined && p - prev > 1) result.push('...')
     result.push(p)
   }
-  return result
+  return sortSpotProducts(result)
 })
 
 const filteredProducts = computed(() => {
@@ -705,6 +712,7 @@ const resetFormData = () => {
     buyFee: 0.1,
     sellFee: 0.1,
     status: 'trading',
+    sortOrder: 0,
     volume24h: 0,
     priceChange24h: 0,
     bidDepth: 0,
@@ -716,6 +724,7 @@ const showAddProduct = () => {
   isEditing.value = false
   editingProductId.value = null
   resetFormData()
+  formData.value.sortOrder = Math.max(0, ...products.value.map((product) => Number(product.sortOrder) || 0)) + 10
   ensureDefaultSpotSymbol()
   showModal.value = true
 }
@@ -737,6 +746,7 @@ const editProduct = (product) => {
     buyFee: product.buyFee,
     sellFee: product.sellFee,
     status: product.status,
+    sortOrder: Number(product.sortOrder ?? 0),
     volume24h: product.volume24h,
     priceChange24h: product.priceChange24h,
     bidDepth: product.bidDepth,
@@ -798,7 +808,11 @@ const saveProduct = () => {
     return
   }
 
-  const { spotSymbol: _spotSymbol, ...payload } = formData.value
+  const { spotSymbol: _spotSymbol, ...formPayload } = formData.value
+  const payload = {
+    ...formPayload,
+    sortOrder: Number(formData.value.sortOrder)
+  }
 
   if (isEditing.value) {
     // 编辑产品

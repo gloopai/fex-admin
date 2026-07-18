@@ -16,6 +16,7 @@ import {
 export const mockProducts = [
   {
     productId: 'LND-001',
+    sortOrder: 60,
     productName: 'BTC标准借贷',
     loanCurrency: 'USDT',
     minLoanAmount: 1000,
@@ -42,6 +43,7 @@ export const mockProducts = [
   },
   {
     productId: 'LND-002',
+    sortOrder: 50,
     productName: 'ETH灵活借贷',
     loanCurrency: 'USDT',
     minLoanAmount: 500,
@@ -68,6 +70,7 @@ export const mockProducts = [
   },
   {
     productId: 'LND-003',
+    sortOrder: 40,
     productName: 'USDT稳定币借贷',
     loanCurrency: 'USDC',
     minLoanAmount: 100,
@@ -94,6 +97,7 @@ export const mockProducts = [
   },
   {
     productId: 'LND-004',
+    sortOrder: 30,
     productName: 'BNB高额借贷',
     loanCurrency: 'USDT',
     minLoanAmount: 5000,
@@ -120,6 +124,7 @@ export const mockProducts = [
   },
   {
     productId: 'LND-005',
+    sortOrder: 20,
     productName: 'ETH超短期借贷',
     loanCurrency: 'USDC',
     minLoanAmount: 200,
@@ -146,6 +151,7 @@ export const mockProducts = [
   },
   {
     productId: 'LND-006',
+    sortOrder: 10,
     productName: 'SOL小额借贷（已停用）',
     loanCurrency: 'USDC',
     minLoanAmount: 50,

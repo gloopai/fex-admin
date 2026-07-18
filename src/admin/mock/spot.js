@@ -3,6 +3,7 @@
 export const mockSpotProducts = [
   {
     productId: 'SPOT001',
+    sortOrder: 80,
     productName: 'BTC/USDT',
     baseCurrency: 'BTC',
     quoteCurrency: 'USDT',
@@ -21,6 +22,7 @@ export const mockSpotProducts = [
   },
   {
     productId: 'SPOT002',
+    sortOrder: 70,
     productName: 'ETH/USDT',
     baseCurrency: 'ETH',
     quoteCurrency: 'USDT',
@@ -39,6 +41,7 @@ export const mockSpotProducts = [
   },
   {
     productId: 'SPOT003',
+    sortOrder: 60,
     productName: 'BNB/USDT',
     baseCurrency: 'BNB',
     quoteCurrency: 'USDT',
@@ -57,6 +60,7 @@ export const mockSpotProducts = [
   },
   {
     productId: 'SPOT004',
+    sortOrder: 50,
     productName: 'SOL/USDT',
     baseCurrency: 'SOL',
     quoteCurrency: 'USDT',
@@ -75,6 +79,7 @@ export const mockSpotProducts = [
   },
   {
     productId: 'SPOT005',
+    sortOrder: 40,
     productName: 'XRP/USDT',
     baseCurrency: 'XRP',
     quoteCurrency: 'USDT',
@@ -93,6 +98,7 @@ export const mockSpotProducts = [
   },
   {
     productId: 'SPOT006',
+    sortOrder: 30,
     productName: 'BTC/USD',
     baseCurrency: 'BTC',
     quoteCurrency: 'USD',
@@ -111,6 +117,7 @@ export const mockSpotProducts = [
   },
   {
     productId: 'SPOT007',
+    sortOrder: 20,
     productName: 'ETH/BTC',
     baseCurrency: 'ETH',
     quoteCurrency: 'BTC',
@@ -129,6 +136,7 @@ export const mockSpotProducts = [
   },
   {
     productId: 'SPOT008',
+    sortOrder: 10,
     productName: 'DOGE/USDT',
     baseCurrency: 'DOGE',
     quoteCurrency: 'USDT',

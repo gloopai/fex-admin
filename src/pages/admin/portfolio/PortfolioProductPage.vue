@@ -69,7 +69,7 @@ const defaultForm = () => ({
   minVipLevel: 0,
   isHot: false,
   isRecommended: false,
-  sortOrder: 100,
+  sortOrder: 0,
   status: PRODUCT_STATUS.ENABLED,
   earlyRedeemEnabled: true,
   earlyRedeemMode: EARLY_REDEEM_MODE.FORFEIT_YIELD,
@@ -108,6 +108,7 @@ function openCreate() {
   editingId.value = ''
   activeTab.value = 'base'
   resetForm()
+  productForm.sortOrder = Math.max(0, ...products.value.map((product) => Number(product.sortOrder) || 0)) + 10
   showModal.value = true
 }
 
@@ -132,7 +133,10 @@ function removeAsset(index) {
 }
 
 function saveProduct() {
-  const row = JSON.parse(JSON.stringify(productForm))
+  const row = {
+    ...JSON.parse(JSON.stringify(productForm)),
+    sortOrder: Number(productForm.sortOrder)
+  }
   row.baseMinDailyRatePct = Number(row.baseMinDailyRatePct ?? row.minDailyRatePct) || 0
   row.baseMaxDailyRatePct = Number(row.baseMaxDailyRatePct ?? row.maxDailyRatePct) || 0
   row.yieldAdjustmentRate = Number(row.yieldAdjustmentRate || 0)
@@ -323,8 +327,12 @@ function statusClass(status) {
                     <input v-model="productForm.name" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
                   </label>
                   <label class="block">
-                    <span class="mb-1 block text-sm font-medium text-slate-700">排序</span>
-                    <input v-model.number="productForm.sortOrder" type="number" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                    <span class="mb-1 block text-sm font-medium text-slate-700">最低 VIP 等级</span>
+                    <select v-model.number="productForm.minVipLevel" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                      <option v-for="vip in activeVipLevels" :key="vip.id" :value="vip.level">
+                        {{ vipLevelLabel(vip.level) }}
+                      </option>
+                    </select>
                   </label>
                   <label class="flex items-center gap-2 text-sm text-slate-700">
                     <input v-model="productForm.isHot" type="checkbox" class="h-4 w-4" />
@@ -335,18 +343,15 @@ function statusClass(status) {
                     加到推荐
                   </label>
                   <label class="block">
-                    <span class="mb-1 block text-sm font-medium text-slate-700">状态</span>
+                    <span class="mb-1 block text-sm font-medium text-slate-700">产品状态</span>
                     <select v-model="productForm.status" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                       <option v-for="(meta, key) in productStatusMeta" :key="key" :value="key">{{ meta.label }}</option>
                     </select>
                   </label>
                   <label class="block">
-                    <span class="mb-1 block text-sm font-medium text-slate-700">最低 VIP 等级</span>
-                    <select v-model.number="productForm.minVipLevel" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                      <option v-for="vip in activeVipLevels" :key="vip.id" :value="vip.level">
-                        {{ vipLevelLabel(vip.level) }}
-                      </option>
-                    </select>
+                    <span class="mb-1 block text-sm font-medium text-slate-700">产品排序</span>
+                    <input v-model.number="productForm.sortOrder" type="number" placeholder="数字越大越靠前" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                    <span class="mt-1 block text-xs text-slate-500">数字越大越靠前</span>
                   </label>
                 </div>
 

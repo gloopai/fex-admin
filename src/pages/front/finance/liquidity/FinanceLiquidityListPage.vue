@@ -17,7 +17,8 @@ import {
   ORDER_STATUS,
   PURCHASE_LIMIT_TYPE,
   lockYieldAnnualPct,
-  lockedMinKycRequirementPhrase
+  lockedMinKycRequirementPhrase,
+  sortLiquidityLockedProducts
 } from '../../../../admin/constants/liquidityLocked'
 import { FINANCE_FX as fx } from '../../../../constants/frontFinanceUi'
 
@@ -47,7 +48,7 @@ const filteredProducts = computed(() => {
   if (currencyTab.value) {
     rows = rows.filter((p) => p.currency === currencyTab.value)
   }
-  return rows
+  return sortLiquidityLockedProducts(rows)
 })
 
 const periodRows = computed(() => {

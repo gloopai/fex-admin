@@ -290,16 +290,28 @@
                     </svg>
                     产品状态
                   </h3>
-                  <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1.5">状态</label>
-                    <select 
-                      v-model="formData.status" 
-                      class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="active">活跃</option>
-                      <option value="inactive">停用</option>
-                      <option value="suspended">暂停</option>
-                    </select>
+                  <div class="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label class="block text-sm font-medium text-slate-700 mb-1.5">状态</label>
+                      <select
+                        v-model="formData.status"
+                        class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="active">活跃</option>
+                        <option value="inactive">停用</option>
+                        <option value="suspended">暂停</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="block text-sm font-medium text-slate-700 mb-1.5">产品排序</label>
+                      <input
+                        v-model.number="formData.sortOrder"
+                        type="number"
+                        placeholder="数字越大越靠前"
+                        class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <p class="mt-1 text-xs text-slate-500">数字越大越靠前</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -675,7 +687,8 @@ import {
   normalizeCollateralConfig,
   normalizeOverduePenaltyRate,
   normalizeCollateralWarningThreshold,
-  normalizeCollateralDisposalThreshold
+  normalizeCollateralDisposalThreshold,
+  sortLendingProducts
 } from '../../../admin/constants/cryptoLending'
 import {
   LENDING_OP_ACTION,
@@ -713,6 +726,7 @@ const formData = ref({
   collateralCurrencies: ['BTC', 'ETH', 'USDT'],
   overdueDeductEnabled: true,
   status: 'active',
+  sortOrder: 0,
   description: ''
 })
 
@@ -732,7 +746,7 @@ const filteredProducts = computed(() => {
     )
   }
 
-  return result
+  return sortLendingProducts(result)
 })
 
 const formatCurrency = (value) => {
@@ -834,6 +848,7 @@ const resetFormData = () => {
     collateralCurrencies: ['BTC', 'ETH', 'USDT'],
     overdueDeductEnabled: true,
     status: 'active',
+    sortOrder: 0,
     description: ''
   }
 }
@@ -842,6 +857,7 @@ const showAddProduct = () => {
   isEditing.value = false
   editingProductId.value = null
   resetFormData()
+  formData.value.sortOrder = Math.max(0, ...products.value.map((product) => Number(product.sortOrder) || 0)) + 10
   activeTab.value = 'basic'
   showModal.value = true
 }
@@ -866,6 +882,7 @@ const editProduct = (product) => {
     collateralCurrencies: [...normalizeCollateralConfig(product).currencies],
     overdueDeductEnabled: true,
     status: product.status,
+    sortOrder: Number(product.sortOrder ?? 0),
     description: product.description || ''
   }
   activeTab.value = 'basic'
@@ -929,6 +946,7 @@ const saveProduct = () => {
 
   const payload = {
     ...formData.value,
+    sortOrder: Number(formData.value.sortOrder),
     collateralEnabled: true,
     collateralCurrencies: [...formData.value.collateralCurrencies],
     overdueDeductEnabled: true,

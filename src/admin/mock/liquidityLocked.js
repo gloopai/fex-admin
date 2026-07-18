@@ -8,6 +8,7 @@ const clone = (v) => JSON.parse(JSON.stringify(v))
 const products = [
   {
     id: 'prod-1',
+    sortOrder: 50,
     name: 'USDT 定期理财',
     currency: 'USDT',
     icon: '₮',
@@ -33,6 +34,7 @@ const products = [
   },
   {
     id: 'prod-2',
+    sortOrder: 40,
     name: 'BTC 锁仓挖矿',
     currency: 'BTC',
     icon: '₿',
@@ -57,6 +59,7 @@ const products = [
   },
   {
     id: 'prod-3',
+    sortOrder: 30,
     name: 'ETH 流动性质押',
     currency: 'ETH',
     icon: 'Ξ',
@@ -80,6 +83,7 @@ const products = [
   },
   {
     id: 'prod-4',
+    sortOrder: 20,
     name: 'USDC 体验档（已下架）',
     currency: 'USDC',
     icon: '$',
@@ -102,6 +106,7 @@ const products = [
   /** 与信用借贷 LND-003（借 USDC）一致：上架 USDC 锁仓池，便于 borrowableLiquidityFromLocked 有值 */
   {
     id: 'prod-5',
+    sortOrder: 10,
     name: 'USDC 定期理财',
     currency: 'USDC',
     icon: '$',

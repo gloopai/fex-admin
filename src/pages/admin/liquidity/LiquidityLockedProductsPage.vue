@@ -12,7 +12,8 @@ import {
 	LOCKED_MIN_KYC_OPTIONS,
 	DEFAULT_LOCKED_LENDABLE_RATIO,
 	lockYieldAnnualPct,
-	lockedMinKycLabel
+	lockedMinKycLabel,
+	sortLiquidityLockedProducts
 } from '../../../admin/constants/liquidityLocked'
 import {
 	LIQUIDITY_LOCKED_OP_ACTION,
@@ -42,7 +43,8 @@ const productForm = reactive({
 	periodDays: 30,
 	minVipLevel: 0,
 	minKycLevel: 'none',
-	status: PRODUCT_STATUS.ENABLED
+	status: PRODUCT_STATUS.ENABLED,
+	sortOrder: 0
 })
 
 const openCreateProduct = () => {
@@ -59,6 +61,7 @@ const openCreateProduct = () => {
 	productForm.minVipLevel = 0
 	productForm.minKycLevel = 'none'
 	productForm.status = PRODUCT_STATUS.ENABLED
+	productForm.sortOrder = Math.max(0, ...products.value.map((product) => Number(product.sortOrder) || 0)) + 10
 	productModalTab.value = 'config'
 	showProductModal.value = true
 }
@@ -82,6 +85,7 @@ const openEditProduct = (product) => {
 	productForm.minVipLevel = product.minVipLevel ?? 0
 	productForm.minKycLevel = product.minKycLevel ?? 'none'
 	productForm.status = product.status
+	productForm.sortOrder = Number(product.sortOrder ?? 0)
 	productModalTab.value = 'config'
 	showProductModal.value = true
 }
@@ -113,7 +117,8 @@ const saveProduct = () => {
 		periodDays: Number(productForm.periodDays),
 		minVipLevel: Number(productForm.minVipLevel) || 0,
 		minKycLevel: productForm.minKycLevel || 'none',
-		status: productForm.status
+		status: productForm.status,
+		sortOrder: Number(productForm.sortOrder)
 	}
 
 	if (editingProductId.value) {
@@ -149,12 +154,12 @@ const saveProduct = () => {
 
 const filteredProducts = computed(() => {
 	const kw = search.value.trim().toLowerCase()
-	return products.value.filter((p) => {
+	return sortLiquidityLockedProducts(products.value.filter((p) => {
 		const matchStatus = statusFilter.value === COMMON_FILTER_ALL || p.status === statusFilter.value
 		const matchCurrency = currencyFilter.value === COMMON_FILTER_ALL || p.currency === currencyFilter.value
 		const matchKeyword = !kw || `${p.name} ${p.currency}`.toLowerCase().includes(kw)
 		return matchStatus && matchCurrency && matchKeyword
-	})
+	}))
 })
 
 const toggleProductStatus = (product) => {
@@ -430,7 +435,7 @@ const applyPresetDays = (days) => {
 												<option v-for="curr in SUPPORTED_CURRENCIES" :key="curr" :value="curr">{{ curr }}</option>
 											</select>
 										</div>
-										<div class="col-span-2">
+										<div>
 											<label class="mb-1 block text-sm font-medium text-slate-700">产品状态</label>
 											<select
 												v-model="productForm.status"
@@ -440,6 +445,16 @@ const applyPresetDays = (days) => {
 												<option :value="PRODUCT_STATUS.DISABLED">已下架</option>
 												<option :value="PRODUCT_STATUS.SOLD_OUT">已售罄</option>
 											</select>
+										</div>
+										<div>
+											<label class="mb-1 block text-sm font-medium text-slate-700">产品排序</label>
+											<input
+												v-model.number="productForm.sortOrder"
+												type="number"
+												placeholder="数字越大越靠前"
+												class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+											/>
+											<p class="mt-1 text-xs text-slate-500">数字越大越靠前</p>
 										</div>
 									</div>
 								</div>

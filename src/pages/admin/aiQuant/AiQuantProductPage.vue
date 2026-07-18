@@ -611,7 +611,7 @@ const openCreateProduct = () => {
 	productForm.limitAmount = 100000
 	productForm.limitCount = 100
 	productForm.monthlyLimitCount = 5
-	productForm.sortOrder = 0
+	productForm.sortOrder = Math.max(0, ...products.value.map((product) => Number(product.sortOrder) || 0)) + 10
 	productForm.status = PRODUCT_STATUS.ENABLED
 	productModalTab.value = 'config'
 	showProductModal.value = true
@@ -656,6 +656,7 @@ const previewYieldDays = computed(() => {
 const saveProduct = () => {
 	const payload = {
 		...productForm,
+		sortOrder: Number(productForm.sortOrder),
 		icon: productForm.currency === 'USDT' ? '₮' : productForm.currency === 'BTC' ? '₿' : productForm.currency === 'ETH' ? 'Ξ' : productForm.currency
 	}
 

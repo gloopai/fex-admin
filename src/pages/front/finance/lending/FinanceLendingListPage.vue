@@ -31,6 +31,7 @@ import {
   normalizeOverduePenaltyRate,
   normalizeCollateralWarningThreshold,
   normalizeCollateralDisposalThreshold,
+  sortLendingProducts,
   collateralRequiredAmount,
   collateralRequiredValue
 } from '../../../../admin/constants/cryptoLending'
@@ -68,8 +69,10 @@ const loanCurrencies = computed(() => {
 })
 
 const filteredProducts = computed(() => {
-  if (!loanCurrencyFilter.value) return products.value
-  return products.value.filter((p) => p.loanCurrency === loanCurrencyFilter.value)
+  const rows = loanCurrencyFilter.value
+    ? products.value.filter((p) => p.loanCurrency === loanCurrencyFilter.value)
+    : products.value
+  return sortLendingProducts(rows)
 })
 
 function formatUsdCompact(n) {
