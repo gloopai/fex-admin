@@ -6,7 +6,8 @@ import { ASSET_CURRENCY_TYPE } from '../../../admin/constants/assets'
 import {
   PERPETUAL_COMMON_FILTER_ALL,
   PERPETUAL_CONTRACT_STEP,
-  PERPETUAL_STATUS
+  PERPETUAL_STATUS,
+  sortPerpetualProducts
 } from '../../../admin/constants/perpetual'
 import {
   createDefaultPerpetualControlConfig,
@@ -117,16 +118,11 @@ const saveControlConfig = (next) => {
 }
 
 const normalizeProductOrder = () => {
-  const ordered = [...products.value]
-    .sort((a, b) => Number(a.sortOrder || 9999) - Number(b.sortOrder || 9999))
-    .map((item, index) => ({ ...item, sortOrder: index + 1 }))
-  products.value = ordered
+  products.value = sortPerpetualProducts(products.value)
 }
 
 const orderedProductIds = computed(() =>
-  [...products.value]
-    .sort((a, b) => Number(a.sortOrder || 9999) - Number(b.sortOrder || 9999))
-    .map((item) => item.id)
+  sortPerpetualProducts(products.value).map((item) => item.id)
 )
 
 const canMoveProductUp = (id) => orderedProductIds.value.indexOf(id) > 0
@@ -136,13 +132,13 @@ const canMoveProductDown = (id) => {
 }
 
 const moveProductOrder = (id, direction) => {
-  const ordered = [...products.value].sort((a, b) => Number(a.sortOrder || 9999) - Number(b.sortOrder || 9999))
+  const ordered = sortPerpetualProducts(products.value)
   const index = ordered.findIndex((item) => item.id === id)
   if (index < 0) return
   const target = direction === 'up' ? index - 1 : index + 1
   if (target < 0 || target >= ordered.length) return
   ;[ordered[index], ordered[target]] = [ordered[target], ordered[index]]
-  products.value = ordered.map((item, idx) => ({ ...item, sortOrder: idx + 1 }))
+  products.value = ordered.map((item, idx) => ({ ...item, sortOrder: ordered.length - idx }))
 }
 
 const syncProductsWithTemplates = () => {
@@ -176,14 +172,12 @@ normalizeProductOrder()
 
 const filteredProducts = computed(() => {
   const keyword = searchApplied.value.trim().toLowerCase()
-  return products.value
-    .filter((item) => {
+  return sortPerpetualProducts(products.value.filter((item) => {
     const matchesStatus = statusTab.value === PERPETUAL_COMMON_FILTER_ALL || item.status === statusTab.value
     const matchesKeyword = !keyword || [item.name, item.code, item.pair].join(' ').toLowerCase().includes(keyword)
     const matchesCurrencyType = currencyTypeApplied.value === 'all' || currencyTypeByPair(item.pair) === currencyTypeApplied.value
     return matchesStatus && matchesKeyword && matchesCurrencyType
-  })
-    .sort((a, b) => Number(a.sortOrder || 9999) - Number(b.sortOrder || 9999))
+  }))
 })
 
 const paginatedProducts = computed(() => {
@@ -209,6 +203,7 @@ const contractForm = reactive({
   quoteCurrency: 'USDT',
   spotSymbol: '',
   status: PERPETUAL_STATUS.ENABLED,
+  sortOrder: 0,
   templateId: 'all-levels',
   minBuy: '10',
   maxBuy: '100000',
@@ -224,6 +219,7 @@ const resetContractForm = () => {
   contractForm.quoteCurrency = 'USDT'
   contractForm.spotSymbol = ''
   contractForm.status = PERPETUAL_STATUS.ENABLED
+  contractForm.sortOrder = Math.max(0, ...products.value.map((item) => Number(item.sortOrder) || 0)) + 10
   contractForm.templateId = templates.value[0]?.id || 'all-levels'
   contractForm.minBuy = '10'
   contractForm.maxBuy = '100000'
@@ -266,6 +262,7 @@ const openEditContract = (item) => {
   contractForm.quoteCurrency = quoteCurrency
   contractForm.spotSymbol = `${baseCurrency}/${quoteCurrency}`
   contractForm.status = item.status
+  contractForm.sortOrder = Number(item.sortOrder ?? 0)
   contractForm.templateId = item.templateId || templates.value.find((tpl) => tpl.name === item.templateName)?.id || templates.value[0]?.id || ''
   contractForm.minBuy = parseNumeric(item.minBuy)
   contractForm.maxBuy = parseNumeric(item.maxBuy)
@@ -283,6 +280,7 @@ const submitContract = () => {
     code: contractForm.productCode.trim(),
     pair: `${contractForm.baseCurrency}/${contractForm.quoteCurrency}`,
     status: contractForm.status,
+    sortOrder: Number(contractForm.sortOrder),
     templateId: selectedTemplate.value.id,
     templateName: selectedTemplate.value.name,
     leverageRange: selectedTemplate.value.leverageRange,
@@ -300,7 +298,6 @@ const submitContract = () => {
   } else {
     products.value.unshift({
       id: `prod-${Date.now()}`,
-      sortOrder: products.value.length + 1,
       ...payload
     })
   }
@@ -591,7 +588,7 @@ onMounted(() => {
               <option v-for="opt in pairOptions" :key="`pair-${opt}`" :value="opt">{{ opt }}</option>
             </select>
           </label>
-          <div class="space-y-2 md:col-span-2">
+          <div class="space-y-2">
             <span class="text-sm font-medium">产品状态</span>
             <div class="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
               <button
@@ -612,6 +609,10 @@ onMounted(() => {
               </button>
             </div>
           </div>
+          <label class="space-y-2">
+            <span class="text-sm font-medium">产品排序</span>
+            <input v-model.number="contractForm.sortOrder" type="number" placeholder="数字越大越靠前" class="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500" />
+          </label>
         </div>
 
         <div v-if="contractStep === PERPETUAL_CONTRACT_STEP.LEVERAGE" class="space-y-4">

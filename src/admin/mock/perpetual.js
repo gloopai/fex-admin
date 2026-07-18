@@ -86,7 +86,7 @@ const perpetualTemplates = [
 const perpetualProducts = [
   {
     id: 'btc-perp',
-    sortOrder: 1,
+    sortOrder: 80,
     name: 'BTC永续',
     code: 'BTC_PERP',
     pair: 'BTC/USDT',
@@ -104,7 +104,7 @@ const perpetualProducts = [
   },
   {
     id: 'eth-perp',
-    sortOrder: 2,
+    sortOrder: 70,
     name: 'ETH永续',
     code: 'ETH_PERP',
     pair: 'ETH/USDT',
@@ -122,7 +122,7 @@ const perpetualProducts = [
   },
   {
     id: 'sol-perp',
-    sortOrder: 3,
+    sortOrder: 60,
     name: 'SOL永续',
     code: 'SOL_PERP',
     pair: 'SOL/USDT',
@@ -140,7 +140,7 @@ const perpetualProducts = [
   },
   {
     id: 'ada-perp',
-    sortOrder: 4,
+    sortOrder: 50,
     name: 'ADA永续',
     code: 'ADA_PERP',
     pair: 'ADA/USDT',
@@ -158,7 +158,7 @@ const perpetualProducts = [
   },
   {
     id: 'dot-perp',
-    sortOrder: 5,
+    sortOrder: 40,
     name: 'DOT永续',
     code: 'DOT_PERP',
     pair: 'DOT/USDT',
@@ -176,7 +176,7 @@ const perpetualProducts = [
   },
   {
     id: 'doge-perp',
-    sortOrder: 6,
+    sortOrder: 30,
     name: 'DOGE永续',
     code: 'DOGE_PERP',
     pair: 'DOGE/USDT',
@@ -194,7 +194,7 @@ const perpetualProducts = [
   },
   {
     id: 'xau-perp',
-    sortOrder: 7,
+    sortOrder: 20,
     name: 'XAU永续',
     code: 'XAU_PERP',
     pair: 'XAU/USDT',
@@ -212,7 +212,7 @@ const perpetualProducts = [
   },
   {
     id: 'usd-perp',
-    sortOrder: 8,
+    sortOrder: 10,
     name: 'USD永续',
     code: 'USD_PERP',
     pair: 'USD/USDT',

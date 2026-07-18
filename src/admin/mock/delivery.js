@@ -38,6 +38,7 @@ const deliveryTemplates = [
 const deliveryProducts = [
   {
     id: 'btc-opt',
+    sortOrder: 200,
     name: 'BTC期权',
     code: 'BTC_OPT',
     pair: 'BTC/USDT',
@@ -54,6 +55,7 @@ const deliveryProducts = [
   },
   {
     id: 'eth-opt',
+    sortOrder: 190,
     name: 'ETH期权',
     code: 'ETH_OPT',
     pair: 'ETH/USDT',
@@ -70,6 +72,7 @@ const deliveryProducts = [
   },
   {
     id: 'xau-opt',
+    sortOrder: 180,
     name: 'XAU期权',
     code: 'XAU_OPT',
     pair: 'XAU/USDT',
@@ -86,6 +89,7 @@ const deliveryProducts = [
   },
   {
     id: 'usd-opt',
+    sortOrder: 170,
     name: 'USD期权',
     code: 'USD_OPT',
     pair: 'USD/USDT',
@@ -248,7 +252,8 @@ export const createDeliveryProductsMock = () => {
       id: `prod-${i}`,
       name: `测试合约 ${i}`,
       code: `TEST_${i}`,
-      pair: `TEST${i}/USDT`
+      pair: `TEST${i}/USDT`,
+      sortOrder: 160 - i * 10
     })
   }
   return products

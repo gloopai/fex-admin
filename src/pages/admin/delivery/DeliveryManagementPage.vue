@@ -1,6 +1,11 @@
 <script setup>
 import { computed, reactive, ref, watch, onMounted } from 'vue'
-import { COMMON_FILTER_ALL, DELIVERY_CONTRACT_TAB, DELIVERY_STATUS } from '../../../admin/constants/delivery'
+import {
+  COMMON_FILTER_ALL,
+  DELIVERY_CONTRACT_TAB,
+  DELIVERY_STATUS,
+  sortDeliveryProducts
+} from '../../../admin/constants/delivery'
 import { ASSET_CURRENCY_TYPE } from '../../../admin/constants/assets'
 import CurrencyTypeSelect from '../../../admin/components/CurrencyTypeSelect.vue'
 import { createDeliveryProductsMock, createDeliveryTemplatesMock } from '../../../admin/mock/delivery'
@@ -72,12 +77,12 @@ const currencyTypeLabel = (value) => {
 
 const allFilteredProducts = computed(() => {
   const kw = searchApplied.value.trim().toLowerCase()
-  return products.value.filter((p) => {
+  return sortDeliveryProducts(products.value.filter((p) => {
     const hitStatus = statusTab.value === COMMON_FILTER_ALL || p.status === statusTab.value
     const hitKw = !kw || `${p.name} ${p.code} ${p.pair}`.toLowerCase().includes(kw)
     const hitCurrencyType = currencyTypeApplied.value === 'all' || currencyTypeByPair(p.pair) === currencyTypeApplied.value
     return hitStatus && hitKw && hitCurrencyType
-  })
+  }))
 })
 
 const filteredProducts = computed(() => {
@@ -113,6 +118,7 @@ const contractForm = reactive({
   quoteCurrency: 'USDT',
   spotSymbol: '',
   status: DELIVERY_STATUS.ENABLED,
+  sortOrder: 0,
   templateId: 'tpl-standard',
   minBuy: '10',
   maxBuy: '10000',
@@ -133,6 +139,7 @@ const openCreateContract = () => {
   contractForm.quoteCurrency = 'USDT'
   contractForm.spotSymbol = ''
   contractForm.status = DELIVERY_STATUS.ENABLED
+  contractForm.sortOrder = Math.max(0, ...products.value.map((item) => Number(item.sortOrder) || 0)) + 10
   contractForm.templateId = templates.value[0]?.id || ''
   contractForm.minBuy = '10'
   contractForm.maxBuy = '10000'
@@ -152,6 +159,7 @@ const openEditContract = (item) => {
   contractForm.quoteCurrency = quoteCurrency
   contractForm.spotSymbol = `${baseCurrency}/${quoteCurrency}`
   contractForm.status = item.status
+  contractForm.sortOrder = Number(item.sortOrder ?? 0)
   contractForm.templateId = item.templateId
   contractForm.minBuy = item.minBuy
   contractForm.maxBuy = item.maxBuy
@@ -167,6 +175,7 @@ const saveContract = () => {
     code: contractForm.code.trim().toUpperCase(),
     pair: `${contractForm.baseCurrency}/${contractForm.quoteCurrency}`,
     status: contractForm.status,
+    sortOrder: Number(contractForm.sortOrder),
     templateId: contractForm.templateId,
     templateName: selectedTemplate.value?.name || '-',
     buyRange: `${Number(contractForm.minBuy).toLocaleString()} - ${Number(contractForm.maxBuy).toLocaleString()} USDT`,
@@ -522,7 +531,7 @@ onMounted(() => {
                     <option v-for="opt in pairOptions" :key="`pair-${opt}`" :value="opt">{{ opt }}</option>
                   </select>
                 </div>
-                <div class="space-y-1.5 md:col-span-2">
+                <div class="space-y-1.5">
                   <label class="block text-sm text-slate-900">产品状态</label>
                   <div class="inline-flex rounded border border-slate-200 p-0.5 bg-slate-50 mt-1">
                     <button
@@ -550,6 +559,16 @@ onMounted(() => {
                       已禁用
                     </button>
                   </div>
+                </div>
+                <div class="space-y-1.5">
+                  <label class="block text-sm text-slate-900">产品排序</label>
+                  <input
+                    v-model.number="contractForm.sortOrder"
+                    type="number"
+                    class="ant-input font-mono"
+                    placeholder="数字越大越靠前"
+                  />
+                  <p class="text-xs text-slate-400">数字越大越靠前</p>
                 </div>
               </div>
 
