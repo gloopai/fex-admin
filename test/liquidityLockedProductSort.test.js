@@ -33,3 +33,12 @@ test('liquidity product sorting is configured in admin and applied to client lis
   assert.match(clientSource, /sortLiquidityLockedProducts/)
   assert.match(mockSource, /sortOrder:/)
 })
+
+test('liquidity period inputs have visible titles with dynamic currency units', () => {
+  assert.match(adminSource, /锁仓天数（天）/)
+  assert.match(adminSource, /年化收益率（%）/)
+  assert.match(adminSource, /最低申购金额（\{\{ productForm\.currency \}\}）/)
+  assert.match(adminSource, /最高申购金额（\{\{ productForm\.currency \}\}）/)
+  assert.match(adminSource, /锁仓天数（天）[\s\S]*v-model\.number="period\.days"/)
+  assert.match(adminSource, /年化收益率（%）[\s\S]*v-model\.number="period\.annualRate"/)
+})

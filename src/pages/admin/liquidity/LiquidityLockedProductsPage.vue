@@ -490,39 +490,51 @@ const applyPresetDays = (days) => {
 										>
 											<div class="flex-1 space-y-2">
 												<div class="grid grid-cols-2 gap-2">
-													<input
-														v-model.number="period.days"
-														type="number"
-														min="1"
-														placeholder="天数"
-														class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-													/>
-													<input
-														v-model.number="period.annualRate"
-														type="number"
-														min="0"
-														step="0.01"
-														placeholder="年化 %"
-														class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-													/>
+													<label class="block">
+														<span class="mb-1 block text-xs font-medium text-slate-600">锁仓天数（天）</span>
+														<input
+															v-model.number="period.days"
+															type="number"
+															min="1"
+															placeholder="请输入天数"
+															class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+														/>
+													</label>
+													<label class="block">
+														<span class="mb-1 block text-xs font-medium text-slate-600">年化收益率（%）</span>
+														<input
+															v-model.number="period.annualRate"
+															type="number"
+															min="0"
+															step="0.01"
+															placeholder="请输入年化收益率"
+															class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+														/>
+													</label>
 												</div>
 												<div class="grid grid-cols-2 gap-2">
-													<input
-														v-model.number="period.minAmount"
-														type="number"
-														min="0"
-														step="0.01"
-														placeholder="单笔最小"
-														class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-													/>
-													<input
-														v-model.number="period.maxAmount"
-														type="number"
-														min="0"
-														step="0.01"
-														placeholder="单笔最大"
-														class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-													/>
+													<label class="block">
+														<span class="mb-1 block text-xs font-medium text-slate-600">最低申购金额（{{ productForm.currency }}）</span>
+														<input
+															v-model.number="period.minAmount"
+															type="number"
+															min="0"
+															step="0.01"
+															placeholder="请输入最低申购金额"
+															class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+														/>
+													</label>
+													<label class="block">
+														<span class="mb-1 block text-xs font-medium text-slate-600">最高申购金额（{{ productForm.currency }}）</span>
+														<input
+															v-model.number="period.maxAmount"
+															type="number"
+															min="0"
+															step="0.01"
+															placeholder="请输入最高申购金额"
+															class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+														/>
+													</label>
 												</div>
 											</div>
 											<button
