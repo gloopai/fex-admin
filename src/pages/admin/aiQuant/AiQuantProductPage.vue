@@ -81,22 +81,23 @@
 						<td class="px-6 py-4">
 							<div class="text-xs space-y-1">
 								<div v-for="(tier, idx) in product.tiers" :key="idx" class="flex items-center justify-between">
-									<span class="text-slate-600">{{ tier.minAmount }}-{{ tier.maxAmount }} {{ product.currency }}</span>
+									<span class="text-slate-600">{{ tier.minAmount }}-{{ tier.maxAmount }} USDT</span>
 									<span class="font-medium text-green-600">{{ tier.dailyRate }}%</span>
 								</div>
 							</div>
 						</td>
 						<td class="px-6 py-4">
 							<div class="text-sm text-slate-600">
-								<div>额度: {{ product.limitAmount }} {{ product.currency }}</div>
+								<div>单用户: {{ product.limitAmount }} USDT</div>
+								<div>产品总额: {{ product.limitCount }} USDT</div>
 								<div>次数: {{ product.monthlyLimitCount }}/月</div>
 							</div>
 						</td>
 						<td class="px-6 py-4">
 							<div class="text-sm text-slate-600">
-								<div>锁定: {{ product.totalLocked }} {{ product.currency }}</div>
+								<div>锁定: {{ product.totalLocked }} USDT</div>
 								<div>订单: {{ product.totalOrders }} 笔</div>
-								<div class="text-green-600">收益: {{ product.totalYield }} {{ product.currency }}</div>
+								<div class="text-green-600">收益: {{ product.totalYield }} USDT</div>
 							</div>
 						</td>
 						<td class="px-6 py-4">
@@ -264,8 +265,8 @@
 											</div>
 											<div>
 												<div class="mb-1 flex items-center justify-between gap-2">
-													<span class="text-xs font-medium text-slate-600">适用申购金额区间</span>
-													<span class="text-xs text-slate-400">单位：{{ productForm.currency }}</span>
+													<span class="text-xs font-medium text-slate-600">适用申购金额区间（USDT）</span>
+													<span class="text-xs text-slate-400">单位：USDT</span>
 												</div>
 												<div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
 													<input v-model.number="tier.minAmount" placeholder="最低金额" type="number" step="0.01" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
@@ -297,11 +298,11 @@
 								<h3 class="font-semibold text-slate-900 mb-3">限购规则</h3>
 								<div class="grid grid-cols-3 gap-4">
 									<div>
-										<label class="block text-sm font-medium text-slate-700 mb-1">单用户最大持仓</label>
+										<label class="block text-sm font-medium text-slate-700 mb-1">单用户最大持仓（USDT）</label>
 										<input v-model.number="productForm.limitAmount" type="number" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
 									</div>
 									<div>
-										<label class="block text-sm font-medium text-slate-700 mb-1">产品总限额</label>
+										<label class="block text-sm font-medium text-slate-700 mb-1">产品总限额（USDT）</label>
 										<input v-model.number="productForm.limitCount" type="number" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
 									</div>
 									<div>
@@ -434,7 +435,7 @@
 										<div v-for="(tier, idx) in productForm.tiers" :key="idx" class="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
 											<div class="flex-1">
 												<div class="text-xs font-medium text-slate-900 mb-1">{{ tier.label || `阶梯 ${idx + 1}` }}</div>
-												<div class="text-xs text-slate-600">{{ tier.minAmount }} - {{ tier.maxAmount }} {{ productForm.currency }}</div>
+												<div class="text-xs text-slate-600">{{ tier.minAmount }} - {{ tier.maxAmount }} USDT</div>
 											</div>
 											<div class="text-right">
 												<div class="text-sm font-semibold text-green-600">{{ tier.dailyRate }}%</div>
@@ -464,15 +465,15 @@
 											<div class="space-y-1 text-xs">
 												<div class="flex justify-between">
 													<span class="text-slate-600">投资金额</span>
-													<span class="font-medium text-slate-900">{{ tier.minAmount }} {{ productForm.currency }}</span>
+													<span class="font-medium text-slate-900">{{ tier.minAmount }} USDT</span>
 												</div>
 												<div class="flex justify-between">
 													<span class="text-slate-600">日收益</span>
-													<span class="font-medium text-green-600">{{ (tier.minAmount * tier.dailyRate / 100).toFixed(2) }} {{ productForm.currency }}</span>
+											<span class="font-medium text-green-600">{{ (tier.minAmount * tier.dailyRate / 100).toFixed(2) }} USDT</span>
 												</div>
 												<div class="flex justify-between">
 													<span class="text-slate-600">{{ previewYieldDays }}天收益</span>
-													<span class="font-semibold text-green-600">{{ (tier.minAmount * tier.dailyRate / 100 * previewYieldDays).toFixed(2) }} {{ productForm.currency }}</span>
+											<span class="font-semibold text-green-600">{{ (tier.minAmount * tier.dailyRate / 100 * previewYieldDays).toFixed(2) }} USDT</span>
 												</div>
 											</div>
 										</div>
@@ -491,7 +492,11 @@
 								<div class="bg-white border border-slate-200 rounded-xl p-4 space-y-2 text-xs text-slate-600">
 									<div class="flex items-start gap-2">
 										<span class="text-blue-600 mt-0.5">•</span>
-										<span>单用户最大持仓：{{ productForm.limitAmount }} {{ productForm.currency }}</span>
+										<span>单用户最大持仓：{{ productForm.limitAmount }} USDT</span>
+									</div>
+									<div class="flex items-start gap-2">
+										<span class="text-blue-600 mt-0.5">•</span>
+										<span>产品总限额：{{ productForm.limitCount }} USDT</span>
 									</div>
 									<div class="flex items-start gap-2">
 										<span class="text-blue-600 mt-0.5">•</span>

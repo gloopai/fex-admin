@@ -126,7 +126,7 @@ const durationLabel = computed(() => formatAiQuantDurationLabel(product.value?.d
           >
             <dt class="text-[11px] font-medium uppercase tracking-wide text-white/40">锁定规模</dt>
             <dd class="mt-1 text-sm font-semibold tabular-nums text-white/90">
-              {{ product.totalLocked }} {{ product.currency }}
+              {{ product.totalLocked }} USDT
             </dd>
           </div>
           <div v-if="product.totalOrders != null" class="rounded-xl border border-white/[0.06] bg-black/25 px-3 py-3 sm:px-4">
@@ -136,7 +136,7 @@ const durationLabel = computed(() => formatAiQuantDurationLabel(product.value?.d
           <div v-if="product.totalYield != null" class="rounded-xl border border-white/[0.06] bg-black/25 px-3 py-3 sm:px-4">
             <dt class="text-[11px] font-medium uppercase tracking-wide text-white/40">累计收益</dt>
             <dd class="mt-1 text-sm font-semibold tabular-nums text-emerald-200/90">
-              {{ product.totalYield }} {{ product.currency }}
+              {{ product.totalYield }} USDT
             </dd>
           </div>
         </dl>
@@ -156,7 +156,7 @@ const durationLabel = computed(() => formatAiQuantDurationLabel(product.value?.d
             >
               <span>档位</span>
               <span class="text-center">参考年化</span>
-              <span class="text-right">区间（{{ product.currency }}）</span>
+              <span class="text-right">区间（USDT）</span>
             </div>
             <ul class="divide-y divide-white/[0.06]">
               <li
@@ -169,7 +169,7 @@ const durationLabel = computed(() => formatAiQuantDurationLabel(product.value?.d
                   {{ aiQuantAnnualFromDailyPct(t.dailyRate).toFixed(2) }}%
                 </span>
                 <span class="text-sm tabular-nums text-white/50 sm:text-right">
-                  {{ t.minAmount }} – {{ t.maxAmount }} {{ product.currency }}
+                  {{ t.minAmount }} – {{ t.maxAmount }} USDT
                 </span>
               </li>
             </ul>
@@ -199,11 +199,11 @@ const durationLabel = computed(() => formatAiQuantDurationLabel(product.value?.d
             </li>
             <li v-if="product.limitAmount" class="flex gap-3">
               <span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-white/35" aria-hidden="true" />
-              <span>单用户持仓上限约 {{ product.limitAmount }} {{ product.currency }}</span>
+              <span>单用户持仓上限约 {{ product.limitAmount }} USDT</span>
             </li>
             <li v-if="product.limitCount != null" class="flex gap-3">
               <span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-white/35" aria-hidden="true" />
-              <span>总申购笔数上限 {{ product.limitCount }}</span>
+              <span>产品总限额 {{ product.limitCount }} USDT</span>
             </li>
             <li v-if="product.monthlyLimitCount != null" class="flex gap-3">
               <span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-white/35" aria-hidden="true" />

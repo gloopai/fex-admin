@@ -580,7 +580,7 @@ const rentSubmitValid = computed(() => {
                         <span class="text-right tabular-nums text-white/70">{{ cycleLabel(row.product) }}</span>
                         <span class="text-white/35">区间</span>
                         <span class="text-right tabular-nums text-white/70">{{
-                          formatAmountSpan(row.tier.minAmount, row.tier.maxAmount, row.product.currency)
+                          formatAmountSpan(row.tier.minAmount, row.tier.maxAmount, 'USDT')
                         }}</span>
                         <span class="text-white/35">日收益</span>
                         <span class="text-right font-semibold tabular-nums text-lime-300/90">{{ row.tier.dailyRate }}%</span>
@@ -593,7 +593,7 @@ const rentSubmitValid = computed(() => {
                 {{ cycleLabel(row.product) }}
               </td>
               <td class="hidden px-3 py-2.5 tabular-nums text-white/70 md:table-cell md:px-5">
-                {{ formatAmountSpan(row.tier.minAmount, row.tier.maxAmount, row.product.currency) }}
+                {{ formatAmountSpan(row.tier.minAmount, row.tier.maxAmount, 'USDT') }}
               </td>
               <td class="hidden px-3 py-2.5 font-semibold tabular-nums text-lime-300/95 md:table-cell md:px-5">
                 {{ row.tier.dailyRate }}%
@@ -1102,11 +1102,7 @@ const rentSubmitValid = computed(() => {
                 <dt class="shrink-0 text-white/45">金额</dt>
                 <dd class="text-right tabular-nums text-white">
                   {{
-                    formatTierAmountPlain(
-                      rentRow.tier.minAmount,
-                      rentRow.tier.maxAmount,
-                      rentRow.product.currency
-                    )
+                    formatTierAmountPlain(rentRow.tier.minAmount, rentRow.tier.maxAmount, 'USDT')
                   }}
                 </dd>
               </div>
@@ -1160,7 +1156,7 @@ const rentSubmitValid = computed(() => {
               v-if="rentRow && !rentSubmitValid && parsedRentAmount > 0"
               class="mt-3 text-xs leading-relaxed text-amber-200/90"
             >
-              请输入档位允许区间（{{ rentRow.tier.minAmount }} – {{ rentRow.tier.maxAmount }}）内且不超过可用余额的金额。
+              请输入档位允许区间（{{ rentRow.tier.minAmount }} – {{ rentRow.tier.maxAmount }} USDT）内且不超过可用余额的金额。
             </p>
             <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <button type="button" :class="fx.btnGhost" @click="closeRentDialog">
