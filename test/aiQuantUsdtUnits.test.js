@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import * as aiQuantConstants from '../src/admin/constants/aiQuant.js'
 
 const adminProductSource = readFileSync(
   new URL('../src/pages/admin/aiQuant/AiQuantProductPage.vue', import.meta.url),
@@ -56,4 +57,29 @@ test('AI quant mock products use coherent USDT subscription ranges and monetary 
     assert.ok(userLimit >= highestTierAmount, `${id} user limit must cover its highest tier`)
     assert.ok(totalLimit >= userLimit, `${id} product total must cover its user limit`)
   }
+})
+
+test('AI quant products sort by descending configured order and keep missing values last', () => {
+  assert.equal(typeof aiQuantConstants.sortAiQuantProducts, 'function')
+
+  const products = [
+    { id: 'missing' },
+    { id: 'later', sortOrder: 30 },
+    { id: 'first', sortOrder: 10 },
+    { id: 'same', sortOrder: 30 }
+  ]
+
+  assert.deepEqual(
+    aiQuantConstants.sortAiQuantProducts(products).map((product) => product.id),
+    ['later', 'same', 'first', 'missing']
+  )
+  assert.deepEqual(products.map((product) => product.id), ['missing', 'later', 'first', 'same'])
+})
+
+test('AI quant product editor exposes numeric sort order beside product status', () => {
+  assert.match(adminProductSource, /v-model\.number="productForm\.sortOrder"/)
+  assert.match(adminProductSource, /产品状态[\s\S]*产品排序/)
+  assert.match(adminProductSource, /sortAiQuantProducts/)
+  assert.match(frontListSource, /sortAiQuantProducts/)
+  assert.match(mockCatalogSource, /sortOrder:/)
 })

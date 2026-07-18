@@ -13,6 +13,7 @@ import {
 export const createAiQuantProductsMock = () => [
   {
     id: 'aiq-prod-001',
+    sortOrder: 90,
     name: 'BTC 智能量化基金 A',
     currency: 'BTC',
     icon: '₿',
@@ -40,6 +41,7 @@ export const createAiQuantProductsMock = () => [
   },
   {
     id: 'aiq-prod-002',
+    sortOrder: 80,
     name: 'ETH 稳健量化策略',
     currency: 'ETH',
     icon: 'Ξ',
@@ -67,6 +69,7 @@ export const createAiQuantProductsMock = () => [
   },
   {
     id: 'aiq-prod-003',
+    sortOrder: 70,
     name: 'USDT 高频量化套利',
     currency: 'USDT',
     icon: '₮',
@@ -94,6 +97,7 @@ export const createAiQuantProductsMock = () => [
   },
   {
     id: 'aiq-prod-004',
+    sortOrder: 60,
     name: 'BNB 智能网格策略',
     currency: 'BNB',
     icon: 'BNB',
@@ -120,6 +124,7 @@ export const createAiQuantProductsMock = () => [
   },
   {
     id: 'aiq-prod-005',
+    sortOrder: 50,
     name: 'SOL 均衡增长基金',
     currency: 'SOL',
     icon: 'SOL',
@@ -145,6 +150,7 @@ export const createAiQuantProductsMock = () => [
   },
   {
     id: 'aiq-prod-006',
+    sortOrder: 40,
     name: 'DOGE 社区量化计划',
     currency: 'DOGE',
     icon: 'Ð',
@@ -171,6 +177,7 @@ export const createAiQuantProductsMock = () => [
   },
   {
     id: 'aiq-prod-007',
+    sortOrder: 30,
     name: 'XRP 跨境套利策略',
     currency: 'XRP',
     icon: '✕',
@@ -196,6 +203,7 @@ export const createAiQuantProductsMock = () => [
   },
   {
     id: 'aiq-prod-008',
+    sortOrder: 20,
     name: 'TRX 能量质押量化',
     currency: 'TRX',
     icon: 'TRX',
@@ -222,6 +230,7 @@ export const createAiQuantProductsMock = () => [
   /** 与 aiq-prod-003 区分：USDC Tab 下仍有可提前赎回产品（003 为不可提前赎回对照） */
   {
     id: 'aiq-prod-009',
+    sortOrder: 10,
     name: 'USDT 稳健托管（可提前赎回）',
     currency: 'USDT',
     icon: '₮',

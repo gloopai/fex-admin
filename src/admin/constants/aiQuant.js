@@ -116,6 +116,24 @@ export const currencyMeta = {
   SOL: { symbol: 'SOL', name: 'Solana', decimals: 4 }
 }
 
+export function sortAiQuantProducts(products = []) {
+  const sortValue = (product) => {
+    const raw = product?.sortOrder
+    if (raw === '' || raw == null) return null
+    const value = Number(raw)
+    return Number.isFinite(value) ? value : null
+  }
+
+  return [...products].sort((a, b) => {
+    const aValue = sortValue(a)
+    const bValue = sortValue(b)
+    if (aValue == null && bValue == null) return 0
+    if (aValue == null) return 1
+    if (bValue == null) return -1
+    return bValue - aValue
+  })
+}
+
 // 运营模式
 export const OPERATION_MODE = {
   REAL_HEDGE: 'real_hedge',

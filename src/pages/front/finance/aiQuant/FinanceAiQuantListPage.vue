@@ -19,7 +19,8 @@ import {
   SETTLEMENT_PERIOD,
   settlementPeriodMeta,
   formatAiQuantDurationLabel,
-  adjustmentTypeMeta
+  adjustmentTypeMeta,
+  sortAiQuantProducts
 } from '../../../../admin/constants/aiQuant'
 
 const prefix = '/front'
@@ -56,7 +57,7 @@ function productCurrencyMatchesTab(productCurrency, tab) {
 }
 
 const productsForTab = computed(() =>
-  products.value.filter((p) => productCurrencyMatchesTab(p.currency, currencyTab.value))
+  sortAiQuantProducts(products.value.filter((p) => productCurrencyMatchesTab(p.currency, currencyTab.value)))
 )
 
 const vipBadgeRing = [

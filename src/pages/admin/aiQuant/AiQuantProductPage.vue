@@ -312,12 +312,18 @@
 								</div>
 							</div>
 
-							<!-- 产品状态 -->
-							<div>
-								<label class="block text-sm font-medium text-slate-700 mb-1">产品状态</label>
-								<select v-model="productForm.status" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
-									<option v-for="(meta, key) in productStatusMeta" :key="key" :value="key">{{ meta.label }}</option>
-								</select>
+							<!-- 产品状态与排序 -->
+							<div class="grid grid-cols-2 gap-4">
+								<div>
+									<label class="block text-sm font-medium text-slate-700 mb-1">产品状态</label>
+									<select v-model="productForm.status" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+										<option v-for="(meta, key) in productStatusMeta" :key="key" :value="key">{{ meta.label }}</option>
+									</select>
+								</div>
+								<div>
+									<label class="block text-sm font-medium text-slate-700 mb-1">产品排序</label>
+									<input v-model.number="productForm.sortOrder" type="number" placeholder="数字越大越靠前" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+								</div>
 							</div>
 						</div>
 
@@ -552,7 +558,8 @@ import {
 	productFormSettlementPeriodMeta,
 	SETTLEMENT_PERIOD,
 	OPERATION_MODE,
-	VIP_LEVEL
+	VIP_LEVEL,
+	sortAiQuantProducts
 } from '../../../admin/constants/aiQuant'
 import {
 	AI_QUANT_OP_ACTION,
@@ -585,6 +592,7 @@ const productForm = reactive({
 	limitAmount: 100000,
 	limitCount: 100,
 	monthlyLimitCount: 5,
+	sortOrder: 0,
 	status: PRODUCT_STATUS.ENABLED
 })
 
@@ -603,6 +611,7 @@ const openCreateProduct = () => {
 	productForm.limitAmount = 100000
 	productForm.limitCount = 100
 	productForm.monthlyLimitCount = 5
+	productForm.sortOrder = 0
 	productForm.status = PRODUCT_STATUS.ENABLED
 	productModalTab.value = 'config'
 	showProductModal.value = true
@@ -625,6 +634,7 @@ const openEditProduct = (product) => {
 	productForm.limitAmount = product.limitAmount
 	productForm.limitCount = product.limitCount
 	productForm.monthlyLimitCount = product.monthlyLimitCount
+	productForm.sortOrder = Number.isFinite(Number(product.sortOrder)) ? Number(product.sortOrder) : 0
 	productForm.status = product.status
 	productModalTab.value = 'config'
 	showProductModal.value = true
@@ -718,13 +728,13 @@ const copyProductId = async (productId) => {
 
 const filteredProducts = computed(() => {
 	const kw = search.value.trim().toLowerCase()
-	return products.value.filter(p => {
+	return sortAiQuantProducts(products.value.filter(p => {
 		const matchStatus = statusFilter.value === COMMON_FILTER_ALL || p.status === statusFilter.value
 		const matchCurrency = currencyFilter.value === COMMON_FILTER_ALL || p.currency === currencyFilter.value
 		const matchMode = modeFilter.value === COMMON_FILTER_ALL || p.operationMode === modeFilter.value
 		const matchKeyword = !kw || `${p.name} ${p.currency}`.toLowerCase().includes(kw)
 		return matchStatus && matchCurrency && matchMode && matchKeyword
-	})
+	}))
 })
 
 const {
