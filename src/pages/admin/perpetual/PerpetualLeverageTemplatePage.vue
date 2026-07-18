@@ -107,8 +107,8 @@ const addCustomLeverage = () => {
   }
 
   const value = Number(customLeverageInput.value)
-  if (!Number.isInteger(value) || value < 1 || value > 150) {
-    customLeverageError.value = '请输入 1–150 的正整数'
+  if (!Number.isInteger(value) || value < 1 || value > 1000) {
+    customLeverageError.value = '请输入 1–1000 的正整数'
     return
   }
   if (selectedLeverages.value.includes(value)) {
@@ -380,11 +380,11 @@ const submitTemplate = () => {
                   v-model="customLeverageInput"
                   type="number"
                   min="1"
-                  max="150"
+                  max="1000"
                   step="1"
                   class="ant-input pr-8"
                   :class="customLeverageError ? '!border-rose-400' : ''"
-                  placeholder="请输入 1–150"
+                  placeholder="请输入 1–1000"
                   @input="customLeverageError = ''"
                   @keyup.enter="addCustomLeverage"
                 />

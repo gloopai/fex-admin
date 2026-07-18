@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- Accept only positive integers from `1` through `150` inclusive.
+- Accept only positive integers from `1` through `1000` inclusive.
 - Duplicate and out-of-range submissions must show explicit Chinese error messages and must not modify the selection.
 - Successful additions must clear the input and keep `selectedLeverages` numerically sorted.
 - Both click and Enter submission must work in create and edit modes.
@@ -44,9 +44,9 @@ test('perpetual leverage template editor supports validated custom leverage leve
   assert.match(source, /customLeverageError/)
   assert.match(source, /const addCustomLeverage = \(\) =>/)
   assert.match(source, /Number\.isInteger\(value\)/)
-  assert.match(source, /value < 1 \|\| value > 150/)
+  assert.match(source, /value < 1 \|\| value > 1000/)
   assert.match(source, /请输入杠杆倍数/)
-  assert.match(source, /请输入 1–150 的正整数/)
+  assert.match(source, /请输入 1–1000 的正整数/)
   assert.match(source, /该杠杆档位已存在/)
   assert.match(source, /@keyup\.enter="addCustomLeverage"/)
   assert.match(source, /@click="addCustomLeverage"/)
@@ -80,8 +80,8 @@ const addCustomLeverage = () => {
   }
 
   const value = Number(customLeverageInput.value)
-  if (!Number.isInteger(value) || value < 1 || value > 150) {
-    customLeverageError.value = '请输入 1–150 的正整数'
+  if (!Number.isInteger(value) || value < 1 || value > 1000) {
+    customLeverageError.value = '请输入 1–1000 的正整数'
     return
   }
   if (selectedLeverages.value.includes(value)) {
@@ -115,11 +115,11 @@ Place this block below the preset-level grid:
         v-model="customLeverageInput"
         type="number"
         min="1"
-        max="150"
+        max="1000"
         step="1"
         class="ant-input pr-8"
         :class="customLeverageError ? '!border-rose-400' : ''"
-        placeholder="请输入 1–150"
+        placeholder="请输入 1–1000"
         @input="customLeverageError = ''"
         @keyup.enter="addCustomLeverage"
       />
@@ -168,4 +168,3 @@ Expected: Vite production build exits with status 0.
 git add src/pages/admin/perpetual/PerpetualLeverageTemplatePage.vue test/perpetualLeverageTemplate.test.js docs/superpowers/plans/2026-07-18-leverage-template-custom-level.md
 git commit -m "feat: add custom leverage levels"
 ```
-
