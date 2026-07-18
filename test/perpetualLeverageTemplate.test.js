@@ -74,4 +74,5 @@ test('perpetual leverage template editor supports validated custom leverage leve
   assert.match(source, /@keyup\.enter="addCustomLeverage"/)
   assert.match(source, /@click="addCustomLeverage"/)
   assert.match(source, /@click="toggleLeverage\(lv\)"/)
+  assert.match(source, /<span aria-hidden="true">−<\/span>/)
 })

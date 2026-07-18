@@ -414,7 +414,7 @@ const submitTemplate = () => {
                 :aria-label="`移除 ${lv}x 杠杆档位`"
                 @click="toggleLeverage(lv)"
               >
-                <span>{{ lv }}x</span><span aria-hidden="true">×</span>
+                <span>{{ lv }}x</span><span aria-hidden="true">−</span>
               </button>
             </div>
             <p v-else class="mt-2 text-sm text-slate-500">暂无选择任何档位</p>
