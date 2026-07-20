@@ -89,6 +89,7 @@ export const navTree = [
     icon: 'wallet',
     children: [
       { title: '币种管理', path: '/admin/assets/currencies' },
+      { title: '公共收款地址', path: '/admin/assets/public-deposit-addresses' },
       { title: '交易对管理', path: '/admin/spot/symbols' },
       { title: '手动归集', path: '/admin/assets/manual-collect' },
       { title: '归集记录', path: '/admin/assets/collect-records' },

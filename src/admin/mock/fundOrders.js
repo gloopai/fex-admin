@@ -1,4 +1,4 @@
-import { usersList } from './user'
+import { usersList } from './user.js'
 
 export const FUND_ORDER_FILTER_ALL = 'all'
 
@@ -258,10 +258,59 @@ export const fundOrderApi = {
     }
     return Promise.resolve({ success: false, message: '当前状态不支持该操作' })
   },
-  updateDepositOrder(id, action, note = '', chainEventId = '') {
+  updateDepositOrder(id, action, note = '', chainEventId = '', manualConfirmation = null) {
     const order = depositOrders.find((item) => item.id === id)
     if (!order) return Promise.resolve({ success: false, message: '入金单不存在' })
     if (action === 'credit' && order.status === DEPOSIT_ORDER_STATUS.REVIEW) {
+      if (manualConfirmation && typeof manualConfirmation === 'object') {
+        const txHash = String(manualConfirmation.txHash || '').trim()
+        const fromAddress = String(manualConfirmation.fromAddress || '').trim()
+        const amount = Number(manualConfirmation.amount)
+        if (!txHash) return Promise.resolve({ success: false, message: '请输入 TxHash' })
+        if (!fromAddress) return Promise.resolve({ success: false, message: '请输入付款地址' })
+        if (!Number.isFinite(amount) || amount <= 0) {
+          return Promise.resolve({ success: false, message: '实际到账金额必须大于 0' })
+        }
+        const normalizedTxHash = txHash.toLowerCase()
+        const txHashUsed = chainDepositEvents.some(
+          (item) => String(item.txHash || '').trim().toLowerCase() === normalizedTxHash
+        ) || depositOrders.some(
+          (item) => item.id !== order.id && String(item.txHash || '').trim().toLowerCase() === normalizedTxHash
+        )
+        if (txHashUsed) return Promise.resolve({ success: false, message: '该 TxHash 已被使用' })
+
+        const now = new Date().toISOString()
+        const event = {
+          id: `manual_dp_${Date.now()}`,
+          chain: order.network,
+          network: order.network,
+          txHash,
+          fromAddress,
+          toAddress: order.toAddress,
+          coin: order.coin,
+          amount,
+          usdtValue: order.amount > 0 ? amount * (order.usdtValue / order.amount) : amount,
+          confirmations: order.requiredConfirmations,
+          requiredConfirmations: order.requiredConfirmations,
+          blockTime: now,
+          listenTime: now,
+          status: CHAIN_DEPOSIT_EVENT_STATUS.LINKED,
+          linkedOrderId: order.id,
+          source: 'manual'
+        }
+        chainDepositEvents.push(event)
+        order.status = DEPOSIT_ORDER_STATUS.CREDITED
+        order.creditedTime = now
+        order.operator = 'admin_current'
+        order.auditNote = note || '人工录入链上交易信息，确认入账'
+        order.linkedChainEventId = event.id
+        order.txHash = event.txHash
+        order.fromAddress = event.fromAddress
+        order.confirmations = event.confirmations
+        order.linkedChainEvent = clone(event)
+        return Promise.resolve({ success: true, message: '入金审核已人工确认入账' })
+      }
+
       const event = chainDepositEvents.find((item) => item.id === chainEventId)
       if (!event) return Promise.resolve({ success: false, message: '请先选择一条未确认链上通知记录' })
       if (event.status !== CHAIN_DEPOSIT_EVENT_STATUS.UNCONFIRMED) return Promise.resolve({ success: false, message: '该链上通知记录已被处理' })

@@ -23,6 +23,12 @@ const chainEventKeyword = ref('')
 const chainEvents = ref([])
 const selectedChainEventId = ref('')
 const loadingChainEvents = ref(false)
+const confirmationMode = ref('chain')
+const manualConfirmation = reactive({
+  txHash: '',
+  fromAddress: '',
+  amount: ''
+})
 const actionType = ref('')
 const actionNote = ref('')
 const previewVoucher = ref(null)
@@ -84,6 +90,7 @@ function eventConfirmationClass(event) {
 }
 
 function matchText(order) {
+  if (order.linkedChainEvent?.source === 'manual') return '人工确认'
   if (order.linkedChainEventId) return '已关联链上通知'
   if (order.status === DEPOSIT_ORDER_STATUS.REJECTED) return '无需关联'
   return '待人工选择'
@@ -143,6 +150,8 @@ function openDetail(order) {
   actionNote.value = ''
   selectedChainEventId.value = ''
   chainEventKeyword.value = ''
+  confirmationMode.value = 'chain'
+  Object.assign(manualConfirmation, { txHash: '', fromAddress: '', amount: '' })
   loadChainEvents()
 }
 
@@ -151,6 +160,8 @@ function closeDetail() {
   chainEvents.value = []
   selectedChainEventId.value = ''
   chainEventKeyword.value = ''
+  confirmationMode.value = 'chain'
+  Object.assign(manualConfirmation, { txHash: '', fromAddress: '', amount: '' })
   actionType.value = ''
   actionNote.value = ''
 }
@@ -204,9 +215,25 @@ async function loadChainEvents() {
 
 async function submitAction(action) {
   if (!selectedOrder.value) return
-  if (action === 'credit' && !selectedChainEventId.value) {
-    showToast('确认入账前请选择一条未确认链上通知记录', 'error')
-    return
+  if (action === 'credit') {
+    if (confirmationMode.value === 'chain' && !selectedChainEventId.value) {
+      showToast('确认入账前请选择一条未确认链上通知记录', 'error')
+      return
+    }
+    if (confirmationMode.value === 'manual') {
+      if (!manualConfirmation.txHash.trim()) {
+        showToast('请输入 TxHash', 'error')
+        return
+      }
+      if (!manualConfirmation.fromAddress.trim()) {
+        showToast('请输入付款地址', 'error')
+        return
+      }
+      if (!Number.isFinite(Number(manualConfirmation.amount)) || Number(manualConfirmation.amount) <= 0) {
+        showToast('实际到账金额必须大于 0', 'error')
+        return
+      }
+    }
   }
   if (action === 'reject' && !actionNote.value.trim()) {
     showToast('驳回入金审核时必须填写原因', 'error')
@@ -216,13 +243,21 @@ async function submitAction(action) {
     selectedOrder.value.id,
     action,
     actionNote.value.trim(),
-    selectedChainEventId.value
+    confirmationMode.value === 'chain' ? selectedChainEventId.value : '',
+    action === 'credit' && confirmationMode.value === 'manual'
+      ? {
+          txHash: manualConfirmation.txHash.trim(),
+          fromAddress: manualConfirmation.fromAddress.trim(),
+          amount: Number(manualConfirmation.amount)
+        }
+      : null
   )
   showToast(res.message, res.success ? 'success' : 'error')
   if (res.success) {
     actionType.value = ''
     actionNote.value = ''
     selectedChainEventId.value = ''
+    Object.assign(manualConfirmation, { txHash: '', fromAddress: '', amount: '' })
     await loadList()
     const latest = rows.value.find((item) => item.id === selectedOrder.value.id)
     if (latest) selectedOrder.value = latest
@@ -416,57 +451,101 @@ onMounted(loadList)
               </div>
 
               <div v-if="canProcessSelectedOrder" class="rounded-xl border border-slate-200 p-4">
-                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <p class="text-sm font-semibold text-slate-900">未确认链上通知记录</p>
-                    <p class="mt-1 text-sm text-slate-500">请选择一条与凭证、币种、网络和平台地址一致的链上通知记录。</p>
+                <div class="flex rounded-lg bg-slate-100 p-1">
+                  <button
+                    type="button"
+                    class="flex-1 rounded-md px-3 py-2 text-sm font-medium transition"
+                    :class="confirmationMode === 'chain' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'"
+                    @click="confirmationMode = 'chain'; actionType = ''"
+                  >
+                    选择链上通知
+                  </button>
+                  <button
+                    type="button"
+                    class="flex-1 rounded-md px-3 py-2 text-sm font-medium transition"
+                    :class="confirmationMode === 'manual' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'"
+                    @click="confirmationMode = 'manual'; actionType = ''"
+                  >
+                    手动输入确认
+                  </button>
+                </div>
+
+                <div v-if="confirmationMode === 'chain'" class="mt-4">
+                  <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p class="text-sm font-semibold text-slate-900">未确认链上通知记录</p>
+                      <p class="mt-1 text-sm text-slate-500">请选择一条与凭证、币种、网络和平台地址一致的链上通知记录。</p>
+                    </div>
+                    <div class="flex gap-2">
+                      <input
+                        v-model="chainEventKeyword"
+                        type="text"
+                        placeholder="搜索 TxHash / 地址 / 金额"
+                        class="h-9 w-56 rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs outline-none focus:border-blue-500"
+                        @keyup.enter="loadChainEvents"
+                      />
+                      <button type="button" class="ant-btn" @click="loadChainEvents">查询</button>
+                    </div>
                   </div>
-                  <div class="flex gap-2">
-                    <input
-                      v-model="chainEventKeyword"
-                      type="text"
-                      placeholder="搜索 TxHash / 地址 / 金额"
-                      class="h-9 w-56 rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs outline-none focus:border-blue-500"
-                      @keyup.enter="loadChainEvents"
-                    />
-                    <button type="button" class="ant-btn" @click="loadChainEvents">查询</button>
+
+                  <div class="mt-3 max-h-[420px] space-y-2 overflow-y-auto pr-1">
+                    <div v-if="loadingChainEvents" class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-4 text-center text-sm text-slate-500">加载链上通知记录...</div>
+                    <template v-else>
+                      <label
+                        v-for="event in chainEvents"
+                        :key="event.id"
+                        class="block cursor-pointer rounded-xl border p-3 transition"
+                        :class="selectedChainEventId === event.id ? 'border-blue-400 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'"
+                      >
+                        <div class="flex items-start gap-3">
+                          <input v-model="selectedChainEventId" type="radio" :value="event.id" class="mt-1" />
+                          <div class="min-w-0 flex-1">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                              <p class="font-mono text-xs text-slate-700">{{ event.txHash }}</p>
+                              <p class="text-sm font-semibold text-slate-900">{{ formatMoney(event.amount) }} {{ event.coin }}</p>
+                            </div>
+                            <div class="mt-2 grid gap-2 text-xs text-slate-500 sm:grid-cols-2">
+                              <p class="truncate">付款地址：<span class="font-mono text-slate-700">{{ event.fromAddress }}</span></p>
+                              <p class="truncate">平台地址：<span class="font-mono text-slate-700">{{ event.toAddress }}</span></p>
+                              <p>网络：{{ event.network }}</p>
+                              <p>确认数：<span :class="eventConfirmationClass(event)">{{ event.confirmations }}/{{ event.requiredConfirmations }}</span></p>
+                            </div>
+                          </div>
+                        </div>
+                      </label>
+                    </template>
+                    <div v-if="!loadingChainEvents && chainEvents.length === 0" class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-4 text-sm text-amber-700">
+                      暂无同币种、同网络、同平台地址的未确认链上通知记录。
+                    </div>
                   </div>
                 </div>
 
-                <div class="mt-3 max-h-[420px] space-y-2 overflow-y-auto pr-1">
-                  <div v-if="loadingChainEvents" class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-4 text-center text-sm text-slate-500">加载链上通知记录...</div>
-                  <template v-else>
-                    <label
-                      v-for="event in chainEvents"
-                      :key="event.id"
-                      class="block cursor-pointer rounded-xl border p-3 transition"
-                      :class="selectedChainEventId === event.id ? 'border-blue-400 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'"
-                    >
-                      <div class="flex items-start gap-3">
-                        <input v-model="selectedChainEventId" type="radio" :value="event.id" class="mt-1" />
-                        <div class="min-w-0 flex-1">
-                          <div class="flex flex-wrap items-center justify-between gap-2">
-                            <p class="font-mono text-xs text-slate-700">{{ event.txHash }}</p>
-                            <p class="text-sm font-semibold text-slate-900">{{ formatMoney(event.amount) }} {{ event.coin }}</p>
-                          </div>
-                          <div class="mt-2 grid gap-2 text-xs text-slate-500 sm:grid-cols-2">
-                            <p class="truncate">付款地址：<span class="font-mono text-slate-700">{{ event.fromAddress }}</span></p>
-                            <p class="truncate">平台地址：<span class="font-mono text-slate-700">{{ event.toAddress }}</span></p>
-                            <p>网络：{{ event.network }}</p>
-                            <p>确认数：<span :class="eventConfirmationClass(event)">{{ event.confirmations }}/{{ event.requiredConfirmations }}</span></p>
-                          </div>
-                        </div>
-                      </div>
-                    </label>
-                  </template>
-                  <div v-if="!loadingChainEvents && chainEvents.length === 0" class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-4 text-sm text-amber-700">
-                    暂无同币种、同网络、同平台地址的未确认链上通知记录。
+                <div v-else class="mt-4 space-y-4">
+                  <div class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-5 text-amber-800">
+                    人工确认将直接使用下列信息完成入账，请先与用户凭证及区块浏览器核对。
                   </div>
+                  <label class="block space-y-1.5">
+                    <span class="text-sm font-medium text-slate-700">TxHash <span class="text-rose-500">*</span></span>
+                    <input v-model="manualConfirmation.txHash" type="text" spellcheck="false" placeholder="请输入链上交易哈希" class="ant-input w-full font-mono" />
+                  </label>
+                  <label class="block space-y-1.5">
+                    <span class="text-sm font-medium text-slate-700">付款地址 <span class="text-rose-500">*</span></span>
+                    <input v-model="manualConfirmation.fromAddress" type="text" spellcheck="false" placeholder="请输入付款方链上地址" class="ant-input w-full font-mono" />
+                  </label>
+                  <label class="block space-y-1.5">
+                    <span class="text-sm font-medium text-slate-700">实际到账金额 <span class="text-rose-500">*</span></span>
+                    <div class="flex overflow-hidden rounded-md border border-slate-300 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20">
+                      <input v-model="manualConfirmation.amount" type="number" min="0" step="any" inputmode="decimal" placeholder="请输入实际到账金额" class="min-w-0 flex-1 border-0 px-3 py-2 text-sm outline-none" />
+                      <span class="flex items-center border-l border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-600">{{ selectedOrder.coin }}</span>
+                    </div>
+                  </label>
                 </div>
 
                 <div class="mt-4 border-t border-slate-200 pt-4">
                   <p class="text-sm font-semibold text-slate-900">审核处理</p>
-                  <p class="mt-1 text-sm text-slate-500">确认入账前必须选择一条未确认链上通知记录；驳回时必须填写原因。</p>
+                  <p class="mt-1 text-sm text-slate-500">
+                    {{ confirmationMode === 'manual' ? '手动确认时 TxHash、付款地址和实际到账金额均为必填；驳回时必须填写原因。' : '确认入账前必须选择一条未确认链上通知记录；驳回时必须填写原因。' }}
+                  </p>
                   <div class="mt-3 flex gap-2">
                     <button type="button" class="ant-btn ant-btn-primary" @click="actionType = 'credit'">确认入账</button>
                     <button type="button" class="ant-btn" @click="actionType = 'reject'">驳回</button>
@@ -483,7 +562,10 @@ onMounted(loadList)
 
               <div v-else class="space-y-5">
                 <div v-if="selectedOrder.linkedChainEvent" class="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4">
-                  <p class="text-sm font-semibold text-emerald-950">已关联链上通知记录</p>
+                  <div class="flex items-center justify-between gap-3">
+                    <p class="text-sm font-semibold text-emerald-950">{{ selectedOrder.linkedChainEvent.source === 'manual' ? '人工确认记录' : '已关联链上通知记录' }}</p>
+                    <span v-if="selectedOrder.linkedChainEvent.source === 'manual'" class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">人工确认</span>
+                  </div>
                   <div class="mt-3 space-y-2 text-sm">
                     <div class="flex justify-between gap-4"><span class="text-emerald-700">TxHash</span><span class="break-all text-right font-mono text-emerald-950">{{ selectedOrder.linkedChainEvent.txHash }}</span></div>
                     <div class="flex justify-between gap-4"><span class="text-emerald-700">付款地址</span><span class="break-all text-right font-mono text-emerald-950">{{ selectedOrder.linkedChainEvent.fromAddress }}</span></div>
