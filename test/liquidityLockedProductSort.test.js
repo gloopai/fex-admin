@@ -42,3 +42,13 @@ test('liquidity period inputs have visible titles with dynamic currency units', 
   assert.match(adminSource, /锁仓天数（天）[\s\S]*v-model\.number="period\.days"/)
   assert.match(adminSource, /年化收益率（%）[\s\S]*v-model\.number="period\.annualRate"/)
 })
+
+test('liquidity product editor includes a product currency select', () => {
+  assert.match(adminSource, /productCurrency:\s*'USDT'/)
+  assert.match(adminSource, /productForm\.productCurrency\s*=\s*'USDT'/)
+  assert.match(adminSource, /productForm\.productCurrency\s*=\s*product\.productCurrency\s*\?\?\s*product\.currency/)
+  assert.match(adminSource, /productCurrency:\s*productForm\.productCurrency/)
+  assert.match(adminSource, />产品品种<\/label>/)
+  assert.match(adminSource, /v-model="productForm\.productCurrency"/)
+  assert.match(adminSource, /v-model="productForm\.productCurrency"[\s\S]*v-for="curr in SUPPORTED_CURRENCIES"/)
+})

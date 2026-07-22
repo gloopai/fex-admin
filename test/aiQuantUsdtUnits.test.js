@@ -83,3 +83,12 @@ test('AI quant product editor exposes numeric sort order beside product status',
   assert.match(frontListSource, /sortAiQuantProducts/)
   assert.match(mockCatalogSource, /sortOrder:/)
 })
+
+test('AI quant product editor includes a product currency select', () => {
+  assert.match(adminProductSource, /productCurrency:\s*'USDT'/)
+  assert.match(adminProductSource, /productForm\.productCurrency\s*=\s*'USDT'/)
+  assert.match(adminProductSource, /productForm\.productCurrency\s*=\s*product\.productCurrency\s*\?\?\s*product\.currency/)
+  assert.match(adminProductSource, />产品品种<\/label>/)
+  assert.match(adminProductSource, /v-model="productForm\.productCurrency"/)
+  assert.match(adminProductSource, /v-model="productForm\.productCurrency"[\s\S]*v-for="currency in SUPPORTED_CURRENCIES"/)
+})

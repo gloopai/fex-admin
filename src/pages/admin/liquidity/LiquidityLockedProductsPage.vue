@@ -34,6 +34,7 @@ const productModalTab = ref('config')
 const productForm = reactive({
 	name: '',
 	currency: 'USDT',
+	productCurrency: 'USDT',
 	periods: [],
 	earlyRedeemEnabled: true,
 	earlyRedeemFee: 4,
@@ -51,6 +52,7 @@ const openCreateProduct = () => {
 	editingProductId.value = ''
 	productForm.name = ''
 	productForm.currency = 'USDT'
+	productForm.productCurrency = 'USDT'
 	productForm.periods = [{ days: 10, annualRate: 12, minAmount: 100, maxAmount: 5000 }]
 	productForm.earlyRedeemEnabled = true
 	productForm.earlyRedeemFee = 4
@@ -70,6 +72,7 @@ const openEditProduct = (product) => {
 	editingProductId.value = product.id
 	productForm.name = product.name
 	productForm.currency = product.currency
+	productForm.productCurrency = product.productCurrency ?? product.currency
 	productForm.periods = product.periods.map((p) => ({
 		days: p.days,
 		annualRate: lockYieldAnnualPct(p),
@@ -102,6 +105,7 @@ const saveProduct = () => {
 	const payload = {
 		name: productForm.name.trim(),
 		currency: productForm.currency,
+		productCurrency: productForm.productCurrency,
 		icon: productForm.currency === 'USDT' ? '₮' : productForm.currency === 'BTC' ? '₿' : productForm.currency === 'ETH' ? 'Ξ' : productForm.currency,
 		periods: productForm.periods.map((p) => ({
 			days: Number(p.days),
@@ -429,13 +433,22 @@ const applyPresetDays = (days) => {
 										<div>
 											<label class="mb-1 block text-sm font-medium text-slate-700">计价币种</label>
 											<select
-												v-model="productForm.currency"
-												class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-											>
-												<option v-for="curr in SUPPORTED_CURRENCIES" :key="curr" :value="curr">{{ curr }}</option>
-											</select>
-										</div>
-										<div>
+											v-model="productForm.currency"
+											class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+										>
+											<option v-for="curr in SUPPORTED_CURRENCIES" :key="curr" :value="curr">{{ curr }}</option>
+										</select>
+									</div>
+									<div>
+										<label class="mb-1 block text-sm font-medium text-slate-700">产品品种</label>
+										<select
+											v-model="productForm.productCurrency"
+											class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+										>
+											<option v-for="curr in SUPPORTED_CURRENCIES" :key="curr" :value="curr">{{ curr }}</option>
+										</select>
+									</div>
+									<div>
 											<label class="mb-1 block text-sm font-medium text-slate-700">产品状态</label>
 											<select
 												v-model="productForm.status"
