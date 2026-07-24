@@ -28,6 +28,10 @@ const showModal = ref(false)
 const editingId = ref('')
 const activeTab = ref('base')
 const MAX_PORTFOLIO_ASSETS = 3
+const earlyRedeemModeOptions = [
+  { value: EARLY_REDEEM_MODE.FORFEIT_YIELD, label: '扣除全部收益和手续费' },
+  { value: EARLY_REDEEM_MODE.FEE_ONLY, label: '保留收益扣除手续费' }
+]
 const activeVipLevels = computed(() => getActiveVipLevels().slice().sort((a, b) => a.level - b.level))
 const supportedTradeCoins = computed(() =>
   createAssetsCoinsMock()
@@ -387,7 +391,7 @@ function statusClass(status) {
                   <label class="block"><span class="mb-1 block text-sm font-medium text-slate-700">单用户持仓上限</span><input v-model.number="productForm.userLimitAmount" type="number" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></label>
                   <label class="block"><span class="mb-1 block text-sm font-medium text-slate-700">每月申购次数</span><input v-model.number="productForm.monthlyLimitCount" type="number" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></label>
                   <label class="flex items-center gap-2 text-sm text-slate-700"><input v-model="productForm.earlyRedeemEnabled" type="checkbox" />允许提前赎回</label>
-                  <label class="block"><span class="mb-1 block text-sm font-medium text-slate-700">赎回模式</span><select v-model="productForm.earlyRedeemMode" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><option v-for="(meta, key) in earlyRedeemModeMeta" :key="key" :value="key">{{ meta.label }}</option></select></label>
+                  <label class="block"><span class="mb-1 block text-sm font-medium text-slate-700">赎回模式</span><select v-model="productForm.earlyRedeemMode" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><option v-for="option in earlyRedeemModeOptions" :key="option.value" :value="option.value">{{ option.label }}</option></select></label>
                   <label class="block"><span class="mb-1 block text-sm font-medium text-slate-700">赎回费率 %</span><input v-model.number="productForm.earlyRedeemFeePct" type="number" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></label>
                   <label class="block"><span class="mb-1 block text-sm font-medium text-slate-700">到账时间</span><select v-model="productForm.redeemArrivalMode" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><option v-for="(meta, key) in redeemArrivalModeMeta" :key="key" :value="key">{{ meta.label }}</option></select></label>
                 </div>

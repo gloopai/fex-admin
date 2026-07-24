@@ -385,6 +385,19 @@ test('portfolio admin editor exposes required configuration fields', () => {
   }
 })
 
+test('portfolio admin redeem mode select only shows two demo options', () => {
+  const source = readFileSync(
+    new URL('../src/pages/admin/portfolio/PortfolioProductPage.vue', import.meta.url),
+    'utf8'
+  )
+
+  assert.match(source, /const earlyRedeemModeOptions = \[/)
+  assert.match(source, /label: '扣除全部收益和手续费'/)
+  assert.match(source, /label: '保留收益扣除手续费'/)
+  assert.match(source, /v-for="option in earlyRedeemModeOptions"/)
+  assert.doesNotMatch(source, /v-for="\(meta, key\) in earlyRedeemModeMeta"/)
+})
+
 test('portfolio admin selects min VIP level from configured VIP levels', () => {
   const source = readFileSync(
     new URL('../src/pages/admin/portfolio/PortfolioProductPage.vue', import.meta.url),
