@@ -31,9 +31,9 @@ const generateDeliveryOrders = () => {
       code: 'BTC_OPT',
       basePrice: 67500,
       cycles: [
-        { durationSec: 30, payoutPct: 7 },
-        { durationSec: 60, payoutPct: 14 },
-        { durationSec: 120, payoutPct: 28 }
+        { durationSec: 30, payoutPct: 7, actualPayoutPct: 0.49119369 },
+        { durationSec: 60, payoutPct: 14, actualPayoutPct: 0.98238738 },
+        { durationSec: 120, payoutPct: 28, actualPayoutPct: 1.96477476 }
       ]
     },
     { 
@@ -42,9 +42,9 @@ const generateDeliveryOrders = () => {
       code: 'ETH_OPT',
       basePrice: 3520,
       cycles: [
-        { durationSec: 60, payoutPct: 10 },
-        { durationSec: 180, payoutPct: 30 },
-        { durationSec: 300, payoutPct: 50 }
+        { durationSec: 60, payoutPct: 10, actualPayoutPct: 0.70170527 },
+        { durationSec: 180, payoutPct: 30, actualPayoutPct: 2.10511582 },
+        { durationSec: 300, payoutPct: 50, actualPayoutPct: 3.50852635 }
       ]
     }
   ]
@@ -59,7 +59,9 @@ const generateDeliveryOrders = () => {
     const cycle = product.cycles[Math.floor(Math.random() * product.cycles.length)]
     
     const investAmount = Math.random() * 1000 + 10
-    const expectedPayout = investAmount * (cycle.payoutPct / 100)
+    const grossExpectedPayout = investAmount * (cycle.actualPayoutPct / 100)
+    const profitFee = grossExpectedPayout * 0.005
+    const expectedPayout = grossExpectedPayout - profitFee
     const expectedReturn = investAmount + expectedPayout
     
     const betTime = new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000)
@@ -76,7 +78,7 @@ const generateDeliveryOrders = () => {
       result = results[Math.floor(Math.random() * results.length)]
       
       if (result === DELIVERY_ORDER_RESULT.WIN) {
-        actualPayout = expectedPayout * (0.9 + Math.random() * 0.2)
+        actualPayout = expectedPayout
         actualReturn = investAmount + actualPayout
       } else {
         actualPayout = 0
@@ -104,6 +106,7 @@ const generateDeliveryOrders = () => {
       expectedPayout: Number(expectedPayout.toFixed(2)),
       expectedReturn: Number(expectedReturn.toFixed(2)),
       expectedYield: cycle.payoutPct,
+      actualPayoutPct: cycle.actualPayoutPct,
       actualPayout: Number(actualPayout.toFixed(2)),
       actualReturn: Number(actualReturn.toFixed(2)),
       actualYield: Number(((actualReturn - investAmount) / investAmount * 100).toFixed(2)),
@@ -115,7 +118,7 @@ const generateDeliveryOrders = () => {
       expiryTime: expiryTime.toISOString().replace('T', ' ').substring(0, 19),
       settleTime: settleTime ? settleTime.toISOString().replace('T', ' ').substring(0, 19) : null,
       direction: Math.random() > 0.5 ? 'CALL' : 'PUT', // CALL:看涨，PUT:看跌
-      fee: Number((investAmount * 0.001).toFixed(2))
+      fee: Number((result === DELIVERY_ORDER_RESULT.LOSS ? 0 : profitFee).toFixed(2))
     })
   }
   

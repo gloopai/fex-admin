@@ -66,7 +66,7 @@ const openCreateTemplate = () => {
   editingTemplateId.value = ''
   templateForm.name = ''
   templateForm.status = DELIVERY_STATUS.ENABLED
-  templateForm.cycles = [{ id: `cy-${Date.now()}`, durationSec: 30, payoutPct: 7 }]
+  templateForm.cycles = [{ id: `cy-${Date.now()}`, durationSec: 30, payoutPct: 7, actualPayoutPct: 0.49119369 }]
   showTemplateModal.value = true
 }
 
@@ -79,7 +79,7 @@ const openEditTemplate = (tpl) => {
 }
 
 const addCycle = () => {
-  templateForm.cycles.push({ id: `cy-${Date.now()}`, durationSec: 60, payoutPct: 10 })
+  templateForm.cycles.push({ id: `cy-${Date.now()}`, durationSec: 60, payoutPct: 10, actualPayoutPct: 0.70170527 })
 }
 
 const removeCycle = (id) => {
@@ -90,7 +90,12 @@ const saveTemplate = () => {
   const payload = {
     name: templateForm.name.trim(),
     status: templateForm.status,
-    cycles: templateForm.cycles.map((c) => ({ ...c, durationSec: Number(c.durationSec), payoutPct: Number(c.payoutPct) }))
+    cycles: templateForm.cycles.map((c) => ({
+      ...c,
+      durationSec: Number(c.durationSec),
+      payoutPct: Number(c.payoutPct),
+      actualPayoutPct: Number(c.actualPayoutPct)
+    }))
   }
 
   if (editingTemplateId.value) {
@@ -289,7 +294,7 @@ const statusClass = (status) =>
         class="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm"
       >
         <section
-          class="flex flex-col w-full max-w-4xl h-[85vh] overflow-hidden rounded-lg bg-white shadow-xl"
+          class="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl bg-white shadow-xl"
         >
           <header class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
             <div>
@@ -308,7 +313,7 @@ const statusClass = (status) =>
             <div class="space-y-6">
               <div class="grid gap-6 md:grid-cols-2">
                 <div class="space-y-1.5">
-                  <label class="text-sm text-slate-900">模板名称 <span class="text-rose-500">*</span></label>
+                  <label class="text-sm font-medium text-slate-900"><span class="text-rose-500">*</span> 模板名称</label>
                   <input
                     v-model="templateForm.name"
                     type="text"
@@ -317,124 +322,77 @@ const statusClass = (status) =>
                   />
                 </div>
                 <div class="space-y-1.5">
-                  <label class="block text-sm text-slate-900">模板状态</label>
-                  <div class="inline-flex rounded border border-slate-200 p-0.5 bg-slate-50 mt-1">
-                    <button
-                      type="button"
-                      class="px-4 py-1 text-xs rounded transition-all"
-                      :class="
-                        templateForm.status === DELIVERY_STATUS.ENABLED
-                          ? 'bg-white shadow-sm text-blue-600 font-medium'
-                          : 'text-slate-500 hover:text-slate-700'
-                      "
-                      @click="templateForm.status = DELIVERY_STATUS.ENABLED"
-                    >
-                      已启用
-                    </button>
-                    <button
-                      type="button"
-                      class="px-4 py-1 text-xs rounded transition-all"
-                      :class="
-                        templateForm.status === DELIVERY_STATUS.DISABLED
-                          ? 'bg-white shadow-sm text-blue-600 font-medium'
-                          : 'text-slate-500 hover:text-slate-700'
-                      "
-                      @click="templateForm.status = DELIVERY_STATUS.DISABLED"
-                    >
-                      已禁用
-                    </button>
-                  </div>
+                  <label class="block text-sm font-medium text-slate-900">状态</label>
+                  <select v-model="templateForm.status" class="ant-select w-full">
+                    <option :value="DELIVERY_STATUS.ENABLED">已启用</option>
+                    <option :value="DELIVERY_STATUS.DISABLED">已禁用</option>
+                  </select>
                 </div>
               </div>
 
-              <div class="space-y-4">
+              <div class="space-y-3">
                 <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <h3 class="text-sm font-semibold text-slate-900">周期明细配置</h3>
-                    <span class="rounded bg-blue-50 px-2 py-0.5 text-[10px] text-blue-600">{{ templateForm.cycles.length }} 个档位</span>
-                  </div>
+                  <h3 class="text-sm font-semibold text-slate-900">周期配置 <span class="text-rose-500">*</span></h3>
                   <button
                     type="button"
                     class="ant-btn ant-btn-sm ant-btn-primary inline-flex items-center gap-1"
                     @click="addCycle"
                   >
                     <span>+</span>
-                    <span>添加结算周期</span>
+                    <span>添加周期</span>
                   </button>
                 </div>
 
-                <div class="border border-slate-200 rounded overflow-hidden">
-                  <table class="w-full text-left border-collapse ant-table">
-                    <thead class="ant-table-thead">
-                      <tr>
-                        <th class="w-16 text-center">序号</th>
-                        <th>周期时长 (秒)</th>
-                        <th>收益率 (%)</th>
-                        <th>实时预览</th>
-                        <th class="w-20 text-center">操作</th>
-                      </tr>
-                    </thead>
-                    <tbody class="ant-table-tbody">
-                      <tr v-for="(cycle, index) in templateForm.cycles" :key="cycle.id" class="text-sm">
-                        <td class="text-center">
-                          <span class="inline-flex items-center justify-center w-6 h-6 rounded bg-slate-100 text-[10px] text-slate-500 font-bold">
-                            {{ index + 1 }}
-                          </span>
-                        </td>
-                        <td>
+                <div class="space-y-3">
+                  <article
+                    v-for="(cycle, index) in templateForm.cycles"
+                    :key="cycle.id"
+                    class="rounded-xl bg-slate-50 p-3"
+                  >
+                    <header class="mb-3 flex items-center justify-between">
+                      <div class="flex items-center gap-2 text-sm font-medium text-slate-800">
+                        <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-blue-500 text-xs font-semibold text-white">{{ index + 1 }}</span>
+                        <span>周期{{ index + 1 }}</span>
+                      </div>
+                      <button
+                        type="button"
+                        class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-300 text-xs leading-none text-slate-400 transition-colors hover:border-rose-300 hover:text-rose-500"
+                        aria-label="删除周期"
+                        @click="removeCycle(cycle.id)"
+                      >
+                        −
+                      </button>
+                    </header>
+
+                    <div class="grid gap-4 md:grid-cols-3">
+                      <label class="space-y-1.5">
+                        <span class="block text-sm font-medium text-slate-900"><span class="text-rose-500">*</span> 周期时长（秒）</span>
                           <input
                             v-model.number="cycle.durationSec"
                             type="number"
-                            class="ant-input !py-1 text-xs"
+                            min="1"
+                            class="ant-input w-full"
                           />
-                        </td>
-                        <td>
-                          <div class="relative">
-                            <input
-                              v-model.number="cycle.payoutPct"
-                              type="number"
-                              step="0.1"
-                              class="ant-input !py-1 text-xs pr-6"
-                            />
-                            <span class="absolute right-2 top-1.5 text-slate-400 text-[10px]">%</span>
-                          </div>
-                        </td>
-                        <td>
-                          <div class="flex items-center gap-2">
-                            <span class="text-xs font-semibold text-blue-600">{{ durationLabel(cycle.durationSec) }}</span>
-                            <span class="text-slate-300">/</span>
-                            <span class="text-xs font-bold text-emerald-600">{{ Number(cycle.payoutPct).toFixed(1) }}%</span>
-                          </div>
-                        </td>
-                        <td class="text-center">
-                          <button
-                            type="button"
-                            class="text-slate-400 hover:text-rose-500 transition-colors p-1 rounded hover:bg-rose-50"
-                            @click="removeCycle(cycle.id)"
-                          >
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                  <div v-if="templateForm.cycles.length === 0" class="p-8 text-center text-slate-400 text-xs italic bg-slate-50/30">
+                      </label>
+                      <label class="space-y-1.5">
+                        <span class="block text-sm font-medium text-slate-900"><span class="text-rose-500">*</span> 收益率</span>
+                        <input v-model.number="cycle.payoutPct" type="number" min="0" step="0.01" class="ant-input w-full" />
+                      </label>
+                      <label class="space-y-1.5">
+                        <span class="block text-sm font-medium text-slate-900"><span class="text-rose-500">*</span> 实际收益率</span>
+                        <input v-model.number="cycle.actualPayoutPct" type="number" min="0" step="0.00000001" class="ant-input w-full" />
+                      </label>
+                    </div>
+
+                    <div class="mt-3 flex items-center gap-4 text-xs text-slate-500">
+                      <span>{{ durationLabel(cycle.durationSec) }}</span>
+                      <span>实际：{{ Number(cycle.actualPayoutPct || 0).toFixed(4) }}%</span>
+                    </div>
+                  </article>
+                  <div v-if="templateForm.cycles.length === 0" class="rounded-xl bg-slate-50 p-8 text-center text-xs italic text-slate-400">
                     暂无配置，请点击上方按钮添加周期
                   </div>
                 </div>
-              </div>
-
-              <div class="rounded bg-blue-50/50 border border-blue-100 p-3 flex flex-wrap items-center justify-between gap-4 text-[11px]">
-                <div class="flex items-center gap-6">
-                  <span class="text-slate-600">模板名称: <span class="text-slate-900 font-semibold">{{ templateForm.name || '未填写' }}</span></span>
-                  <span class="text-slate-600">周期总数: <span class="text-blue-600 font-bold">{{ templateForm.cycles.length }}</span></span>
-                </div>
-                <p class="text-slate-400 italic flex items-center gap-1">
-                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  所有修改将在保存后立即生效
-                </p>
               </div>
             </div>
           </div>

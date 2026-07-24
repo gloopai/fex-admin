@@ -8,9 +8,9 @@ const deliveryTemplates = [
     name: '标准周期',
     status: DELIVERY_STATUS.ENABLED,
     cycles: [
-      { id: 'c1', durationSec: 30, payoutPct: 7 },
-      { id: 'c2', durationSec: 60, payoutPct: 14 },
-      { id: 'c3', durationSec: 120, payoutPct: 28 }
+      { id: 'c1', durationSec: 30, payoutPct: 7, actualPayoutPct: 0.49119369 },
+      { id: 'c2', durationSec: 60, payoutPct: 14, actualPayoutPct: 0.98238738 },
+      { id: 'c3', durationSec: 120, payoutPct: 28, actualPayoutPct: 1.96477476 }
     ]
   },
   {
@@ -18,9 +18,9 @@ const deliveryTemplates = [
     name: '快速周期',
     status: DELIVERY_STATUS.ENABLED,
     cycles: [
-      { id: 'c1', durationSec: 60, payoutPct: 10 },
-      { id: 'c2', durationSec: 180, payoutPct: 30 },
-      { id: 'c3', durationSec: 300, payoutPct: 50 }
+      { id: 'c1', durationSec: 60, payoutPct: 10, actualPayoutPct: 0.70170527 },
+      { id: 'c2', durationSec: 180, payoutPct: 30, actualPayoutPct: 2.10511582 },
+      { id: 'c3', durationSec: 300, payoutPct: 50, actualPayoutPct: 3.50852635 }
     ]
   },
   {
@@ -28,9 +28,9 @@ const deliveryTemplates = [
     name: '长线周期',
     status: DELIVERY_STATUS.DISABLED,
     cycles: [
-      { id: 'c1', durationSec: 600, payoutPct: 80 },
-      { id: 'c2', durationSec: 900, payoutPct: 120 },
-      { id: 'c3', durationSec: 1800, payoutPct: 220 }
+      { id: 'c1', durationSec: 600, payoutPct: 80, actualPayoutPct: 5.61364216 },
+      { id: 'c2', durationSec: 900, payoutPct: 120, actualPayoutPct: 8.42046324 },
+      { id: 'c3', durationSec: 1800, payoutPct: 220, actualPayoutPct: 15.43751594 }
     ]
   }
 ]
